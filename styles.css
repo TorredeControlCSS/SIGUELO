@@ -591,3 +591,24 @@ body { font-family: Arial, sans-serif; background: #f8fafc; color: #1e293b; }
         grid-template-columns: 1fr;
     }
 }
+/* FIX: Logo del calendario */
+.calendario-logo {
+    height: 60px !important;
+    width: auto !important;
+    max-width: 120px !important;
+    object-fit: contain !important;
+}
+
+/* FIX: Header del calendario */
+.calendario-header-top {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.calendario-header-title {
+    flex: 1;
+    min-width: 300px;
+}
