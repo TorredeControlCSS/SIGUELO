@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub - 8 Dashboards</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb"/>
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>📊 Dashboard Hub</h1>
+            <p>8 módulos especializados</p>
+        </header>
+
+        <div class="dashboard-grid" id="mainMenu">
+            <div class="dashboard-card" data-dashboard="1">
+                <div class="card-icon">📈</div>
+                <h3>Dashboard 1</h3>
+                <p>Tu primer dashboard</p>
+                <span class="status-badge active">Activo</span>
+            </div>
+            
+            <!-- Los otros 7 dashboards... -->
+            <div class="dashboard-card" data-dashboard="2">
+                <div class="card-icon">📊</div>
+                <h3>Dashboard 2</h3>
+                <p>Próximamente</p>
+                <span class="status-badge coming">Próximamente</span>
+            </div>
+        </div>
+
+        <div id="dashboardContainer" class="hidden">
+            <button id="backButton" class="back-btn">← Volver al Hub</button>
+            <div id="dashboardContent"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
