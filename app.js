@@ -205,8 +205,8 @@ class DashboardHub {
 
     // ========== INTERFAZ COMPLETA DEL CALENDARIO ==========
     
-    cargarInterfazCalendario(container, citasData) {
-    console.log('Inicializando interfaz del calendario con', citasData.length, 'citas');
+   cargarInterfazCalendario(container, citasData) {
+    console.log('Cargando interfaz COMPLETA del calendario con', citasData.length, 'citas');
     
     container.innerHTML = `
         <!-- Header del Calendario -->
@@ -215,7 +215,7 @@ class DashboardHub {
                 <img src="data:image/png;base64,TU_BASE64_AQUI" alt="Logo Institucional" class="calendario-logo">
                 <div class="calendario-header-title">          
                     <h1>Calendario de Citas de Proveedores - CEDIS PANAMA CSS</h1>
-                    <div class="calendario-date-info" id="calendarioCurrentDateTime">Cargando fecha...</div>
+                    <div class="calendario-date-info" id="calendarioCurrentDateTime"></div>
                 </div>
                 <div class="calendario-theme-selector">
                     <label for="calendarioThemeMode">Tema:</label>
@@ -253,150 +253,139 @@ class DashboardHub {
                 </div>
                 
                 <div class="calendario-filter-group">
-                    <label for="calendarioFiltroProveedor">Proveedor:</label>
+                    <label for="calendarioFiltroProveedor">Nombre del Proveedor:</label>
                     <select id="calendarioFiltroProveedor">
                         <option value="">Todos los proveedores</option>
                     </select>
                 </div>
                 
                 <div class="calendario-filter-group">
-                    <label for="calendarioFiltroArea">Área:</label>
+                    <label for="calendarioFiltroArea">Área Correspondiente:</label>
                     <select id="calendarioFiltroArea">
                         <option value="">Todas las áreas</option>
+                    </select>
+                </div>
+                
+                <div class="calendario-filter-group">
+                    <label for="calendarioFiltroProducto">Descripción del Producto:</label>
+                    <select id="calendarioFiltroProducto">
+                        <option value="">Todos los productos</option>
+                    </select>
+                </div>
+                
+                <div class="calendario-filter-group">
+                    <label for="calendarioFiltroEstado">Estado de la Cita:</label>
+                    <select id="calendarioFiltroEstado">
+                        <option value="">Todos los estados</option>
                     </select>
                 </div>
             </div>
 
             <!-- Botones -->
             <div class="calendario-btn-container">
-                <button class="calendario-refresh-btn" onclick="window.dashboardHub.recargarCalendario()">🔄 Actualizar</button>
-                <button class="calendario-clear-btn" onclick="window.dashboardHub.limpiarFiltrosCalendario()">🧹 Limpiar</button>
+                <button class="calendario-refresh-btn" id="calendarioRefreshBtn">🔄 Actualizar datos</button>
+                <button class="calendario-clear-btn" id="calendarioClearBtn">🧹 Limpiar Filtros</button>
             </div>
 
-            <!-- Panel de Métricas SIMPLIFICADO -->
+            <!-- Panel de Métricas -->
             <div class="calendario-metrics-panel" id="calendarioMetricsPanel">
-                <div class="calendario-metric-card">
-                    <div class="calendario-metric-value">${citasData.length}</div>
-                    <div class="calendario-metric-label">Total Citas</div>
-                </div>
-                <div class="calendario-metric-card">
-                    <div class="calendario-metric-value">${new Set(citasData.map(c => c.nombre_proveedor)).size}</div>
-                    <div class="calendario-metric-label">Proveedores</div>
-                </div>
-                <div class="calendario-metric-card">
-                    <div class="calendario-metric-value">${citasData.reduce((sum, c) => sum + (c.cantidad_pallets || 0), 0)}</div>
-                    <div class="calendario-metric-label">Pallets</div>
+                <!-- Las métricas se generarán dinámicamente -->
+            </div>
+
+            <!-- Gráfico Semanal -->
+            <div class="calendario-chart-card">
+                <h3>📊 Carga Semanal: Citas vs Pallets</h3>
+                <div class="calendario-chart-container">
+                    <canvas id="calendarioCargaSemanalChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Contenido Principal SIMPLIFICADO -->
+        <!-- Contenido Principal -->
         <div class="calendario-main-content">
+            <!-- Bloque Izquierdo: Citas del Día Seleccionado -->
             <div class="calendario-card">
-                <h2>📋 Lista de Citas (${citasData.length} total)</h2>
+                <h2>Citas del Período Seleccionado</h2>
                 <div class="calendario-citas-list" id="calendarioCitasDia">
-                    ${this.renderCitasLista(citasData)}
+                    <div class="calendario-loading">Cargando citas desde Google Sheets...</div>
                 </div>
             </div>
 
+            <!-- Bloque Derecho: Próximos Días -->
             <div class="calendario-card">
-                <h2>📊 Resumen</h2>
+                <h2>Próximos Días</h2>
                 <div class="calendario-proximas-citas" id="calendarioProximasCitas">
-                    ${this.renderResumenCitas(citasData)}
+                    <div class="calendario-empty-state">Los datos se cargarán automáticamente</div>
                 </div>
             </div>
         </div>
     `;
 
-    // Inicializar funcionalidad básica
-    this.inicializarFuncionalidadBasica(citasData);
+    // Inicializar la funcionalidad COMPLETA del calendario
+    this.inicializarCalendarioCompleto(citasData);
 }
 
-renderCitasLista(citas) {
-    if (citas.length === 0) {
-        return '<div class="calendario-empty-state">No hay citas para mostrar</div>';
-    }
-
-    return citas.slice(0, 50).map(cita => `
-        <div class="calendario-cita-item">
-            <div class="calendario-cita-header">
-                <div class="calendario-cita-hora">${cita.hora_confirmada?.substring(0,5) || '--:--'}</div>
-                <div class="calendario-fecha-cita">${cita.fecha_confirmada}</div>
-                <div class="calendario-cita-estado calendario-estado-${(cita.estado_cita || 'PENDIENTE').toLowerCase()}">
-                    ${cita.estado_cita || 'PENDIENTE'}
-                </div>
-            </div>
-            <div class="calendario-cita-proveedor">${cita.nombre_proveedor || 'Proveedor no especificado'}</div>
-            <div class="calendario-cita-detalles">
-                <div class="calendario-cita-detalle-item">
-                    <span class="calendario-detalle-label">Producto</span>
-                    <div>${cita.descripcion_producto || 'N/A'}</div>
-                </div>
-                <div class="calendario-cita-detalle-item">
-                    <span class="calendario-detalle-label">Área</span>
-                    <div>${cita.area_correspondiente || 'N/A'}</div>
-                </div>
-                <div class="calendario-cita-detalle-item">
-                    <span class="calendario-detalle-label">Pallets</span>
-                    <div>${cita.cantidad_pallets || 0}</div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-renderResumenCitas(citas) {
-    const hoy = new Date().toISOString().split('T')[0];
-    const citasHoy = citas.filter(c => c.fecha_confirmada === hoy).length;
+inicializarCalendarioCompleto(citasData) {
+    console.log('Inicializando calendario COMPLETO con', citasData.length, 'citas');
     
-    const areas = {};
-    citas.forEach(cita => {
-        const area = cita.area_correspondiente || 'Sin área';
-        areas[area] = (areas[area] || 0) + 1;
-    });
-
-    return `
-        <div style="margin-bottom: 20px;">
-            <h3 style="color: #2c3e50; margin-bottom: 10px;">📈 Estadísticas</h3>
-            <div style="display: grid; gap: 10px;">
-                <div><strong>Citas hoy:</strong> ${citasHoy}</div>
-                <div><strong>Total citas:</strong> ${citas.length}</div>
-                <div><strong>Proveedores únicos:</strong> ${new Set(citas.map(c => c.nombre_proveedor)).size}</div>
-            </div>
-        </div>
-        <div>
-            <h3 style="color: #2c3e50; margin-bottom: 10px;">🏥 Distribución por Área</h3>
-            <div style="display: grid; gap: 8px;">
-                ${Object.entries(areas).map(([area, count]) => `
-                    <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
-                        <span>${area}</span>
-                        <span style="font-weight: bold;">${count}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-inicializarFuncionalidadBasica(citasData) {
-    console.log('Inicializando funcionalidad básica del calendario');
+    // Aquí va TODO el JavaScript de tu calendario original
+    // Pero adaptado para usar los nuevos IDs con prefijo "calendario"
     
-    // Configurar fecha actual
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('calendarioFechaVisualizar').value = hoy;
-    document.getElementById('calendarioFechaInicio').value = hoy;
-    document.getElementById('calendarioFechaFin').value = hoy;
+    // Guardar los datos globalmente para el calendario
+    window.calendarioData = citasData;
     
-    // Actualizar fecha/hora
+    // Inicializar variables del calendario
+    this.calendarioCitasData = citasData;
+    this.calendarioCargaSemanalChart = null;
+    
+    // Inicializar elementos del DOM del calendario
+    this.calendarioFechaVisualizar = document.getElementById('calendarioFechaVisualizar');
+    this.calendarioFechaInicio = document.getElementById('calendarioFechaInicio');
+    this.calendarioFechaFin = document.getElementById('calendarioFechaFin');
+    this.calendarioModoVisualizacion = document.getElementById('calendarioModoVisualizacion');
+    this.calendarioFiltroProveedor = document.getElementById('calendarioFiltroProveedor');
+    this.calendarioFiltroArea = document.getElementById('calendarioFiltroArea');
+    this.calendarioFiltroProducto = document.getElementById('calendarioFiltroProducto');
+    this.calendarioFiltroEstado = document.getElementById('calendarioFiltroEstado');
+    this.calendarioCitasDia = document.getElementById('calendarioCitasDia');
+    this.calendarioProximasCitas = document.getElementById('calendarioProximasCitas');
+    this.calendarioCurrentDateTime = document.getElementById('calendarioCurrentDateTime');
+    this.calendarioThemeMode = document.getElementById('calendarioThemeMode');
+
+    // Configuración inicial de fechas
+    const hoy = new Date();
+    const haceUnaSemana = new Date();
+    haceUnaSemana.setDate(hoy.getDate() - 7);
+    
+    this.calendarioFechaVisualizar.value = hoy.toISOString().split('T')[0];
+    this.calendarioFechaInicio.value = haceUnaSemana.toISOString().split('T')[0];
+    this.calendarioFechaFin.value = hoy.toISOString().split('T')[0];
+    
+    // Actualizar fecha y hora actual
     this.actualizarFechaHoraCalendario();
     setInterval(() => this.actualizarFechaHoraCalendario(), 60000);
     
-    // Poblar filtros básicos
-    this.poblarFiltrosBasicos(citasData);
+    // Poblar filtros
+    this.poblarFiltrosCalendario();
     
-    // Configurar event listeners básicos
-    this.configurarEventListenersBasicos(citasData);
+    // Configurar event listeners
+    this.configurarEventListenersCalendario();
+    
+    // Cargar datos iniciales
+    this.calendarioCargarDatos();
+    
+    // Configurar botones
+    document.getElementById('calendarioRefreshBtn').addEventListener('click', () => {
+        this.recargarCalendario();
+    });
+    
+    document.getElementById('calendarioClearBtn').addEventListener('click', () => {
+        this.limpiarFiltrosCalendario();
+    });
 }
+
+// AGREGAR TODAS LAS FUNCIONES DE TU CALENDARIO ORIGINAL AQUÍ
+// Pero cambia los nombres para usar "calendario" como prefijo
 
 actualizarFechaHoraCalendario() {
     const now = new Date();
@@ -409,44 +398,169 @@ actualizarFechaHoraCalendario() {
         minute: '2-digit'
     };
     const dateTimeStr = now.toLocaleDateString('es-ES', options);
-    const element = document.getElementById('calendarioCurrentDateTime');
-    if (element) {
-        element.textContent = dateTimeStr;
+    if (this.calendarioCurrentDateTime) {
+        this.calendarioCurrentDateTime.textContent = dateTimeStr;
     }
 }
 
-poblarFiltrosBasicos(citasData) {
-    // Proveedores únicos
-    const proveedores = [...new Set(citasData.map(c => c.nombre_proveedor).filter(Boolean))].sort();
-    const filtroProveedor = document.getElementById('calendarioFiltroProveedor');
+poblarFiltrosCalendario() {
+    if (!this.calendarioCitasData.length) return;
     
-    proveedores.forEach(proveedor => {
+    // Obtener valores únicos para cada filtro
+    const proveedores = [...new Set(this.calendarioCitasData.map(cita => cita.nombre_proveedor).filter(Boolean))].sort();
+    const areas = [...new Set(this.calendarioCitasData.map(cita => cita.area_correspondiente).filter(Boolean))].sort();
+    const productos = [...new Set(this.calendarioCitasData.map(cita => cita.descripcion_producto).filter(Boolean))].sort();
+    const estados = [...new Set(this.calendarioCitasData.map(cita => cita.estado_cita).filter(Boolean))].sort();
+    
+    // Poblar dropdowns
+    this.poblarDropdownCalendario(this.calendarioFiltroProveedor, proveedores);
+    this.poblarDropdownCalendario(this.calendarioFiltroArea, areas);
+    this.poblarDropdownCalendario(this.calendarioFiltroProducto, productos);
+    this.poblarDropdownCalendario(this.calendarioFiltroEstado, estados);
+}
+
+poblarDropdownCalendario(dropdown, opciones) {
+    while (dropdown.options.length > 1) {
+        dropdown.remove(1);
+    }
+    
+    opciones.forEach(opcion => {
         const option = document.createElement('option');
-        option.value = proveedor;
-        option.textContent = proveedor;
-        filtroProveedor.appendChild(option);
-    });
-    
-    // Áreas únicas
-    const areas = [...new Set(citasData.map(c => c.area_correspondiente).filter(Boolean))].sort();
-    const filtroArea = document.getElementById('calendarioFiltroArea');
-    
-    areas.forEach(area => {
-        const option = document.createElement('option');
-        option.value = area;
-        option.textContent = area;
-        filtroArea.appendChild(option);
+        option.value = opcion;
+        option.textContent = opcion;
+        dropdown.appendChild(option);
     });
 }
 
-configurarEventListenersBasicos(citasData) {
-    // Modo de visualización
-    document.getElementById('calendarioModoVisualizacion').addEventListener('change', (e) => {
-        const esRango = e.target.value === 'rango';
-        document.getElementById('calendarioFechaVisualizar').style.display = esRango ? 'none' : 'block';
-        document.getElementById('calendarioFechaInicio').style.display = esRango ? 'block' : 'none';
-        document.getElementById('calendarioFechaFin').style.display = esRango ? 'block' : 'none';
+configurarEventListenersCalendario() {
+    this.calendarioModoVisualizacion.addEventListener('change', () => {
+        this.calendarioCambiarModoVisualizacion();
     });
+    
+    this.calendarioFechaVisualizar.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFechaInicio.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFechaFin.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFiltroProveedor.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFiltroArea.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFiltroProducto.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+    
+    this.calendarioFiltroEstado.addEventListener('change', () => {
+        this.calendarioCargarDatos();
+    });
+}
+
+calendarioCambiarModoVisualizacion() {
+    const modo = this.calendarioModoVisualizacion.value;
+    const esRango = modo === 'rango';
+    
+    this.calendarioFechaVisualizar.style.display = esRango ? 'none' : 'block';
+    this.calendarioFechaInicio.style.display = esRango ? 'block' : 'none';
+    this.calendarioFechaFin.style.display = esRango ? 'block' : 'none';
+    
+    this.calendarioCargarDatos();
+}
+
+calendarioCargarDatos() {
+    console.log('Cargando datos del calendario...');
+    
+    const proveedorFiltro = this.calendarioFiltroProveedor.value;
+    const areaFiltro = this.calendarioFiltroArea.value;
+    const productofiltro = this.calendarioFiltroProducto.value;
+    const estadoFiltro = this.calendarioFiltroEstado.value;
+    const modo = this.calendarioModoVisualizacion.value;
+    
+    let citasFiltradas = [];
+    let proximas = [];
+    
+    if (modo === 'dia') {
+        const fechaSeleccionada = this.calendarioFechaVisualizar.value;
+        
+        citasFiltradas = this.calendarioCitasData.filter(cita => {
+            const cumpleFecha = cita.fecha_confirmada === fechaSeleccionada;
+            const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
+            const cumpleArea = !areaFiltro || cita.area_correspondiente === areaFiltro;
+            const cumpleProducto = !productofiltro || cita.descripcion_producto === productofiltro;
+            const cumpleEstado = !estadoFiltro || cita.estado_cita === estadoFiltro;
+            
+            return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
+        });
+        
+        proximas = this.calendarioCitasData.filter(cita => {
+            const cumpleFecha = cita.fecha_confirmada > fechaSeleccionada;
+            const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
+            const cumpleArea = !areaFiltro || cita.area_correspondiente === areaFiltro;
+            const cumpleProducto = !productofiltro || cita.descripcion_producto === productofiltro;
+            const cumpleEstado = !estadoFiltro || cita.estado_cita === estadoFiltro;
+            
+            return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
+        });
+    } else {
+        citasFiltradas = this.calendarioCitasData.filter(cita => {
+            const fechaCita = cita.fecha_confirmada;
+            const cumpleFecha = fechaCita >= this.calendarioFechaInicio.value && fechaCita <= this.calendarioFechaFin.value;
+            const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
+            const cumpleArea = !areaFiltro || cita.area_correspondiente === areaFiltro;
+            const cumpleProducto = !productofiltro || cita.descripcion_producto === productofiltro;
+            const cumpleEstado = !estadoFiltro || cita.estado_cita === estadoFiltro;
+            
+            return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
+        });
+        
+        proximas = [];
+    }
+    
+    // Actualizar métricas
+    this.actualizarMetricasCalendario(citasFiltradas);
+    
+    // Renderizar citas
+    this.renderCitasCalendario(citasFiltradas, modo);
+    this.renderProximasCitasCalendario(proximas, modo);
+    
+    // Actualizar gráfico
+    this.actualizarGraficoCalendario(citasFiltradas, modo);
+}
+
+// CONTINÚA CON TODAS LAS DEMÁS FUNCIONES DE TU CALENDARIO...
+// Necesito que me des tu JavaScript completo del calendario para adaptarlo
+
+actualizarMetricasCalendario(citas) {
+    // Tu código de métricas aquí
+    console.log('Actualizando métricas con', citas.length, 'citas');
+}
+
+renderCitasCalendario(citas, modo) {
+    // Tu código de renderizado de citas aquí
+    if (citas.length === 0) {
+        this.calendarioCitasDia.innerHTML = '<div class="calendario-empty-state">No hay citas para mostrar</div>';
+        return;
+    }
+    
+    // Tu lógica de renderizado completa
+}
+
+renderProximasCitasCalendario(citas, modo) {
+    // Tu código de próximas citas aquí
+}
+
+actualizarGraficoCalendario(citas, modo) {
+    // Tu código del gráfico aquí
 }
 
 // Service Worker Registration
