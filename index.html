@@ -6,7 +6,7 @@
     <title>Dashboard de Citas - Almacén CSS</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3498db">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -21,209 +21,126 @@
             --text-secondary: #666;
             --border-color: #e1e8ed;
             --card-bg: #ffffff;
-            --shadow-soft: 0 2px 8px rgba(0,0,0,0.08);
-            --accent-color: #3498db;
-            --accent-soft: #eaf4ff;
-            --danger-color: #e74c3c;
-            --success-color: #27ae60;
-            --warning-color: #f1c40f;
-            --muted-text: #7f8c8d;
-            --badge-bg: #ecf0f1;
+            --header-bg: #ffffff;
         }
 
         [data-theme="dark"] {
-            --bg-primary: #121212;
-            --bg-secondary: #1e1e1e;
-            --text-primary: #f5f5f5;
-            --text-secondary: #cccccc;
-            --border-color: #2a2a2a;
-            --card-bg: #1e1e1e;
-            --shadow-soft: 0 2px 8px rgba(0,0,0,0.3);
-            --accent-color: #4da3ff;
-            --accent-soft: #1c2938;
-            --danger-color: #ff6b6b;
-            --success-color: #2ecc71;
-            --warning-color: #f1c40f;
-            --muted-text: #95a5a6;
-            --badge-bg: #2c3e50;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --card-bg: #2d2d2d;
+            --header-bg: #2d2d2d;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .dashboard {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 16px;
+            padding: 20px;
         }
 
         .header {
-            background: linear-gradient(135deg, #3498db, #2ecc71);
-            color: white;
+            background: var(--header-bg);
             padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        [data-theme="dark"] .header h1 {
+            color: #e9ecef;
         }
 
         .header-top {
             display: flex;
             align-items: center;
-            gap: 16px;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
         }
 
         .logo {
-            width: 65px;
-            height: 65px;
-            border-radius: 12px;
+            height: 80px;
+            width: auto;
+            max-width: 150px;
             object-fit: contain;
-            background-color: rgba(255,255,255,0.1);
-            padding: 4px;
-            box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
         }
 
         .header-title {
             flex: 1;
-            min-width: 220px;
         }
 
         .header-title h1 {
-            font-size: 20px;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .date-info {
-            font-size: 13px;
-            opacity: 0.9;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
         .theme-selector {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 12px;
-            background: rgba(0,0,0,0.2);
-            padding: 6px 10px;
-            border-radius: 999px;
-            backdrop-filter: blur(4px);
+            margin-left: auto;
         }
 
         .theme-selector label {
-            font-weight: 500;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
         }
 
         .theme-selector select {
-            border-radius: 999px;
-            border: none;
-            padding: 4px 10px;
-            font-size: 12px;
-            background: rgba(255,255,255,0.9);
-            color: #2c3e50;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .header-bottom {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .header-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .header-badge {
-            background-color: rgba(0,0,0,0.18);
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 11px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .header-badge span {
-            font-weight: 600;
-        }
-
-        .header-summary {
-            font-size: 12px;
-            max-width: 420px;
-            opacity: 0.95;
-        }
-
-        .header-summary strong {
-            font-weight: 600;
-        }
-
-        .header-summary .highlight {
-            font-weight: 700;
-            color: #ffeaa7;
+            padding: 6px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 14px;
         }
 
         .filters {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            padding: 12px;
-            margin: 14px 0;
-            box-shadow: var(--shadow-soft);
             display: grid;
-            grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr;
-            gap: 10px;
-            align-items: flex-end;
-        }
-
-        .filters-header {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .filters-header span {
-            font-size: 18px;
-        }
-
-        .filters-subtitle {
-            font-size: 11px;
-            color: var(--muted-text);
-            margin-bottom: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
         }
 
         .filter-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            font-size: 11px;
+            min-width: 0;
         }
 
         .filter-group label {
             font-weight: 600;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            margin-bottom: 3px;
+            color: #2c3e50;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .filter-group label span {
-            font-size: 16px;
+        [data-theme="dark"] .filter-group label {
+            color: #e9ecef;
         }
 
         .filter-group select,
@@ -245,6 +162,7 @@
             border-color: #3498db;
         }
 
+        /* Para el modo visualización que necesita más espacio */
         .filter-group:first-child {
             grid-column: span 1;
             min-width: 140px;
@@ -258,60 +176,52 @@
         }
 
         .card {
-            background-color: var(--card-bg);
+            background: var(--card-bg);
+            padding: 25px;
             border-radius: 10px;
-            padding: 14px;
-            box-shadow: var(--shadow-soft);
-            display: flex;
-            flex-direction: column;
-            min-height: 260px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease;
         }
 
         .card h2 {
-            font-size: 15px;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .card h2 span {
+            color: #2c3e50;
+            margin-bottom: 20px;
             font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
 
-        .card-subtitle {
-            font-size: 11px;
-            color: var(--muted-text);
-            margin-bottom: 12px;
+        [data-theme="dark"] .card h2 {
+            color: #e9ecef;
         }
 
-        .citas-list,
-        .proximas-citas {
-            flex: 1;
+        .citas-list {
+            max-height: 600px;
             overflow-y: auto;
-            padding-right: 6px;
         }
 
         .cita-item {
-            background-color: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 8px;
             border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
             cursor: pointer;
-            transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+            background: var(--card-bg);
         }
 
         .cita-item:hover {
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-            border-color: rgba(52,152,219,0.5);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .cita-item.selected {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 1px var(--accent-color);
+            border-color: #3498db;
+            background-color: #f8f9fa;
+        }
+
+        [data-theme="dark"] .cita-item.selected {
+            background-color: #1e3a5f;
         }
 
         .cita-header {
@@ -319,22 +229,78 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 8px;
-            gap: 8px;
         }
 
         .cita-hora {
-            font-weight: 700;
-            color: var(--accent-color);
+            font-weight: bold;
+            color: #2c3e50;
             font-size: 16px;
+            min-width: 60px
+        }
+
+        [data-theme="dark"] .cita-hora {
+            color: #e9ecef;
+        }
+
+        .cita-estado {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px
+        }
+
+        .estado-confirmada {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .estado-pendiente {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .estado-completada {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .estado-cancelada {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .estado-ausente {
+            background-color: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        .estado-reprogramada {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Estado ASISTIO en verde - NUEVO */
+        .estado-asistio {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+            border: 1px solid #c3e6cb !important;
         }
 
         .fecha-cita {
             font-size: 12px;
-            color: var(--muted-text);
-            background-color: rgba(0,0,0,0.02);
-            padding: 2px 8px;
-            border-radius: 999px;
-            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
         }
 
         [data-theme="dark"] .fecha-cita {
@@ -369,15 +335,24 @@
         }
 
         .detalle-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-            color: var(--muted-text);
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 9px;
             margin-bottom: 2px;
+            text-transform: uppercase;
+            width: 100%;
+            text-align: left;
         }
 
-        .detalle-valor {
-            font-size: 12px;
+        [data-theme="dark"] .detalle-label {
+            color: #adb5bd;
+        }
+
+        .cita-detalle-item > div {
+            text-align: left;
+            width: 100%;
+            font-size: 11px;
+            line-height: 1.2;
             color: var(--text-primary);
         }
 
@@ -385,84 +360,122 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
         }
 
-        .estado-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 600;
+        /* Mejor contraste para modo oscuro en segunda fila - NUEVO */
+        .cita-detalles-adicional {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
         }
 
-        .estado-programada {
-            background-color: rgba(52,152,219,0.08);
-            color: #2980b9;
-            border: 1px solid rgba(52,152,219,0.3);
+        [data-theme="dark"] .cita-detalles-adicional {
+            background: #3d3d3d !important;
+            color: #e9ecef !important;
+            border: 1px solid #495057;
         }
 
-        .estado-realizada {
-            background-color: rgba(39,174,96,0.08);
-            color: #27ae60;
-            border: 1px solid rgba(39,174,96,0.3);
+        /* Efecto hover mejorado para mejor contraste - NUEVO */
+        [data-theme="dark"] .cita-item:hover .cita-detalles-adicional {
+            background: #4a4a4a !important;
         }
 
-        .estado-pendiente {
-            background-color: rgba(241,196,15,0.08);
-            color: #d4a106;
-            border: 1px solid rgba(241,196,15,0.3);
-        }
-
-        .estado-cancelada {
-            background-color: rgba(231,76,60,0.08);
-            color: #c0392b;
-            border: 1px solid rgba(231,76,60,0.3);
-        }
-
-        .loading, .error, .empty-state {
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-
-        .loading {
-            background-color: var(--accent-soft);
-            color: var(--accent-color);
-        }
-
-        .error {
-            background-color: rgba(231,76,60,0.05);
-            color: var(--danger-color);
-            border: 1px solid rgba(231,76,60,0.4);
-        }
-
-        .empty-state {
-            background-color: rgba(127,140,141,0.05);
-            color: var(--muted-text);
-            border: 1px dashed var(--border-color);
+        .proximas-citas {
+            max-height: 600px;
+            overflow-y: auto;
         }
 
         .proxima-cita-item {
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px dashed var(--border-color);
-            margin-bottom: 6px;
-            font-size: 12px;
-            background-color: rgba(255,255,255,0.7);
+            border-left: 4px solid #3498db;
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
         }
 
         [data-theme="dark"] .proxima-cita-item {
-            background-color: rgba(0,0,0,0.2);
+            background-color: #3d3d3d;
         }
 
-        .proxima-cita-item strong {
-            display: inline-block;
-            margin-bottom: 3px;
+        .proxima-fecha {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }
+
+        [data-theme="dark"] .proxima-fecha {
+            color: #e9ecef;
+        }
+
+        .proxima-cantidad {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        [data-theme="dark"] .proxima-cantidad {
+            color: #adb5bd;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        [data-theme="dark"] .empty-state {
+            color: #adb5bd;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #3498db;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .refresh-btn, .clear-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            height: 40px;
+            white-space: nowrap;
+            transition: background-color 0.3s;
+            flex-shrink: 0;
+        }
+
+        .refresh-btn:hover {
+            background: #218838;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+        }
+
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ========== PANEL DE MÉTRICAS - 9 MÉTRICAS ========== */
 
         .metrics-panel {
             display: grid;
@@ -487,173 +500,123 @@
             text-align: center;
         }
 
+        .metric-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+        }
+
+        /* Verde/Azul (Volumen) */
+        .metric-card:nth-child(1) { background: #A7F3D0; }
+        .metric-card:nth-child(2) { background: #90DBF4; }
+
+        /* Rojo/Naranja (Alerta) */
+        .metric-card:nth-child(3) { background: #FECACA; }
+        .metric-card:nth-child(4) { background: #FFD6A5; }
+
+        /* Áreas Médicas */
+        .metric-card:nth-child(5) { background: #B9FBC0; }
+        .metric-card:nth-child(6) { background: #C7D2FE; }
+        .metric-card:nth-child(7) { background: #FDE68A; }
+        .metric-card:nth-child(8) { background: #E9D5FF; }
+        .metric-card:nth-child(9) { background: #FBCFE8; }
+
+        [data-theme="dark"] .metric-card {
+            filter: brightness(0.9);
+        }
+
         .metric-icon {
             font-size: 14px;
+            opacity: 0.8;
+            line-height: 1;
+        }
+
+        .metric-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
         }
 
         .metric-value {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 700;
+            color: #2c3e50;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .metric-label {
-            font-size: 9px;
+            font-size: 12px;
+            color: #7f8c8d;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.1px;
+            white-space: nowrap;
+            line-height: 1;
         }
 
-        [data-theme="dark"] .metric-card {
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            color: #ecf0f1;
-        }
-
-        .metric-card:nth-child(2) {
-            background: linear-gradient(135deg, #ffe082 0%, #ffcc80 100%);
-        }
-
-        .metric-card:nth-child(3) {
-            background: linear-gradient(135deg, #ffab91 0%, #ffccbc 100%);
-        }
-
-        .metric-card:nth-child(4) {
-            background: linear-gradient(135deg, #b39ddb 0%, #d1c4e9 100%);
-        }
-
-        .metric-card:nth-child(5) {
-            background: linear-gradient(135deg, #80cbc4 0%, #b2dfdb 100%);
-        }
-
-        .metric-card:nth-child(6) {
-            background: linear-gradient(135deg, #f48fb1 0%, #f8bbd0 100%);
-        }
-
-        .metric-card:nth-child(7) {
-            background: linear-gradient(135deg, #c5e1a5 0%, #dcedc8 100%);
-        }
-
-        .metric-card:nth-child(8) {
-            background: linear-gradient(135deg, #ffcc80 0%, #ffe082 100%);
-        }
-
-        .metric-card:nth-child(9) {
-            background: linear-gradient(135deg, #90caf9 0%, #bbdefb 100%);
-        }
-
+        /* Gráfico */
         .chart-card {
-            margin-top: 16px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        [data-theme="dark"] .chart-card h3 {
+            color: #e9ecef;
         }
 
         .chart-container {
+            height: 200px;
             position: relative;
-            height: 260px;
         }
 
-        .chart-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
+        /* ========== RESPONSIVE CONSOLIDADO ========== */
+
+        @media (max-width: 1400px) {
+            .metrics-panel {
+                grid-template-columns: repeat(5, 1fr);
+            }
         }
 
-        .chart-legend {
-            display: flex;
-            gap: 8px;
-            font-size: 10px;
-            color: var(--muted-text);
-            flex-wrap: wrap;
-        }
-
-        .chart-legend-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .chart-legend-color {
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-        }
-
-        .chart-legend-color.citas {
-            background-color: #3498db;
-        }
-
-        .chart-legend-color.pallets {
-            background-color: #2ecc71;
-        }
-
-        .chart-legend-color.promedio {
-            background-color: #9b59b6;
-        }
-
-        .footer-info {
-            margin-top: 10px;
-            font-size: 11px;
-            color: var(--muted-text);
-            text-align: right;
-        }
-
-        .footer-info span {
-            font-weight: 600;
-        }
-
-        .pallets-resumen {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            font-size: 11px;
-            flex-wrap: wrap;
-        }
-
-        .pallets-resumen-item {
-            background-color: rgba(0,0,0,0.02);
-            padding: 5px 8px;
-            border-radius: 999px;
-            border: 1px solid var(--border-color);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        [data-theme="dark"] .pallets-resumen-item {
-            background-color: rgba(0,0,0,0.4);
-        }
-
-        .pallets-resumen-item span.value {
-            font-weight: 600;
-        }
-
-        .badge-cadena-frio {
-            background-color: rgba(52,152,219,0.15);
-            border-color: rgba(52,152,219,0.5);
-        }
-
-        .badge-medico-quirurgico {
-            background-color: rgba(46,204,113,0.15);
-            border-color: rgba(46,204,113,0.5);
-        }
-
-        .badge-sustancias {
-            background-color: rgba(155,89,182,0.15);
-            border-color: rgba(155,89,182,0.5);
+        @media (max-width: 1200px) {
+            .metrics-panel {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         @media (max-width: 1024px) {
-            .filters {
-                grid-template-columns: repeat(3, 1fr);
-            }
-
-            .metrics-panel {
-                grid-template-columns: repeat(3, 1fr);
-            }
-
             .main-content {
                 grid-template-columns: 1fr;
             }
-
-            .chart-container {
-                height: 220px;
+            
+            .filters {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            
+            .btn-container {
+                flex-direction: column;
+            }
+            
+            .refresh-btn, .clear-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .metrics-panel {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
 
@@ -687,30 +650,134 @@
             }
             
             .logo {
-                margin: 0 auto;
+                height: 40px;
+                max-width: 120px;
             }
             
-            .header-bottom {
+            .cita-detalles {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .btn-container {
                 flex-direction: column;
+                gap: 8px;
+            }
+            
+            .refresh-btn, .clear-btn {
+                width: 100%;
+                margin: 0;
+            }
+            
+            /* MÉTRICAS EN TABLET */
+            .metrics-panel {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4px;
+            }
+            
+            .metric-card {
+                padding: 4px 6px;
+                min-height: 32px;
+            }
+            
+            .metric-value {
+                font-size: 10px;
+            }
+            
+            .chart-container {
+                height: 180px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-group label {
+                font-size: 13px;
+            }
+            
+            .filter-group select, 
+            .filter-group input {
+                font-size: 13px;
+                padding: 8px;
+            }
+            
+            .cita-detalles {
+                grid-template-columns: 1fr;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .cita-item {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+
+            /* MÉTRICAS EN MÓVILES PEQUEÑOS */
+            .metrics-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .metric-card {
+                padding: 6px 8px;
+                min-height: 35px;
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            
+            .metric-value {
+                font-size: 12px;
+            }
+            
+            .metric-content {
                 align-items: flex-start;
             }
             
-            .header-summary {
-                max-width: 100%;
+            .chart-container {
+                height: 160px;
             }
-            
-            .metrics-panel {
-                grid-template-columns: repeat(3, 1fr);
-            }
+        }
 
+        /* ========== RESPONSIVE SIMPLIFICADO Y FUNCIONAL ========== */
+
+        /* TABLETS Y MÓVILES GRANDES */
+        @media (max-width: 768px) {
+            /* Primera fila - 6 columnas */
             .cita-detalles[style*="grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr"] {
                 grid-template-columns: 1fr 1fr !important;
             }
             
+            /* Segunda fila - 5 columnas - POR CLASE ESPECÍFICA */
             .segunda-fila {
                 grid-template-columns: 1fr 1fr !important;
             }
             
+            /* Espaciado mejorado */
+            .cita-detalles {
+                gap: 8px !important;
+            }
+        }
+
+        /* MÓVILES ESTÁNDAR */
+        @media (max-width: 480px) {
+            /* Primera fila */
+            .cita-detalles[style*="grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr"] {
+                grid-template-columns: 1fr 1fr !important;
+            }
+            
+            /* Segunda fila - POR CLASE ESPECÍFICA */
+            .segunda-fila {
+                grid-template-columns: 1fr 1fr !important;
+            }
+            
+            /* Header optimizado */
             .cita-header {
                 flex-direction: column !important;
                 align-items: flex-start !important;
@@ -724,6 +791,7 @@
             }
         }
 
+        /* MÓVILES MUY PEQUEÑOS */
         @media (max-width: 360px) {
             .cita-detalles[style*="grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr"],
             .segunda-fila {
@@ -731,93 +799,40 @@
             }
         }
 
-        [data-theme="dark"] .header {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        /* ========== MEJORAS DE CONTRASTE MODO OSCURO - AGREGAR AL FINAL ========== */
+
+        /* Mejorar contraste para panel derecho - Próximas Citas */
+        [data-theme="dark"] .proxima-cita-item {
+            background-color: #3d3d3d;
+            border-left: 4px solid #4a90e2;
         }
 
-        [data-theme="dark"] .card {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+        [data-theme="dark"] .proxima-fecha {
+            color: #ffffff !important;
+            font-weight: 700;
         }
 
-        [data-theme="dark"] .badge {
-            background-color: rgba(0,0,0,0.5);
-            color: #f5f5f5;
+        [data-theme="dark"] .proxima-cantidad {
+            color: #e9ecef !important;
+            font-weight: 600;
         }
 
-        [data-theme="dark"] .chart-legend-color.citas {
-            background-color: #4da3ff;
+        /* Mejorar contraste para los detalles de cada cita en próximas citas */
+        [data-theme="dark"] .proxima-cita-item div[style*="font-weight: 600"] {
+            color: #ffffff !important;
         }
 
-        [data-theme="dark"] .chart-legend-color.pallets {
-            background-color: #2ecc71;
+        [data-theme="dark"] .proxima-cita-item div[style*="color: #666"] {
+            color: #e9ecef !important;
         }
 
-        [data-theme="dark"] .chart-legend-color.promedio {
-            background-color: #a678e2;
+        [data-theme="dark"] .proxima-cita-item div[style*="font-size: 12px"] {
+            color: #d1d5db !important;
         }
 
-        [data-theme="dark"] .pallets-resumen-item {
-            border-color: #3c3c3c;
-        }
-
-        [data-theme="dark"] .filters {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
-        }
-
-        [data-theme="dark"] .cita-item {
-            border-color: #333;
-        }
-
-        [data-theme="dark"] .chart-card {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.7);
-        }
-
-        .cita-resaltada {
-            border: 2px solid #f39c12;
-            box-shadow: 0 2px 6px rgba(243,156,18,0.4);
-        }
-
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10px;
-            padding: 2px 7px;
-            border-radius: 999px;
-            background-color: rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.06);
-        }
-
-        [data-theme="dark"] .tag {
-            background-color: rgba(0,0,0,0.5);
-            border-color: rgba(255,255,255,0.1);
-        }
-
-        .tag-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background-color: var(--accent-color);
-        }
-
-        .tag-frio .tag-dot {
-            background-color: #3498db;
-        }
-
-        .tag-medico .tag-dot {
-            background-color: #2ecc71;
-        }
-
-        .tag-sustancias .tag-dot {
-            background-color: #9b59b6;
-        }
-
-        .tag-small {
-            font-size: 9px;
-        }
-
-        .all-scroll {
-            cursor: all-scroll;
+        /* Mejorar contraste general para texto en modo oscuro */
+        [data-theme="dark"] .proxima-cita-item {
+            color: #e9ecef;
         }
 
         [data-theme="dark"] .proxima-cita-item strong {
@@ -827,216 +842,192 @@
 </head>
 <body>
     <div class="dashboard">
+        <!-- Header -->
         <div class="header">
             <div class="header-top">
-                <!-- Logo (espacio para que tú agregues el PNG normal) -->
+                <!-- Logo (espacio para base64) -->
                 <img src="data:image/png;base64,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"alt="Logo Institucional" class="logo">
                 <div class="header-title">          
                     <h1>Calendario de Citas de Proveedores - CEDIS PANAMA CSS</h1>
                     <div class="date-info" id="currentDateTime"></div>
                 </div>
+                <!-- Selector de tema -->
                 <div class="theme-selector">
                     <label for="themeMode">Tema:</label>
                     <select id="themeMode">
-                        <option value="auto">Automático</option>
+                        <option value="auto">Sistema</option>
                         <option value="light">Claro</option>
                         <option value="dark">Oscuro</option>
                     </select>
                 </div>
             </div>
-            <div class="header-bottom">
-                <div class="header-badges">
-                    <div class="header-badge">
-                        <span>📦</span> <span>Sala de Recepción de Proveedores</span>
-                    </div>
-                    <div class="header-badge">
-                        <span>🏥</span> <span>CEDIS Panamá - CSS</span>
-                    </div>
-                    <div class="header-badge">
-                        <span>📊</span> <span>Dashboard Operativo de Agenda</span>
+
+            <!-- Filtros -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="modoVisualizacion">Modo de Visualización:</label>
+                    <select id="modoVisualizacion">
+                        <option value="dia">Día Individual</option>
+                        <option value="rango">Rango de Fechas</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="fechaVisualizar">Fecha a Visualizar:</label>
+                    <input type="date" id="fechaVisualizar">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="fechaInicio">Fecha Inicio:</label>
+                    <input type="date" id="fechaInicio">
+                </div>
+
+                <div class="filter-group">
+                    <label for="fechaFin">Fecha Fin:</label>
+                    <input type="date" id="fechaFin">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filtroProveedor">Nombre del Proveedor:</label>
+                    <select id="filtroProveedor">
+                        <option value="">Todos los proveedores</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filtroArea">Área Correspondiente:</label>
+                    <select id="filtroArea">
+                        <option value="">Todas las áreas</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filtroProducto">Descripción del Producto:</label>
+                    <select id="filtroProducto">
+                        <option value="">Todos los productos</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                  <label for="filtroEstado">Estado de la Cita:</label>
+                  <select id="filtroEstado">
+                      <option value="">Todos los estados</option>
+                  </select>
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="btn-container">
+                <button class="refresh-btn" onclick="cargarDatos()">🔄 Actualizar datos</button>
+                <button class="clear-btn" onclick="limpiarFiltros()">🧹 Limpiar Filtros</button>
+            </div>
+
+            <!-- Panel de Métricas -->
+            <div class="metrics-panel">
+                <div class="metric-card">
+                    <div class="metric-icon">📦</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="totalCitas">0</span> | <span id="totalPallets">0</span>
+                        </div>
+                        <div class="metric-label">Citas | Pallets</div>
                     </div>
                 </div>
-                <div class="header-summary">
-                    Visualiza en tiempo real las citas de proveedores para el periodo seleccionado, el detalle de productos y pallets
-                    comprometidos, así como el comportamiento de la carga por día. <span class="highlight">Optimiza el uso de muelles,
-                    recurso humano y capacidad de almacenamiento.</span>
+                <div class="metric-card">
+                    <div class="metric-icon">📥</div>
+                    <div class="metric-content">
+                        <div class="metric-value" id="totalUnidades">0</div>
+                        <div class="metric-label">Unidades</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">👤</div>
+                    <div class="metric-content">
+                        <div class="metric-value" id="proveedoresUnicos">0</div>
+                        <div class="metric-label">Prov. Únicos</div>
+                    </div>
+                </div>                
+                <div class="metric-card">
+                    <div class="metric-icon">❄️</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasFrio">0</span> | <span id="palletsFrio">0</span>
+                        </div>
+                        <div class="metric-label">Cadena Frío</div>
+                    </div>
+                </div>              
+                <div class="metric-card">
+                    <div class="metric-icon">💊</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasMedicamentos">0</span> | <span id="palletsMedicamentos">0</span>
+                        </div>
+                        <div class="metric-label">MEDICAMENTOS</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">💉</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasQuirurgico">0</span> | <span id="palletsQuirurgico">0</span>
+                        </div>
+                        <div class="metric-label">MQ</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🧪</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasLaboratorio">0</span> | <span id="palletsLaboratorio">0</span>
+                        </div>
+                        <div class="metric-label">LABORATORIO</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🦷</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasOdontologia">0</span> | <span id="palletsOdontologia">0</span>
+                        </div>
+                        <div class="metric-label">ODONTOLOGIA</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🚨</div>
+                    <div class="metric-content">
+                        <div class="metric-value">
+                            <span id="citasSustancias">0</span> | <span id="palletsSustancias">0</span>
+                        </div>
+                        <div class="metric-label">SUS. CONTROLADA</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Semanal -->
+            <div class="chart-card">
+                <h3>📊 Carga Semanal: Citas vs Pallets</h3>
+                <div class="chart-container">
+                    <canvas id="cargaSemanalChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="filters-header">
-            <span>🎯</span> Filtros de visualización
-        </div>
-        <div class="filters-subtitle">
-            Ajusta la fecha o rango de fechas y filtra por proveedor, área, producto y estado de la cita. El panel de la izquierda
-            muestra las citas del período seleccionado y el panel de la derecha las citas posteriores.
-        </div>
-
-        <div class="filters">
-            <div class="filter-group">
-                <label for="modoVisualizacion"><span>🗓️</span> Modo de vista</label>
-                <select id="modoVisualizacion">
-                    <option value="dia">Día específico</option>
-                    <option value="rango">Rango de fechas</</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="fechaVisualizar"><span>📅</span> Fecha</label>
-                <input type="date" id="fechaVisualizar">
-            </div>
-
-            <div class="filter-group">
-                <label for="fechaInicio"><span>⬅️</span> Fecha inicio (rango)</label>
-                <input type="date" id="fechaInicio" style="display:none;">
-            </div>
-
-            <div class="filter-group">
-                <label for="fechaFin"><span>➡️</span> Fecha fin (rango)</label>
-                <input type="date" id="fechaFin" style="display:none;">
-            </div>
-
-            <div class="filter-group">
-                <label for="filtroProveedor"><span>🏢</span> Proveedor</label>
-                <select id="filtroProveedor">
-                    <option value="">Todos</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="filtroArea"><span>📍</span> Área solicitante</label>
-                <select id="filtroArea">
-                    <option value="">Todas</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="filtroProducto"><span>💊</span> Producto</label>
-                <select id="filtroProducto">
-                    <option value="">Todos</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="filtroEstado"><span>📌</span> Estado</label>
-                <select id="filtroEstado">
-                    <option value="">Todos</option>
-                    <option value="PROGRAMADA">PROGRAMADA</option>
-                    <option value="REALIZADA">REALIZADA</option>
-                    <option value="PENDIENTE">PENDIENTE</option>
-                    <option value="CANCELADA">CANCELADA</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="metrics-panel">
-            <div class="metric-card">
-                <div class="metric-icon">📦</div>
-                <div class="metric-value" id="totalCitas">0</div>
-                <div class="metric-label">Citas</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">📊</div>
-                <div class="metric-value" id="citasRango">0</div>
-                <div class="metric-label">En periodo</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">📅</div>
-                <div class="metric-value" id="citasDiaSeleccionado">0</div>
-                <div class="metric-label">Día clave</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">📦</div>
-                <div class="metric-value" id="palletsTotales">0</div>
-                <div class="metric-label">Pallets</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">📈</div>
-                <div class="metric-value" id="promedioPalletsDia">0</div>
-                <div class="metric-label">Pallets/día</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">⏱️</div>
-                <div class="metric-value" id="citasHoy">0</div>
-                <div class="metric-label">Hoy</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">🧊</div>
-                <div class="metric-value" id="citasFrio">0</div>
-                <div class="metric-label">Cadena Frío</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">🧪</div>
-                <div class="metric-value" id="citasSustancias">0</div>
-                <div class="metric-label">Sustancias</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon">👤</div>
-                <div class="metric-value" id="proveedoresUnicos">0</div>
-                <div class="metric-label">Prov. Únicos</div>
-            </div>
-        </div>
-
+        <!-- Contenido Principal -->
         <div class="main-content">
+            <!-- Bloque Izquierdo: Citas del Día Seleccionado -->
             <div class="card">
-                <h2><span>📋</span> Citas del periodo seleccionado</h2>
-                <div class="card-subtitle">
-                    Citas que caen exactamente en el día o rango seleccionado, según el modo de visualización activo.
-                </div>
+                <h2>Citas del Período Seleccionado</h2>
                 <div class="citas-list" id="citasDia">
                     <div class="loading">Cargando citas desde Google Sheets...</div>
                 </div>
             </div>
 
+            <!-- Bloque Derecho: Próximos Días -->
             <div class="card">
-                <h2><span>⏭️</span> Próximos días</h2>
-                <div class="card-subtitle">
-                    Citas posteriores al periodo seleccionado, útiles para anticipar carga en recepción de proveedores.
-                </div>
+                <h2>Próximos Días</h2>
                 <div class="proximas-citas" id="proximasCitas">
                     <div class="empty-state">Los datos se cargarán automáticamente</div>
                 </div>
-            </div>
-        </div>
-
-        <div class="card chart-card">
-            <div class="chart-header">
-                <div>
-                    <h2><span>📈</span> Comportamiento de carga por día</h2>
-                    <div class="card-subtitle">
-                        Distribución de citas y pallets por día, acotado a la semana de la fecha seleccionada o al rango elegido.
-                    </div>
-                </div>
-                <div class="chart-legend">
-                    <div class="chart-legend-item">
-                        <div class="chart-legend-color citas"></div> Citas
-                    </div>
-                    <div class="chart-legend-item">
-                        <div class="chart-legend-color pallets"></div> Pallets
-                    </div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="cargaSemanalChart"></canvas>
-            </div>
-
-            <div class="pallets-resumen">
-                <div class="pallets-resumen-item badge-cadena-frio">
-                    <span>🧊 Cadena frío:</span>
-                    <span class="value" id="palletsFrio">0</span> pallets
-                </div>
-                <div class="pallets-resumen-item badge-medico-quirurgico">
-                    <span>🩺 Médico-quirúrgico:</span>
-                    <span class="value" id="palletsMedico">0</span> pallets
-                </div>
-                <div class="pallets-resumen-item badge-sustancias">
-                    <span>🧪 Sustancias peligrosas:</span>
-                    <span class="value" id="palletsSustancias">0</span> pallets
-                </div>
-            </div>
-
-            <div class="footer-info">
-                Datos extraídos en tiempo real desde la hoja de <span>Confirmación de Citas CSS</span>.
             </div>
         </div>
     </div>
@@ -1044,8 +1035,9 @@
     <script>
         let citasData = [];
         let cargaSemanalChart = null;
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+		const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
         
+        // Elementos del DOM
         const fechaVisualizar = document.getElementById('fechaVisualizar');
         const fechaInicio = document.getElementById('fechaInicio');
         const fechaFin = document.getElementById('fechaFin');
@@ -1059,7 +1051,9 @@
         const currentDateTime = document.getElementById('currentDateTime');
         const themeMode = document.getElementById('themeMode');
 
+        // Inicialización
         function init() {
+            // Establecer fecha actual por defecto
             const hoy = new Date();
             const haceUnaSemana = new Date();
             haceUnaSemana.setDate(hoy.getDate() - 7);
@@ -1068,14 +1062,20 @@
             fechaInicio.value = haceUnaSemana.toISOString().split('T')[0];
             fechaFin.value = hoy.toISOString().split('T')[0];
             
+            // Actualizar fecha y hora actual
             updateCurrentDateTime();
             setInterval(updateCurrentDateTime, 60000);
             
+            // Inicializar tema
             initTheme();
+            
+            // Inicializar modo de visualización
             cambiarModoVisualizacion();
             
+            // Cargar datos iniciales
             cargarDatos();
             
+            // Event listeners
             fechaVisualizar.addEventListener('change', cargarCitas);
             fechaInicio.addEventListener('change', cargarCitas);
             fechaFin.addEventListener('change', cargarCitas);
@@ -1086,109 +1086,77 @@
             filtroEstado.addEventListener('change', cargarCitas);
         }
 
+        // Función para inicializar el tema
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'auto';
             themeMode.value = savedTheme;
-            applyTheme(savedTheme);
             
-            themeMode.addEventListener('change', () => {
-                const selected = themeMode.value;
-                localStorage.setItem('theme', selected);
-                applyTheme(selected);
+            // Aplicar el tema guardado
+            let actualTheme = savedTheme;
+            if (savedTheme === 'auto') {
+                actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', actualTheme);
+            
+            themeMode.addEventListener('change', (e) => {
+                const theme = e.target.value;
+                localStorage.setItem('theme', theme);
+                applyTheme(theme);
             });
         }
 
-        function applyTheme(mode) {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            let themeToApply = 'light';
+        // Función para aplicar el tema
+        function applyTheme(theme) {
+            let actualTheme = theme;
             
-            if (mode === 'dark') {
-                themeToApply = 'dark';
-            } else if (mode === 'auto') {
-                themeToApply = prefersDark ? 'dark' : 'light';
+            if (theme === 'auto') {
+                // Detectar preferencia del sistema
+                actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
             
-            document.documentElement.setAttribute('data-theme', themeToApply);
+            document.documentElement.setAttribute('data-theme', actualTheme);
+            localStorage.setItem('theme', theme);
+            
+            // Solo actualizar los colores del gráfico existente, NO recrearlo con nuevos datos
             actualizarColoresGrafico();
         }
 
-        function updateCurrentDateTime() {
-            const now = new Date();
-            const options = {
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            };
-            currentDateTime.textContent = now.toLocaleDateString('es-ES', options);
+        // Función para actualizar colores del gráfico según el tema
+        function actualizarColoresGrafico() {
+            if (!cargaSemanalChart) return;
+            
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDarkMode ? '#e9ecef' : '#333';
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            
+            // Actualizar colores del gráfico existente
+            cargaSemanalChart.options.plugins.legend.labels.color = textColor;
+            cargaSemanalChart.options.scales.x.ticks.color = textColor;
+            cargaSemanalChart.options.scales.x.grid.color = gridColor;
+            cargaSemanalChart.options.scales.y.ticks.color = textColor;
+            cargaSemanalChart.options.scales.y.grid.color = gridColor;
+            cargaSemanalChart.options.scales.y.title.color = textColor;
+            cargaSemanalChart.options.scales.y1.ticks.color = textColor;
+            cargaSemanalChart.options.scales.y1.title.color = textColor;
+            
+            // Actualizar tooltip
+            cargaSemanalChart.options.plugins.tooltip.backgroundColor = isDarkMode ? 'rgba(45, 45, 45, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+            cargaSemanalChart.options.plugins.tooltip.titleColor = textColor;
+            cargaSemanalChart.options.plugins.tooltip.bodyColor = textColor;
+            cargaSemanalChart.options.plugins.tooltip.borderColor = isDarkMode ? '#495057' : '#e1e8ed';
+            
+            // Refrescar el gráfico
+            cargaSemanalChart.update();
         }
 
-        function cambiarModoVisualizacion() {
-            const modo = modoVisualizacion.value;
-            const esRango = modo === 'rango';
-            
-            fechaVisualizar.style.display = esRango ? 'none' : 'block';
-            fechaInicio.style.display = esRango ? 'block' : 'none';
-            fechaFin.style.display = esRango ? 'block' : 'none';
-            
-            cargarCitas();
-        }
-
-        function poblarFiltros() {
-            if (citasData.length === 0) return;
-            
-            const proveedores = [...new Set(citasData.map(cita => cita.nombre_proveedor).filter(Boolean))].sort();
-            const areas = [...new Set(citasData.map(cita => cita.area_correspondiente).filter(Boolean))].sort();
-            const productos = [...new Set(citasData.map(cita => cita.descripcion_producto).filter(Boolean))].sort();
-            const estados = [...new Set(citasData.map(cita => cita.estado_cita).filter(Boolean))].sort();
-
-            poblarDropdown(filtroProveedor, proveedores);
-            poblarDropdown(filtroArea, areas);
-            poblarDropdown(filtroProducto, productos);
-            poblarDropdown(filtroEstado, estados);
-        }
-
-        function poblarDropdown(dropdown, opciones) {
-            const seleccionActual = dropdown.value;
-            while (dropdown.options.length > 1) {
-                dropdown.remove(1);
+        // Escuchar cambios en la preferencia del sistema
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (themeMode.value === 'auto') {
+                applyTheme('auto');
             }
-            opciones.forEach(opcion => {
-                const option = document.createElement('option');
-                option.value = opcion;
-                option.textContent = opcion;
-                dropdown.appendChild(option);
-            });
-            dropdown.value = seleccionActual || '';
-        }
+        });
 
-        function cargarDatos() {
-            citasDia.innerHTML = '<div class="loading">📥 Cargando datos desde Google Sheets...</div>';
-            proximasCitas.innerHTML = '<div class="loading">Cargando...</div>';
-            
-            fetch(API_URL + '?action=getCitasData')
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (data && data.success) {
-                        citasData = data.data || [];
-                        console.log('Datos cargados:', citasData);
-
-                        poblarFiltros();
-                        actualizarMetricasCompletas([]);
-                        cargarCitas();
-                    } else {
-                        const errorMsg = data && data.error ? data.error : 'Respuesta inválida del servidor';
-                        citasDia.innerHTML = '<div class="error">❌ Error: ' + errorMsg + '</div>';
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Error cargando datos:', error);
-                    citasDia.innerHTML = '<div class="error">❌ Error cargando datos: ' + error.message + '</div>';
-                });
-        }
-
+        // Función para formatear fecha
         function formatearFecha(fechaStr) {
             if (!fechaStr) return 'Fecha no definida';
             const fecha = new Date(fechaStr + 'T12:00:00');
@@ -1199,28 +1167,131 @@
             });
         }
 
+        // Función para cambiar entre modos de visualización
+        function cambiarModoVisualizacion() {
+            const modo = modoVisualizacion.value;
+            const esRango = modo === 'rango';
+            
+            // Mostrar/ocultar controles según el modo
+            fechaVisualizar.style.display = esRango ? 'none' : 'block';
+            fechaInicio.style.display = esRango ? 'block' : 'none';
+            fechaFin.style.display = esRango ? 'block' : 'none';
+            
+            // Actualizar labels
+            document.querySelector('label[for="fechaVisualizar"]').style.display = esRango ? 'none' : 'block';
+            document.querySelector('label[for="fechaInicio"]').style.display = esRango ? 'block' : 'none';
+            document.querySelector('label[for="fechaFin"]').style.display = esRango ? 'block' : 'none';
+            
+            cargarCitas();
+        }
+
+        // Cargar datos desde Google Sheets
+        function cargarDatos() {
+            // Mensajes de carga (los mismos que ya usabas)
+            citasDia.innerHTML = '<div class="loading">📥 Cargando datos desde Google Sheets...</div>';
+            proximasCitas.innerHTML = '<div class="loading">Cargando...</div>';
+
+            // Ahora usamos fetch en lugar de google.script.run
+            fetch(API_URL + '?action=getCitasData')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(response) {
+                    if (response && response.success) {
+                        citasData = response.data || [];
+                        console.log('Datos cargados:', citasData);
+
+                        // Igual que antes:
+                        poblarFiltros();
+                        actualizarMetricasCompletas([]);
+                        cargarCitas();
+                    } else {
+                        const msg = response && response.error ? response.error : 'Respuesta inválida del servidor';
+                        citasDia.innerHTML = '<div class="error">❌ Error: ' + msg + '</div>';
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error cargando datos:', error);
+                    citasDia.innerHTML = '<div class="error">❌ Error cargando datos: ' + error.message + '</div>';
+                });
+        }
+
+        function updateCurrentDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            currentDateTime.textContent = now.toLocaleDateString('es-ES', options);
+        }
+
+        // Función para poblar los dropdowns con opciones únicas
+        function poblarFiltros() {
+            if (citasData.length === 0) return;
+            
+            // Obtener valores únicos para cada filtro
+            const proveedores = [...new Set(citasData.map(cita => cita.nombre_proveedor).filter(Boolean))].sort();
+            const areas = [...new Set(citasData.map(cita => cita.area_correspondiente).filter(Boolean))].sort();
+            const productos = [...new Set(citasData.map(cita => cita.descripcion_producto).filter(Boolean))].sort();
+            const estados = [...new Set(citasData.map(cita => cita.estado_cita).filter(Boolean))].sort();
+if (filtroEstado) poblarDropdown(filtroEstado, estados);
+            
+            // Poblar dropdowns
+            poblarDropdown(filtroProveedor, proveedores);
+            poblarDropdown(filtroArea, areas);
+            poblarDropdown(filtroProducto, productos);
+            poblarDropdown(filtroEstado, estados);
+        }
+
+        // Función auxiliar para poblar un dropdown
+        function poblarDropdown(dropdown, opciones) {
+            // Guardar la selección actual
+            const seleccionActual = dropdown.value;
+            
+            // Limpiar opciones existentes (excepto la primera)
+            while (dropdown.options.length > 1) {
+                dropdown.remove(1);
+            }
+            
+            // Agregar nuevas opciones
+            opciones.forEach(opcion => {
+                const option = document.createElement('option');
+                option.value = opcion;
+                option.textContent = opcion;
+                dropdown.appendChild(option);
+            });
+            
+            // Restaurar selección anterior si existe
+            if (seleccionActual && opciones.includes(seleccionActual)) {
+                dropdown.value = seleccionActual;
+            }
+        }
+
         function cargarCitas() {
-            if (!citasData || citasData.length === 0) {
-                citasDia.innerHTML = '<div class="empty-state">No hay datos disponibles para mostrar.</div>';
-                proximasCitas.innerHTML = '<div class="empty-state">No hay citas posteriores al período seleccionado.</div>';
+            if (citasData.length === 0) {
+                citasDia.innerHTML = '<div class="empty-state">No hay datos cargados</div>';
                 return;
             }
-
+            
+            const proveedorFiltro = filtroProveedor.value;
+            const areaFiltro = filtroArea.value;
+            const productofiltro = filtroProducto.value;
+            const estadoFiltro = filtroEstado.value;
             const modo = modoVisualizacion.value;
-            const proveedorFiltro = filtroProveedor.value || null;
-            const areaFiltro = filtroArea.value || null;
-            const productofiltro = filtroProducto.value || null;
-            const estadoFiltro = filtroEstado.value || null;
-
-            const fechaSeleccionada = fechaVisualizar.value;
-            const fechaInicioRango = fechaInicio.value;
-            const fechaFinRango = fechaFin.value;
-
+            
             let citasFiltradas = [];
             let proximas = [];
             let citasParaGrafico = [];
-
+            
             if (modo === 'dia') {
+                // MODO DÍA INDIVIDUAL
+                const fechaSeleccionada = fechaVisualizar.value;
+                
+                // BLOQUE IZQUIERDO: Solo citas del día seleccionado
                 citasFiltradas = citasData.filter(cita => {
                     const cumpleFecha = cita.fecha_confirmada === fechaSeleccionada;
                     const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
@@ -1231,6 +1302,7 @@
                     return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
                 });
                 
+                // BLOQUE DERECHO: Citas posteriores al día seleccionado
                 proximas = citasData.filter(cita => {
                     const cumpleFecha = cita.fecha_confirmada > fechaSeleccionada;
                     const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
@@ -1240,53 +1312,82 @@
                     
                     return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
                 });
-
+                
+                // CORRECCIÓN DEFINITIVA: Cálculo correcto de la semana para el gráfico
                 const fechaRef = new Date(fechaSeleccionada + 'T12:00:00');
+                // Asegurar que no hay problemas de zona horaria
                 fechaRef.setHours(12, 0, 0, 0);
 
+                // Calcular el lunes de la semana
                 const lunes = new Date(fechaRef);
-                const diaSemana = fechaRef.getDay();
+                const diaSemana = fechaRef.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
                 const diffDias = diaSemana === 0 ? -6 : -diaSemana + 1;
                 lunes.setDate(fechaRef.getDate() + diffDias);
                 lunes.setHours(12, 0, 0, 0);
 
+                // Calcular el domingo de la semana
                 const domingo = new Date(lunes);
                 domingo.setDate(lunes.getDate() + 6);
                 domingo.setHours(12, 0, 0, 0);
 
+                const inicioSemana = lunes.toISOString().split('T')[0];
+                const finSemana = domingo.toISOString().split('T')[0];
+
+                console.log('🔴 FECHA SELECCIONADA:', fechaSeleccionada);
+                console.log('🔴 SEMANA CALCULADA:', inicioSemana, 'a', finSemana);
+                console.log('🔴 DÍA DE LA SEMANA:', diaSemana, '(0=domingo, 1=lunes)');
+
+                // Filtrar citas para el gráfico
                 citasParaGrafico = citasData.filter(cita => {
-                    if (!cita.fecha_confirmada) return false;
-                    const fechaCita = new Date(cita.fecha_confirmada + 'T12:00:00');
-                    fechaCita.setHours(12, 0, 0, 0);
-                    
-                    const cumpleSemana = fechaCita >= lunes && fechaCita <= domingo;
+                    const cumpleFecha = cita.fecha_confirmada >= inicioSemana && cita.fecha_confirmada <= finSemana;
                     const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
                     const cumpleArea = !areaFiltro || cita.area_correspondiente === areaFiltro;
                     const cumpleProducto = !productofiltro || cita.descripcion_producto === productofiltro;
                     const cumpleEstado = !estadoFiltro || cita.estado_cita === estadoFiltro;
                     
-                    return cumpleSemana && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
+                    return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
                 });
+
+                // DEBUG: Verificar específicamente las citas del lunes
+                const citasLunes = citasData.filter(cita => 
+                    cita.fecha_confirmada === inicioSemana &&
+                    (!proveedorFiltro || cita.nombre_proveedor === proveedorFiltro) &&
+                    (!areaFiltro || cita.area_correspondiente === areaFiltro)
+                );
+                console.log('🔴 CITAS DEL LUNES (' + inicioSemana + '):', citasLunes.length);
+                console.log('🔴 CITAS LUNES DETALLES:', citasLunes.map(c => ({ 
+                    proveedor: c.nombre_proveedor, 
+                    area: c.area_correspondiente,
+                    fecha: c.fecha_confirmada 
+                })));
+                
             } else {
+                // MODO RANGO
+                                
                 citasFiltradas = citasData.filter(cita => {
                     const fechaCita = cita.fecha_confirmada;
-                    if (!fechaCita) return false;
-                    
-                    const cumpleRango = fechaCita >= fechaInicioRango && fechaCita <= fechaFinRango;
+                    const cumpleFecha = fechaCita >= fechaInicio.value && fechaCita <= fechaFin.value;
+
                     const cumpleProveedor = !proveedorFiltro || cita.nombre_proveedor === proveedorFiltro;
                     const cumpleArea = !areaFiltro || cita.area_correspondiente === areaFiltro;
                     const cumpleProducto = !productofiltro || cita.descripcion_producto === productofiltro;
                     const cumpleEstado = !estadoFiltro || cita.estado_cita === estadoFiltro;
                     
-                    return cumpleRango && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
+                    return cumpleFecha && cumpleProveedor && cumpleArea && cumpleProducto && cumpleEstado;
                 });
                 
                 citasParaGrafico = citasFiltradas;
                 proximas = [];
             }
             
+            console.log('🔄 Iniciando carga de citas - Modo:', modo);
+            console.log('📊 Total citas filtradas:', citasFiltradas.length);
+            console.log('📊 Citas para gráfico:', citasParaGrafico.length);
+
+            // ACTUALIZAR MÉTRICAS Y GRÁFICO
             actualizarMetricasCompletas(citasFiltradas);
             
+            // PASAR LAS CITAS CORRECTAS AL GRÁFICO
             if (modo === 'dia') {
                 actualizarGraficoSemanal(citasParaGrafico, fechaVisualizar.value);
             } else {
@@ -1298,58 +1399,54 @@
         }
 
         function actualizarMetricasCompletas(citasParaMetricas) {
-            const hoy = new Date().toISOString().split('T')[0];
-
-            const totalCitas = citasData.length;
-            const citasEnPeriodo = citasParaMetricas.length;
-            const citasDiaSeleccionado = citasParaMetricas.length;
-            const citasHoy = citasData.filter(cita => cita.fecha_confirmada === hoy).length;
-
-            let palletsTotales = 0;
-            let palletsFrio = 0;
-            let palletsMedico = 0;
-            let palletsSustancias = 0;
-
-            const proveedoresSet = new Set();
-
-            citasParaMetricas.forEach(cita => {
-                const pallets = parseInt(cita.cantidad_pallets) || 0;
-                palletsTotales += pallets;
-
-                proveedoresSet.add(cita.nombre_proveedor);
-
-                if (esCadenaFrio(cita.tipo_ambiente)) {
-                    palletsFrio += pallets;
-                }
-
-                if (cita.tipo_producto && cita.tipo_producto.toLowerCase().includes('médico')) {
-                    palletsMedico += pallets;
-                }
-
-                if (cita.tipo_producto && (cita.tipo_producto.toLowerCase().includes('peligrosa') || cita.tipo_producto.toLowerCase().includes('controlada'))) {
-                    palletsSustancias += pallets;
-                }
-            });
-
-            let fechasUnicas = [];
-            if (citasParaMetricas.length > 0) {
-                fechasUnicas = [...new Set(citasParaMetricas.map(cita => cita.fecha_confirmada))];
-            }
-
-            const diasConCitas = fechasUnicas.length || 1;
-            const promedioPallets = palletsTotales / diasConCitas;
-
+            // CALCULAR MÉTRICAS COMBINADAS - Usar las citas del bloque izquierdo
+            const totalCitas = citasParaMetricas.length;
+            const totalPallets = citasParaMetricas.reduce((sum, cita) => sum + (parseInt(cita.cantidad_pallets) || 0), 0);
+            const totalUnidades = citasParaMetricas.reduce((sum, cita) => sum + (parseInt(cita.cantidad_unidades) || 0), 0);
+            
+            // Cadena de frío
+            const citasFrio = citasParaMetricas.filter(cita => 
+                cita.tipo_ambiente && esCadenaFrio(cita.tipo_ambiente)
+            );
+            const palletsFrio = citasFrio.reduce((sum, cita) => sum + (parseInt(cita.cantidad_pallets) || 0), 0);
+            
+            // Proveedores únicos
+            const proveedoresUnicos = new Set(citasParaMetricas.map(cita => cita.nombre_proveedor).filter(Boolean)).size;
+            
+            // Áreas médicas
+            const calcularArea = (area) => {
+                const citasArea = citasParaMetricas.filter(cita => cita.area_correspondiente === area);
+                return {
+                    citas: citasArea.length,
+                    pallets: citasArea.reduce((sum, cita) => sum + (parseInt(cita.cantidad_pallets) || 0), 0)
+                };
+            };
+            
+            const med = calcularArea('Medicamentos');
+            const mq = calcularArea('Médico Quirúrgico');
+            const lab = calcularArea('Laboratorio');
+            const odo = calcularArea('Odontología');
+            const sus = calcularArea('Sustancias Controladas');
+            
+            // ACTUALIZAR UI
             document.getElementById('totalCitas').textContent = totalCitas;
-            document.getElementById('citasRango').textContent = citasEnPeriodo;
-            document.getElementById('citasDiaSeleccionado').textContent = citasDiaSeleccionado;
-            document.getElementById('citasHoy').textContent = citasHoy;
-            document.getElementById('palletsTotales').textContent = palletsTotales;
-            document.getElementById('promedioPalletsDia').textContent = promedioPallets.toFixed(1);
-            document.getElementById('proveedoresUnicos').textContent = proveedoresSet.size;
-
+            document.getElementById('totalPallets').textContent = totalPallets;
+            document.getElementById('totalUnidades').textContent = totalUnidades.toLocaleString();
+            
+            document.getElementById('citasFrio').textContent = citasFrio.length;
             document.getElementById('palletsFrio').textContent = palletsFrio;
-            document.getElementById('palletsMedico').textContent = palletsMedico;
-            document.getElementById('palletsSustancias').textContent = palletsSustancias;
+            document.getElementById('proveedoresUnicos').textContent = proveedoresUnicos;
+            
+            document.getElementById('citasMedicamentos').textContent = med.citas;
+            document.getElementById('palletsMedicamentos').textContent = med.pallets;
+            document.getElementById('citasQuirurgico').textContent = mq.citas;
+            document.getElementById('palletsQuirurgico').textContent = mq.pallets;
+            document.getElementById('citasLaboratorio').textContent = lab.citas;
+            document.getElementById('palletsLaboratorio').textContent = lab.pallets;
+            document.getElementById('citasOdontologia').textContent = odo.citas;
+            document.getElementById('palletsOdontologia').textContent = odo.pallets;
+            document.getElementById('citasSustancias').textContent = sus.citas;
+            document.getElementById('palletsSustancias').textContent = sus.pallets;
         }
 
         function esCadenaFrio(tipoAmbiente) {
@@ -1364,6 +1461,9 @@
         }
 
         function actualizarGraficoSemanal(citasFiltradas, parametroModo) {
+            console.log('🎨 Actualizando gráfico con', citasFiltradas.length, 'citas. Modo:', parametroModo);
+            
+            // Obtener datos para el gráfico según el modo
             const datosGrafico = parametroModo === 'rango' ? 
                 obtenerDatosRango(citasFiltradas) : 
                 obtenerDatosSemana(citasFiltradas, parametroModo);
@@ -1374,10 +1474,11 @@
                 cargaSemanalChart.destroy();
             }
             
+            // Determinar colores según el tema actual
             const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
             const textColor = isDarkMode ? '#e9ecef' : '#333';
             const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-
+            
             cargaSemanalChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1386,16 +1487,18 @@
                         {
                             label: 'Citas',
                             data: datosGrafico.citas,
-                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
-                            borderRadius: 6,
-                            borderSkipped: false
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
                         },
                         {
                             label: 'Pallets',
                             data: datosGrafico.pallets,
-                            backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                            borderRadius: 6,
-                            borderSkipped: false,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                            type: 'line',
                             yAxisID: 'y1'
                         }
                     ]
@@ -1403,20 +1506,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
                     plugins: {
                         legend: {
+                            position: 'top',
                             labels: {
-                                color: textColor,
-                                font: {
-                                    size: 11
-                                }
+                                color: textColor
                             }
                         },
                         tooltip: {
+                            mode: 'index',
+                            intersect: false,
                             backgroundColor: isDarkMode ? 'rgba(45, 45, 45, 0.9)' : 'rgba(255, 255, 255, 0.9)',
                             titleColor: textColor,
                             bodyColor: textColor,
@@ -1434,6 +1533,9 @@
                             }
                         },
                         y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
                             title: {
                                 display: true,
                                 text: 'Citas',
@@ -1469,47 +1571,114 @@
             });
         }
 
-        function actualizarColoresGrafico() {
-            if (!cargaSemanalChart) return;
-            
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDarkMode ? '#e9ecef' : '#333';
-            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-            
-            cargaSemanalChart.options.plugins.legend.labels.color = textColor;
-            cargaSemanalChart.options.scales.x.ticks.color = textColor;
-            cargaSemanalChart.options.scales.x.grid.color = gridColor;
-            cargaSemanalChart.options.scales.y.ticks.color = textColor;
-            cargaSemanalChart.options.scales.y.grid.color = gridColor;
-            cargaSemanalChart.options.scales.y.title.color = textColor;
-            cargaSemanalChart.options.scales.y1.ticks.color = textColor;
-            cargaSemanalChart.options.scales.y1.title.color = textColor;
-            
-            cargaSemanalChart.options.plugins.tooltip.backgroundColor = isDarkMode ? 'rgba(45, 45, 45, 0.9)' : 'rgba(255, 255, 255, 0.9)';
-            cargaSemanalChart.options.plugins.tooltip.titleColor = textColor;
-            cargaSemanalChart.options.plugins.tooltip.bodyColor = textColor;
-            cargaSemanalChart.options.plugins.tooltip.borderColor = isDarkMode ? '#495057' : '#e1e8ed';
-            
-            cargaSemanalChart.update();
-        }
+function obtenerDatosSemana(citas, fechaSeleccionada) {
+    if (!citas || citas.length === 0) {
+        return { labels: [], citas: [], pallets: [] };
+    }
 
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            if (themeMode.value === 'auto') {
-                applyTheme('auto');
-            }
-        });
+    // CORRECCIÓN: Calcular correctamente la semana desde el lunes
+    const fechaRef = new Date(fechaSeleccionada + 'T12:00:00');
+    fechaRef.setHours(12, 0, 0, 0);
+    
+    // Calcular el lunes de la semana
+    const lunes = new Date(fechaRef);
+    const diaSemana = fechaRef.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+    const diffDias = diaSemana === 0 ? -6 : -diaSemana + 1;
+    lunes.setDate(fechaRef.getDate() + diffDias);
+    lunes.setHours(12, 0, 0, 0);
+    
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(12, 0, 0, 0);
+    
+    const inicioSemana = lunes.toISOString().split('T')[0];
+    const finSemana = domingo.toISOString().split('T')[0];
+    
+    console.log('📅 Semana completa calculada:', {
+        fechaSeleccionada: fechaSeleccionada,
+        lunes: inicioSemana,
+        domingo: finSemana
+    });
+
+    // CORRECCIÓN: Generar TODOS los días de la semana (lunes a domingo) incluso sin citas
+    const diasSemana = [];
+    const fechaTemp = new Date(lunes);
+    
+    for (let i = 0; i < 7; i++) {
+        const dia = new Date(fechaTemp);
+        dia.setDate(lunes.getDate() + i);
+        diasSemana.push(dia.toISOString().split('T')[0]);
+    }
+
+    // Agrupar datos para TODOS los días de la semana
+    const datosAgrupados = {};
+    
+    diasSemana.forEach(fecha => {
+        const citasDeEstaFecha = citas.filter(cita => cita.fecha_confirmada === fecha);
+        const totalPallets = citasDeEstaFecha.reduce((sum, cita) => {
+            return sum + (parseInt(cita.cantidad_pallets) || 0);
+        }, 0);
+        
+        datosAgrupados[fecha] = {
+            citas: citasDeEstaFecha.length,
+            pallets: totalPallets
+        };
+        
+        console.log(`📊 Día ${fecha}: ${citasDeEstaFecha.length} citas, ${totalPallets} pallets`);
+    });
+
+    // Preparar datos para el gráfico
+    const labels = [];
+    const datosCitas = [];
+    const datosPallets = [];
+
+    diasSemana.forEach(fecha => {
+        const fechaObj = new Date(fecha + 'T12:00:00');
+        
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short'
+        }).replace(/ /g, '-');
+        
+        labels.push(fechaFormateada);
+        datosCitas.push(datosAgrupados[fecha].citas);
+        datosPallets.push(datosAgrupados[fecha].pallets);
+    });
+    
+    console.log('✅ Semana completa en gráfico:', { 
+        labels: labels, 
+        citas: datosCitas, 
+        pallets: datosPallets 
+    });
+    
+    return {
+        labels: labels,
+        citas: datosCitas,
+        pallets: datosPallets
+    };
+}
 
         function obtenerDatosRango(citas) {
+            console.log('🔍 Calculando datos RANGO');
+            
             if (!citas || citas.length === 0) {
+                console.log('📭 No hay citas para procesar en obtenerDatosRango');
                 return { labels: [], citas: [], pallets: [] };
             }
 
+            console.log('📅 Rango seleccionado:', fechaInicio.value, 'a', fechaFin.value);
+            console.log('📊 Citas recibidas para gráfico rango:', citas.length);
+
+            // CORRECCIÓN: Usar SOLO las fechas que realmente tienen citas en el rango
             const fechasUnicas = [...new Set(citas.map(cita => cita.fecha_confirmada))].sort();
+            
+            console.log('📈 Fechas únicas con citas en el rango:', fechasUnicas);
 
             const labels = [];
             const citasPorDia = [];
             const palletsPorDia = [];
 
+            // CORRECCIÓN: Procesar solo las fechas que tienen citas
             fechasUnicas.forEach(fechaStr => {
                 const citasDia = citas.filter(cita => cita.fecha_confirmada === fechaStr);
                 
@@ -1517,113 +1686,72 @@
                     const pallets = parseInt(cita.cantidad_pallets) || 0;
                     return sum + pallets;
                 }, 0);
-
-                labels.push(formatearFecha(fechaStr));
-                citasPorDia.push(citasDia.length);
-                palletsPorDia.push(totalPallets);
-            });
-
-            return {
-                labels,
-                citas: citasPorDia,
-                pallets: palletsPorDia
-            };
-        }
-
-        function obtenerDatosSemana(citas, fechaStr) {
-            if (!citas || citas.length === 0) {
-                return { labels: [], citas: [], pallets: [] };
-            }
-
-            const labels = [];
-            const citasPorDia = [];
-            const palletsPorDia = [];
-
-            const fechaBase = new Date(fechaStr + 'T12:00:00');
-            fechaBase.setHours(12, 0, 0, 0);
-
-            const lunes = new Date(fechaBase);
-            const diaSemana = fechaBase.getDay();
-            const diffDias = diaSemana === 0 ? -6 : -diaSemana + 1;
-            lunes.setDate(fechaBase.getDate() + diffDias);
-            lunes.setHours(12, 0, 0, 0);
-
-            const diasSemana = [];
-            for (let i = 0; i < 7; i++) {
-                const dia = new Date(lunes);
-                dia.setDate(lunes.getDate() + i);
-                diasSemana.push(dia);
-            }
-
-            diasSemana.forEach(dia => {
-                const fechaISO = dia.toISOString().split('T')[0];
-                const citasDia = citas.filter(cita => cita.fecha_confirmada === fechaISO);
                 
-                const totalPallets = citasDia.reduce((sum, cita) => {
-                    const pallets = parseInt(cita.cantidad_pallets) || 0;
-                    return sum + pallets;
-                }, 0);
-
-                labels.push(dia.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit' }));
+                // Formatear fecha directamente desde el string (sin problemas de zona horaria)
+                const [year, month, day] = fechaStr.split('-');
+                const meses = {
+                    '01': 'ene', '02': 'feb', '03': 'mar', '04': 'abr',
+                    '05': 'may', '06': 'jun', '07': 'jul', '08': 'ago',
+                    '09': 'sep', '10': 'oct', '11': 'nov', '12': 'dic'
+                };
+                
+                const fechaFormateada = `${parseInt(day)}-${meses[month]}`;
+                
+                labels.push(fechaFormateada);
                 citasPorDia.push(citasDia.length);
                 palletsPorDia.push(totalPallets);
+                
+                console.log(`📊 Día ${fechaFormateada} (${fechaStr}): ${citasDia.length} citas, ${totalPallets} pallets`);
             });
-
+            
+            console.log('✅ Datos finales gráfico rango:', { 
+                labels: labels, 
+                citas: citasPorDia, 
+                pallets: palletsPorDia 
+            });
+            
             return {
-                labels,
+                labels: labels,
                 citas: citasPorDia,
                 pallets: palletsPorDia
             };
         }
 
         function renderCitasDia(citas, modo) {
-            if (!citas || citas.length === 0) {
-                citasDia.innerHTML = '<div class="empty-state">No hay citas en el período seleccionado con los filtros aplicados.</div>';
+            if (citas.length === 0) {
+                const mensaje = modo === 'rango' 
+                    ? 'No hay citas en el rango de fechas seleccionado'
+                    : 'No hay citas para la fecha seleccionada';
+                citasDia.innerHTML = `<div class="empty-state">${mensaje}</div>`;
                 return;
             }
 
-            citas.sort((a, b) => {
-                const fechaA = a.fecha_confirmada || '';
-                const fechaB = b.fecha_confirmada || '';
-                if (fechaA === fechaB) {
-                    return (a.hora_confirmada || '').localeCompare(b.hora_confirmada || '');
-                }
-                return fechaA.localeCompare(fechaB);
-            });
-
             citasDia.innerHTML = citas.map(cita => {
-                const estado = cita.estado_cita || 'PENDIENTE';
-                let estadoClass = 'estado-pendiente';
-                if (estado.toUpperCase().includes('REALIZADA')) estadoClass = 'estado-realizada';
-                else if (estado.toUpperCase().includes('PROGRAMADA')) estadoClass = 'estado-programada';
-                else if (estado.toUpperCase().includes('CANCELADA')) estadoClass = 'estado-cancelada';
-
-                const esFrio = esCadenaFrio(cita.tipo_ambiente);
-                const esMedico = cita.tipo_producto && cita.tipo_producto.toLowerCase().includes('médico');
-                const esSustancias = cita.tipo_producto && (cita.tipo_producto.toLowerCase().includes('peligrosa') || cita.tipo_producto.toLowerCase().includes('controlada'));
+                // Determinar clase del estado con color verde para "ASISTIO"
+                let estadoClass = 'estado-' + (cita.estado_cita || 'PENDIENTE').toLowerCase().replace(/ /g, '-');
+                if (cita.estado_cita && cita.estado_cita.toUpperCase() === 'ASISTIO') {
+                    estadoClass = 'estado-asistio';
+                }
                 
-                const tags = [];
-                if (esFrio) tags.push('<span class="tag tag-frio"><span class="tag-dot"></span> Frío</span>');
-                if (esMedico) tags.push('<span class="tag tag-medico"><span class="tag-dot"></span> Médico-quirúrgico</span>');
-                if (esSustancias) tags.push('<span class="tag tag-sustancias"><span class="tag-dot"></span> Sustancia peligrosa</span>');
-
-                const pallets = parseInt(cita.cantidad_pallets) || 0;
-
                 return `
-                    <div class="cita-item" onclick="seleccionarCita(event, '${cita.id || ''}')">
+                    <div class="cita-item" onclick="seleccionarCita(event, ${cita.id})">
+                        <!-- PRIMERA LÍNEA MEJORADA: Hora, Fecha, Estado en misma línea -->
                         <div class="cita-header">
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <div class="cita-hora">${cita.hora_confirmada ? cita.hora_confirmada.substring(0,5) : '--:--'}</div>
-                                <div class="fecha-cita">${formatearFecha(cita.fecha_confirmada)}</div>
-                                <div class="estado-badge ${estadoClass}">
-                                    ${cita.estado_cita || 'PENDIENTE'}
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div class="cita-hora">${cita.hora_confirmada ? cita.hora_confirmada.substring(0,5) : '--:--'}</div>
+                                    <div class="fecha-cita">${formatearFecha(cita.fecha_confirmada)}</div>
+                                    <div class="cita-estado ${estadoClass}">
+                                        ${cita.estado_cita || 'PENDIENTE'}
+                                    </div>
+                                </div>
+                                <div class="cita-proveedor">
+                                    ${cita.nombre_proveedor || 'Proveedor no especificado'}
                                 </div>
                             </div>
-                            <div class="cita-proveedor">
-                                ${cita.nombre_proveedor || 'Proveedor no especificado'}
-                            </div>
                         </div>
-
+                        
+                        <!-- PRIMERA FILA - 6 COLUMNAS - MÁS ESPACIO PARA PRODUCTO -->
                         <div class="cita-detalles" style="grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr; margin-top: 10px;">
                             <div class="cita-detalle-item">
                                 <span class="detalle-label">Producto</span>
@@ -1640,57 +1768,62 @@
                             </div>
                             
                             <div class="cita-detalle-item">
-                                <span class="detalle-label">Lote / Ref.</span>
-                                <div class="texto-truncado" title="${cita.numero_lote || cita.codigo_referencia || 'N/A'}">
-                                    ${cita.numero_lote || cita.codigo_referencia || 'N/A'}
-                                </div>
+                                <span class="detalle-label">Cantidad</span>
+                                <div>${cita.cantidad_unidades.toLocaleString()} unid.</div>
+                            </div>
+                            
+                            <div class="cita-detalle-item">
+                                <span class="detalle-label">Bultos</span>
+                                <div>${cita.cantidad_bultos}</div>
                             </div>
                             
                             <div class="cita-detalle-item">
                                 <span class="detalle-label">Pallets</span>
-                                <div class="detalle-valor">
-                                    ${pallets} pallets
-                                </div>
+                                <div>${cita.cantidad_pallets}</div>
                             </div>
                             
                             <div class="cita-detalle-item">
-                                <span class="detalle-label">Área Solicitante</span>
-                                <div class="texto-truncado" title="${cita.area_correspondiente || 'No especificada'}">
-                                    ${cita.area_correspondiente || 'No especificada'}
-                                </div>
-                            </div>
-                            
-                            <div class="cita-detalle-item">
-                                <span class="detalle-label">Tipo Ambiente</span>
+                                <span class="detalle-label">Ambiente</span>
                                 <div class="texto-truncado" title="${cita.tipo_ambiente || 'No especificado'}">
                                     ${cita.tipo_ambiente || 'No especificado'}
                                 </div>
                             </div>
                         </div>
-
-                        <div class="cita-detalles segunda-fila" style="grid-template-columns: 2fr 1fr 1fr 1fr; margin-top: 8px;">
+                        
+                        <!-- SEGUNDA FILA - 5 COLUMNAS - MÁS ESPACIO PARA PERSONA/EMPRESA -->
+                        <div class="cita-detalles cita-detalles-adicional segunda-fila" style="grid-template-columns: 3fr 1fr 1fr 1fr 1fr; margin-top: 5px; padding: 8px; border-radius: 4px;">
+                            <div class="cita-detalle-item">
+                                <span class="detalle-label">Persona/Empresa Entrega</span>
+                                <div class="texto-truncado" title="${cita.personal_empresa_entrega || 'No especificado'}">
+                                    ${cita.personal_empresa_entrega || 'No especificado'}
+                                </div>
+                            </div>
+                            
+                            <div class="cita-detalle-item">
+                                <span class="detalle-label">Código Ref.</span>
+                                <div class="texto-truncado" title="${cita.codigo_referencia || 'N/A'}">
+                                    ${cita.codigo_referencia || 'N/A'}
+                                </div>
+                            </div>
+                            
                             <div class="cita-detalle-item">
                                 <span class="detalle-label">Solicitante</span>
                                 <div class="texto-truncado" title="${cita.nombre_solicitante || 'No especificado'}">
                                     ${cita.nombre_solicitante || 'No especificado'}
                                 </div>
                             </div>
+                            
                             <div class="cita-detalle-item">
-                                <span class="detalle-label">Observaciones</span>
-                                <div class="texto-truncado" title="${cita.observaciones || 'Sin observaciones'}">
-                                    ${cita.observaciones || 'Sin observaciones'}
+                                <span class="detalle-label">Teléfono</span>
+                                <div class="texto-truncado" title="${cita.telefono || 'No especificado'}">
+                                    ${cita.telefono || 'No especificado'}
                                 </div>
                             </div>
+                            
                             <div class="cita-detalle-item">
-                                <span class="detalle-label">Almacén</span>
-                                <div class="texto-truncado" title="${cita.almacen_destino || 'Principal CEDIS'}">
-                                    ${cita.almacen_destino || 'Principal CEDIS'}
-                                </div>
-                            </div>
-                            <div class="cita-detalle-item">
-                                <span class="detalle-label">Clasificación</span>
-                                <div class="texto-truncado">
-                                    ${tags.join(' ') || '<span class="tag tag-small">Sin clasificación especial</span>'}
+                                <span class="detalle-label">Unidad Móvil</span>
+                                <div class="texto-truncado" title="${cita.tipo_unidad_movil || 'No especificado'}">
+                                    ${cita.tipo_unidad_movil || 'No especificado'}
                                 </div>
                             </div>
                         </div>
@@ -1698,40 +1831,54 @@
                 `;
             }).join('');
         }
-
+        
         function renderProximasCitas(citas, modo) {
-            if (!citas || citas.length === 0) {
-                proximasCitas.innerHTML = '<div class="empty-state">No hay citas posteriores al período seleccionado con los filtros aplicados.</div>';
+            if (modo === 'rango') {
+                proximasCitas.innerHTML = '<div class="empty-state">En modo rango, todas las citas se muestran en el panel principal</div>';
+                return;
+            }
+            
+            if (citas.length === 0) {
+                proximasCitas.innerHTML = '<div class="empty-state">No hay citas en los próximos días</div>';
                 return;
             }
 
-            citas.sort((a, b) => {
-                const fechaA = a.fecha_confirmada || '';
-                const fechaB = b.fecha_confirmada || '';
-                if (fechaA === fechaB) {
-                    return (a.hora_confirmada || '').localeCompare(b.hora_confirmada || '');
+            // Agrupar por fecha y ordenar
+            const citasPorFecha = {};
+            citas.forEach(cita => {
+                if (!citasPorFecha[cita.fecha_confirmada]) {
+                    citasPorFecha[cita.fecha_confirmada] = [];
                 }
-                return fechaA.localeCompare(fechaB);
+                citasPorFecha[cita.fecha_confirmada].push(cita);
             });
 
-            proximasCitas.innerHTML = citas.map(cita => {
-                const estado = cita.estado_cita || 'PENDIENTE';
-                const fechaFormateada = formatearFecha(cita.fecha_confirmada);
-                const pallets = parseInt(cita.cantidad_pallets) || 0;
-                
-                let estadoEmoji = '🕒';
-                if (estado.toUpperCase().includes('REALIZADA')) estadoEmoji = '✅';
-                else if (estado.toUpperCase().includes('PROGRAMADA')) estadoEmoji = '📅';
-                else if (estado.toUpperCase().includes('CANCELADA')) estadoEmoji = '❌';
+            // Ordenar fechas
+            const fechasOrdenadas = Object.keys(citasPorFecha).sort();
+
+            proximasCitas.innerHTML = fechasOrdenadas.map(fecha => {
+                const citasFecha = citasPorFecha[fecha];
+                const fechaObj = new Date(fecha + 'T12:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                });
                 
                 return `
                     <div class="proxima-cita-item">
-                        <strong>${estadoEmoji} ${fechaFormateada} - ${cita.hora_confirmada ? cita.hora_confirmada.substring(0,5) : '--:--'}</strong>
-                        <div>${cita.nombre_proveedor || 'Proveedor no especificado'}</div>
-                        <div style="font-size:11px; color:var(--muted-text); margin-top:2px;">
-                            ${cita.descripcion_producto || 'Producto no especificado'}<br>
-                            <span style="font-weight:600;">${pallets}</span> pallets · Orden: ${cita.numero_orden_compra || 'N/A'}
-                        </div>
+                        <div class="proxima-fecha">${fechaFormateada}</div>
+                        <div class="proxima-cantidad">${citasFecha.length} cita(s) programada(s)</div>
+                        ${citasFecha.map(cita => `
+                            <div style="margin-top: 8px; padding-left: 10px; border-left: 2px solid #e1e8ed;">
+                                <div style="font-weight: 600;">${cita.nombre_proveedor || 'Proveedor no especificado'}</div>
+                                <div style="font-size: 12px; color: #666;">
+                                    ${cita.hora_confirmada ? cita.hora_confirmada.substring(0,5) : '--:--'} - ${cita.area_correspondiente || 'Sin área'}
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                    <strong>Producto:</strong> ${cita.descripcion_producto || 'Descripción no disponible'}
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 `;
             }).join('');
@@ -1740,25 +1887,50 @@
         function seleccionarCita(event, id) {
             event.stopPropagation();
             
+            // Solo manejar estilos visuales
             document.querySelectorAll('.cita-item').forEach(item => {
                 item.classList.remove('selected');
             });
             
-            const item = event.currentTarget || event.target.closest('.cita-item');
-            if (item) {
-                item.classList.add('selected');
-            }
+            event.currentTarget.classList.add('selected');
         }
 
+        function limpiarFiltros() {
+            // Establecer fechas por defecto
+            const hoy = new Date();
+            const haceUnaSemana = new Date();
+            haceUnaSemana.setDate(hoy.getDate() - 7);
+            
+            fechaVisualizar.value = hoy.toISOString().split('T')[0];
+            fechaInicio.value = haceUnaSemana.toISOString().split('T')[0];
+            fechaFin.value = hoy.toISOString().split('T')[0];
+            
+            modoVisualizacion.value = 'dia';
+            
+            // Restablecer visibilidad
+            cambiarModoVisualizacion();
+            
+            filtroProveedor.value = '';
+            filtroArea.value = '';
+            filtroProducto.value = '';
+            if (filtroEstado) filtroEstado.value = '';
+            
+            cargarCitas();
+        }
+
+        // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', init);
     </script>
-
-    <script>
+	<script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('sw.js')
-                    .then(function(reg) { console.log('Service worker registrado', reg.scope); })
-                    .catch(function(err) { console.log('Error registrando service worker', err); });
+                    .then(function(registro) {
+                        console.log('Service Worker registrado con éxito:', registro.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Error al registrar el Service Worker:', error);
+                    });
             });
         }
     </script>
