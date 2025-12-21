@@ -612,3 +612,114 @@ body { font-family: Arial, sans-serif; background: #f8fafc; color: #1e293b; }
     flex: 1;
     min-width: 300px;
 }
+
+/* === ESTILOS NUEVOS DEL HEADER (TOPBAR) === */
+:root {
+    --bg-header-1: #0b1f3a;
+    --bg-header-2: #133a74;
+    --ring: #e5e7eb;
+}
+
+/* Ajuste para que el dashboard no quede pegado arriba por el header sticky */
+.dashboard {
+    margin-top: 0 !important; /* Ajuste opcional si se solapa */
+}
+
+/* Estilos de la barra superior */
+.topbar {
+    background: linear-gradient(90deg, var(--bg-header-1), var(--bg-header-2));
+    color: #fff;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.topbar img {
+    border-radius: 12px;
+    flex: 0 0 auto;
+    background: #fff; /* Fondo blanco para el icono si es transparente */
+}
+
+.topbar .title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    flex: 1 1 auto;
+    min-width: 200px;
+}
+
+.topbar .title-sub {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+.topbar .top-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+/* Botones y Selectores del Header */
+.topbar .theme-select {
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 10px;
+    background: transparent;
+    color: #fff;
+    min-width: 110px;
+    cursor: pointer;
+}
+
+.topbar .theme-select option {
+    background: #0b1f3a;
+    color: #fff;
+}
+
+.topbar .btn {
+    padding: 8px 10px;
+    border: 1px solid var(--ring);
+    border-radius: 10px;
+    background: #fff;
+    color: #0f172a;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.topbar .btn.install {
+    background: #00b894;
+    color: #fff;
+    border-color: #00b894;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Responsive para el header */
+@media (max-width: 720px) {
+    .topbar {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center;
+        position: static !important;
+    }
+    .topbar .top-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    .topbar .theme-select, .topbar .btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
