@@ -60,9 +60,9 @@ body {
 .topbar img {
     width: 42px;
     height: 42px;
-    border-radius: 8px;
-    background: #fff;
-    padding: 2px;
+    border-radius: 0px;
+    background: transparent;
+    padding: 0px;
     object-fit: contain;
     flex-shrink: 0;
 }
