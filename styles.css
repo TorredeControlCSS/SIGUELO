@@ -60,11 +60,12 @@ body {
 .topbar img {
     width: 42px;
     height: 42px;
-    border-radius: 0px;
-    background: transparent;
-    padding: 0px;
+    /* Quitamos el fondo blanco y el padding */
+    background: transparent !important; 
+    padding: 0 !important;
+    border-radius: 0; /* Opcional: si el logo ya es redondo/cuadrado por sí mismo */
+    flex: 0 0 auto;
     object-fit: contain;
-    flex-shrink: 0;
 }
 
 .topbar .title {
