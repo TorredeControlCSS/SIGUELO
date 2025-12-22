@@ -497,7 +497,7 @@ body {
     flex: 0 0 auto;
     width: 40px; /* Tamaño fijo como en Curvas */
     height: 40px;
-    background: #fff; /* Fondo blanco para resaltar el logo */
+    background: transparent; /* Fondo blanco para resaltar el logo */
     padding: 2px;
     object-fit: contain;
 }
