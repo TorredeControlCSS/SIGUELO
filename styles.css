@@ -464,3 +464,136 @@ body {
     .cita-detalles[style*="grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr"],
     .segunda-fila { grid-template-columns: 1fr !important; }
 }
+
+/* ==========================================================================
+   HEADER INSTITUCIONAL (ESTILO CURVAS DE INVENTARIO)
+   ========================================================================== */
+
+/* Reset para que la barra toque los bordes */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* LA BARRA AZUL */
+.topbar {
+    background: linear-gradient(90deg, #0b1f3a, #133a74); /* El azul oscuro exacto */
+    color: #fff;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .2);
+    position: sticky;
+    top: 0;
+    z-index: 9999; /* Asegura que esté siempre encima */
+    width: 100%;
+    margin-bottom: 0; /* Pegado al contenido siguiente o con margen según gusto */
+}
+
+/* LOGO */
+.topbar img {
+    border-radius: 12px;
+    flex: 0 0 auto;
+    width: 40px; /* Tamaño fijo como en Curvas */
+    height: 40px;
+    background: #fff; /* Fondo blanco para resaltar el logo */
+    padding: 2px;
+    object-fit: contain;
+}
+
+/* TEXTOS */
+.topbar .title {
+    flex: 1 1 auto;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+.topbar .title-main {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: #fff; /* Texto blanco forzado */
+}
+
+.topbar .title-sub {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.9;
+    color: #cbd5e1; /* Gris muy claro */
+    margin-top: 2px;
+}
+
+/* CONTENEDOR DERECHA (SELECT Y BOTÓN) */
+.topbar .top-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+/* SELECTOR DE TEMA */
+.topbar .theme-select {
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 10px;
+    background: transparent;
+    color: #fff;
+    min-width: 110px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.topbar .theme-select option {
+    background: #0b1f3a; /* Fondo oscuro para las opciones */
+    color: #fff;
+}
+
+/* BOTÓN INSTALAR */
+.topbar .install-btn {
+    background-color: #00b894;
+    color: #fff;
+    border: 1px solid #00b894;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.topbar .install-btn:hover {
+    background-color: #00a185;
+}
+
+/* AJUSTE PARA EL CONTENEDOR PRINCIPAL */
+/* Esto separa un poco el dashboard de la barra pegada arriba */
+.dashboard {
+    padding-top: 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 720px) {
+    .topbar {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        position: static; /* En móvil deja de ser sticky si ocupa mucho */
+    }
+    .topbar .top-actions {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    .topbar .theme-select, 
+    .topbar .install-btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
