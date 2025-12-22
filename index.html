@@ -965,7 +965,13 @@
 			  <img src="icons/icon-512.png" alt="Logo" width="40" height="40">
 			  <div class="title">
 			    <div class="title-main">Calendario de Citas — CEDIS PANAMÁ CSS</div>
-			    <div class="title-sub" id="currentDateTime">Cargando fecha...</div>
+			    <div class="title-sub">
+				    <!-- El ID se mueve aquí para que el JS solo toque la fecha -->
+				    <span id="currentDateTime">Cargando fecha...</span> 
+				    
+				    <!-- Este texto queda fijo y el JS no lo borrará -->
+				    <span style="opacity: 0.8; margin-left: 8px;"> | v2.0 · Torre de Control</span>
+				</div>
 			  </div>
 			  <div class="top-actions">
 			    <select id="themeMode" class="theme-select" title="Tema">
