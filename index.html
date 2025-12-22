@@ -877,16 +877,17 @@
         width: 100%;
     }
 
-    /* 2. Ajuste del Logo */
-    .topbar img {
-        width: 40px; 
-        height: 40px; 
-        border-radius: 12px; 
-        flex: 0 0 auto;
-        background: #fff; /* Fondo blanco para que el icono resalte */
-        padding: 2px;
-        object-fit: contain;
-    }
+		/* REGLA ÚNICA Y CORRECTA PARA EL LOGO */
+		.topbar img {
+		    width: 40px;
+		    height: 40px;
+		    background: transparent; /* Sin color de fondo */
+		    padding: 0;              /* Sin relleno alrededor */
+		    border: none;            /* Sin ningún borde */
+		    border-radius: 0;        /* Sin esquinas redondeadas en la "caja" de la imagen */
+		    object-fit: contain;
+		    flex-shrink: 0;
+		}
 
     /* 3. Textos del Header */
     .topbar .title {
