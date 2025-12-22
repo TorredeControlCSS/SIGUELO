@@ -57,15 +57,16 @@ body {
     width: 100%;
 }
 
+/* REGLA ÚNICA Y DEFINITIVA PARA EL LOGO */
 .topbar img {
-    width: 42px;
-    height: 42px;
-    /* Quitamos el fondo blanco y el padding */
-    background: transparent !important; 
-    padding: 0 !important;
-    border-radius: 0; /* Opcional: si el logo ya es redondo/cuadrado por sí mismo */
-    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    background: transparent !important; /* Forza el fondo transparente */
+    padding: 0 !important;              /* Forza a que no haya relleno */
+    border: none !important;             /* Forza a que no haya borde */
+    border-radius: 0;                    /* Quita cualquier redondeo de la caja */
     object-fit: contain;
+    flex-shrink: 0;
 }
 
 .topbar .title {
@@ -492,15 +493,16 @@ body {
     margin-bottom: 0; /* Pegado al contenido siguiente o con margen según gusto */
 }
 
-/* LOGO */
+/* REGLA ÚNICA Y DEFINITIVA PARA EL LOGO */
 .topbar img {
-    border-radius: 12px;
-    flex: 0 0 auto;
-    width: 40px; /* Tamaño fijo como en Curvas */
+    width: 40px;
     height: 40px;
-    background: transparent; /* Fondo blanco para resaltar el logo */
-    padding: 2px;
+    background: transparent !important; /* Forza el fondo transparente */
+    padding: 0 !important;              /* Forza a que no haya relleno */
+    border: none !important;             /* Forza a que no haya borde */
+    border-radius: 0;                    /* Quita cualquier redondeo de la caja */
     object-fit: contain;
+    flex-shrink: 0;
 }
 
 /* TEXTOS */
