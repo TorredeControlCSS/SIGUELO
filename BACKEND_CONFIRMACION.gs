@@ -10,6 +10,9 @@
  * 3. Usa la misma URL pública del Apps Script en `app.js`.
  */
 
+var COL_OC_CONFIRMADA = 8;
+var CONFIRMACION_TOTAL_COLUMNAS = 22;
+
 // ---------------------------------------------------------------------------
 // Agregar al doGet(e) existente:
 // ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ function getSolicitudesPendientes() {
     if (hojaConfirmadas && hojaConfirmadas.getLastRow() > 1) {
       var datosConfirmados = hojaConfirmadas.getRange(2, 1, hojaConfirmadas.getLastRow() - 1, hojaConfirmadas.getLastColumn()).getValues();
       datosConfirmados.forEach(function(row) {
-        var oc = String(row[8] || '').trim();
+        var oc = String(row[COL_OC_CONFIRMADA] || '').trim();
         if (oc) {
           ordenesConfirmadas[oc] = true;
         }
@@ -70,6 +73,8 @@ function getSolicitudesPendientes() {
         fecha_solicitada: normalizarFecha(row[2]),
         fecha_vencimiento: normalizarFecha(row[3]),
         hora_solicitada: String(row[4] || '').trim(),
+        // row[5] es el proveedor elegido de la lista; row[6] cubre el proveedor
+        // escrito manualmente cuando no estaba disponible en la lista del form.
         nombre_proveedor: String(row[5] || row[6] || '').trim(),
         numero_orden_compra: String(row[7] || '').trim(),
         codigo_referencia: String(row[8] || '').trim(),
@@ -136,10 +141,12 @@ function confirmarCita(data) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    var row = new Array(22).fill('');
+    var row = new Array(CONFIRMACION_TOTAL_COLUMNAS).fill('');
     row[0] = data.fecha_confirmada;
     row[1] = data.estado_cita;
     row[2] = data.hora_confirmada;
+    // Se dejan vacías las columnas 3-6 porque `getCitasData()` ya consume la hoja
+    // histórica con ese orden fijo y solo necesitamos poblar los índices usados.
     row[7] = data.nombre_proveedor;
     row[8] = data.numero_orden_compra;
     row[9] = data.codigo_referencia;

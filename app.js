@@ -189,7 +189,8 @@ class DashboardHub {
     }
 
     checkPWAInstall() {
-        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+        const matchMedia = window.matchMedia ? window.matchMedia.bind(window) : null;
+        if (matchMedia && matchMedia('(display-mode: standalone)').matches) {
             console.log('Running as PWA');
         }
     }
@@ -420,7 +421,8 @@ class DashboardHub {
                 </div>
                 <div class="conf-reporte-panel ${this.confReporteExpandido ? 'is-open' : ''}">
                     <label for="confCodigosCriticosTextarea">Pega aquí los códigos de referencia con stock crítico (0 o bajo) separados por coma, punto y coma o salto de línea:</label>
-                    <textarea id="confCodigosCriticosTextarea" placeholder="Ejemplo: 300501346&#10;REF-9988; ABC123">${this.escapeHtml(codigosCriticos.join('\n'))}</textarea>
+                    <textarea id="confCodigosCriticosTextarea" placeholder="Ejemplo: 300501346
+REF-9988; ABC123">${this.escapeHtml(codigosCriticos.join('\n'))}</textarea>
                     <div class="conf-reporte-actions">
                         <button class="conf-btn-confirmar" onclick="window.dashboardHub.aplicarCodigosCriticos()">Aplicar</button>
                         <button class="conf-btn-detalle" onclick="window.dashboardHub.limpiarCodigosCriticos()">Limpiar</button>
@@ -646,7 +648,8 @@ class DashboardHub {
             const validacionVentana = this.validarReglaSemana(solicitud.marca_temporal, fechaConfirmada);
             const semanaActual = this.getInfoSemana(new Date()).semanaKey;
             const semanaConfirmada = this.getInfoSemana(fecha).semanaKey;
-            if ((!validacionVentana.valida || semanaConfirmada === semanaActual) && !override) {
+            const requiereOverride = !validacionVentana.valida || semanaConfirmada === semanaActual;
+            if (requiereOverride && !override) {
                 window.alert('La fecha confirmada cae fuera de la ventana permitida o en la semana actual. Activa el override excepcional si necesitas continuar.');
                 return;
             }
@@ -859,7 +862,12 @@ class DashboardHub {
 
     normalizarSolicitud(solicitud, index) {
         const numeroOrdenCompra = String(solicitud.numero_orden_compra || solicitud.oc || '').trim();
-        const fallbackId = numeroOrdenCompra || `SOL-${index + 1}`;
+        const fallbackId = [
+            'SOL',
+            solicitud.marca_temporal || solicitud.timestamp || `IDX${index + 1}`,
+            solicitud.codigo_referencia || 'SINREF',
+            solicitud.fecha_solicitada || solicitud.fecha_entrega_solicitada || 'SINFECHA'
+        ].join('-');
 
         return {
             id: String(solicitud.id || fallbackId),
@@ -1006,7 +1014,21 @@ class DashboardHub {
     }
 
     parseNumber(value) {
-        const number = Number(String(value || '').trim().replace(/,/g, '.'));
+        const raw = String(value ?? '').trim();
+        if (!raw) return 0;
+
+        let normalized = raw;
+        if (raw.includes(',') && raw.includes('.')) {
+            normalized = raw.replace(/,/g, '');
+        } else if (/^\d{1,3}(,\d{3})+$/.test(raw)) {
+            normalized = raw.replace(/,/g, '');
+        } else if ((raw.match(/,/g) || []).length > 1) {
+            normalized = raw.replace(/,/g, '');
+        } else {
+            normalized = raw.replace(/,/g, '.');
+        }
+
+        const number = Number(normalized);
         return Number.isFinite(number) ? number : 0;
     }
 
