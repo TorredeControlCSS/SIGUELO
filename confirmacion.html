@@ -580,6 +580,8 @@
                 const timer = setTimeout(() => {
                     if (settled) return;
                     settled = true;
+                    // NO borrar el callback — dejarlo como no-op para que si el
+                    // script llega tarde no lance ReferenceError
                     window[callbackName] = () => {};
                     if (script.parentNode) script.parentNode.removeChild(script);
                     reject(new Error('Timeout cargando ' + callbackName));
