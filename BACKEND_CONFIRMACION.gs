@@ -1,182 +1,288 @@
-/**
- * BACKEND_CONFIRMACION.gs
- * ---------------------------------------------------------------------------
- * Este archivo es una referencia para que el operador copie/pegue el código en
- * el proyecto de Google Apps Script que ya alimenta SIGUELO.
- *
- * IMPORTANTE:
- * 1. Agrega estas funciones al script existente.
- * 2. Vuelve a publicar el Web App después de guardar los cambios.
- * 3. Usa la misma URL pública del Apps Script en `app.js`.
- */
+var FORM_SHEET_NAME = 'Respuestas de formulario 1';
+var CONFIRM_SHEET_NAME = 'Confirmacion de CITAS CSS';
+var CONF_OC_COL_INDEX = 8; // índice base 0 (columna 9 en hoja)
 
-var COL_OC_CONFIRMADA = 8;
-var CONFIRMACION_TOTAL_COLUMNAS = 22;
-
-// ---------------------------------------------------------------------------
-// Agregar al doGet(e) existente:
-// ---------------------------------------------------------------------------
 function doGet(e) {
-  var action = e && e.parameter && e.parameter.action;
-  var callback = e && e.parameter && e.parameter.callback;
+  var action = e && e.parameter ? String(e.parameter.action || '') : '';
+  var callback = e && e.parameter ? String(e.parameter.callback || '') : '';
 
-  if (action === 'getSolicitudesPendientes') {
-    var pendientes = getSolicitudesPendientes();
-    var payload = JSON.stringify(pendientes);
-    if (callback) {
-      return ContentService
-        .createTextOutput(callback + '(' + payload + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    }
-    return ContentService
-      .createTextOutput(payload)
-      .setMimeType(ContentService.MimeType.JSON);
+  if (action === 'getCitasData' || (!action && callback)) {
+    return createOutput_(getCitasData(), callback);
   }
 
-  // Mantener aquí el resto de acciones ya existentes como getCitasData / getData.
+  if (action === 'getSolicitudesPendientes') {
+    return createOutput_(getSolicitudesPendientes(), callback);
+  }
+
+  return createOutput_({ success: false, error: 'Action missing or unsupported' }, callback);
 }
 
-// ---------------------------------------------------------------------------
-// Nueva función:
-// ---------------------------------------------------------------------------
-function getSolicitudesPendientes() {
+function doPost(e) {
+  try {
+    var payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var action = String(payload.action || '');
+
+    if (action === 'confirmarCita') {
+      return createOutput_(confirmarCita(payload.data), '');
+    }
+
+    if (action === 'actualizarCita') {
+      return createOutput_(actualizarCita(payload.data), '');
+    }
+
+    return createOutput_({ success: false, error: 'Action not found' }, '');
+  } catch (error) {
+    return createOutput_({ success: false, error: String(error) }, '');
+  }
+}
+
+function getCitasData() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var hojaFormulario = ss.getSheetByName('Respuestas de formulario 1');
-    var hojaConfirmadas = ss.getSheetByName('Confirmacion de CITAS CSS');
+    var sheet = ss.getSheetByName(CONFIRM_SHEET_NAME);
+    if (!sheet) return { success: false, error: "No existe la hoja 'Confirmacion de CITAS CSS'" };
+    if (sheet.getLastRow() <= 1) return { success: true, data: [], total: 0 };
 
-    if (!hojaFormulario) {
-      return { success: false, error: "No existe la hoja 'Respuestas de formulario 1'" };
-    }
-
-    var datosFormulario = hojaFormulario.getDataRange().getValues();
-    if (datosFormulario.length <= 1) {
-      return { success: true, data: [] };
-    }
-
-    var ordenesConfirmadas = {};
-    if (hojaConfirmadas && hojaConfirmadas.getLastRow() > 1) {
-      var datosConfirmados = hojaConfirmadas.getRange(2, 1, hojaConfirmadas.getLastRow() - 1, hojaConfirmadas.getLastColumn()).getValues();
-      datosConfirmados.forEach(function(row) {
-        var oc = String(row[COL_OC_CONFIRMADA] || '').trim();
-        if (oc) {
-          ordenesConfirmadas[oc] = true;
-        }
-      });
-    }
-
-    var solicitudes = datosFormulario.slice(1).map(function(row, index) {
+    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(sheet.getLastColumn(), 24)).getValues();
+    var citas = data.map(function(row, index) {
       return {
-        id: 'SOL-' + (index + 1),
-        marca_temporal: normalizarFecha(row[0]),
-        correo: String(row[1] || '').trim(),
-        fecha_solicitada: normalizarFecha(row[2]),
-        fecha_vencimiento: normalizarFecha(row[3]),
-        hora_solicitada: String(row[4] || '').trim(),
-        // row[5] es el proveedor elegido de la lista; row[6] cubre el proveedor
-        // escrito manualmente cuando no estaba disponible en la lista del form.
-        nombre_proveedor: String(row[5] || row[6] || '').trim(),
-        numero_orden_compra: String(row[7] || '').trim(),
-        codigo_referencia: String(row[8] || '').trim(),
-        descripcion_producto: String(row[9] || '').trim(),
-        cantidad_unidades: row[10] || 0,
-        cantidad_bultos: row[11] || 0,
-        unidad_empaque: String(row[12] || '').trim(),
-        cantidad_pallets: row[13] || 0,
-        tipo_ambiente: String(row[14] || '').trim(),
-        area_correspondiente: String(row[15] || '').trim(),
-        nombre_solicitante: String(row[16] || '').trim(),
-        correo_solicitante: String(row[17] || row[1] || '').trim(),
-        telefono: String(row[18] || '').trim(),
-        tipo_unidad_movil: String(row[19] || '').trim(),
-        personal_empresa_entrega: String(row[20] || '').trim(),
-        num_autorizacion_posterior: String(row[21] || '').trim(),
-        num_autorizacion_plazo: String(row[22] || '').trim(),
-        tipo_entrega: String(row[23] || '').trim(),
-        anexo_doc: String(row[24] || '').trim(),
-        observaciones: String(row[25] || '').trim(),
-        anexo_lista_empaque: String(row[26] || '').trim()
+        id: index + 1,
+        fecha_confirmada: formatDate_(row[0]),
+        estado_cita: toText_(row[1]),
+        hora_confirmada: toText_(row[2]),
+        correo: toText_(row[3]),
+        fecha_solicitada: formatDate_(row[4]),
+        fecha_vencimiento: formatDate_(row[5]),
+        hora_solicitada: toText_(row[6]),
+        nombre_proveedor: toText_(row[7]),
+        numero_orden_compra: toText_(row[8]),
+        codigo_referencia: toText_(row[9]),
+        descripcion_producto: toText_(row[10]),
+        cantidad_unidades: toNumber_(row[11]),
+        cantidad_bultos: toNumber_(row[12]),
+        unidad_empaque: toText_(row[13]),
+        cantidad_pallets: toNumber_(row[14]),
+        tipo_ambiente: toText_(row[15]),
+        area_correspondiente: toText_(row[16]),
+        nombre_solicitante: toText_(row[17]),
+        correo_solicitante: toText_(row[18]),
+        telefono: toText_(row[19]),
+        tipo_unidad_movil: toText_(row[20]),
+        personal_empresa_entrega: toText_(row[21]),
+        tipo_entrega: toText_(row[22]),
+        anexo_lista_empaque: toText_(row[23])
       };
-    }).filter(function(item) {
-      return item.numero_orden_compra && !ordenesConfirmadas[item.numero_orden_compra];
+    }).filter(function(cita) {
+      return cita.numero_orden_compra;
     });
 
-    return { success: true, data: solicitudes };
+    return { success: true, data: citas, total: citas.length };
   } catch (error) {
     return { success: false, error: String(error) };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Agregar doPost(e):
-// ---------------------------------------------------------------------------
-function doPost(e) {
+function getSolicitudesPendientes() {
   try {
-    var payload = JSON.parse(e.postData.contents);
-    if (payload.action === 'confirmarCita') {
-      return confirmarCita(payload.data);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var formSheet = ss.getSheetByName(FORM_SHEET_NAME);
+    var confirmSheet = ss.getSheetByName(CONFIRM_SHEET_NAME);
+
+    if (!formSheet) {
+      return { success: false, error: "No existe la hoja 'Respuestas de formulario 1'" };
     }
 
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: 'Acción POST no reconocida' }))
-      .setMimeType(ContentService.MimeType.JSON);
+    var confirmedOCs = {};
+    if (confirmSheet && confirmSheet.getLastRow() > 1) {
+      var confirmedData = confirmSheet.getRange(2, 1, confirmSheet.getLastRow() - 1, Math.max(confirmSheet.getLastColumn(), 9)).getValues();
+      confirmedData.forEach(function(row) {
+        var oc = toText_(row[CONF_OC_COL_INDEX]);
+        if (oc) confirmedOCs[oc] = true;
+      });
+    }
+
+    var values = formSheet.getDataRange().getValues();
+    var display = formSheet.getDataRange().getDisplayValues();
+    if (values.length <= 1) return { success: true, data: [], total: 0 };
+
+    var solicitudes = values.slice(1).map(function(src, index) {
+      var srcDisplay = display[index + 1] || [];
+      var oc = toText_(src[7]);
+      return {
+        id: index + 1,
+        marca_temporal: formatDate_(src[0]),
+        fecha_entrega_solicitada: formatDate_(src[2]),
+        fecha_vencimiento: formatDate_(src[3]),
+        hora_solicitada: toText_(srcDisplay[4] || src[4]),
+        nombre_proveedor: toText_(src[5] || src[6]),
+        numero_orden_compra: oc,
+        codigo_referencia: toText_(src[8]),
+        descripcion_producto: toText_(src[9]),
+        cantidad_unidades: toNumber_(src[10]),
+        cantidad_bultos: toNumber_(src[11]),
+        cantidad_pallets: toNumber_(src[13]),
+        tipo_ambiente: toText_(src[14]),
+        area_correspondiente: toText_(src[15]),
+        nombre_solicitante: toText_(src[16]),
+        correo_solicitante: toText_(src[17] || src[1]),
+        telefono: toText_(src[18]),
+        tipo_unidad_movil: toText_(src[19]),
+        personal_empresa_entrega: toText_(src[20]),
+        tipo_entrega: toText_(src[23]),
+        observaciones: toText_(src[25]),
+        _srcRow: normalizeSourceRow_(src)
+      };
+    }).filter(function(item) {
+      return item.numero_orden_compra && !confirmedOCs[item.numero_orden_compra];
+    });
+
+    return { success: true, data: solicitudes, total: solicitudes.length };
   } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: String(error) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return { success: false, error: String(error) };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Nueva función:
-// ---------------------------------------------------------------------------
 function confirmarCita(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var hoja = ss.getSheetByName('Confirmacion de CITAS CSS');
+    var sheet = ss.getSheetByName(CONFIRM_SHEET_NAME);
+    if (!sheet) return { success: false, error: "No existe la hoja 'Confirmacion de CITAS CSS'" };
 
-    if (!hoja) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, error: "No existe la hoja 'Confirmacion de CITAS CSS'" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+    var src = Array.isArray(data && data.src_row) ? data.src_row : buildFallbackSource_(data || {});
+    var dest = new Array(24).fill('');
+    dest[0] = toText_(data && data.fecha_confirmada);
+    dest[1] = toText_(data && data.estado_cita);
+    dest[2] = toText_(data && data.hora_confirmada);
+    dest[3] = src[1];
+    dest[4] = src[2];
+    dest[5] = src[3];
+    dest[6] = src[4];
+    dest[7] = src[5] || src[6];
+    dest[8] = src[7];
+    dest[9] = src[8];
+    dest[10] = src[9];
+    dest[11] = src[10];
+    dest[12] = src[11];
+    dest[13] = src[12];
+    dest[14] = src[13];
+    dest[15] = src[15];
+    dest[16] = src[16];
+    dest[17] = src[17];
+    dest[18] = src[18];
+    dest[19] = src[19];
+    dest[20] = src[20];
+    dest[21] = src[21];
+    dest[22] = src[14];
+    dest[23] = src[26];
 
-    var row = new Array(CONFIRMACION_TOTAL_COLUMNAS).fill('');
-    row[0] = data.fecha_confirmada;
-    row[1] = data.estado_cita;
-    row[2] = data.hora_confirmada;
-    // Se dejan vacías las columnas 3-6 porque `getCitasData()` ya consume la hoja
-    // histórica con ese orden fijo y solo necesitamos poblar los índices usados.
-    row[7] = data.nombre_proveedor;
-    row[8] = data.numero_orden_compra;
-    row[9] = data.codigo_referencia;
-    row[10] = data.descripcion_producto;
-    row[11] = data.cantidad_unidades;
-    row[12] = data.cantidad_bultos;
-    row[14] = data.cantidad_pallets;
-    row[15] = data.tipo_ambiente;
-    row[16] = data.area_correspondiente;
-    row[17] = data.nombre_solicitante;
-    row[18] = data.correo_solicitante;
-    row[19] = data.telefono;
-    row[20] = data.tipo_unidad_movil;
-    row[21] = data.personal_empresa_entrega;
-
-    hoja.appendRow(row);
-
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+    sheet.appendRow(dest);
+    return { success: true, message: 'Cita confirmada exitosamente' };
   } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: false, error: String(error) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return { success: false, error: String(error) };
   }
 }
 
-function normalizarFecha(value) {
+function actualizarCita(data) {
+  try {
+    var numeroOrdenCompra = toText_(data && data.numero_orden_compra);
+    if (!numeroOrdenCompra) {
+      return { success: false, error: 'numero_orden_compra es obligatorio' };
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(CONFIRM_SHEET_NAME);
+    if (!sheet) return { success: false, error: "No existe la hoja 'Confirmacion de CITAS CSS'" };
+    if (sheet.getLastRow() <= 1) return { success: false, error: 'No hay filas para actualizar' };
+
+    var ocValues = sheet.getRange(2, 9, sheet.getLastRow() - 1, 1).getValues();
+    var rowIndex = -1;
+    for (var i = 0; i < ocValues.length; i++) {
+      if (toText_(ocValues[i][0]) === numeroOrdenCompra) {
+        rowIndex = i + 2;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'No se encontró la OC en Confirmacion de CITAS CSS' };
+    }
+
+    sheet.getRange(rowIndex, 1, 1, 3).setValues([[
+      toText_(data && data.fecha_confirmada),
+      toText_(data && data.estado_cita),
+      toText_(data && data.hora_confirmada)
+    ]]);
+
+    return { success: true, message: 'Cita actualizada exitosamente' };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+function createOutput_(payload, callback) {
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(payload) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function normalizeSourceRow_(src) {
+  var out = [];
+  for (var i = 0; i < src.length; i++) {
+    var value = src[i];
+    if (value instanceof Date) {
+      out.push(formatDate_(value));
+    } else if (typeof value === 'number') {
+      out.push(value);
+    } else {
+      out.push(toText_(value));
+    }
+  }
+  return out;
+}
+
+function buildFallbackSource_(data) {
+  var src = new Array(27).fill('');
+  src[1] = toText_(data.correo_solicitante || data.correo);
+  src[2] = toText_(data.fecha_solicitada || data.fecha_entrega_solicitada);
+  src[3] = toText_(data.fecha_vencimiento);
+  src[4] = toText_(data.hora_solicitada);
+  src[5] = toText_(data.nombre_proveedor);
+  src[7] = toText_(data.numero_orden_compra);
+  src[8] = toText_(data.codigo_referencia);
+  src[9] = toText_(data.descripcion_producto);
+  src[10] = toNumber_(data.cantidad_unidades);
+  src[11] = toNumber_(data.cantidad_bultos);
+  src[12] = toText_(data.unidad_empaque);
+  src[13] = toNumber_(data.cantidad_pallets);
+  src[14] = toText_(data.tipo_entrega);
+  src[15] = toText_(data.tipo_ambiente);
+  src[16] = toText_(data.area_correspondiente);
+  src[17] = toText_(data.nombre_solicitante);
+  src[18] = toText_(data.correo_solicitante || data.correo);
+  src[19] = toText_(data.telefono);
+  src[20] = toText_(data.tipo_unidad_movil);
+  src[21] = toText_(data.personal_empresa_entrega);
+  src[26] = toText_(data.anexo_lista_empaque);
+  return src;
+}
+
+function formatDate_(value) {
   if (!value) return '';
   var date = value instanceof Date ? value : new Date(value);
   if (isNaN(date.getTime())) return '';
   return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function toText_(value) {
+  return String(value || '').trim();
+}
+
+function toNumber_(value) {
+  var parsed = Number(value);
+  return isNaN(parsed) ? 0 : parsed;
 }

@@ -6,6 +6,7 @@
     <title>Dashboard de Citas - Almacén CSS</title>
 	<!-- En index.html, dentro del <head> -->
 	<link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3498db">
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1156,6 +1157,18 @@
                 </div>
             </div>
         </div>
+
+        <section id="mainMenu">
+            <article class="dashboard-card" data-dashboard="4">
+                <h3>Confirmacion de Citas</h3>
+                <p>Kanban de solicitudes</p>
+            </article>
+        </section>
+
+        <section id="dashboardContainer" class="hidden">
+            <button id="backButton" class="back-btn" type="button">← Volver al Hub</button>
+            <div id="dashboardContent"></div>
+        </section>
     </div>
 
     <script>
@@ -2101,6 +2114,7 @@ function obtenerDatosSemana(citas, fechaSeleccionada) {
             }
         });
     </script>
+    <script src="app.js"></script>
 
 </body>
 </html>

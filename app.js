@@ -9,8 +9,13 @@ class DashboardHub {
         this.confSemanaActiva = null;
         this.confSolicitudActivaId = null;
         this.confReporteExpandido = false;
-        this.confCodigosCriticosKey = 'codigosCriticosCitas';
+        this.confCodigosCriticosKey = 'kanbanCodigosCriticos';
         this.confRechazadasKey = 'solicitudesRechazadasLocal';
+        this.kanbanMonthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        this.kanbanReporteExpandido = false;
+        this.kanbanDragPayload = null;
+        this.kanbanModalSolicitudId = null;
+        this.kanbanModalFecha = '';
         this.init();
     }
 
@@ -74,10 +79,46 @@ class DashboardHub {
             '4': `
                 <div class="conf-module">
                     <div class="module-header">
-                        <h2>📋 Confirmación de Citas de Proveedores</h2>
+                        <h2>📋 Confirmacion de Citas</h2>
                         <button class="back-btn" onclick="window.dashboardHub.showMainMenu()">← Volver al Hub</button>
                     </div>
-                    <div id="confirmacionContainer"></div>
+                    <div id="confirmacionContainer">
+                        <div class="kanban-header-card">
+                            <div class="kanban-header-top">
+                                <div>
+                                    <h3>Kanban mensual de solicitudes</h3>
+                                    <p>Arrastra solicitudes al calendario y reprograma citas confirmadas entre días hábiles.</p>
+                                </div>
+                                <button class="conf-btn-detalle" onclick="window.dashboardHub.toggleKanbanReportePanel()">📊 Reporte de abastecimiento</button>
+                            </div>
+                            <div class="kanban-reporte-panel ${this.kanbanReporteExpandido ? 'is-open' : ''}">
+                                <label for="kanbanCodigosCriticosTextarea">Códigos críticos (coma, punto y coma o salto de línea)</label>
+                                <textarea id="kanbanCodigosCriticosTextarea" placeholder="Ejemplo: REF001, REF002"></textarea>
+                                <div class="conf-reporte-actions">
+                                    <button class="conf-btn-confirmar" onclick="window.dashboardHub.aplicarCodigosCriticosKanban()">Aplicar</button>
+                                    <button class="conf-btn-detalle" onclick="window.dashboardHub.limpiarCodigosCriticosKanban()">Limpiar</button>
+                                </div>
+                            </div>
+                            <div class="kanban-month-nav">
+                                <button class="conf-btn-detalle" onclick="window.dashboardHub.cambiarMesKanban(-1)">◀ Mes anterior</button>
+                                <strong id="kanbanMonthLabel"></strong>
+                                <button class="conf-btn-detalle" onclick="window.dashboardHub.cambiarMesKanban(1)">Mes siguiente ▶</button>
+                            </div>
+                        </div>
+                        <div class="kanban-layout">
+                            <aside class="kanban-sidebar">
+                                <h4>Solicitudes pendientes</h4>
+                                <div id="kanbanSidebarList"></div>
+                            </aside>
+                            <section class="kanban-calendar">
+                                <div class="kanban-weekdays">
+                                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                                </div>
+                                <div id="kanbanCalGrid" class="kanban-cal-grid"></div>
+                            </section>
+                        </div>
+                        <div id="kanbanModalOverlay" class="kanban-mini-modal-overlay"></div>
+                    </div>
                 </div>
             `,
             '5': `<h2>Dashboard 5</h2><p>Contenido en desarrollo</p>`,
@@ -97,7 +138,7 @@ class DashboardHub {
             }
 
             if (dashboardId === '4') {
-                await this.inicializarModuloConfirmacion();
+                await this.inicializarKanbanCitas();
                 return;
             }
 
@@ -367,6 +408,398 @@ class DashboardHub {
             'handleSolicitudesPendientes',
             'Error cargando solicitudes pendientes'
         );
+    }
+
+    async inicializarKanbanCitas() {
+        const container = document.getElementById('confirmacionContainer');
+        if (!container) return;
+
+        const sidebar = document.getElementById('kanbanSidebarList');
+        const grid = document.getElementById('kanbanCalGrid');
+        if (sidebar) sidebar.innerHTML = '<div class="conf-empty-state">Cargando solicitudes...</div>';
+        if (grid) grid.innerHTML = '<div class="conf-empty-state">Cargando calendario...</div>';
+
+        try {
+            const [solicitudesResponse, citasResponse] = await Promise.all([
+                this.fetchSolicitudesPendientes(),
+                this.fetchJsonp(
+                    `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
+                    'handleCitasData',
+                    'Error cargando citas confirmadas'
+                )
+            ]);
+
+            if (!solicitudesResponse.success) {
+                throw new Error(solicitudesResponse.error || 'No se pudieron cargar solicitudes pendientes');
+            }
+            if (!citasResponse.success) {
+                throw new Error(citasResponse.error || 'No se pudieron cargar citas confirmadas');
+            }
+
+            const confirmadas = (citasResponse.data || []).map((cita, index) => this.normalizarCitaConfirmada(cita, index));
+            const ordenesConfirmadas = new Set(confirmadas.map(cita => cita.numero_orden_compra).filter(Boolean));
+            const codigosCriticos = this.obtenerCodigosCriticos();
+
+            this.confSolicitudes = (solicitudesResponse.data || [])
+                .map((solicitud, index) => this.normalizarSolicitud(solicitud, index))
+                .filter(solicitud => solicitud.numero_orden_compra && !ordenesConfirmadas.has(solicitud.numero_orden_compra))
+                .map(solicitud => ({
+                    ...solicitud,
+                    prioridad: this.calcularPrioridadKanban(solicitud, codigosCriticos)
+                }))
+                .sort((a, b) => {
+                    if (b.prioridad.score !== a.prioridad.score) {
+                        return b.prioridad.score - a.prioridad.score;
+                    }
+                    return (a.fecha_vencimiento || '').localeCompare(b.fecha_vencimiento || '');
+                });
+
+            this.confCitasConfirmadas = confirmadas;
+            this.renderKanbanCitas();
+        } catch (error) {
+            container.innerHTML = `<div class="conf-empty-state">❌ Error cargando Kanban: ${this.escapeHtml(error.message)}</div>`;
+        }
+    }
+
+    renderKanbanCitas() {
+        const monthLabel = document.getElementById('kanbanMonthLabel');
+        const sidebar = document.getElementById('kanbanSidebarList');
+        const grid = document.getElementById('kanbanCalGrid');
+        const overlay = document.getElementById('kanbanModalOverlay');
+        const textarea = document.getElementById('kanbanCodigosCriticosTextarea');
+
+        if (!sidebar || !grid || !overlay) return;
+
+        if (monthLabel) {
+            monthLabel.textContent = this.kanbanMonthCursor.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        }
+
+        if (textarea && document.activeElement !== textarea) {
+            textarea.value = this.obtenerCodigosCriticos().join('\n');
+        }
+
+        sidebar.innerHTML = this.renderKanbanSidebar();
+        grid.innerHTML = this.renderKanbanCalendar();
+        overlay.innerHTML = this.renderKanbanModalContent();
+        overlay.classList.toggle('is-open', Boolean(this.kanbanModalSolicitudId));
+
+        const reportPanel = document.querySelector('.kanban-reporte-panel');
+        if (reportPanel) {
+            reportPanel.classList.toggle('is-open', this.kanbanReporteExpandido);
+        }
+
+        this.configurarKanbanDnD();
+    }
+
+    renderKanbanSidebar() {
+        if (!this.confSolicitudes.length) {
+            return '<div class="conf-empty-state">No hay solicitudes pendientes.</div>';
+        }
+
+        return this.confSolicitudes.map(solicitud => {
+            const nivelClase = this.getKanbanPrioridadClase((solicitud.prioridad || {}).score || 0);
+            const dias = (solicitud.prioridad || {}).diasParaVencer;
+            const diasTexto = dias === null || dias === undefined
+                ? 'Sin fecha de vencimiento'
+                : dias < 0
+                    ? `Vencida hace ${Math.abs(dias)} días`
+                    : `Vence en ${dias} días`;
+
+            return `
+                <article class="kanban-tarjeta ${nivelClase}" draggable="true" data-pending-id="${this.escapeHtml(String(solicitud.id))}">
+                    <h5>${this.escapeHtml(solicitud.nombre_proveedor || 'Proveedor sin nombre')}</h5>
+                    <p><strong>OC:</strong> ${this.escapeHtml(solicitud.numero_orden_compra || 'N/D')}</p>
+                    <p><strong>Código:</strong> ${this.escapeHtml(solicitud.codigo_referencia || 'N/D')}</p>
+                    <p>${this.escapeHtml(diasTexto)}</p>
+                    <span class="conf-score">Score ${this.escapeHtml(String((solicitud.prioridad || {}).score || 0))}</span>
+                </article>
+            `;
+        }).join('');
+    }
+
+    renderKanbanCalendar() {
+        const firstDay = new Date(this.kanbanMonthCursor.getFullYear(), this.kanbanMonthCursor.getMonth(), 1);
+        const dayOfWeek = (firstDay.getDay() + 6) % 7;
+        const start = new Date(firstDay);
+        start.setDate(firstDay.getDate() - dayOfWeek);
+
+        let html = '';
+        for (let i = 0; i < 42; i++) {
+            const date = new Date(start);
+            date.setDate(start.getDate() + i);
+            const isoDate = this.toISODate(date);
+            const inMonth = date.getMonth() === this.kanbanMonthCursor.getMonth();
+            const weekday = date.getDay();
+            const isWeekend = weekday === 0 || weekday === 6;
+            const citasDia = this.confCitasConfirmadas.filter(cita => cita.fecha_confirmada === isoDate);
+
+            html += `
+                <div class="kanban-dia ${inMonth ? '' : 'is-other-month'} ${isWeekend ? 'is-weekend' : ''}" data-date="${isoDate}" data-weekday="${isWeekend ? '0' : '1'}">
+                    <div class="kanban-dia-head">${date.getDate()}</div>
+                    <div class="kanban-dia-items">
+                        ${citasDia.map(cita => `
+                            <article class="kanban-tarjeta kanban-prioridad-verde" draggable="true" data-confirmed-oc="${this.escapeHtml(cita.numero_orden_compra)}">
+                                <h5>${this.escapeHtml(cita.nombre_proveedor || 'Proveedor')}</h5>
+                                <p><strong>OC:</strong> ${this.escapeHtml(cita.numero_orden_compra || 'N/D')}</p>
+                                <p>${this.escapeHtml(cita.hora_confirmada || '--:--')} · ${this.escapeHtml(cita.estado_cita || 'CONFIRMADA')}</p>
+                            </article>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        return html;
+    }
+
+    renderKanbanModalContent() {
+        if (!this.kanbanModalSolicitudId) return '';
+        const solicitud = this.confSolicitudes.find(item => String(item.id) === String(this.kanbanModalSolicitudId));
+        if (!solicitud) return '';
+
+        return `
+            <div class="kanban-mini-modal" onclick="event.stopPropagation()">
+                <div class="conf-modal-header">
+                    <div>
+                        <h3>Confirmar cita</h3>
+                        <p>${this.escapeHtml(solicitud.nombre_proveedor || 'Proveedor')} · OC ${this.escapeHtml(solicitud.numero_orden_compra || 'N/D')}</p>
+                    </div>
+                    <button class="conf-btn-detalle" onclick="window.dashboardHub.cerrarKanbanModal()">✕</button>
+                </div>
+                <div class="conf-modal-body">
+                    <div class="conf-form-grid">
+                        <label>
+                            <span>Fecha confirmada</span>
+                            <input type="date" id="kanbanModalFecha" value="${this.escapeHtml(this.kanbanModalFecha || solicitud.fecha_solicitada || '')}">
+                        </label>
+                        <label>
+                            <span>Hora confirmada</span>
+                            <input type="time" id="kanbanModalHora" value="${this.escapeHtml(solicitud.hora_solicitada || '')}">
+                        </label>
+                        <label>
+                            <span>Estado</span>
+                            <select id="kanbanModalEstado">
+                                <option value="CONFIRMADA">CONFIRMADA</option>
+                                <option value="REPROGRAMADA">REPROGRAMADA</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div class="conf-modal-footer">
+                    <button class="conf-btn-detalle" onclick="window.dashboardHub.cerrarKanbanModal()">Cancelar</button>
+                    <button class="conf-btn-confirmar" onclick="window.dashboardHub.confirmarCitaKanban()">Confirmar</button>
+                </div>
+            </div>
+        `;
+    }
+
+    configurarKanbanDnD() {
+        document.querySelectorAll('.kanban-tarjeta[draggable="true"]').forEach(card => {
+            card.addEventListener('dragstart', event => {
+                const pendingId = card.dataset.pendingId;
+                const confirmedOc = card.dataset.confirmedOc;
+                this.kanbanDragPayload = pendingId
+                    ? { type: 'pending', id: pendingId }
+                    : { type: 'confirmed', oc: confirmedOc };
+                event.dataTransfer.setData('text/plain', JSON.stringify(this.kanbanDragPayload));
+            });
+        });
+
+        document.querySelectorAll('.kanban-dia[data-weekday="1"]').forEach(dayCell => {
+            dayCell.addEventListener('dragover', event => {
+                event.preventDefault();
+                dayCell.classList.add('is-drag-over');
+            });
+            dayCell.addEventListener('dragleave', () => dayCell.classList.remove('is-drag-over'));
+            dayCell.addEventListener('drop', async event => {
+                event.preventDefault();
+                dayCell.classList.remove('is-drag-over');
+
+                const date = dayCell.dataset.date;
+                if (!date) return;
+
+                let payload = this.kanbanDragPayload;
+                try {
+                    payload = payload || JSON.parse(event.dataTransfer.getData('text/plain'));
+                } catch (error) {}
+                if (!payload) return;
+
+                if (payload.type === 'pending') {
+                    this.abrirKanbanModal(payload.id, date);
+                    return;
+                }
+                if (payload.type === 'confirmed' && payload.oc) {
+                    await this.actualizarCitaKanban(payload.oc, date);
+                }
+            });
+        });
+
+        const overlay = document.getElementById('kanbanModalOverlay');
+        if (overlay) {
+            overlay.onclick = () => this.cerrarKanbanModal();
+        }
+    }
+
+    abrirKanbanModal(solicitudId, fecha) {
+        this.kanbanModalSolicitudId = String(solicitudId);
+        this.kanbanModalFecha = fecha || '';
+        this.renderKanbanCitas();
+    }
+
+    cerrarKanbanModal() {
+        this.kanbanModalSolicitudId = null;
+        this.kanbanModalFecha = '';
+        this.renderKanbanCitas();
+    }
+
+    async confirmarCitaKanban() {
+        const solicitud = this.confSolicitudes.find(item => String(item.id) === String(this.kanbanModalSolicitudId));
+        if (!solicitud) return;
+
+        const fechaConfirmada = document.getElementById('kanbanModalFecha')?.value || '';
+        const horaConfirmada = document.getElementById('kanbanModalHora')?.value || '';
+        const estadoCita = document.getElementById('kanbanModalEstado')?.value || 'CONFIRMADA';
+
+        if (!fechaConfirmada) {
+            window.alert('Debes indicar una fecha confirmada.');
+            return;
+        }
+
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'confirmarCita',
+                    data: {
+                        fecha_confirmada: fechaConfirmada,
+                        estado_cita: estadoCita,
+                        hora_confirmada: horaConfirmada,
+                        src_row: solicitud._srcRow || [],
+                        numero_orden_compra: solicitud.numero_orden_compra,
+                        codigo_referencia: solicitud.codigo_referencia,
+                        descripcion_producto: solicitud.descripcion_producto,
+                        cantidad_unidades: solicitud.cantidad_unidades,
+                        cantidad_bultos: solicitud.cantidad_bultos,
+                        cantidad_pallets: solicitud.cantidad_pallets,
+                        tipo_ambiente: solicitud.tipo_ambiente,
+                        area_correspondiente: solicitud.area_correspondiente,
+                        nombre_solicitante: solicitud.nombre_solicitante,
+                        correo_solicitante: solicitud.correo_solicitante,
+                        telefono: solicitud.telefono,
+                        tipo_unidad_movil: solicitud.tipo_unidad_movil,
+                        personal_empresa_entrega: solicitud.personal_empresa_entrega,
+                        tipo_entrega: solicitud.tipo_entrega
+                    }
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo confirmar la cita');
+            }
+
+            this.kanbanModalSolicitudId = null;
+            this.kanbanModalFecha = '';
+            await this.inicializarKanbanCitas();
+        } catch (error) {
+            window.alert(`Error confirmando cita: ${error.message}`);
+        }
+    }
+
+    async actualizarCitaKanban(numeroOrdenCompra, nuevaFecha) {
+        const cita = this.confCitasConfirmadas.find(item => item.numero_orden_compra === numeroOrdenCompra);
+        if (!cita) return;
+
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'actualizarCita',
+                    data: {
+                        numero_orden_compra: numeroOrdenCompra,
+                        fecha_confirmada: nuevaFecha,
+                        estado_cita: cita.estado_cita || 'REPROGRAMADA',
+                        hora_confirmada: cita.hora_confirmada || ''
+                    }
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo actualizar la cita');
+            }
+
+            await this.inicializarKanbanCitas();
+        } catch (error) {
+            window.alert(`Error reprogramando cita: ${error.message}`);
+        }
+    }
+
+    cambiarMesKanban(delta) {
+        this.kanbanMonthCursor = new Date(this.kanbanMonthCursor.getFullYear(), this.kanbanMonthCursor.getMonth() + delta, 1);
+        this.renderKanbanCitas();
+    }
+
+    toggleKanbanReportePanel() {
+        this.kanbanReporteExpandido = !this.kanbanReporteExpandido;
+        this.renderKanbanCitas();
+    }
+
+    aplicarCodigosCriticosKanban() {
+        const textarea = document.getElementById('kanbanCodigosCriticosTextarea');
+        const codigos = this.parsearCodigosCriticos(textarea ? textarea.value : '');
+        sessionStorage.setItem(this.confCodigosCriticosKey, JSON.stringify(codigos));
+        this.confSolicitudes = this.confSolicitudes.map(solicitud => ({
+            ...solicitud,
+            prioridad: this.calcularPrioridadKanban(solicitud, codigos)
+        })).sort((a, b) => b.prioridad.score - a.prioridad.score);
+        this.renderKanbanCitas();
+    }
+
+    limpiarCodigosCriticosKanban() {
+        sessionStorage.removeItem(this.confCodigosCriticosKey);
+        this.confSolicitudes = this.confSolicitudes.map(solicitud => ({
+            ...solicitud,
+            prioridad: this.calcularPrioridadKanban(solicitud, [])
+        })).sort((a, b) => b.prioridad.score - a.prioridad.score);
+        this.renderKanbanCitas();
+    }
+
+    calcularPrioridadKanban(solicitud, codigosCriticos) {
+        const fechaVencimiento = this.parseDateValue(solicitud.fecha_vencimiento);
+        const hoy = this.stripTime(new Date());
+        const diasParaVencer = fechaVencimiento ? Math.round((fechaVencimiento - hoy) / 86400000) : null;
+        const codigo = this.normalizarCodigoReferencia(solicitud.codigo_referencia);
+        const esCritico = codigosCriticos.includes(codigo);
+
+        let score = 0;
+        if (diasParaVencer !== null) {
+            if (diasParaVencer < 0) {
+                score = 100;
+            } else if (diasParaVencer <= 7) {
+                score = 80;
+            } else if (diasParaVencer <= 21) {
+                score = 50;
+            } else if (diasParaVencer <= 45) {
+                score = 20;
+            }
+        }
+
+        if (esCritico) score += 40;
+
+        return {
+            score,
+            diasParaVencer,
+            stockCritico: esCritico
+        };
+    }
+
+    getKanbanPrioridadClase(score) {
+        if (score >= 100) return 'kanban-prioridad-roja';
+        if (score >= 80) return 'kanban-prioridad-naranja';
+        if (score >= 50) return 'kanban-prioridad-amarilla';
+        return 'kanban-prioridad-verde';
     }
 
     cargarInterfazConfirmacion(container, solicitudes, citasConfirmadas) {
@@ -888,7 +1321,9 @@ REF-9988; ABC123">${this.escapeHtml(codigosCriticos.join('\n'))}</textarea>
             correo_solicitante: String(solicitud.correo_solicitante || solicitud.correo || '').trim(),
             telefono: String(solicitud.telefono || '').trim(),
             tipo_unidad_movil: String(solicitud.tipo_unidad_movil || '').trim(),
-            personal_empresa_entrega: String(solicitud.personal_empresa_entrega || '').trim()
+            personal_empresa_entrega: String(solicitud.personal_empresa_entrega || '').trim(),
+            tipo_entrega: String(solicitud.tipo_entrega || '').trim(),
+            _srcRow: Array.isArray(solicitud._srcRow) ? solicitud._srcRow : []
         };
     }
 
