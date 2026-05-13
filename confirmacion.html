@@ -6,11 +6,7 @@
     <title>Confirmacion de Citas</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --bg-primary: #f5f5f5;
@@ -38,6 +34,7 @@
             color: var(--text-primary);
         }
 
+        /* ===== TOPBAR ===== */
         .topbar {
             background: linear-gradient(90deg, #0b1f3a, #133a74);
             color: #fff;
@@ -55,10 +52,6 @@
         .topbar img {
             width: 50px;
             height: 50px;
-            background: transparent;
-            padding: 0;
-            border: none;
-            border-radius: 0;
             object-fit: contain;
             flex-shrink: 0;
         }
@@ -100,10 +93,7 @@
             min-width: 110px;
         }
 
-        .topbar .theme-select option {
-            background: #0b1f3a;
-            color: white;
-        }
+        .topbar .theme-select option { background: #0b1f3a; color: white; }
 
         .topbar .btn.install {
             background: #00b894;
@@ -116,147 +106,143 @@
             font-size: 13px;
         }
 
-        .topbar .btn.install:hover {
-            filter: brightness(1.05);
-        }
+        .topbar .btn.install:hover { filter: brightness(1.05); }
 
-        .page {
-            padding: 18px;
+        /* ===== PAGE ===== */
+        .page { padding: 18px; display: grid; gap: 18px; }
+
+        /* ===== LAYOUT ===== */
+        .conf-layout {
             display: grid;
+            grid-template-columns: 380px 1fr;
             gap: 18px;
+            align-items: start;
         }
 
-        .panel-card,
-        #confSidebar,
+        /* ===== SIDEBAR ===== */
+        #confSidebar {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: sticky;
+            top: 82px;
+            max-height: calc(100vh - 100px);
+        }
+
+        #confSidebar h3 { font-size: 18px; }
+
+        /* ===== FILTERS ===== */
+        .conf-filters-bar { display: grid; gap: 8px; }
+
+        .conf-filters-bar select,
+        .conf-filters-bar input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 13px;
+        }
+
+        /* ===== SIDEBAR LIST ===== */
+        #confSidebarList {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            gap: 10px;
+            align-content: start;
+            padding-right: 4px;
+        }
+
+        /* ===== PENDING CARD (2-section design) ===== */
+        .conf-pending-card {
+            border: 1px solid var(--border-color);
+            border-left-width: 6px;
+            border-radius: 12px;
+            cursor: grab;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.15s;
+        }
+
+        .conf-pending-card:active { cursor: grabbing; }
+        .conf-pending-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+
+        .urgency-badge {
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .card-section {
+            padding: 10px 12px;
+            display: grid;
+            gap: 3px;
+        }
+
+        .card-section-form {
+            background: #4a235a;
+            color: #fff;
+        }
+
+        .card-section-inv {
+            background: #7d3c98;
+            color: #fff;
+        }
+
+        .card-proveedor {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .card-row {
+            font-size: 11px;
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            line-height: 1.5;
+        }
+
+        .card-label { opacity: 0.75; }
+
+        .card-suggested {
+            margin-top: 5px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
+            padding: 3px 7px;
+        }
+
+        .inv-status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        /* ===== CALENDAR ===== */
         #confCalendario {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
             box-shadow: var(--shadow);
-        }
-
-        #confReportePanel {
-            overflow: hidden;
-        }
-
-        #confReportePanel button {
-            cursor: pointer;
-        }
-
-        #confReporteToggle {
-            width: 100%;
-            border: 0;
-            background: transparent;
-            color: var(--text-primary);
-            font-weight: 700;
-            font-size: 15px;
-            text-align: left;
-            padding: 16px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        #confReportePanel.collapsed .conf-panel-body {
-            display: none;
-        }
-
-        .conf-panel-body {
-            padding: 0 18px 18px;
-            display: grid;
-            gap: 12px;
-        }
-
-        #confCodigosCriticos {
-            width: 100%;
-            min-height: 110px;
-            resize: vertical;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font: inherit;
-        }
-
-        .conf-primary-btn,
-        .conf-secondary-btn {
-            border: 0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            font: inherit;
-            font-weight: 600;
-        }
-
-        .conf-primary-btn {
-            background: #8e44ad;
-            color: #fff;
-        }
-
-        .conf-secondary-btn {
-            background: #e2e8f0;
-            color: #0f172a;
-        }
-
-        body[data-theme="dark"] .conf-secondary-btn {
-            background: #334155;
-            color: #e5e7eb;
-        }
-
-        .conf-layout {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 18px;
-            align-items: start;
-        }
-
-        #confSidebar {
-            padding: 18px;
-            display: grid;
-            gap: 14px;
-        }
-
-        #confSidebar h3,
-        #confCalendario h3 {
-            font-size: 18px;
-        }
-
-        #confSidebarList {
-            display: grid;
-            gap: 12px;
-            max-height: calc(100vh - 280px);
-            overflow: auto;
-            padding-right: 4px;
-        }
-
-        .conf-pending-card,
-        .conf-cita-card {
-            border: 1px solid var(--border-color);
-            border-left-width: 6px;
-            border-radius: 12px;
-            padding: 12px;
-            background: var(--bg-secondary);
-            cursor: grab;
-            display: grid;
-            gap: 6px;
-        }
-
-        .conf-pending-card h4,
-        .conf-cita-card strong {
-            font-size: 14px;
-        }
-
-        .conf-pending-meta,
-        .conf-empty-state,
-        .conf-card-note {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        #confCalendario {
             padding: 18px;
             display: grid;
             gap: 16px;
+            overflow-x: auto;
         }
 
         .conf-nav-row {
@@ -277,15 +263,15 @@
             font-weight: 600;
         }
 
-        #confMonthLabel {
+        #confWeekLabel {
             font-weight: 700;
-            text-transform: capitalize;
+            font-size: 15px;
         }
 
         #confCalGrid {
             display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(7, minmax(110px, 1fr));
+            gap: 8px;
         }
 
         .conf-weekday {
@@ -294,22 +280,19 @@
             text-transform: uppercase;
             color: var(--text-secondary);
             font-weight: 700;
-            padding-bottom: 2px;
+            padding-bottom: 4px;
         }
 
         .conf-day-cell {
-            min-height: 120px;
+            min-height: 100px;
             border: 1px solid var(--border-color);
-            border-radius: 14px;
+            border-radius: 12px;
             background: var(--bg-secondary);
-            padding: 10px;
+            padding: 8px;
             display: grid;
             align-content: start;
-            gap: 8px;
-        }
-
-        .conf-day-cell.is-other-month {
-            opacity: 0.55;
+            gap: 5px;
+            transition: border-color 0.15s, background 0.15s;
         }
 
         .conf-day-cell.is-drag-over {
@@ -319,20 +302,74 @@
 
         .conf-day-number {
             font-weight: 700;
-            font-size: 13px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
-        .conf-day-items {
-            display: grid;
-            gap: 6px;
-        }
+        .conf-day-items { display: grid; gap: 5px; }
 
+        /* ===== CALENDAR CARD ===== */
         .conf-cita-card {
+            border: 1px solid var(--border-color);
+            border-left-width: 4px;
             border-left-color: #2563eb;
-            padding: 8px 10px;
+            border-radius: 8px;
+            padding: 6px 8px;
+            background: var(--card-bg);
+            cursor: grab;
+            display: grid;
+            gap: 3px;
+            font-size: 11px;
+        }
+
+        .conf-cita-card:active { cursor: grabbing; }
+        .conf-cita-card strong { font-size: 12px; }
+
+        /* ===== STATUS BADGES ===== */
+        .status-badge {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-green  { background: #d1fae5; color: #065f46; }
+        .status-red    { background: #fee2e2; color: #991b1b; }
+        .status-orange { background: #ffedd5; color: #9a3412; }
+        .status-blue   { background: #dbeafe; color: #1e40af; }
+        .status-default { background: #f3f4f6; color: #374151; }
+
+        body[data-theme="dark"] .status-green  { background: #064e3b; color: #6ee7b7; }
+        body[data-theme="dark"] .status-red    { background: #7f1d1d; color: #fca5a5; }
+        body[data-theme="dark"] .status-orange { background: #7c2d12; color: #fdba74; }
+        body[data-theme="dark"] .status-blue   { background: #1e3a8a; color: #93c5fd; }
+        body[data-theme="dark"] .status-default { background: #374151; color: #d1d5db; }
+
+        /* ===== MISC ===== */
+        .conf-pending-meta,
+        .conf-empty-state,
+        .conf-card-note {
+            color: var(--text-secondary);
             font-size: 12px;
         }
 
+        .conf-primary-btn,
+        .conf-secondary-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .conf-primary-btn { background: #8e44ad; color: #fff; }
+        .conf-secondary-btn { background: #e2e8f0; color: #0f172a; }
+        body[data-theme="dark"] .conf-secondary-btn { background: #334155; color: #e5e7eb; }
+
+        /* ===== MODAL ===== */
         #confModalOverlay {
             position: fixed;
             inset: 0;
@@ -344,9 +381,7 @@
             z-index: 10000;
         }
 
-        #confModalOverlay.is-open {
-            display: flex;
-        }
+        #confModalOverlay.is-open { display: flex; }
 
         .conf-modal {
             width: min(100%, 520px);
@@ -357,6 +392,8 @@
             padding: 20px;
             display: grid;
             gap: 14px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .conf-modal label {
@@ -378,10 +415,7 @@
             color: var(--text-primary);
         }
 
-        .conf-modal textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
+        .conf-modal textarea { min-height: 80px; resize: vertical; }
 
         .conf-modal-actions {
             display: flex;
@@ -389,42 +423,28 @@
             gap: 10px;
         }
 
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 960px) {
-            .conf-layout {
-                grid-template-columns: 1fr;
-            }
-
-            #confSidebarList {
-                max-height: none;
-            }
+            .conf-layout { grid-template-columns: 1fr; }
+            #confSidebar { position: static; max-height: none; }
         }
 
-        @media (max-width: 720px){
-            .topbar{
+        @media (max-width: 720px) {
+            .topbar {
                 flex-direction: column !important;
                 align-items: center !important;
                 text-align: center;
                 position: static !important;
             }
-
-            .topbar .top-actions{
-                width:100% !important;
-                justify-content:center !important;
+            .topbar .top-actions {
+                width: 100% !important;
+                justify-content: center !important;
                 margin-top: 8px;
                 flex-wrap: wrap;
             }
-
-            .page {
-                padding: 12px;
-            }
-
-            .conf-nav-row {
-                flex-wrap: wrap;
-            }
-
-            #confCalGrid {
-                gap: 8px;
-            }
+            .page { padding: 12px; }
+            .conf-nav-row { flex-wrap: wrap; }
+            #confCalGrid { gap: 6px; }
         }
     </style>
 </head>
@@ -447,30 +467,26 @@
     </div>
 
     <div class="page">
-        <div id="confReportePanel" class="panel-card collapsed">
-            <button id="confReporteToggle" type="button">
-                <span>Reporte de abastecimiento / códigos críticos</span>
-                <span id="confReporteArrow">▼</span>
-            </button>
-            <div class="conf-panel-body">
-                <textarea id="confCodigosCriticos" placeholder="Pega los códigos críticos separados por coma, punto y coma o salto de línea"></textarea>
-                <div>
-                    <button id="confGuardarCriticos" class="conf-primary-btn" type="button">Guardar códigos críticos</button>
-                </div>
-            </div>
-        </div>
-
         <div class="conf-layout">
             <div id="confSidebar">
                 <h3>Solicitudes Pendientes</h3>
+                <div class="conf-filters-bar">
+                    <select id="filterProveedor" title="Filtrar por proveedor">
+                        <option value="">Todos los proveedores</option>
+                    </select>
+                    <input type="text" id="filterCodigo" placeholder="Buscar código...">
+                    <select id="filterArea" title="Filtrar por área">
+                        <option value="">Todas las áreas</option>
+                    </select>
+                </div>
                 <div id="confSidebarList"></div>
             </div>
 
             <div id="confCalendario">
                 <div class="conf-nav-row">
-                    <button id="confPrevMonth" type="button">◀ Mes anterior</button>
-                    <span id="confMonthLabel"></span>
-                    <button id="confNextMonth" type="button">Mes siguiente ▶</button>
+                    <button id="confPrevWeek" type="button">◀ Semana anterior</button>
+                    <span id="confWeekLabel"></span>
+                    <button id="confNextWeek" type="button">Semana siguiente ▶</button>
                 </div>
                 <div id="confCalGrid"></div>
             </div>
@@ -494,10 +510,22 @@
             <label>
                 <span>Estado</span>
                 <select id="confModalEstado">
+                    <option value="CITA AGENDADA">CITA AGENDADA</option>
                     <option value="CONFIRMADA">CONFIRMADA</option>
                     <option value="PENDIENTE X CONFIRMAR">PENDIENTE X CONFIRMAR</option>
+                    <option value="ASISTIO">ASISTIO</option>
+                    <option value="ASISTIO - ENTREGA PARCIAL">ASISTIO - ENTREGA PARCIAL</option>
+                    <option value="ASISTIO - ENTREGO OTRO PEDIDO">ASISTIO - ENTREGO OTRO PEDIDO</option>
+                    <option value="NO ASISTIO">NO ASISTIO</option>
+                    <option value="ENTREGADO COMPLETO">ENTREGADO COMPLETO</option>
+                    <option value="ENTREGADO INCONFORME">ENTREGADO INCONFORME</option>
                     <option value="REPROGRAMADA">REPROGRAMADA</option>
+                    <option value="REPROGRAMADA X PROVEEDOR">REPROGRAMADA X PROVEEDOR</option>
+                    <option value="REPROGRAMADA X ALTO VOLUMEN">REPROGRAMADA X ALTO VOLUMEN</option>
+                    <option value="DIFERIDO">DIFERIDO</option>
+                    <option value="DIFERIR X FALTA DE ESPACIO">DIFERIR X FALTA DE ESPACIO</option>
                     <option value="CANCELADA">CANCELADA</option>
+                    <option value="VERIFICAR CON PROVEEDOR">VERIFICAR CON PROVEEDOR</option>
                 </select>
             </label>
             <label>
@@ -514,29 +542,24 @@
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 
+        // Inventory rank: lower = higher priority
+        const INV_RANK = { AGOTADO: 1, CRITICO: 2, BAJO: 3, OPTIMO: 4, EXCESO: 5 };
+
         const state = {
             solicitudes: [],
             citas: [],
-            currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            abastecimiento: {},   // map: normalizedCode → { cobertura, estado, inv_actual, reserva, demanda }
+            currentWeekStart: null,
             activeSolicitudId: null,
             dragPayload: null
         };
 
-        const priorityColors = {
-            red: '#e74c3c',
-            orange: '#f39c12',
-            yellow: '#f1c40f',
-            green: '#27ae60'
-        };
+        // ===== UTILITIES =====
 
         function updateDateTime() {
             document.getElementById('confDateTime').textContent = new Date().toLocaleString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
             });
         }
 
@@ -568,35 +591,28 @@
                 };
                 script.src = url;
                 document.head.appendChild(script);
-
                 function cleanup() {
                     delete window[callbackName];
-                    if (script.parentNode) {
-                        script.parentNode.removeChild(script);
-                    }
+                    if (script.parentNode) script.parentNode.removeChild(script);
                 }
             });
         }
 
+        // ===== DATE HELPERS =====
+
         function parseDateValue(value) {
             if (!value) return null;
-            if (value instanceof Date && !Number.isNaN(value.getTime())) {
-                return stripTime(value);
-            }
-
+            if (value instanceof Date && !Number.isNaN(value.getTime())) return stripTime(value);
             const text = String(value).trim();
             if (!text) return null;
-
             if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
                 const [year, month, day] = text.split('-').map(Number);
                 return new Date(year, month - 1, day);
             }
-
             if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(text)) {
                 const [day, month, year] = text.split(/[/-]/).map(Number);
                 return new Date(year, month - 1, day);
             }
-
             const date = new Date(text);
             return Number.isNaN(date.getTime()) ? null : stripTime(date);
         }
@@ -610,6 +626,63 @@
         function toISODate(date) {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
+
+        // Returns the Monday of the current week
+        function getMondayOfCurrentWeek() {
+            const now = new Date();
+            const diff = (now.getDay() + 6) % 7; // 0=Mon … 6=Sun
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - diff);
+            monday.setHours(0, 0, 0, 0);
+            return monday;
+        }
+
+        // Returns the most recent Thursday (end-of-day) as the weekly cutoff.
+        // If today IS Thursday but before noon, returns the previous Thursday.
+        function getLastThursdayCutoff() {
+            const now = new Date();
+            // getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+            // daysSinceThu: Thu→0, Fri→1, Sat→2, Sun→3, Mon→4, Tue→5, Wed→6
+            let daysSinceThu = (now.getDay() + 3) % 7;
+            // If today is Thursday but before noon, last cutoff was the previous Thursday
+            if (now.getDay() === 4 && now.getHours() < 12) {
+                daysSinceThu = 7;
+            }
+            const lastThu = new Date(now);
+            lastThu.setDate(now.getDate() - daysSinceThu);
+            lastThu.setHours(23, 59, 59, 999);
+            return lastThu;
+        }
+
+        // Returns next Monday from today
+        function getNextMondayDate() {
+            const today = stripTime(new Date());
+            const day = today.getDay(); // 0=Sun … 6=Sat
+            const daysToNextMon = day === 0 ? 1 : (8 - day);
+            const nextMon = new Date(today);
+            nextMon.setDate(today.getDate() + daysToNextMon);
+            return nextMon;
+        }
+
+        function formatDisplayDate(date) {
+            if (!date) return 'N/D';
+            return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function formatDisplayDateStr(str) {
+            const d = parseDateValue(str);
+            return d ? formatDisplayDate(d) : (str || 'N/D');
+        }
+
+        // "12 may. – 25 may. 2026"
+        function formatRangeLabel(startDate, endDate) {
+            const fmt = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            const startStr = fmt(startDate);
+            const endStr = endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+            return `${startStr} – ${endStr}`;
+        }
+
+        // ===== TEXT HELPERS =====
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -634,25 +707,106 @@
             return Number.isFinite(parsed) ? parsed : 0;
         }
 
-        function getCriticalCodes() {
-            try {
-                const saved = JSON.parse(sessionStorage.getItem('kanbanCodigosCriticos') || '[]');
-                return Array.isArray(saved) ? saved.map(normalizeCode).filter(Boolean) : [];
-            } catch (error) {
-                return [];
+        // ===== PRIORITY & URGENCY =====
+
+        function calcPriority(solicitud) {
+            const inv = state.abastecimiento[solicitud.codigo_normalizado] || null;
+            const estado = inv ? String(inv.estado || '').toUpperCase().trim() : '';
+            const coberturaRaw = inv ? parseFloat(String(inv.cobertura || '0')) : null;
+            const invRank = INV_RANK[estado] || 3; // sin datos treated as BAJO
+
+            const fechaVenc = parseDateValue(solicitud.fecha_vencimiento);
+            const today = stripTime(new Date());
+            const daysToVenc = fechaVenc !== null ? Math.round((fechaVenc - today) / 86400000) : null;
+            const fechaSolicitada = parseDateValue(solicitud.fecha_solicitada);
+
+            return { invRank, cobertura: coberturaRaw, daysToVenc, estado, fechaSolicitada };
+        }
+
+        function sortSolicitudes(list) {
+            return [...list].sort((a, b) => {
+                const pa = a._priority, pb = b._priority;
+                // 1. Inventory state rank (lower = more urgent)
+                if (pa.invRank !== pb.invRank) return pa.invRank - pb.invRank;
+                // 2. Coverage (lower = more urgent)
+                const covA = pa.cobertura !== null ? pa.cobertura : 9999;
+                const covB = pb.cobertura !== null ? pb.cobertura : 9999;
+                if (covA !== covB) return covA - covB;
+                // 3. Days to OC expiry (sooner = more urgent)
+                const dvA = pa.daysToVenc !== null ? pa.daysToVenc : 9999;
+                const dvB = pb.daysToVenc !== null ? pb.daysToVenc : 9999;
+                if (dvA !== dvB) return dvA - dvB;
+                // 4. Requested date (sooner = more urgent)
+                const fsA = pa.fechaSolicitada ? pa.fechaSolicitada.getTime() : Infinity;
+                const fsB = pb.fechaSolicitada ? pb.fechaSolicitada.getTime() : Infinity;
+                return fsA - fsB;
+            });
+        }
+
+        function getSuggestedDate(solicitud, priority) {
+            const { estado, fechaSolicitada } = priority;
+            const today = stripTime(new Date());
+            const e = (estado || '').toUpperCase().trim();
+
+            if (e === 'AGOTADO' || e === 'CRITICO') {
+                return getNextMondayDate();
+            }
+            if (e === 'BAJO') {
+                if (fechaSolicitada) {
+                    const twoEarlier = new Date(fechaSolicitada);
+                    twoEarlier.setDate(fechaSolicitada.getDate() - 2);
+                    return twoEarlier >= today ? twoEarlier : fechaSolicitada;
+                }
+            }
+            return fechaSolicitada;
+        }
+
+        function getUrgencyBadge(priority) {
+            const { daysToVenc } = priority;
+            // Default to BAJO when no inventory data
+            const e = (priority.estado || 'BAJO').toUpperCase().trim();
+            const dv = typeof daysToVenc === 'number' ? daysToVenc : 9999;
+
+            if (e === 'AGOTADO' || e === 'CRITICO') {
+                return { emoji: '🔴', text: 'URGENTE', color: '#e74c3c' };
+            }
+            if (e === 'BAJO' || dv <= 7) {
+                return { emoji: '🟠', text: 'PRIORITARIO', color: '#f39c12' };
+            }
+            if (e === 'OPTIMO' || (dv > 7 && dv <= 21)) {
+                return { emoji: '🟡', text: 'NORMAL', color: '#f1c40f' };
+            }
+            return { emoji: '🟢', text: 'PUEDE ESPERAR', color: '#27ae60' };
+        }
+
+        function getInvStatusColor(estado) {
+            switch ((estado || '').toUpperCase().trim()) {
+                case 'AGOTADO': return '#e74c3c';
+                case 'CRITICO': return '#f39c12';
+                case 'BAJO':    return '#f1c40f';
+                case 'OPTIMO':  return '#27ae60';
+                case 'EXCESO':  return '#2980b9';
+                default:        return '#94a3b8';
             }
         }
 
-        function saveCriticalCodes() {
-            const codes = document.getElementById('confCodigosCriticos').value
-                .split(/[\n,;]+/)
-                .map(normalizeCode)
-                .filter(Boolean);
-            sessionStorage.setItem('kanbanCodigosCriticos', JSON.stringify(codes));
-            renderSidebar();
+        function getCitaStatusClass(estado) {
+            const e = String(estado || '').toUpperCase().trim();
+            if (['ASISTIO', 'ENTREGADO COMPLETO', 'CONFIRMADA',
+                 'ASISTIO - ENTREGA PARCIAL', 'ASISTIO - ENTREGO OTRO PEDIDO'].includes(e)) return 'green';
+            if (['NO ASISTIO', 'CANCELADA'].includes(e)) return 'red';
+            if (['REPROGRAMADA', 'DIFERIDO', 'PENDIENTE X CONFIRMAR',
+                 'REPROGRAMADA X PROVEEDOR', 'REPROGRAMADA X ALTO VOLUMEN',
+                 'DIFERIR X FALTA DE ESPACIO'].includes(e)) return 'orange';
+            if (['CITA AGENDADA', 'VERIFICAR CON PROVEEDOR'].includes(e)) return 'blue';
+            return 'default';
         }
 
+        // ===== DATA NORMALIZERS =====
+
         function normalizeSolicitud(item, index) {
+            const codigoNorm = String(item.codigo_referencia || '').replace(/-/g, '').trim();
+            const inv = state.abastecimiento[codigoNorm] || null;
             return {
                 id: String(item.id || `SOL-${index + 1}`),
                 marca_temporal: item.marca_temporal || item.timestamp || '',
@@ -662,6 +816,7 @@
                 nombre_proveedor: String(item.nombre_proveedor || item.añadir_proveedor || '').trim(),
                 numero_orden_compra: String(item.numero_orden_compra || item.oc || '').trim(),
                 codigo_referencia: String(item.codigo_referencia || '').trim(),
+                codigo_normalizado: codigoNorm,
                 descripcion_producto: String(item.descripcion_producto || '').trim(),
                 cantidad_unidades: parseNumber(item.cantidad_unidades),
                 cantidad_bultos: parseNumber(item.cantidad_bultos),
@@ -674,6 +829,12 @@
                 tipo_unidad_movil: String(item.tipo_unidad_movil || '').trim(),
                 personal_empresa_entrega: String(item.personal_empresa_entrega || '').trim(),
                 tipo_entrega: String(item.tipo_entrega || '').trim(),
+                // Inventory cross-reference
+                inv_estado: inv ? String(inv.estado || '') : '',
+                cobertura: inv ? String(inv.cobertura || '') : '',
+                inv_actual: inv ? Number(inv.inv_actual || 0) : 0,
+                reserva: inv ? Number(inv.reserva || 0) : 0,
+                demanda: inv ? Number(inv.demanda || 0) : 0,
                 _srcRow: Array.isArray(item._srcRow) ? item._srcRow : []
             };
         }
@@ -683,7 +844,7 @@
                 id: String(item.id || item.numero_orden_compra || `CITA-${index + 1}`),
                 fecha_confirmada: item.fecha_confirmada || item.fecha || '',
                 hora_confirmada: String(item.hora_confirmada || '').trim(),
-                estado_cita: String(item.estado_cita || 'CONFIRMADA').trim(),
+                estado_cita: String(item.estado_cita || 'CITA AGENDADA').trim(),
                 nombre_proveedor: String(item.nombre_proveedor || '').trim(),
                 numero_orden_compra: String(item.numero_orden_compra || '').trim(),
                 descripcion_producto: String(item.descripcion_producto || '').trim(),
@@ -691,89 +852,113 @@
             };
         }
 
-        function calcPriority(solicitud) {
-            const fechaVencimiento = parseDateValue(solicitud.fecha_vencimiento);
-            const today = stripTime(new Date());
-            const days = fechaVencimiento ? Math.round((fechaVencimiento - today) / 86400000) : null;
-            let score = 0;
+        // ===== FILTERS =====
 
-            if (days !== null) {
-                if (days < 0) score = 100;
-                else if (days <= 7) score = 80;
-                else if (days <= 21) score = 50;
-                else if (days <= 45) score = 20;
-            }
+        function populateFilters() {
+            const proveedores = [...new Set(
+                state.solicitudes.map(s => s.nombre_proveedor).filter(Boolean)
+            )].sort();
+            const areas = [...new Set(
+                state.solicitudes.map(s => s.area_correspondiente).filter(Boolean)
+            )].sort();
 
-            if (getCriticalCodes().includes(normalizeCode(solicitud.codigo_referencia))) {
-                score += 40;
-            }
+            const selProv = document.getElementById('filterProveedor');
+            const selArea = document.getElementById('filterArea');
+            // Preserve current selection if possible
+            const prevProv = selProv.value;
+            const prevArea = selArea.value;
 
-            return { score, days };
+            selProv.innerHTML = '<option value="">Todos los proveedores</option>' +
+                proveedores.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+            selArea.innerHTML = '<option value="">Todas las áreas</option>' +
+                areas.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+
+            if (prevProv) selProv.value = prevProv;
+            if (prevArea) selArea.value = prevArea;
         }
 
-        function getPriorityTone(score) {
-            if (score >= 100) return { name: 'red', color: priorityColors.red };
-            if (score >= 80) return { name: 'orange', color: priorityColors.orange };
-            if (score >= 50) return { name: 'yellow', color: priorityColors.yellow };
-            return { name: 'green', color: priorityColors.green };
-        }
-
-        function getPendingText(priority) {
-            if (priority.days === null) return 'Sin fecha de vencimiento';
-            if (priority.days < 0) return `Vencida hace ${Math.abs(priority.days)} día(s)`;
-            return `Vence en ${priority.days} día(s)`;
-        }
-
-        async function loadData() {
-            // Ambas llamadas usan JSONP para evitar el bloqueo CORS de Apps Script
-            const [solicitudesData, citasData] = await Promise.all([
-                loadJsonp(`${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`, 'handleSolicitudesData'),
-                loadJsonp(`${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`, 'handleCitasData')
-            ]);
-
-            if (!solicitudesData.success) {
-                console.error('Error solicitudes:', solicitudesData.error);
-            }
-            if (!citasData.success) {
-                console.error('Error citas:', citasData.error);
-            }
-
-            state.citas = (citasData.data || []).map(normalizeCita);
-            const confirmedOcs = new Set(state.citas.map(cita => cita.numero_orden_compra).filter(Boolean));
-            state.solicitudes = (solicitudesData.data || [])
-                .map(normalizeSolicitud)
-                .filter(item => item.numero_orden_compra && !confirmedOcs.has(item.numero_orden_compra));
-
-            document.getElementById('confCodigosCriticos').value = getCriticalCodes().join('\n');
-            renderSidebar();
-            renderCalendar();
-        }
+        // ===== RENDER SIDEBAR =====
 
         function renderSidebar() {
             const container = document.getElementById('confSidebarList');
-            const solicitudes = state.solicitudes
-                .map(item => ({ ...item, priority: calcPriority(item) }))
-                .sort((a, b) => {
-                    if (b.priority.score !== a.priority.score) {
-                        return b.priority.score - a.priority.score;
-                    }
-                    return (a.fecha_vencimiento || '').localeCompare(b.fecha_vencimiento || '');
-                });
+            const cutoff = getLastThursdayCutoff();
+
+            // Filter: only solicitudes submitted up to the last Thursday cutoff
+            let solicitudes = state.solicitudes.filter(item => {
+                const mt = parseDateValue(item.marca_temporal);
+                return !mt || mt <= cutoff;
+            });
+
+            // Apply filter bar
+            const filterProv = document.getElementById('filterProveedor').value;
+            const filterCod  = document.getElementById('filterCodigo').value.trim().toUpperCase();
+            const filterArea = document.getElementById('filterArea').value;
+
+            if (filterProv) {
+                solicitudes = solicitudes.filter(s => s.nombre_proveedor === filterProv);
+            }
+            if (filterCod) {
+                solicitudes = solicitudes.filter(s =>
+                    s.codigo_referencia.toUpperCase().includes(filterCod) ||
+                    s.codigo_normalizado.includes(filterCod)
+                );
+            }
+            if (filterArea) {
+                solicitudes = solicitudes.filter(s => s.area_correspondiente === filterArea);
+            }
+
+            // Compute priority and sort
+            solicitudes = solicitudes.map(item => ({ ...item, _priority: calcPriority(item) }));
+            solicitudes = sortSolicitudes(solicitudes);
 
             if (!solicitudes.length) {
-                container.innerHTML = '<div class="conf-empty-state">No hay solicitudes pendientes.</div>';
+                container.innerHTML = '<div class="conf-empty-state">No hay solicitudes pendientes para esta semana.</div>';
                 return;
             }
 
             container.innerHTML = solicitudes.map(item => {
-                const tone = getPriorityTone(item.priority.score);
+                const priority     = item._priority;
+                const urgency      = getUrgencyBadge(priority);
+                const suggestedDate = getSuggestedDate(item, priority);
+                const suggestedStr  = suggestedDate ? formatDisplayDate(suggestedDate) : 'Sin fecha';
+                const hasInv        = !!state.abastecimiento[item.codigo_normalizado];
+                const invColor      = getInvStatusColor(priority.estado);
+
                 return `
-                    <div class="conf-pending-card" draggable="true" data-pending-id="${escapeHtml(item.id)}" style="border-left-color:${tone.color}">
-                        <h4>${escapeHtml(item.nombre_proveedor || 'Proveedor sin nombre')}</h4>
-                        <div class="conf-pending-meta">OC: ${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
-                        <div class="conf-pending-meta">Código: ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
-                        <div class="conf-card-note">${escapeHtml(getPendingText(item.priority))}</div>
-                        <div class="conf-card-note">Score ${item.priority.score}</div>
+                    <div class="conf-pending-card" draggable="true"
+                         data-pending-id="${escapeHtml(item.id)}"
+                         style="border-left-color:${urgency.color}">
+                        <div class="urgency-badge"
+                             style="background:${urgency.color}22;color:${urgency.color}">
+                            ${urgency.emoji} ${escapeHtml(urgency.text)}
+                        </div>
+                        <div class="card-section card-section-form">
+                            <div class="card-proveedor">${escapeHtml(item.nombre_proveedor || 'Proveedor sin nombre')}</div>
+                            <div class="card-row"><span class="card-label">Código:</span>&nbsp;${escapeHtml(item.codigo_normalizado || 'N/D')}</div>
+                            <div class="card-row"><span class="card-label">Descripción:</span>&nbsp;${escapeHtml(item.descripcion_producto || 'N/D')}</div>
+                            <div class="card-row"><span class="card-label">Cantidad:</span>&nbsp;${escapeHtml(String(item.cantidad_unidades || 'N/D'))} uds</div>
+                            <div class="card-row"><span class="card-label">Venc. OC:</span>&nbsp;${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</div>
+                            <div class="card-row"><span class="card-label">Fecha solicitada:</span>&nbsp;${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</div>
+                            <div class="card-row"><span class="card-label">OC:</span>&nbsp;${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
+                            ${item.cantidad_pallets ? `<div class="card-row"><span class="card-label">Pallets:</span>&nbsp;${escapeHtml(String(item.cantidad_pallets))}</div>` : ''}
+                            <div class="card-row"><span class="card-label">Ambiente:</span>&nbsp;${escapeHtml(item.tipo_ambiente || 'N/D')}</div>
+                            <div class="card-row"><span class="card-label">Área:</span>&nbsp;${escapeHtml(item.area_correspondiente || 'N/D')}</div>
+                            <div class="card-suggested">📅 Fecha sugerida: <strong>${escapeHtml(suggestedStr)}</strong></div>
+                        </div>
+                        <div class="card-section card-section-inv">
+                            ${hasInv ? `
+                                <div>
+                                    <span class="inv-status-badge"
+                                          style="background:${invColor}33;color:${invColor};border:1px solid ${invColor}55">
+                                        ${escapeHtml(priority.estado || 'N/D')}
+                                    </span>
+                                </div>
+                                <div class="card-row"><span class="card-label">Cobertura:</span>&nbsp;${escapeHtml(item.cobertura || 'N/D')}</div>
+                                <div class="card-row"><span class="card-label">Inv. Act:</span>&nbsp;${escapeHtml(String(item.inv_actual))}</div>
+                                <div class="card-row"><span class="card-label">Reserva:</span>&nbsp;${escapeHtml(String(item.reserva))}</div>
+                                <div class="card-row"><span class="card-label">Demanda:</span>&nbsp;${escapeHtml(String(item.demanda))}</div>
+                            ` : '<div class="card-row" style="opacity:0.75;font-size:11px;">Sin datos de inventario</div>'}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -781,41 +966,53 @@
             container.querySelectorAll('.conf-pending-card').forEach(card => {
                 card.addEventListener('dragstart', event => {
                     state.dragPayload = { type: 'pending', id: card.dataset.pendingId };
+                    event.dataTransfer.effectAllowed = 'move';
                     event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+                });
+                card.addEventListener('dragend', () => {
+                    state.dragPayload = null;
                 });
             });
         }
 
+        // ===== RENDER CALENDAR (2-week view) =====
+
         function renderCalendar() {
-            const grid = document.getElementById('confCalGrid');
-            const monthLabel = document.getElementById('confMonthLabel');
-            monthLabel.textContent = state.currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            const grid      = document.getElementById('confCalGrid');
+            const weekLabel = document.getElementById('confWeekLabel');
 
-            const firstDay = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
-            const startOffset = (firstDay.getDay() + 6) % 7;
-            const startDate = new Date(firstDay);
-            startDate.setDate(firstDay.getDate() - startOffset);
+            const weekStart = state.currentWeekStart;
+            const weekEnd   = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 13); // 2 weeks = 14 days (0–13)
+
+            weekLabel.textContent = formatRangeLabel(weekStart, weekEnd);
+
             const weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-            let html = weekdays.map(day => `<div class="conf-weekday">${day}</div>`).join('');
+            let html = weekdays.map(d => `<div class="conf-weekday">${d}</div>`).join('');
 
-            for (let index = 0; index < 42; index += 1) {
-                const date = new Date(startDate);
-                date.setDate(startDate.getDate() + index);
+            for (let i = 0; i < 14; i++) {
+                const date    = new Date(weekStart);
+                date.setDate(weekStart.getDate() + i);
                 const isoDate = toISODate(date);
-                const isOtherMonth = date.getMonth() !== state.currentMonth.getMonth();
-                const citas = state.citas.filter(cita => cita.fecha_confirmada === isoDate);
+                const citas   = state.citas.filter(c => c.fecha_confirmada === isoDate);
+                const dayNum  = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
                 html += `
-                    <div class="conf-day-cell ${isOtherMonth ? 'is-other-month' : ''}" data-date="${isoDate}">
-                        <div class="conf-day-number">${date.getDate()}</div>
+                    <div class="conf-day-cell" data-date="${isoDate}">
+                        <div class="conf-day-number">${escapeHtml(dayNum)}</div>
                         <div class="conf-day-items">
-                            ${citas.map(cita => `
-                                <div class="conf-cita-card" draggable="true" data-confirmed-oc="${escapeHtml(cita.numero_orden_compra)}">
-                                    <strong>${escapeHtml(cita.nombre_proveedor || 'Proveedor')}</strong>
-                                    <div>${escapeHtml(cita.hora_confirmada || '--:--')} · ${escapeHtml(cita.estado_cita || 'CONFIRMADA')}</div>
-                                    <div class="conf-pending-meta">OC: ${escapeHtml(cita.numero_orden_compra || 'N/D')}</div>
-                                </div>
-                            `).join('')}
+                            ${citas.map(cita => {
+                                const sc = getCitaStatusClass(cita.estado_cita);
+                                return `
+                                    <div class="conf-cita-card" draggable="true"
+                                         data-confirmed-oc="${escapeHtml(cita.numero_orden_compra)}">
+                                        <strong>${escapeHtml(cita.nombre_proveedor || 'Proveedor')}</strong>
+                                        <div>${escapeHtml(cita.hora_confirmada || '--:--')}</div>
+                                        <span class="status-badge status-${sc}">${escapeHtml(cita.estado_cita || 'CITA AGENDADA')}</span>
+                                        <div class="conf-pending-meta">OC: ${escapeHtml(cita.numero_orden_compra || 'N/D')}</div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -823,16 +1020,24 @@
 
             grid.innerHTML = html;
 
+            // ---- Drag & Drop (fixed) ----
             grid.querySelectorAll('.conf-day-cell').forEach(cell => {
                 cell.addEventListener('dragover', event => {
                     event.preventDefault();
+                    event.stopPropagation();
+                    event.dataTransfer.dropEffect = 'move';
                     cell.classList.add('is-drag-over');
                 });
-                cell.addEventListener('dragleave', () => cell.classList.remove('is-drag-over'));
+                cell.addEventListener('dragleave', event => {
+                    if (!cell.contains(event.relatedTarget)) {
+                        cell.classList.remove('is-drag-over');
+                    }
+                });
                 cell.addEventListener('drop', async event => {
                     event.preventDefault();
                     cell.classList.remove('is-drag-over');
                     const payload = getDragPayload(event);
+                    state.dragPayload = null;
                     if (!payload || !cell.dataset.date) return;
                     if (payload.type === 'pending') {
                         openModal(payload.id, cell.dataset.date);
@@ -845,15 +1050,21 @@
             grid.querySelectorAll('.conf-cita-card').forEach(card => {
                 card.addEventListener('dragstart', event => {
                     state.dragPayload = { type: 'confirmed', oc: card.dataset.confirmedOc };
+                    event.dataTransfer.effectAllowed = 'move';
                     event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+                });
+                card.addEventListener('dragend', () => {
+                    state.dragPayload = null;
                 });
             });
         }
 
+        // ===== MODAL =====
+
         function getDragPayload(event) {
             try {
                 return state.dragPayload || JSON.parse(event.dataTransfer.getData('text/plain'));
-            } catch (error) {
+            } catch (_) {
                 return state.dragPayload;
             }
         }
@@ -862,9 +1073,9 @@
             state.activeSolicitudId = String(solicitudId);
             const solicitud = state.solicitudes.find(item => String(item.id) === String(solicitudId));
             document.getElementById('confModalFecha').value = fecha || '';
-            document.getElementById('confModalHora').value = solicitud ? solicitud.hora_solicitada || '' : '';
-            document.getElementById('confModalEstado').value = 'CONFIRMADA';
-            document.getElementById('confModalObs').value = '';
+            document.getElementById('confModalHora').value  = solicitud ? solicitud.hora_solicitada || '' : '';
+            document.getElementById('confModalEstado').value = 'CITA AGENDADA';
+            document.getElementById('confModalObs').value    = '';
             document.getElementById('confModalTitle').textContent = solicitud
                 ? `${solicitud.nombre_proveedor || 'Proveedor'} · OC ${solicitud.numero_orden_compra || 'N/D'}`
                 : 'Selecciona fecha, hora y estado.';
@@ -881,9 +1092,9 @@
             if (!solicitud) return;
 
             const fecha_confirmada = document.getElementById('confModalFecha').value;
-            const hora_confirmada = document.getElementById('confModalHora').value;
-            const estado_cita = document.getElementById('confModalEstado').value;
-            const observaciones = document.getElementById('confModalObs').value.trim();
+            const hora_confirmada  = document.getElementById('confModalHora').value;
+            const estado_cita      = document.getElementById('confModalEstado').value;
+            const observaciones    = document.getElementById('confModalObs').value.trim();
 
             if (!fecha_confirmada) {
                 window.alert('Debes seleccionar una fecha.');
@@ -940,7 +1151,7 @@
                     data: {
                         numero_orden_compra: numeroOrdenCompra,
                         fecha_confirmada: nuevaFecha,
-                        estado_cita: cita.estado_cita || 'CONFIRMADA',
+                        estado_cita: cita.estado_cita || 'CITA AGENDADA',
                         hora_confirmada: cita.hora_confirmada || ''
                     }
                 })
@@ -955,25 +1166,73 @@
         }
 
         function handleAsyncError(error) {
-            console.error(error);
+            console.error(String(error));
         }
+
+        // ===== DATA LOADING =====
+
+        async function loadData() {
+            state.abastecimiento = {};
+
+            // All three data sources via JSONP (avoids CORS from Apps Script)
+            const [solicitudesData, citasData, abastDataRaw] = await Promise.all([
+                loadJsonp(
+                    `${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`,
+                    'handleSolicitudesData'
+                ),
+                loadJsonp(
+                    `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
+                    'handleCitasData'
+                ),
+                loadJsonp(
+                    `${APPS_SCRIPT_URL}?action=getAbastecimientoData&callback=handleAbastData`,
+                    'handleAbastData'
+                ).catch(err => {
+                    console.warn('Abastecimiento data unavailable:', err.message);
+                    return { success: false, data: {} };
+                })
+            ]);
+
+            if (abastDataRaw.success) {
+                state.abastecimiento = abastDataRaw.data || {};
+            }
+            if (!solicitudesData.success) {
+                console.error('Error solicitudes:', solicitudesData.error);
+            }
+            if (!citasData.success) {
+                console.error('Error citas:', citasData.error);
+            }
+
+            // normalizeSolicitud uses state.abastecimiento, so set it first
+            state.citas = (citasData.data || []).map(normalizeCita);
+            const confirmedOcs = new Set(state.citas.map(c => c.numero_orden_compra).filter(Boolean));
+            state.solicitudes = (solicitudesData.data || [])
+                .map(normalizeSolicitud)
+                .filter(item => item.numero_orden_compra && !confirmedOcs.has(item.numero_orden_compra));
+
+            populateFilters();
+            renderSidebar();
+            renderCalendar();
+        }
+
+        // ===== INITIALIZATION =====
 
         document.getElementById('confThemeMode').addEventListener('change', applyTheme);
         document.getElementById('confRefreshBtn').addEventListener('click', () => loadData().catch(handleAsyncError));
-        document.getElementById('confPrevMonth').addEventListener('click', () => {
-            state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
+
+        document.getElementById('confPrevWeek').addEventListener('click', () => {
+            state.currentWeekStart.setDate(state.currentWeekStart.getDate() - 7);
             renderCalendar();
         });
-        document.getElementById('confNextMonth').addEventListener('click', () => {
-            state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
+        document.getElementById('confNextWeek').addEventListener('click', () => {
+            state.currentWeekStart.setDate(state.currentWeekStart.getDate() + 7);
             renderCalendar();
         });
-        document.getElementById('confReporteToggle').addEventListener('click', () => {
-            const panel = document.getElementById('confReportePanel');
-            panel.classList.toggle('collapsed');
-            document.getElementById('confReporteArrow').textContent = panel.classList.contains('collapsed') ? '▼' : '▲';
-        });
-        document.getElementById('confGuardarCriticos').addEventListener('click', saveCriticalCodes);
+
+        document.getElementById('filterProveedor').addEventListener('change', renderSidebar);
+        document.getElementById('filterCodigo').addEventListener('input', renderSidebar);
+        document.getElementById('filterArea').addEventListener('change', renderSidebar);
+
         document.getElementById('confModalCancelar').addEventListener('click', closeModal);
         document.getElementById('confModalConfirmar').addEventListener('click', () => confirmModal().catch(handleAsyncError));
         document.getElementById('confModalOverlay').addEventListener('click', closeModal);
@@ -983,6 +1242,8 @@
         applyTheme();
         updateDateTime();
         setInterval(updateDateTime, 60000);
+
+        state.currentWeekStart = getMondayOfCurrentWeek();
         loadData().catch(handleAsyncError);
     </script>
 </body>
