@@ -921,3 +921,161 @@ body {
         max-width: 200px;
     }
 }
+
+/* =========================================================
+   KANBAN DASHBOARD 4
+   ========================================================= */
+.kanban-header-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+    background: var(--card-bg);
+}
+
+.kanban-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.kanban-reporte-panel { display: none; margin-bottom: 12px; }
+.kanban-reporte-panel.is-open { display: block; }
+.kanban-reporte-panel textarea {
+    width: 100%;
+    min-height: 90px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.kanban-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.kanban-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 14px;
+}
+
+.kanban-sidebar,
+.kanban-calendar {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--card-bg);
+    padding: 10px;
+}
+
+#kanbanSidebarList {
+    max-height: 70vh;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+}
+
+.kanban-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    font-size: 12px;
+    font-weight: 700;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.kanban-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.kanban-dia {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    min-height: 120px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.kanban-dia.is-other-month { opacity: 0.55; }
+.kanban-dia.is-weekend { background: rgba(148, 163, 184, 0.12); }
+.kanban-dia.is-drag-over {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.kanban-dia-head {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.kanban-dia-items {
+    display: grid;
+    gap: 6px;
+}
+
+.kanban-tarjeta {
+    border: 1px solid var(--border-color);
+    border-left: 6px solid #16a34a;
+    border-radius: 10px;
+    padding: 8px;
+    background: var(--card-bg);
+    cursor: grab;
+}
+
+.kanban-prioridad-roja { border-left-color: #dc2626; }
+.kanban-prioridad-naranja { border-left-color: #ea580c; }
+.kanban-prioridad-amarilla { border-left-color: #ca8a04; }
+.kanban-prioridad-verde { border-left-color: #16a34a; }
+
+.kanban-tarjeta h5 {
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.kanban-tarjeta p {
+    margin: 0;
+    font-size: 12px;
+}
+
+.kanban-mini-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.kanban-mini-modal-overlay.is-open { display: flex; }
+
+.kanban-mini-modal {
+    width: min(560px, 100%);
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+@media (max-width: 900px) {
+    .kanban-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .kanban-weekdays,
+    .kanban-cal-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
