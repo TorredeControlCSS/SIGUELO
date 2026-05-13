@@ -14,6 +14,10 @@ function doGet(e) {
     return createOutput_(getSolicitudesPendientes(), callback);
   }
 
+  if (action === 'getAbastecimientoData') {
+    return createOutput_(getAbastecimientoData(), callback);
+  }
+
   return createOutput_({ success: false, error: 'Action missing or unsupported' }, callback);
 }
 
@@ -216,6 +220,45 @@ function actualizarCita(data) {
     return { success: true, message: 'Cita actualizada exitosamente' };
   } catch (error) {
     return { success: false, error: String(error) };
+  }
+}
+
+function getAbastecimientoData() {
+  try {
+    var ss = SpreadsheetApp.openById('1ca5JUgogB25yAq2hvlLNSobUOMdTMe2oua6iUJ3c_Ew');
+    var sheet = ss.getSheetByName('Reporte_Abastecimiento');
+    if (!sheet) return { success: false, error: 'Hoja Reporte_Abastecimiento no encontrada' };
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, data: {} };
+
+    var headers = data[0].map(function(h) { return String(h).trim().toUpperCase(); });
+
+    var ixCod     = headers.indexOf('CODIGO');
+    var ixMeses   = headers.findIndex(function(h) { return h.includes('MESES') || h === 'MESES_COB'; });
+    var ixStatus  = headers.indexOf('STATUS');
+    var ixInv     = headers.findIndex(function(h) { return h === 'INV_ACTUAL' || h === 'INV_PROY'; });
+    var ixReserva = headers.indexOf('RESERVA');
+    var ixDemanda = headers.findIndex(function(h) { return h.includes('DEMANDA'); });
+
+    var result = {};
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var cod = String(row[ixCod] || '').trim();
+      if (!cod) continue;
+      // Normalize code: strip dashes for cross-reference with solicitudes
+      var codNorm = cod.replace(/-/g, '');
+      result[codNorm] = {
+        cobertura: ixMeses >= 0 ? (String(row[ixMeses] || '').trim() ? String(row[ixMeses]).trim() + 'm' : '') : '',
+        estado:    ixStatus >= 0 ? String(row[ixStatus] || '').toUpperCase().trim() : '',
+        inv_actual: ixInv >= 0 ? Number(row[ixInv] || 0) : 0,
+        reserva:    ixReserva >= 0 ? Number(row[ixReserva] || 0) : 0,
+        demanda:    ixDemanda >= 0 ? Number(row[ixDemanda] || 0) : 0
+      };
+    }
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, error: err.toString() };
   }
 }
 
