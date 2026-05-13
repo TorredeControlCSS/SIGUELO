@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmacion de Citas</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #64748b;
+            --border-color: #dbe4ee;
+            --card-bg: #ffffff;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #111827;
+            --text-primary: #e5e7eb;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .topbar {
+            background: linear-gradient(90deg, #0b1f3a, #133a74);
+            color: #fff;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.2);
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            width: 100%;
+        }
+
+        .topbar img {
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .topbar .title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            flex: 1 1 auto;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .topbar .title-main { color: #fff; }
+
+        .topbar .title-sub {
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0.9;
+            margin-top: 2px;
+            color: #e2e8f0;
+        }
+
+        .topbar .top-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 0 0 auto;
+        }
+
+        .topbar .theme-select {
+            padding: 6px 8px;
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 10px;
+            background: transparent;
+            color: #fff;
+            min-width: 110px;
+        }
+
+        .topbar .theme-select option {
+            background: #0b1f3a;
+            color: white;
+        }
+
+        .topbar .btn.install {
+            background: #00b894;
+            color: #fff;
+            border: 1px solid #00b894;
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .topbar .btn.install:hover {
+            filter: brightness(1.05);
+        }
+
+        .page {
+            padding: 18px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .panel-card,
+        #confSidebar,
+        #confCalendario {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        #confReportePanel {
+            overflow: hidden;
+        }
+
+        #confReportePanel button {
+            cursor: pointer;
+        }
+
+        #confReporteToggle {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 15px;
+            text-align: left;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #confReportePanel.collapsed .conf-panel-body {
+            display: none;
+        }
+
+        .conf-panel-body {
+            padding: 0 18px 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        #confCodigosCriticos {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font: inherit;
+        }
+
+        .conf-primary-btn,
+        .conf-secondary-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .conf-primary-btn {
+            background: #8e44ad;
+            color: #fff;
+        }
+
+        .conf-secondary-btn {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        body[data-theme="dark"] .conf-secondary-btn {
+            background: #334155;
+            color: #e5e7eb;
+        }
+
+        .conf-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        #confSidebar {
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+        }
+
+        #confSidebar h3,
+        #confCalendario h3 {
+            font-size: 18px;
+        }
+
+        #confSidebarList {
+            display: grid;
+            gap: 12px;
+            max-height: calc(100vh - 280px);
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .conf-pending-card,
+        .conf-cita-card {
+            border: 1px solid var(--border-color);
+            border-left-width: 6px;
+            border-radius: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            cursor: grab;
+            display: grid;
+            gap: 6px;
+        }
+
+        .conf-pending-card h4,
+        .conf-cita-card strong {
+            font-size: 14px;
+        }
+
+        .conf-pending-meta,
+        .conf-empty-state,
+        .conf-card-note {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        #confCalendario {
+            padding: 18px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .conf-nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .conf-nav-row button {
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        #confMonthLabel {
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        #confCalGrid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .conf-weekday {
+            text-align: center;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            padding-bottom: 2px;
+        }
+
+        .conf-day-cell {
+            min-height: 120px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-secondary);
+            padding: 10px;
+            display: grid;
+            align-content: start;
+            gap: 8px;
+        }
+
+        .conf-day-cell.is-other-month {
+            opacity: 0.55;
+        }
+
+        .conf-day-cell.is-drag-over {
+            border-color: #8e44ad;
+            background: rgba(142, 68, 173, 0.08);
+        }
+
+        .conf-day-number {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .conf-day-items {
+            display: grid;
+            gap: 6px;
+        }
+
+        .conf-cita-card {
+            border-left-color: #2563eb;
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        #confModalOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10000;
+        }
+
+        #confModalOverlay.is-open {
+            display: flex;
+        }
+
+        .conf-modal {
+            width: min(100%, 520px);
+            background: var(--card-bg);
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .conf-modal label {
+            display: grid;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .conf-modal input,
+        .conf-modal select,
+        .conf-modal textarea {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font: inherit;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .conf-modal textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .conf-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @media (max-width: 960px) {
+            .conf-layout {
+                grid-template-columns: 1fr;
+            }
+
+            #confSidebarList {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 720px){
+            .topbar{
+                flex-direction: column !important;
+                align-items: center !important;
+                text-align: center;
+                position: static !important;
+            }
+
+            .topbar .top-actions{
+                width:100% !important;
+                justify-content:center !important;
+                margin-top: 8px;
+                flex-wrap: wrap;
+            }
+
+            .page {
+                padding: 12px;
+            }
+
+            .conf-nav-row {
+                flex-wrap: wrap;
+            }
+
+            #confCalGrid {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="auto">
+    <div class="topbar">
+        <img src="icons/icon-512.png" alt="Logo" width="40" height="40">
+        <div class="title">
+            <div class="title-main">Confirmacion de Citas CEDIS PANAMA CSS</div>
+            <div class="title-sub">Actualizado: <span id="confDateTime">Cargando fecha...</span></div>
+        </div>
+        <div class="top-actions">
+            <select id="confThemeMode" class="theme-select" title="Tema">
+                <option value="auto">Sistema</option>
+                <option value="light">Claro</option>
+                <option value="dark">Oscuro</option>
+            </select>
+            <button class="btn install" type="button" onclick="window.location.href='index.html'">Volver</button>
+            <button id="confRefreshBtn" class="btn install" type="button">Actualizar</button>
+        </div>
+    </div>
+
+    <div class="page">
+        <div id="confReportePanel" class="panel-card collapsed">
+            <button id="confReporteToggle" type="button">
+                <span>Reporte de abastecimiento / códigos críticos</span>
+                <span id="confReporteArrow">▼</span>
+            </button>
+            <div class="conf-panel-body">
+                <textarea id="confCodigosCriticos" placeholder="Pega los códigos críticos separados por coma, punto y coma o salto de línea"></textarea>
+                <div>
+                    <button id="confGuardarCriticos" class="conf-primary-btn" type="button">Guardar códigos críticos</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="conf-layout">
+            <div id="confSidebar">
+                <h3>Solicitudes Pendientes</h3>
+                <div id="confSidebarList"></div>
+            </div>
+
+            <div id="confCalendario">
+                <div class="conf-nav-row">
+                    <button id="confPrevMonth" type="button">◀ Mes anterior</button>
+                    <span id="confMonthLabel"></span>
+                    <button id="confNextMonth" type="button">Mes siguiente ▶</button>
+                </div>
+                <div id="confCalGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confModalOverlay" aria-hidden="true">
+        <div class="conf-modal" onclick="event.stopPropagation()">
+            <div>
+                <h3>Confirmar cita</h3>
+                <p id="confModalTitle" class="conf-card-note">Selecciona fecha, hora y estado.</p>
+            </div>
+            <label>
+                <span>Fecha</span>
+                <input type="date" id="confModalFecha">
+            </label>
+            <label>
+                <span>Hora</span>
+                <input type="time" id="confModalHora">
+            </label>
+            <label>
+                <span>Estado</span>
+                <select id="confModalEstado">
+                    <option value="CONFIRMADA">CONFIRMADA</option>
+                    <option value="PENDIENTE X CONFIRMAR">PENDIENTE X CONFIRMAR</option>
+                    <option value="REPROGRAMADA">REPROGRAMADA</option>
+                    <option value="CANCELADA">CANCELADA</option>
+                </select>
+            </label>
+            <label>
+                <span>Observaciones</span>
+                <textarea id="confModalObs"></textarea>
+            </label>
+            <div class="conf-modal-actions">
+                <button id="confModalCancelar" class="conf-secondary-btn" type="button">Cancelar</button>
+                <button id="confModalConfirmar" class="conf-primary-btn" type="button">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPX8tQIRDhAOjlKfSi_Pv56WbWMZVdP4yywVWv5oXFyLNnquQsz4OsiMh2CurP-bnO/exec';
+
+        const state = {
+            solicitudes: [],
+            citas: [],
+            currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            activeSolicitudId: null,
+            dragPayload: null
+        };
+
+        const priorityColors = {
+            red: '#e74c3c',
+            orange: '#f39c12',
+            yellow: '#f1c40f',
+            green: '#27ae60'
+        };
+
+        function updateDateTime() {
+            document.getElementById('confDateTime').textContent = new Date().toLocaleString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function applyTheme() {
+            const mode = document.getElementById('confThemeMode').value;
+            const resolved = mode === 'auto'
+                ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                : mode;
+            document.body.setAttribute('data-theme', resolved);
+            localStorage.setItem('confThemeMode', mode);
+        }
+
+        function loadJsonp(url, callbackName) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                window[callbackName] = payload => {
+                    cleanup();
+                    resolve(payload);
+                };
+                script.onerror = () => {
+                    cleanup();
+                    reject(new Error(`No se pudo cargar ${callbackName}`));
+                };
+                script.src = url;
+                document.head.appendChild(script);
+
+                function cleanup() {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                }
+            });
+        }
+
+        function parseDateValue(value) {
+            if (!value) return null;
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return stripTime(value);
+            }
+
+            const text = String(value).trim();
+            if (!text) return null;
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+                const [year, month, day] = text.split('-').map(Number);
+                return new Date(year, month - 1, day);
+            }
+
+            if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(text)) {
+                const [day, month, year] = text.split(/[/-]/).map(Number);
+                return new Date(year, month - 1, day);
+            }
+
+            const date = new Date(text);
+            return Number.isNaN(date.getTime()) ? null : stripTime(date);
+        }
+
+        function stripTime(date) {
+            const copy = new Date(date);
+            copy.setHours(0, 0, 0, 0);
+            return copy;
+        }
+
+        function toISODate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeCode(code) {
+            return String(code || '').trim().toUpperCase();
+        }
+
+        function parseNumber(value) {
+            const raw = String(value ?? '').trim();
+            if (!raw) return 0;
+            const normalized = raw.includes(',') && !raw.includes('.')
+                ? raw.replace(/,/g, '.')
+                : raw.replace(/,/g, '');
+            const parsed = Number(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function getCriticalCodes() {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem('kanbanCodigosCriticos') || '[]');
+                return Array.isArray(saved) ? saved.map(normalizeCode).filter(Boolean) : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function saveCriticalCodes() {
+            const codes = document.getElementById('confCodigosCriticos').value
+                .split(/[\n,;]+/)
+                .map(normalizeCode)
+                .filter(Boolean);
+            sessionStorage.setItem('kanbanCodigosCriticos', JSON.stringify(codes));
+            renderSidebar();
+        }
+
+        function normalizeSolicitud(item, index) {
+            return {
+                id: String(item.id || `SOL-${index + 1}`),
+                marca_temporal: item.marca_temporal || item.timestamp || '',
+                fecha_solicitada: item.fecha_solicitada || item.fecha_entrega_solicitada || '',
+                fecha_vencimiento: item.fecha_vencimiento || '',
+                hora_solicitada: String(item.hora_solicitada || '').trim(),
+                nombre_proveedor: String(item.nombre_proveedor || item.añadir_proveedor || '').trim(),
+                numero_orden_compra: String(item.numero_orden_compra || item.oc || '').trim(),
+                codigo_referencia: String(item.codigo_referencia || '').trim(),
+                descripcion_producto: String(item.descripcion_producto || '').trim(),
+                cantidad_unidades: parseNumber(item.cantidad_unidades),
+                cantidad_bultos: parseNumber(item.cantidad_bultos),
+                cantidad_pallets: parseNumber(item.cantidad_pallets),
+                tipo_ambiente: String(item.tipo_ambiente || '').trim(),
+                area_correspondiente: String(item.area_correspondiente || '').trim(),
+                nombre_solicitante: String(item.nombre_solicitante || '').trim(),
+                correo_solicitante: String(item.correo_solicitante || item.correo || '').trim(),
+                telefono: String(item.telefono || '').trim(),
+                tipo_unidad_movil: String(item.tipo_unidad_movil || '').trim(),
+                personal_empresa_entrega: String(item.personal_empresa_entrega || '').trim(),
+                tipo_entrega: String(item.tipo_entrega || '').trim(),
+                _srcRow: Array.isArray(item._srcRow) ? item._srcRow : []
+            };
+        }
+
+        function normalizeCita(item, index) {
+            return {
+                id: String(item.id || item.numero_orden_compra || `CITA-${index + 1}`),
+                fecha_confirmada: item.fecha_confirmada || item.fecha || '',
+                hora_confirmada: String(item.hora_confirmada || '').trim(),
+                estado_cita: String(item.estado_cita || 'CONFIRMADA').trim(),
+                nombre_proveedor: String(item.nombre_proveedor || '').trim(),
+                numero_orden_compra: String(item.numero_orden_compra || '').trim(),
+                descripcion_producto: String(item.descripcion_producto || '').trim(),
+                codigo_referencia: String(item.codigo_referencia || '').trim()
+            };
+        }
+
+        function calcPriority(solicitud) {
+            const fechaVencimiento = parseDateValue(solicitud.fecha_vencimiento);
+            const today = stripTime(new Date());
+            const days = fechaVencimiento ? Math.round((fechaVencimiento - today) / 86400000) : null;
+            let score = 0;
+
+            if (days !== null) {
+                if (days < 0) score = 100;
+                else if (days <= 7) score = 80;
+                else if (days <= 21) score = 50;
+                else if (days <= 45) score = 20;
+            }
+
+            if (getCriticalCodes().includes(normalizeCode(solicitud.codigo_referencia))) {
+                score += 40;
+            }
+
+            return { score, days };
+        }
+
+        function getPriorityTone(score) {
+            if (score >= 100) return { name: 'red', color: priorityColors.red };
+            if (score >= 80) return { name: 'orange', color: priorityColors.orange };
+            if (score >= 50) return { name: 'yellow', color: priorityColors.yellow };
+            return { name: 'green', color: priorityColors.green };
+        }
+
+        function getPendingText(priority) {
+            if (priority.days === null) return 'Sin fecha de vencimiento';
+            if (priority.days < 0) return `Vencida hace ${Math.abs(priority.days)} día(s)`;
+            return `Vence en ${priority.days} día(s)`;
+        }
+
+        async function loadData() {
+            const [solicitudesData, citasData] = await Promise.all([
+                loadJsonp(`${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`, 'handleSolicitudesData'),
+                loadJsonp(`${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`, 'handleCitasData')
+            ]);
+
+            if (!solicitudesData.success) {
+                throw new Error(solicitudesData.error || 'No se pudieron cargar las solicitudes');
+            }
+            if (!citasData.success) {
+                throw new Error(citasData.error || 'No se pudieron cargar las citas');
+            }
+
+            state.citas = (citasData.data || []).map(normalizeCita);
+            const confirmedOcs = new Set(state.citas.map(cita => cita.numero_orden_compra).filter(Boolean));
+            state.solicitudes = (solicitudesData.data || [])
+                .map(normalizeSolicitud)
+                .filter(item => item.numero_orden_compra && !confirmedOcs.has(item.numero_orden_compra));
+
+            document.getElementById('confCodigosCriticos').value = getCriticalCodes().join('\n');
+            renderSidebar();
+            renderCalendar();
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('confSidebarList');
+            const solicitudes = state.solicitudes
+                .map(item => ({ ...item, priority: calcPriority(item) }))
+                .sort((a, b) => {
+                    if (b.priority.score !== a.priority.score) {
+                        return b.priority.score - a.priority.score;
+                    }
+                    return (a.fecha_vencimiento || '').localeCompare(b.fecha_vencimiento || '');
+                });
+
+            if (!solicitudes.length) {
+                container.innerHTML = '<div class="conf-empty-state">No hay solicitudes pendientes.</div>';
+                return;
+            }
+
+            container.innerHTML = solicitudes.map(item => {
+                const tone = getPriorityTone(item.priority.score);
+                return `
+                    <div class="conf-pending-card" draggable="true" data-pending-id="${escapeHtml(item.id)}" style="border-left-color:${tone.color}">
+                        <h4>${escapeHtml(item.nombre_proveedor || 'Proveedor sin nombre')}</h4>
+                        <div class="conf-pending-meta">OC: ${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
+                        <div class="conf-pending-meta">Código: ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
+                        <div class="conf-card-note">${escapeHtml(getPendingText(item.priority))}</div>
+                        <div class="conf-card-note">Score ${item.priority.score}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('.conf-pending-card').forEach(card => {
+                card.addEventListener('dragstart', event => {
+                    state.dragPayload = { type: 'pending', id: card.dataset.pendingId };
+                    event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+                });
+            });
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('confCalGrid');
+            const monthLabel = document.getElementById('confMonthLabel');
+            monthLabel.textContent = state.currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
+            const startOffset = (firstDay.getDay() + 6) % 7;
+            const startDate = new Date(firstDay);
+            startDate.setDate(firstDay.getDate() - startOffset);
+            const weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            let html = weekdays.map(day => `<div class="conf-weekday">${day}</div>`).join('');
+
+            for (let index = 0; index < 42; index += 1) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + index);
+                const isoDate = toISODate(date);
+                const isOtherMonth = date.getMonth() !== state.currentMonth.getMonth();
+                const citas = state.citas.filter(cita => cita.fecha_confirmada === isoDate);
+
+                html += `
+                    <div class="conf-day-cell ${isOtherMonth ? 'is-other-month' : ''}" data-date="${isoDate}">
+                        <div class="conf-day-number">${date.getDate()}</div>
+                        <div class="conf-day-items">
+                            ${citas.map(cita => `
+                                <div class="conf-cita-card" draggable="true" data-confirmed-oc="${escapeHtml(cita.numero_orden_compra)}">
+                                    <strong>${escapeHtml(cita.nombre_proveedor || 'Proveedor')}</strong>
+                                    <div>${escapeHtml(cita.hora_confirmada || '--:--')} · ${escapeHtml(cita.estado_cita || 'CONFIRMADA')}</div>
+                                    <div class="conf-pending-meta">OC: ${escapeHtml(cita.numero_orden_compra || 'N/D')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+
+            grid.querySelectorAll('.conf-day-cell').forEach(cell => {
+                cell.addEventListener('dragover', event => {
+                    event.preventDefault();
+                    cell.classList.add('is-drag-over');
+                });
+                cell.addEventListener('dragleave', () => cell.classList.remove('is-drag-over'));
+                cell.addEventListener('drop', async event => {
+                    event.preventDefault();
+                    cell.classList.remove('is-drag-over');
+                    const payload = getDragPayload(event);
+                    if (!payload || !cell.dataset.date) return;
+                    if (payload.type === 'pending') {
+                        openModal(payload.id, cell.dataset.date);
+                    } else if (payload.type === 'confirmed' && payload.oc) {
+                        await updateCita(payload.oc, cell.dataset.date);
+                    }
+                });
+            });
+
+            grid.querySelectorAll('.conf-cita-card').forEach(card => {
+                card.addEventListener('dragstart', event => {
+                    state.dragPayload = { type: 'confirmed', oc: card.dataset.confirmedOc };
+                    event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+                });
+            });
+        }
+
+        function getDragPayload(event) {
+            try {
+                return state.dragPayload || JSON.parse(event.dataTransfer.getData('text/plain'));
+            } catch (error) {
+                return state.dragPayload;
+            }
+        }
+
+        function openModal(solicitudId, fecha) {
+            state.activeSolicitudId = String(solicitudId);
+            const solicitud = state.solicitudes.find(item => String(item.id) === String(solicitudId));
+            document.getElementById('confModalFecha').value = fecha || '';
+            document.getElementById('confModalHora').value = solicitud ? solicitud.hora_solicitada || '' : '';
+            document.getElementById('confModalEstado').value = 'CONFIRMADA';
+            document.getElementById('confModalObs').value = '';
+            document.getElementById('confModalTitle').textContent = solicitud
+                ? `${solicitud.nombre_proveedor || 'Proveedor'} · OC ${solicitud.numero_orden_compra || 'N/D'}`
+                : 'Selecciona fecha, hora y estado.';
+            document.getElementById('confModalOverlay').classList.add('is-open');
+        }
+
+        function closeModal() {
+            state.activeSolicitudId = null;
+            document.getElementById('confModalOverlay').classList.remove('is-open');
+        }
+
+        async function confirmModal() {
+            const solicitud = state.solicitudes.find(item => String(item.id) === String(state.activeSolicitudId));
+            if (!solicitud) return;
+
+            const fecha_confirmada = document.getElementById('confModalFecha').value;
+            const hora_confirmada = document.getElementById('confModalHora').value;
+            const estado_cita = document.getElementById('confModalEstado').value;
+            const observaciones = document.getElementById('confModalObs').value.trim();
+
+            if (!fecha_confirmada) {
+                window.alert('Debes seleccionar una fecha.');
+                return;
+            }
+
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'confirmarCita',
+                    data: {
+                        fecha_confirmada,
+                        hora_confirmada,
+                        estado_cita,
+                        observaciones,
+                        src_row: solicitud._srcRow || [],
+                        numero_orden_compra: solicitud.numero_orden_compra,
+                        codigo_referencia: solicitud.codigo_referencia,
+                        descripcion_producto: solicitud.descripcion_producto,
+                        cantidad_unidades: solicitud.cantidad_unidades,
+                        cantidad_bultos: solicitud.cantidad_bultos,
+                        cantidad_pallets: solicitud.cantidad_pallets,
+                        tipo_ambiente: solicitud.tipo_ambiente,
+                        area_correspondiente: solicitud.area_correspondiente,
+                        nombre_solicitante: solicitud.nombre_solicitante,
+                        correo_solicitante: solicitud.correo_solicitante,
+                        telefono: solicitud.telefono,
+                        tipo_unidad_movil: solicitud.tipo_unidad_movil,
+                        personal_empresa_entrega: solicitud.personal_empresa_entrega,
+                        tipo_entrega: solicitud.tipo_entrega
+                    }
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo confirmar la cita');
+            }
+
+            closeModal();
+            await loadData();
+        }
+
+        async function updateCita(numeroOrdenCompra, nuevaFecha) {
+            const cita = state.citas.find(item => item.numero_orden_compra === numeroOrdenCompra);
+            if (!cita) return;
+
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'actualizarCita',
+                    data: {
+                        numero_orden_compra: numeroOrdenCompra,
+                        fecha_confirmada: nuevaFecha,
+                        estado_cita: cita.estado_cita || 'CONFIRMADA',
+                        hora_confirmada: cita.hora_confirmada || ''
+                    }
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo actualizar la cita');
+            }
+
+            await loadData();
+        }
+
+        function handleAsyncError(error) {
+            console.error(error);
+            window.alert(error.message || 'Ocurrió un error inesperado.');
+        }
+
+        document.getElementById('confThemeMode').addEventListener('change', applyTheme);
+        document.getElementById('confRefreshBtn').addEventListener('click', () => loadData().catch(handleAsyncError));
+        document.getElementById('confPrevMonth').addEventListener('click', () => {
+            state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
+            renderCalendar();
+        });
+        document.getElementById('confNextMonth').addEventListener('click', () => {
+            state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
+            renderCalendar();
+        });
+        document.getElementById('confReporteToggle').addEventListener('click', () => {
+            const panel = document.getElementById('confReportePanel');
+            panel.classList.toggle('collapsed');
+            document.getElementById('confReporteArrow').textContent = panel.classList.contains('collapsed') ? '▼' : '▲';
+        });
+        document.getElementById('confGuardarCriticos').addEventListener('click', saveCriticalCodes);
+        document.getElementById('confModalCancelar').addEventListener('click', closeModal);
+        document.getElementById('confModalConfirmar').addEventListener('click', () => confirmModal().catch(handleAsyncError));
+        document.getElementById('confModalOverlay').addEventListener('click', closeModal);
+
+        const savedThemeMode = localStorage.getItem('confThemeMode') || 'auto';
+        document.getElementById('confThemeMode').value = savedThemeMode;
+        applyTheme();
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+        loadData().catch(handleAsyncError);
+    </script>
+</body>
+</html>
