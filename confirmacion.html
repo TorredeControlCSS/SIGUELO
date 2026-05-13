@@ -721,7 +721,9 @@
         async function loadData() {
             const [solicitudesData, citasData] = await Promise.all([
                 loadJsonp(`${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`, 'handleSolicitudesData'),
-                loadJsonp(`${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`, 'handleCitasData')
+                fetch(APPS_SCRIPT_URL + '?action=getCitasData')
+                    .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .catch(function(err){ console.error('Error cargando citas confirmadas:', err); throw err; })
             ]);
 
             if (!solicitudesData.success) {
@@ -949,7 +951,6 @@
 
         function handleAsyncError(error) {
             console.error(error);
-            window.alert(error.message || 'Ocurrió un error inesperado.');
         }
 
         document.getElementById('confThemeMode').addEventListener('change', applyTheme);
