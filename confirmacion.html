@@ -574,27 +574,37 @@
 
         function loadJsonp(url, callbackName) {
             return new Promise((resolve, reject) => {
+                let settled = false;
                 const script = document.createElement('script');
+
                 const timer = setTimeout(() => {
-                    cleanup();
+                    if (settled) return;
+                    settled = true;
+                    window[callbackName] = () => {};
+                    if (script.parentNode) script.parentNode.removeChild(script);
                     reject(new Error('Timeout cargando ' + callbackName));
-                }, 15000);
+                }, 45000);
+
                 window[callbackName] = payload => {
+                    if (settled) return;
+                    settled = true;
                     clearTimeout(timer);
-                    cleanup();
-                    resolve(payload);
-                };
-                script.onerror = () => {
-                    clearTimeout(timer);
-                    cleanup();
-                    reject(new Error('Error de red cargando ' + callbackName));
-                };
-                script.src = url;
-                document.head.appendChild(script);
-                function cleanup() {
                     delete window[callbackName];
                     if (script.parentNode) script.parentNode.removeChild(script);
-                }
+                    resolve(payload);
+                };
+
+                script.onerror = () => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    reject(new Error('Error de red cargando ' + callbackName));
+                };
+
+                script.src = url;
+                document.head.appendChild(script);
             });
         }
 
@@ -1174,24 +1184,21 @@
         async function loadData() {
             state.abastecimiento = {};
 
-            // All three data sources via JSONP (avoids CORS from Apps Script)
-            const [solicitudesData, citasData, abastDataRaw] = await Promise.all([
-                loadJsonp(
-                    `${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`,
-                    'handleSolicitudesData'
-                ),
-                loadJsonp(
-                    `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
-                    'handleCitasData'
-                ),
-                loadJsonp(
-                    `${APPS_SCRIPT_URL}?action=getAbastecimientoData&callback=handleAbastData`,
-                    'handleAbastData'
-                ).catch(err => {
-                    console.warn('Abastecimiento data unavailable:', err.message);
-                    return { success: false, data: {} };
-                })
-            ]);
+            const solicitudesData = await loadJsonp(
+                `${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`,
+                'handleSolicitudesData'
+            );
+            const citasData = await loadJsonp(
+                `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
+                'handleCitasData'
+            );
+            const abastDataRaw = await loadJsonp(
+                `${APPS_SCRIPT_URL}?action=getAbastecimientoData&callback=handleAbastData`,
+                'handleAbastData'
+            ).catch(err => {
+                console.warn('Abastecimiento data unavailable:', err.message);
+                return { success: false, data: {} };
+            });
 
             if (abastDataRaw.success) {
                 state.abastecimiento = abastDataRaw.data || {};
