@@ -414,7 +414,12 @@
 
             const isoDatetimeMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})T/);
             if (isoDatetimeMatch) {
-                return new Date(Number(isoDatetimeMatch[1]), Number(isoDatetimeMatch[2]) - 1, Number(isoDatetimeMatch[3]));
+                const y = Number(isoDatetimeMatch[1]);
+                const m = Number(isoDatetimeMatch[2]);
+                const d = Number(isoDatetimeMatch[3]);
+                if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                    return new Date(y, m - 1, d);
+                }
             }
 
             if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
@@ -682,9 +687,12 @@
         }
 
         function buildCitaCard(item) {
+            const MAX_DESCRIPTION_LENGTH = 45;
             const statusClass = getCitaStatusClass(item.estado);
             const descripcion = String(item.descripcion_producto || 'N/D');
-            const descripcionCorta = descripcion.length > 45 ? `${descripcion.slice(0, 45)}…` : descripcion;
+            const descripcionCorta = descripcion.length > MAX_DESCRIPTION_LENGTH
+                ? `${descripcion.slice(0, MAX_DESCRIPTION_LENGTH)}…`
+                : descripcion;
             const invData = state.abastecimiento[item.codigo_normalizado];
             const card = document.createElement('div');
             card.className = 'conf-cita-card';
