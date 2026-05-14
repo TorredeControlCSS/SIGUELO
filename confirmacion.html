@@ -407,6 +407,19 @@
             return dateTime ? stripTime(dateTime) : null;
         }
 
+        function createDateIfValid(year, month, day, hour = 0, minute = 0, second = 0) {
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            const date = new Date(year, month - 1, day, hour, minute, second);
+            if (
+                date.getFullYear() !== year ||
+                date.getMonth() !== month - 1 ||
+                date.getDate() !== day
+            ) {
+                return null;
+            }
+            return date;
+        }
+
         function parseDateTimeValue(value) {
             if (!value) return null;
             if (value instanceof Date && !Number.isNaN(value.getTime())) return new Date(value);
@@ -418,14 +431,12 @@
                 const y = Number(isoDatetimeMatch[1]);
                 const m = Number(isoDatetimeMatch[2]);
                 const d = Number(isoDatetimeMatch[3]);
-                if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-                    return new Date(y, m - 1, d);
-                }
+                return createDateIfValid(y, m, d);
             }
 
             if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
                 const [year, month, day] = text.split('-').map(Number);
-                return new Date(year, month - 1, day);
+                return createDateIfValid(year, month, day);
             }
 
             const usSlashMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -433,9 +444,7 @@
                 const m = Number(usSlashMatch[1]);
                 const d = Number(usSlashMatch[2]);
                 const y = Number(usSlashMatch[3]);
-                if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-                    return new Date(y, m - 1, d);
-                }
+                return createDateIfValid(y, m, d);
             }
 
             const match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
@@ -443,7 +452,7 @@
                 const [, day, month, year, hour = '0', minute = '0', second = '0'] = match;
                 const monthNum = Number(month);
                 if (monthNum >= 1 && monthNum <= 12) {
-                    return new Date(Number(year), monthNum - 1, Number(day), Number(hour), Number(minute), Number(second));
+                    return createDateIfValid(Number(year), monthNum, Number(day), Number(hour), Number(minute), Number(second));
                 }
             }
 
