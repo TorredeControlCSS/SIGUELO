@@ -181,34 +181,51 @@
         }
 
         .conf-day-cell {
-            min-height: 100px;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             background: var(--bg-secondary);
-            padding: 8px;
-            display: grid;
-            align-content: start;
-            gap: 5px;
+            padding: 0;
             transition: border-color 0.15s, background 0.15s;
         }
 
-        .conf-day-cell.is-drag-over {
-            border-color: #8e44ad;
-            background: rgba(142, 68, 173, 0.08);
+        .conf-day-header {
+            padding: 8px 10px 6px;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .conf-day-number {
             font-weight: 700;
-            font-size: 12px;
-            color: var(--text-secondary);
+            font-size: 13px;
+            color: var(--text-primary);
         }
 
         .conf-day-counter {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-secondary);
+            margin-top: 2px;
         }
 
-        .conf-day-items { display: grid; gap: 5px; }
+        .conf-hour-slots { display: flex; flex-direction: column; }
+
+        .conf-hour-slot {
+            border-top: 1px solid var(--border-color);
+            padding: 4px 6px;
+            min-height: 36px;
+        }
+
+        .conf-hour-slot.is-drag-over {
+            background: rgba(142, 68, 173, 0.10);
+            border-color: #8e44ad;
+        }
+
+        .conf-hour-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .conf-hour-items { display: flex; flex-direction: column; gap: 4px; }
 
         /* ===== CALENDAR CARD ===== */
         .conf-cita-card {
@@ -226,6 +243,7 @@
 
         .conf-cita-card:active { cursor: grabbing; }
         .conf-cita-card strong { font-size: 12px; }
+        .conf-cita-card.is-dragging { opacity: 0.45; }
 
         /* ===== STATUS BADGES ===== */
         .status-badge {
@@ -316,11 +334,13 @@
 
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+        const CURVAS_API_URL = 'https://script.google.com/macros/s/AKfycbwnK1uyq6Q5XdQ6eWzTNaoaVeJi_IAzT7d6T1rVkDIYE1JM6jBmvXqN19B6iRe20H4YPQ/exec';
 
         const state = {
             solicitudes: [],
             currentWeekStart: null,
-            dragPayload: null
+            dragPayload: null,
+            abastecimiento: {}
         };
 
         // ===== UTILITIES =====
@@ -392,15 +412,33 @@
             const text = String(value).trim();
             if (!text) return null;
 
+            const isoDatetimeMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+            if (isoDatetimeMatch) {
+                return new Date(Number(isoDatetimeMatch[1]), Number(isoDatetimeMatch[2]) - 1, Number(isoDatetimeMatch[3]));
+            }
+
             if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
                 const [year, month, day] = text.split('-').map(Number);
                 return new Date(year, month - 1, day);
             }
 
+            const usSlashMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (usSlashMatch) {
+                const m = Number(usSlashMatch[1]);
+                const d = Number(usSlashMatch[2]);
+                const y = Number(usSlashMatch[3]);
+                if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                    return new Date(y, m - 1, d);
+                }
+            }
+
             const match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
             if (match) {
                 const [, day, month, year, hour = '0', minute = '0', second = '0'] = match;
-                return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+                const monthNum = Number(month);
+                if (monthNum >= 1 && monthNum <= 12) {
+                    return new Date(Number(year), monthNum - 1, Number(day), Number(hour), Number(minute), Number(second));
+                }
             }
 
             const date = new Date(text);
@@ -516,6 +554,22 @@
             return 'default';
         }
 
+        function getInvStatusClass(estado) {
+            const e = String(estado || '').toUpperCase().trim();
+            if (e.includes('CRITIC')) return 'red';
+            if (e.includes('RIESGO') || e.includes('ALERTA')) return 'orange';
+            if (e.includes('OK') || e.includes('NORMAL') || e.includes('SALUDABLE')) return 'green';
+            return 'blue';
+        }
+
+        function normalizeHour(val) {
+            if (!val) return '';
+            const s = String(val).trim();
+            const m = s.match(/^(\d{1,2}):(\d{2})/);
+            if (!m) return '';
+            return m[1].padStart(2, '0') + ':' + m[2];
+        }
+
         // ===== DATA NORMALIZERS =====
 
         // Returns the first non-empty value found among the given keys in item.
@@ -533,6 +587,7 @@
                 item['codigo_referencia'] || ''
             ).trim();
             const codigoNorm = codigo_referencia.replace(/[-\s]/g, '').trim();
+            const invData = state.abastecimiento[codigoNorm] || {};
             return {
                 id: String(item.id || `SOL-${index + 1}`),
                 marca_temporal: item['Marca temporal'] || item.marca_temporal || '',
@@ -575,11 +630,11 @@
                 estado: String(
                     item['Estado'] || item.estado || 'Por Agendar'
                 ).trim(),
-                inv_estado: String(item.inv_estado || ''),
-                cobertura: String(item.cobertura || ''),
-                inv_actual: Number(item.inv_actual || 0),
-                reserva: Number(item.reserva || 0),
-                demanda: Number(item.demanda || 0),
+                inv_estado: String(item.inv_estado || invData.estado || ''),
+                cobertura: String(item.cobertura || invData.cobertura || ''),
+                inv_actual: Number(item.inv_actual || invData.inv_actual || 0),
+                reserva: Number(item.reserva || invData.reserva || 0),
+                demanda: Number(item.demanda || invData.demanda || 0),
                 _srcRow: Array.isArray(item._srcRow) ? item._srcRow : []
             };
         }
@@ -626,125 +681,208 @@
             return solicitudes;
         }
 
-        function renderCitaCardHtml(item) {
+        function buildCitaCard(item) {
             const statusClass = getCitaStatusClass(item.estado);
-            const fechaSolicitada = parseDateValue(item.fecha_solicitada);
-            return `
-                <div class="conf-cita-card" draggable="true" data-id="${escapeHtml(item.id)}" data-date="${escapeHtml(fechaSolicitada ? toISODate(fechaSolicitada) : '')}">
-                    <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
-                    <div><b>Código:</b> ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
-                    <div><b>Producto:</b> ${escapeHtml(item.descripcion_producto || 'N/D')}</div>
-                    <div><b>Unidades:</b> ${escapeHtml(String(item.cantidad_unidades || 0))}</div>
-                    <div><b>Vencimiento:</b> ${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento_entrega))}</div>
-                    <div><b>Entrega solicitada:</b> ${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</div>
-                    <div><b>OC:</b> ${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
-                    <div><b>Pallets:</b> ${escapeHtml(String(item.cantidad_pallets || 0))}</div>
-                    <div><b>Ambiente:</b> ${escapeHtml(item.tipo_ambiente || 'N/D')}</div>
-                    <div><b>Área:</b> ${escapeHtml(item.area_correspondiente || 'N/D')}</div>
-                    <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
-                </div>
+            const descripcion = String(item.descripcion_producto || 'N/D');
+            const descripcionCorta = descripcion.length > 45 ? `${descripcion.slice(0, 45)}…` : descripcion;
+            const invData = state.abastecimiento[item.codigo_normalizado];
+            const card = document.createElement('div');
+            card.className = 'conf-cita-card';
+            card.innerHTML = `
+                <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
+                <div><b>Código:</b> ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
+                <div><b>Producto:</b> ${escapeHtml(descripcionCorta)}</div>
+                <div><b>Unidades:</b> ${escapeHtml(String(item.cantidad_unidades || 0))}</div>
+                <div><b>Vencimiento:</b> ${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento_entrega))}</div>
+                <div><b>Entrega solicitada:</b> ${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</div>
+                <div><b>OC:</b> ${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
+                <div><b>Pallets:</b> ${escapeHtml(String(item.cantidad_pallets || 0))}</div>
+                <div><b>Ambiente:</b> ${escapeHtml(item.tipo_ambiente || 'N/D')}</div>
+                <div><b>Área:</b> ${escapeHtml(item.area_correspondiente || 'N/D')}</div>
+                ${invData ? `<div><b>Estado inv:</b> <span class="status-badge status-${escapeHtml(getInvStatusClass(invData.estado))}">${escapeHtml(invData.estado || 'N/D')}</span></div>
+                <div><b>Cobertura:</b> ${escapeHtml(String(invData.cobertura || 'N/D'))}</div>
+                <div><b>Inv. Proyectado:</b> ${escapeHtml(String(invData.inv_actual || 0))}</div>` : ''}
+                <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
             `;
+            return card;
         }
 
         // ===== RENDER CALENDAR =====
 
         function renderCalendar() {
             const grid = document.getElementById('confCalGrid');
-            const weekLabel = document.getElementById('confWeekLabel');
-            const weekStart = stripTime(state.currentWeekStart);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 5);
-            weekLabel.textContent = formatRangeLabel(weekStart, weekEnd);
+            grid.innerHTML = '';
 
-            const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const filteredSolicitudes = getFilteredSolicitudes();
-            const byDate = filteredSolicitudes.reduce((acc, item) => {
-                const d = parseDateValue(item.fecha_solicitada);
-                if (!d) return acc;
-                const iso = toISODate(d);
-                if (!acc[iso]) acc[iso] = [];
-                acc[iso].push(item);
-                return acc;
-            }, {});
+            const HOURS = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+            const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-            let html = '';
-            for (let i = 0; i < 6; i++) {
-                const date = new Date(weekStart);
-                date.setDate(weekStart.getDate() + i);
-                const isoDate = toISODate(date);
-                const dayName = weekdays[i];
-                const dayItems = byDate[isoDate] || [];
-                const pallets = dayItems.reduce((sum, item) => sum + parseNumber(item.cantidad_pallets), 0);
-                const dayNum = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-                html += `
-                    <div class="conf-day-cell" data-date="${isoDate}">
-                        <div class="conf-day-number">${escapeHtml(dayName)} · ${escapeHtml(dayNum)}</div>
-                        <div class="conf-day-counter">${dayItems.length} citas · ${pallets} pallets</div>
-                        <div class="conf-day-items">${dayItems.map(renderCitaCardHtml).join('')}</div>
-                    </div>
-                `;
+            const fProv = document.getElementById('filterProveedor').value;
+            const fCod = (document.getElementById('filterCodigo').value || '').trim().toLowerCase();
+            const fArea = document.getElementById('filterArea').value;
+
+            for (let d = 0; d < 6; d++) {
+                const dayDate = new Date(state.currentWeekStart);
+                dayDate.setDate(state.currentWeekStart.getDate() + d);
+                const dateStr = toISODate(dayDate);
+
+                const dayFiltered = state.solicitudes.filter(s => {
+                    const sd = parseDateValue(s.fecha_solicitada);
+                    if (!sd || toISODate(sd) !== dateStr) return false;
+                    if (fProv && s.nombre_proveedor !== fProv) return false;
+                    if (fCod && !(s.codigo_referencia || '').toLowerCase().includes(fCod)) return false;
+                    if (fArea && s.area_correspondiente !== fArea) return false;
+                    return true;
+                });
+
+                const totalPallets = dayFiltered.reduce((sum, s) => sum + (Number(s.cantidad_pallets) || 0), 0);
+
+                const cell = document.createElement('div');
+                cell.className = 'conf-day-cell';
+                cell.dataset.date = dateStr;
+
+                const dayLabel = DAY_NAMES[d];
+                const dayNum = dayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+                const header = document.createElement('div');
+                header.className = 'conf-day-header';
+                header.innerHTML = `<div class="conf-day-number">${escapeHtml(dayLabel)} · ${escapeHtml(dayNum)}</div><div class="conf-day-counter">${dayFiltered.length} cita${dayFiltered.length !== 1 ? 's' : ''} · ${totalPallets} pallet${totalPallets !== 1 ? 's' : ''}</div>`;
+                cell.appendChild(header);
+
+                const slotsWrapper = document.createElement('div');
+                slotsWrapper.className = 'conf-hour-slots';
+
+                const allSlotHours = [...HOURS, 'SIN HORA'];
+                for (const hour of allSlotHours) {
+                    const slot = document.createElement('div');
+                    slot.className = 'conf-hour-slot';
+                    slot.dataset.date = dateStr;
+                    slot.dataset.hour = hour;
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'conf-hour-label';
+                    lbl.textContent = hour;
+                    slot.appendChild(lbl);
+
+                    const itemsDiv = document.createElement('div');
+                    itemsDiv.className = 'conf-hour-items';
+
+                    const slotItems = dayFiltered.filter(s => {
+                        const h = normalizeHour(s.hora_solicitada);
+                        return hour === 'SIN HORA' ? (!h || !HOURS.includes(h)) : h === hour;
+                    });
+
+                    slotItems.forEach(s => {
+                        const card = buildCitaCard(s);
+                        card.draggable = true;
+                        card.addEventListener('dragstart', ev => {
+                            state.dragPayload = {
+                                id: s.numero_orden_compra || s.id,
+                                fromDate: dateStr,
+                                fromHour: hour === 'SIN HORA' ? '' : hour
+                            };
+                            ev.dataTransfer.effectAllowed = 'move';
+                            setTimeout(() => card.classList.add('is-dragging'), 0);
+                        });
+                        card.addEventListener('dragend', () => card.classList.remove('is-dragging'));
+                        itemsDiv.appendChild(card);
+                    });
+
+                    slot.appendChild(itemsDiv);
+                    slot.addEventListener('dragover', ev => {
+                        ev.preventDefault();
+                        ev.dataTransfer.dropEffect = 'move';
+                        slot.classList.add('is-drag-over');
+                    });
+                    slot.addEventListener('dragleave', ev => {
+                        if (!slot.contains(ev.relatedTarget)) slot.classList.remove('is-drag-over');
+                    });
+                    slot.addEventListener('drop', ev => handleDrop(ev, dateStr, hour === 'SIN HORA' ? '' : hour));
+
+                    slotsWrapper.appendChild(slot);
+                }
+
+                cell.appendChild(slotsWrapper);
+                grid.appendChild(cell);
             }
-            grid.innerHTML = html;
 
-            grid.querySelectorAll('.conf-day-cell').forEach(cell => {
-                cell.addEventListener('dragover', event => {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = 'move';
-                    cell.classList.add('is-drag-over');
-                });
-                cell.addEventListener('dragleave', event => {
-                    if (!cell.contains(event.relatedTarget)) cell.classList.remove('is-drag-over');
-                });
-                cell.addEventListener('drop', async event => {
-                    event.preventDefault();
-                    cell.classList.remove('is-drag-over');
-                    if (!state.dragPayload) return;
-                    const { id, fromDate } = state.dragPayload;
-                    const toDate = cell.dataset.date;
-                    state.dragPayload = null;
-                    if (!id || !toDate || fromDate === toDate) return;
-
-                    const cbName = 'cbUpdate_' + Date.now();
-                    try {
-                        const res = await loadJsonp(
-                            `${APPS_SCRIPT_URL}?action=updateCita&id=${encodeURIComponent(id)}&fecha=${toDate}&callback=${cbName}`,
-                            cbName
-                        );
-                        if (res && res.success) {
-                            const sol = state.solicitudes.find(s => String(s.id) === String(id));
-                            if (sol) sol.fecha_solicitada = toDate;
-                            renderCalendar();
-                        } else {
-                            alert('Error al actualizar: ' + (res && res.error ? res.error : 'Respuesta inesperada'));
-                            renderCalendar();
-                        }
-                    } catch (err) {
-                        alert('Error de red al actualizar cita: ' + err.message);
-                        renderCalendar();
-                    }
-                });
-            });
-
-            grid.querySelectorAll('.conf-cita-card').forEach(card => {
-                card.addEventListener('dragstart', event => {
-                    state.dragPayload = { id: card.dataset.id, fromDate: card.dataset.date };
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
-                });
-                card.addEventListener('dragend', () => {
-                    state.dragPayload = null;
-                });
-            });
+            const endDate = new Date(state.currentWeekStart);
+            endDate.setDate(state.currentWeekStart.getDate() + 5);
+            document.getElementById('confWeekLabel').textContent = formatRangeLabel(state.currentWeekStart, endDate);
         }
 
         function handleAsyncError(error) {
             console.error(String(error));
         }
 
+        async function handleDrop(ev, targetDateStr, targetHour) {
+            ev.preventDefault();
+            document.querySelectorAll('.conf-hour-slot.is-drag-over').forEach(el => el.classList.remove('is-drag-over'));
+            if (!state.dragPayload) return;
+            const { id, fromDate, fromHour } = state.dragPayload;
+            state.dragPayload = null;
+            if (fromDate === targetDateStr && fromHour === targetHour) return;
+
+            const hora = targetHour !== undefined && targetHour !== '' ? targetHour : (fromHour || '');
+            const ts = Date.now();
+            const cbName = 'cbUpdate_' + ts;
+            try {
+                const res = await loadJsonp(
+                    `${APPS_SCRIPT_URL}?action=updateCita&id=${encodeURIComponent(id)}&fecha=${encodeURIComponent(targetDateStr)}&hora=${encodeURIComponent(hora)}&callback=${cbName}`,
+                    cbName
+                );
+                if (res && res.success) {
+                    const sol = state.solicitudes.find(s => String(s.numero_orden_compra || s.id) === String(id));
+                    if (sol) {
+                        sol.fecha_solicitada = targetDateStr;
+                        if (hora) sol.hora_solicitada = hora;
+                    }
+                    renderCalendar();
+                } else {
+                    alert('Error al actualizar cita: ' + (res && res.error ? res.error : 'Respuesta inesperada'));
+                }
+            } catch (err) {
+                alert('Error de red al actualizar cita: ' + err.message);
+            }
+        }
+
         // ===== DATA LOADING =====
 
         async function loadData() {
             document.getElementById('confCalGrid').innerHTML = '<div class="conf-card-note">Cargando citas...</div>';
+            try {
+                const covTs = Date.now();
+                const covCb = 'cbCov_' + covTs;
+                const covRes = await loadJsonp(
+                    `${CURVAS_API_URL}?report=coverage&callback=${covCb}`,
+                    covCb
+                );
+                const covHeader = Array.isArray(covRes && covRes.header) ? covRes.header.map(h => String(h || '').trim().toUpperCase()) : [];
+                const covRows = Array.isArray(covRes && covRes.rows) ? covRes.rows : [];
+                const idx = {
+                    codigo: covHeader.indexOf('CODIGO'),
+                    estado: covHeader.indexOf('STATUS'),
+                    cobertura: covHeader.indexOf('MESES_COB'),
+                    invActual: covHeader.indexOf('INV_PROY'),
+                    reserva: covHeader.indexOf('RESERVA'),
+                    demanda: covHeader.indexOf('DEMANDA_MENSUAL')
+                };
+                const map = {};
+                covRows.forEach(row => {
+                    const codigo = normalizeCode(row[idx.codigo]);
+                    if (!codigo) return;
+                    map[codigo] = {
+                        estado: row[idx.estado] ?? '',
+                        cobertura: row[idx.cobertura] ?? '',
+                        inv_actual: row[idx.invActual] ?? 0,
+                        reserva: row[idx.reserva] ?? 0,
+                        demanda: row[idx.demanda] ?? 0
+                    };
+                });
+                state.abastecimiento = map;
+            } catch (err) {
+                state.abastecimiento = {};
+            }
+
             const citasData = await loadJsonp(
                 `${APPS_SCRIPT_URL}?action=getCitasData&callback=cbCitas`,
                 'cbCitas'
