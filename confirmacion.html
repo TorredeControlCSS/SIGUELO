@@ -335,6 +335,7 @@
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
         const CURVAS_API_URL = 'https://script.google.com/macros/s/AKfycbwnK1uyq6Q5XdQ6eWzTNaoaVeJi_IAzT7d6T1rVkDIYE1JM6jBmvXqN19B6iRe20H4YPQ/exec';
+        const MAX_DESCRIPTION_LENGTH = 45;
 
         const state = {
             solicitudes: [],
@@ -687,7 +688,6 @@
         }
 
         function buildCitaCard(item) {
-            const MAX_DESCRIPTION_LENGTH = 45;
             const statusClass = getCitaStatusClass(item.estado);
             const descripcion = String(item.descripcion_producto || 'N/D');
             const descripcionCorta = descripcion.length > MAX_DESCRIPTION_LENGTH
@@ -864,8 +864,8 @@
                     `${CURVAS_API_URL}?report=coverage&callback=${covCb}`,
                     covCb
                 );
-                const covHeader = Array.isArray(covRes && covRes.header) ? covRes.header.map(h => String(h || '').trim().toUpperCase()) : [];
-                const covRows = Array.isArray(covRes && covRes.rows) ? covRes.rows : [];
+                const covHeader = Array.isArray(covRes?.header) ? covRes.header.map(h => String(h || '').trim().toUpperCase()) : [];
+                const covRows = Array.isArray(covRes?.rows) ? covRes.rows : [];
                 const idx = {
                     codigo: covHeader.indexOf('CODIGO'),
                     estado: covHeader.indexOf('STATUS'),
