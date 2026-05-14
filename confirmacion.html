@@ -951,12 +951,12 @@
                                     <tr><td class="card-label">Nombre del Proveedor</td><td class="card-value">${escapeHtml(item.nombre_proveedor || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_normalizado || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Descripción del producto</td><td class="card-value">${escapeHtml(item.descripcion_producto || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Cantidad (en unidades)</td><td class="card-value">${escapeHtml(String(item.cantidad_unidades || 0))}</td></tr>
+                                    <tr><td class="card-label">Cantidad (en unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
                                     <tr><td class="card-label">Fecha de vencimiento</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</td></tr>
                                     <tr><td class="card-label">Fecha entrega solicitada</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</td></tr>
                                     ${item.hora_solicitada ? `<tr><td class="card-label">Hora solicitada</td><td class="card-value">${escapeHtml(item.hora_solicitada)}</td></tr>` : ''}
                                     <tr><td class="card-label">Número de Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Cantidad de pallets</td><td class="card-value">${escapeHtml(String(item.cantidad_pallets || 0))}</td></tr>
+                                    <tr><td class="card-label">Cantidad de pallets</td><td class="card-value">${escapeHtml(item.cantidad_pallets ? String(item.cantidad_pallets) : 'N/D')}</td></tr>
                                     <tr><td class="card-label">Tipo de ambiente</td><td class="card-value">${escapeHtml(item.tipo_ambiente || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Área correspondiente</td><td class="card-value">${escapeHtml(item.area_correspondiente || 'N/D')}</td></tr>
                                     <tr class="card-suggested-row"><td colspan="2">📅 Fecha sugerida: ${escapeHtml(suggestedStr)}</td></tr>
@@ -1042,11 +1042,14 @@
             grid.querySelectorAll('.conf-day-cell').forEach(cell => {
                 cell.addEventListener('dragover', event => {
                     event.preventDefault();
+                    event.stopPropagation();
                     event.dataTransfer.dropEffect = 'move';
                     cell.classList.add('is-drag-over');
                 });
-                cell.addEventListener('dragleave', () => {
-                    cell.classList.remove('is-drag-over');
+                cell.addEventListener('dragleave', event => {
+                    if (!cell.contains(event.relatedTarget)) {
+                        cell.classList.remove('is-drag-over');
+                    }
                 });
                 cell.addEventListener('drop', async event => {
                     event.preventDefault();
