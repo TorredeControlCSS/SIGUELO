@@ -173,7 +173,7 @@
         }
 
         .conf-pending-card:active { cursor: grabbing; }
-        .conf-pending-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+        .conf-pending-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.20); }
 
         .urgency-badge {
             padding: 6px 14px;
@@ -223,6 +223,12 @@
             font-weight: 700;
             padding: 5px 10px;
         }
+
+        .val-critico { color: #fb923c; font-weight: 700; }
+        .val-agotado { color: #f87171; font-weight: 700; }
+        .val-bajo    { color: #fbbf24; font-weight: 700; }
+        .val-optimo  { color: #86efac; font-weight: 700; }
+        .val-exceso  { color: #93c5fd; font-weight: 700; }
 
         /* ===== CALENDAR ===== */
         #confCalendario {
@@ -501,22 +507,32 @@
             <label>
                 <span>Estado</span>
                 <select id="confModalEstado">
-                    <option value="CITA AGENDADA">CITA AGENDADA</option>
-                    <option value="CONFIRMADA">CONFIRMADA</option>
-                    <option value="PENDIENTE X CONFIRMAR">PENDIENTE X CONFIRMAR</option>
-                    <option value="ASISTIO">ASISTIO</option>
-                    <option value="ASISTIO - ENTREGA PARCIAL">ASISTIO - ENTREGA PARCIAL</option>
-                    <option value="ASISTIO - ENTREGO OTRO PEDIDO">ASISTIO - ENTREGO OTRO PEDIDO</option>
-                    <option value="NO ASISTIO">NO ASISTIO</option>
-                    <option value="ENTREGADO COMPLETO">ENTREGADO COMPLETO</option>
-                    <option value="ENTREGADO INCONFORME">ENTREGADO INCONFORME</option>
-                    <option value="REPROGRAMADA">REPROGRAMADA</option>
-                    <option value="REPROGRAMADA X PROVEEDOR">REPROGRAMADA X PROVEEDOR</option>
-                    <option value="REPROGRAMADA X ALTO VOLUMEN">REPROGRAMADA X ALTO VOLUMEN</option>
-                    <option value="DIFERIDO">DIFERIDO</option>
-                    <option value="DIFERIR X FALTA DE ESPACIO">DIFERIR X FALTA DE ESPACIO</option>
-                    <option value="CANCELADA">CANCELADA</option>
-                    <option value="VERIFICAR CON PROVEEDOR">VERIFICAR CON PROVEEDOR</option>
+                    <optgroup label="Pendientes">
+                        <option value="POR AGENDAR">Por Agendar</option>
+                        <option value="PENDIENTE X CONFIRMAR">Pendiente por Confirmar</option>
+                    </optgroup>
+                    <optgroup label="Agendadas">
+                        <option value="CITA AGENDADA">Cita Agendada</option>
+                        <option value="FECHA ACORDADA">Fecha Acordada</option>
+                    </optgroup>
+                    <optgroup label="Recibidas">
+                        <option value="ENTREGADO COMPLETO">Entregado Completo</option>
+                        <option value="ENTREGA PARCIAL">Entrega Parcial o Inconforme</option>
+                        <option value="ASISTIO OTRO PEDIDO">Asistió (Otro Pedido)</option>
+                    </optgroup>
+                    <optgroup label="Reprogramadas">
+                        <option value="REPROGRAMADA X PROVEEDOR">Reprogramada por Proveedor</option>
+                        <option value="REPROGRAMADA X OPERACION">Reprogramada por Operación</option>
+                        <option value="DIFERIDA">Diferida</option>
+                    </optgroup>
+                    <optgroup label="Canceladas / Fallidas">
+                        <option value="CANCELADA">Cancelada</option>
+                        <option value="NO ASISTIO">No Asistió</option>
+                    </optgroup>
+                    <optgroup label="Excepciones">
+                        <option value="EN REVISION CON PROVEEDOR">En Revisión con Proveedor</option>
+                        <option value="REPORTADO CON FALLAS">Reportado con Fallas</option>
+                    </optgroup>
                 </select>
             </label>
             <label>
@@ -735,7 +751,7 @@
             const coberturaRaw = inv ? parseFloat(String(inv.cobertura || '0')) : null;
             const invRank = INV_RANK[estado] || 3; // sin datos treated as BAJO
 
-            const fechaVenc = parseDateValue(solicitud.fecha_vencimiento);
+            const fechaVenc = parseDateValue(solicitud.fecha_vencimiento_entrega);
             const today = stripTime(new Date());
             const daysToVenc = fechaVenc !== null ? Math.round((fechaVenc - today) / 86400000) : null;
             const fechaSolicitada = parseDateValue(solicitud.fecha_solicitada);
@@ -840,60 +856,45 @@
                 'Código de referencia (Abasto)',
                 'Código de referencia',
                 'Codigo de referencia',
-                'Codigo', 'codigo', 'CODIGO', 'SKU', 'sku') || '').trim();
-            const codigoNorm = codigo_referencia.replace(/-/g, '').trim();
-            const inv = state.abastecimiento[codigoNorm] || null;
+                'Codigo', 'codigo', 'CODIGO', 'SKU') || '').trim();
+            const codigoNorm = codigo_referencia.replace(/[-\s]/g, '').trim();
+            const inv = state.abastecimiento[codigoNorm] || state.abastecimiento[codigo_referencia] || null;
             return {
                 id: String(item.id || `SOL-${index + 1}`),
-                marca_temporal: item.marca_temporal || item.timestamp || '',
-                fecha_solicitada: String(getCol(item,
-                    'fecha_solicitada', 'fecha_entrega_solicitada',
-                    'Fecha entrega solicitada', 'Fecha Solicitada',
-                    'Fecha de entrega solicitada') || ''),
-                fecha_vencimiento: String(getCol(item,
-                    'fecha_vencimiento',
-                    'Fecha de vencimiento de la entrega',
-                    'fecha_vencimiento_entrega',
-                    'Fecha vencimiento') || ''),
-                hora_solicitada: String(item.hora_solicitada || '').trim(),
+                marca_temporal: getCol(item, 'marca_temporal', 'Marca temporal', 'timestamp') || '',
                 nombre_proveedor: String(getCol(item,
                     'nombre_proveedor', 'Nombre del Proveedor', 'Proveedor',
                     'proveedor', 'añadir_proveedor') || '').trim(),
-                numero_orden_compra: String(getCol(item,
-                    'numero_orden_compra',
-                    'Número de Orden de Compra',
-                    'Numero de Orden de Compra',
-                    'Número OC', 'Numero OC',
-                    'OC', 'orden_compra', 'oc', 'N° OC') || '').trim(),
                 codigo_referencia,
                 codigo_normalizado: codigoNorm,
                 descripcion_producto: String(getCol(item,
                     'descripcion_producto', 'Descripción del producto',
-                    'Descripcion', 'descripcion') || '').trim(),
+                    'Descripcion del producto', 'Descripcion') || '').trim(),
                 cantidad_unidades: parseNumber(getCol(item,
                     'cantidad_unidades', 'Cantidad (en unidades)', 'Cantidad', 'cantidad')),
-                cantidad_bultos: parseNumber(item.cantidad_bultos),
+                fecha_vencimiento_entrega: String(getCol(item,
+                    'fecha_vencimiento_entrega',
+                    'Fecha de vencimiento de la entrega',
+                    'Fecha vencimiento de la entrega',
+                    'fecha_vencimiento', 'Fecha vencimiento') || ''),
+                fecha_solicitada: String(getCol(item,
+                    'fecha_solicitada', 'Fecha de entrega solicitada',
+                    'fecha_entrega_solicitada', 'Fecha entrega solicitada',
+                    'Fecha Solicitada') || ''),
+                numero_orden_compra: String(getCol(item,
+                    'numero_orden_compra', 'Número de Orden de Compra',
+                    'Numero de Orden de Compra', 'OC', 'orden_compra', 'oc') || '').trim(),
                 cantidad_pallets: parseNumber(getCol(item,
-                    'cantidad_pallets',
-                    'Cantidad de pallets (si aplica)',
-                    'Cantidad pallets', 'pallets')),
+                    'cantidad_pallets', 'Cantidad de pallets (si aplica)',
+                    'Cantidad de pallets', 'pallets')),
                 tipo_ambiente: String(getCol(item,
-                    'tipo_ambiente',
-                    'Tipo de ambiente requerido',
-                    'tipo_ambiente_requerido') || '').trim(),
+                    'tipo_ambiente', 'Tipo de ambiente requerido',
+                    'tipo_ambiente_requerido', 'ambiente') || '').trim(),
                 area_correspondiente: String(getCol(item,
-                    'area_correspondiente',
-                    'Área correspondiente',
-                    'Area correspondiente',
-                    'area') || '').trim(),
-                nombre_solicitante: String(item.nombre_solicitante || '').trim(),
-                correo_solicitante: String(item.correo_solicitante || item.correo || '').trim(),
-                telefono: String(item.telefono || '').trim(),
-                tipo_unidad_movil: String(item.tipo_unidad_movil || '').trim(),
-                personal_empresa_entrega: String(item.personal_empresa_entrega || '').trim(),
-                tipo_entrega: String(item.tipo_entrega || '').trim(),
-                estado: String(getCol(item, 'Estado', 'estado') || 'PENDIENTE X CONFIRMAR').trim(),
-                // Inventory cross-reference
+                    'area_correspondiente', 'Área correspondiente',
+                    'Area correspondiente', 'area') || '').trim(),
+                hora_solicitada: String(getCol(item, 'hora_solicitada', 'Hora solicitada') || '').trim(),
+                estado: String(getCol(item, 'estado', 'Estado', 'ESTADO') || 'Por Agendar').trim(),
                 inv_estado: inv ? String(inv.estado || '') : '',
                 cobertura: inv ? String(inv.cobertura || '') : '',
                 inv_actual: inv ? Number(inv.inv_actual || 0) : 0,
@@ -981,6 +982,12 @@
                 const suggestedDate = getSuggestedDate(item, priority);
                 const suggestedStr  = formatSuggestedDate(suggestedDate);
                 const hasInv        = !!state.abastecimiento[item.codigo_normalizado];
+                const invEstado     = (item.inv_estado || priority.estado || '').toUpperCase().trim();
+                const invClass      = invEstado === 'AGOTADO' ? 'val-agotado'
+                                    : invEstado === 'CRITICO' ? 'val-critico'
+                                    : invEstado === 'BAJO'    ? 'val-bajo'
+                                    : invEstado === 'OPTIMO'  ? 'val-optimo'
+                                    : invEstado === 'EXCESO'  ? 'val-exceso' : '';
 
                 return `
                     <div class="conf-pending-card" draggable="true"
@@ -997,11 +1004,12 @@
                                     <tr><td class="card-label">Nombre del Proveedor</td><td class="card-value">${escapeHtml(item.nombre_proveedor || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_referencia || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Descripción del producto</td><td class="card-value">${escapeHtml(item.descripcion_producto || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Cantidad (unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
-                                    ${item.fecha_vencimiento ? `<tr><td class="card-label">Fecha vto. entrega</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</td></tr>` : ''}
+                                    <tr><td class="card-label">Cantidad (en unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Fecha vto. de la entrega</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento_entrega))}</td></tr>
                                     <tr><td class="card-label">Fecha entrega solicitada</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</td></tr>
-                                    ${item.hora_solicitada ? `<tr><td class="card-label">Hora solicitada</td><td class="card-value">${escapeHtml(item.hora_solicitada)}</td></tr>` : ''}
                                     <tr><td class="card-label">N° Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Cantidad de pallets</td><td class="card-value">${item.cantidad_pallets ? escapeHtml(String(item.cantidad_pallets)) : 'N/A'}</td></tr>
+                                    <tr><td class="card-label">Tipo de ambiente</td><td class="card-value">${escapeHtml(item.tipo_ambiente || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Área correspondiente</td><td class="card-value">${escapeHtml(item.area_correspondiente || 'N/D')}</td></tr>
                                     <tr class="card-suggested-row"><td class="card-label">📅 Fecha sugerida</td><td class="card-value">${escapeHtml(suggestedStr)}</td></tr>
                                 </tbody>
@@ -1013,7 +1021,7 @@
                                 <tbody>
                             ${hasInv ? `
                                 <tr><td class="card-label">Cobertura</td><td class="card-value">${escapeHtml(item.cobertura || 'N/D')}</td></tr>
-                                <tr><td class="card-label">Estado</td><td class="card-value">${escapeHtml(item.inv_estado || priority.estado || 'N/D')}</td></tr>
+                                <tr><td class="card-label">Estado</td><td class="card-value ${invClass}">${escapeHtml(item.inv_estado || priority.estado || 'N/D')}</td></tr>
                                 <tr><td class="card-label">Inv. Act</td><td class="card-value">${escapeHtml(String(item.inv_actual || 0))}</td></tr>
                                 <tr><td class="card-label">Reserva</td><td class="card-value">${escapeHtml(String(item.reserva || 0))}</td></tr>
                                 <tr><td class="card-label">Demanda</td><td class="card-value">${escapeHtml(String(item.demanda || 0))}</td></tr>
