@@ -874,6 +874,9 @@
                     reserva: covHeader.indexOf('RESERVA'),
                     demanda: covHeader.indexOf('DEMANDA_MENSUAL')
                 };
+                if (Object.values(idx).some(i => i < 0)) {
+                    throw new Error('Columnas de cobertura incompletas');
+                }
                 const map = {};
                 covRows.forEach(row => {
                     const codigo = normalizeCode(row[idx.codigo]);
