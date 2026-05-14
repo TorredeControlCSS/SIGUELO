@@ -161,10 +161,9 @@
             padding-right: 4px;
         }
 
-        /* ===== PENDING CARD (2-section design) ===== */
+        /* ===== PENDING CARD (table-like design) ===== */
         .conf-pending-card {
-            border: 1px solid var(--border-color);
-            border-left-width: 6px;
+            border-left: 6px solid;
             border-radius: 12px;
             cursor: grab;
             overflow: hidden;
@@ -177,60 +176,52 @@
         .conf-pending-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
 
         .urgency-badge {
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-align: center;
+        }
+
+        .card-section-header {
             padding: 5px 12px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.85;
         }
 
-        .card-section {
-            padding: 10px 12px;
-            display: grid;
-            gap: 3px;
-        }
+        .card-section-form { background: #4a235a; color: #fff; }
+        .card-section-inv  { background: #7d3c98; color: #fff; }
+        .card-section-header-form { background: #3b1a4a; color: #e9d5ff; }
+        .card-section-header-inv  { background: #6a3285; color: #e9d5ff; }
 
-        .card-section-form {
-            background: #4a235a;
-            color: #fff;
-        }
-
-        .card-section-inv {
-            background: #7d3c98;
-            color: #fff;
-        }
-
-        .card-proveedor {
-            font-size: 13px;
-            font-weight: 700;
-            margin-bottom: 4px;
-            line-height: 1.3;
-        }
-
-        .card-row {
+        .card-table { width: 100%; border-collapse: collapse; }
+        .card-table td {
+            padding: 4px 10px;
             font-size: 11px;
-            display: flex;
-            gap: 3px;
-            flex-wrap: wrap;
             line-height: 1.5;
+            vertical-align: top;
         }
 
-        .card-label { opacity: 0.75; }
-
-        .card-suggested {
-            margin-top: 5px;
-            font-size: 11px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 6px;
-            padding: 3px 7px;
+        .card-table td.card-label {
+            width: 50%;
+            font-weight: 600;
+            opacity: 0.82;
+            white-space: nowrap;
         }
 
-        .inv-status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 11px;
+        .card-table td.card-value {
+            width: 50%;
+            font-weight: 400;
+            word-break: break-word;
+        }
+
+        .card-suggested-row td {
+            background: rgba(255,255,255,0.12);
             font-weight: 700;
-            margin-bottom: 4px;
+            padding: 5px 10px;
         }
 
         /* ===== CALENDAR ===== */
@@ -541,6 +532,7 @@
 
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+        const COVERAGE_SCRIPT_URL = 'https://script.google.com/macros/s/[URL_DEL_SCRIPT_DE_CURVAS]/exec';
 
         // Inventory rank: lower = higher priority
         const INV_RANK = { AGOTADO: 1, CRITICO: 2, BAJO: 3, OPTIMO: 4, EXCESO: 5 };
@@ -613,20 +605,29 @@
         // ===== DATE HELPERS =====
 
         function parseDateValue(value) {
+            const dateTime = parseDateTimeValue(value);
+            return dateTime ? stripTime(dateTime) : null;
+        }
+
+        function parseDateTimeValue(value) {
             if (!value) return null;
-            if (value instanceof Date && !Number.isNaN(value.getTime())) return stripTime(value);
+            if (value instanceof Date && !Number.isNaN(value.getTime())) return new Date(value);
             const text = String(value).trim();
             if (!text) return null;
+
             if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
                 const [year, month, day] = text.split('-').map(Number);
                 return new Date(year, month - 1, day);
             }
-            if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(text)) {
-                const [day, month, year] = text.split(/[/-]/).map(Number);
-                return new Date(year, month - 1, day);
+
+            const match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+            if (match) {
+                const [, day, month, year, hour = '0', minute = '0', second = '0'] = match;
+                return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
             }
+
             const date = new Date(text);
-            return Number.isNaN(date.getTime()) ? null : stripTime(date);
+            return Number.isNaN(date.getTime()) ? null : date;
         }
 
         function stripTime(date) {
@@ -649,7 +650,7 @@
             return monday;
         }
 
-        // Returns the most recent Thursday (end-of-day) as the weekly cutoff.
+        // Returns the most recent Thursday at 12:00 as the weekly cutoff.
         // If today IS Thursday but before noon, returns the previous Thursday.
         function getLastThursdayCutoff() {
             const now = new Date();
@@ -662,7 +663,7 @@
             }
             const lastThu = new Date(now);
             lastThu.setDate(now.getDate() - daysSinceThu);
-            lastThu.setHours(23, 59, 59, 999);
+            lastThu.setHours(12, 0, 0, 0);
             return lastThu;
         }
 
@@ -897,7 +898,7 @@
 
             // Filter: only solicitudes submitted up to the last Thursday cutoff
             let solicitudes = state.solicitudes.filter(item => {
-                const mt = parseDateValue(item.marca_temporal);
+                const mt = parseDateTimeValue(item.marca_temporal);
                 return !mt || mt <= cutoff;
             });
 
@@ -934,7 +935,6 @@
                 const suggestedDate = getSuggestedDate(item, priority);
                 const suggestedStr  = suggestedDate ? formatDisplayDate(suggestedDate) : 'Sin fecha';
                 const hasInv        = !!state.abastecimiento[item.codigo_normalizado];
-                const invColor      = getInvStatusColor(priority.estado);
 
                 return `
                     <div class="conf-pending-card" draggable="true"
@@ -944,32 +944,38 @@
                              style="background:${urgency.color}22;color:${urgency.color}">
                             ${urgency.emoji} ${escapeHtml(urgency.text)}
                         </div>
+                        <div class="card-section-header card-section-header-form">Tarjeta sugerida</div>
                         <div class="card-section card-section-form">
-                            <div class="card-proveedor">${escapeHtml(item.nombre_proveedor || 'Proveedor sin nombre')}</div>
-                            <div class="card-row"><span class="card-label">Código:</span>&nbsp;${escapeHtml(item.codigo_normalizado || 'N/D')}</div>
-                            <div class="card-row"><span class="card-label">Descripción:</span>&nbsp;${escapeHtml(item.descripcion_producto || 'N/D')}</div>
-                            <div class="card-row"><span class="card-label">Cantidad:</span>&nbsp;${escapeHtml(String(item.cantidad_unidades || 'N/D'))} uds</div>
-                            <div class="card-row"><span class="card-label">Venc. OC:</span>&nbsp;${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</div>
-                            <div class="card-row"><span class="card-label">Fecha solicitada:</span>&nbsp;${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</div>
-                            <div class="card-row"><span class="card-label">OC:</span>&nbsp;${escapeHtml(item.numero_orden_compra || 'N/D')}</div>
-                            ${item.cantidad_pallets ? `<div class="card-row"><span class="card-label">Pallets:</span>&nbsp;${escapeHtml(String(item.cantidad_pallets))}</div>` : ''}
-                            <div class="card-row"><span class="card-label">Ambiente:</span>&nbsp;${escapeHtml(item.tipo_ambiente || 'N/D')}</div>
-                            <div class="card-row"><span class="card-label">Área:</span>&nbsp;${escapeHtml(item.area_correspondiente || 'N/D')}</div>
-                            <div class="card-suggested">📅 Fecha sugerida: <strong>${escapeHtml(suggestedStr)}</strong></div>
+                            <table class="card-table">
+                                <tbody>
+                                    <tr><td class="card-label">Nombre del Proveedor</td><td class="card-value">${escapeHtml(item.nombre_proveedor || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_normalizado || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Descripción del producto</td><td class="card-value">${escapeHtml(item.descripcion_producto || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Cantidad (en unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Fecha de vencimiento</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</td></tr>
+                                    <tr><td class="card-label">Fecha entrega solicitada</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</td></tr>
+                                    ${item.hora_solicitada ? `<tr><td class="card-label">Hora solicitada</td><td class="card-value">${escapeHtml(item.hora_solicitada)}</td></tr>` : ''}
+                                    <tr><td class="card-label">Número de Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Cantidad de pallets</td><td class="card-value">${escapeHtml(item.cantidad_pallets ? String(item.cantidad_pallets) : 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Tipo de ambiente</td><td class="card-value">${escapeHtml(item.tipo_ambiente || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Área correspondiente</td><td class="card-value">${escapeHtml(item.area_correspondiente || 'N/D')}</td></tr>
+                                    <tr class="card-suggested-row"><td colspan="2">📅 Fecha sugerida: ${escapeHtml(suggestedStr)}</td></tr>
+                                </tbody>
+                            </table>
                         </div>
+                        <div class="card-section-header card-section-header-inv">Tablero de Abastecimiento</div>
                         <div class="card-section card-section-inv">
+                            <table class="card-table">
+                                <tbody>
                             ${hasInv ? `
-                                <div>
-                                    <span class="inv-status-badge"
-                                          style="background:${invColor}33;color:${invColor};border:1px solid ${invColor}55">
-                                        ${escapeHtml(priority.estado || 'N/D')}
-                                    </span>
-                                </div>
-                                <div class="card-row"><span class="card-label">Cobertura:</span>&nbsp;${escapeHtml(item.cobertura || 'N/D')}</div>
-                                <div class="card-row"><span class="card-label">Inv. Act:</span>&nbsp;${escapeHtml(String(item.inv_actual))}</div>
-                                <div class="card-row"><span class="card-label">Reserva:</span>&nbsp;${escapeHtml(String(item.reserva))}</div>
-                                <div class="card-row"><span class="card-label">Demanda:</span>&nbsp;${escapeHtml(String(item.demanda))}</div>
-                            ` : '<div class="card-row" style="opacity:0.75;font-size:11px;">Sin datos de inventario</div>'}
+                                <tr><td class="card-label">Cobertura</td><td class="card-value">${escapeHtml(item.cobertura || 'N/D')}</td></tr>
+                                <tr><td class="card-label">Estado</td><td class="card-value">${escapeHtml(priority.estado || 'N/D')}</td></tr>
+                                <tr><td class="card-label">Inv. Act</td><td class="card-value">${escapeHtml(String(item.inv_actual || 0))}</td></tr>
+                                <tr><td class="card-label">Reserva</td><td class="card-value">${escapeHtml(String(item.reserva || 0))}</td></tr>
+                                <tr><td class="card-label">Demanda</td><td class="card-value">${escapeHtml(String(item.demanda || 0))}</td></tr>
+                            ` : '<tr><td colspan="2" class="card-value" style="opacity:0.78;">Sin datos de inventario</td></tr>'}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
@@ -1183,6 +1189,70 @@
 
         // ===== DATA LOADING =====
 
+        function normalizeCoverageMap(payload) {
+            const source = payload && payload.data !== undefined ? payload.data : payload;
+            const map = {};
+
+            function assignRow(row, fallbackCode) {
+                if (!row || typeof row !== 'object') return;
+                const code = normalizeCode(
+                    row.codigo_producto ??
+                    row.codigo ??
+                    row.codigo_referencia ??
+                    row.cod ??
+                    row.Codigo ??
+                    row.Código ??
+                    fallbackCode
+                );
+                if (!code) return;
+                map[code] = {
+                    cobertura: row.cobertura ?? row.Cobertura ?? row.coverage ?? '',
+                    estado: String(row.estado ?? row.Estado ?? row.status ?? '').toUpperCase().trim(),
+                    inv_actual: Number(row.inv_actual ?? row.Inv_Actual ?? row.invActual ?? 0),
+                    reserva: Number(row.reserva ?? row.Reserva ?? 0),
+                    demanda: Number(row.demanda ?? row.Demanda ?? 0)
+                };
+            }
+
+            if (Array.isArray(source)) {
+                source.forEach(row => assignRow(row));
+                return map;
+            }
+
+            if (source && typeof source === 'object') {
+                Object.entries(source).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        assignRow(value, key);
+                    }
+                });
+            }
+            return map;
+        }
+
+        async function loadAbastecimiento() {
+            const hasConfiguredCoverageUrl =
+                COVERAGE_SCRIPT_URL &&
+                !COVERAGE_SCRIPT_URL.includes('[URL_DEL_SCRIPT_DE_CURVAS]');
+
+            if (!hasConfiguredCoverageUrl) {
+                console.warn('Coverage script URL no configurada. Se mostrarán tarjetas sin inventario.');
+                return {};
+            }
+
+            const coverageResponse = await loadJsonp(
+                `${COVERAGE_SCRIPT_URL}?report=coverage&callback=cbCoverage`,
+                'cbCoverage'
+            ).catch(err => {
+                console.warn('No se pudo cargar cobertura:', err.message);
+                return { success: false, data: {} };
+            });
+
+            if (coverageResponse && coverageResponse.success === false) {
+                return {};
+            }
+            return normalizeCoverageMap(coverageResponse);
+        }
+
         async function loadData() {
             state.abastecimiento = {};
 
@@ -1194,17 +1264,7 @@
                 `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
                 'handleCitasData'
             );
-            const abastDataRaw = await loadJsonp(
-                `${APPS_SCRIPT_URL}?action=getAbastecimientoData&callback=handleAbastData`,
-                'handleAbastData'
-            ).catch(err => {
-                console.warn('Abastecimiento data unavailable:', err.message);
-                return { success: false, data: {} };
-            });
-
-            if (abastDataRaw.success) {
-                state.abastecimiento = abastDataRaw.data || {};
-            }
+            state.abastecimiento = await loadAbastecimiento();
             if (!solicitudesData.success) {
                 console.error('Error solicitudes:', solicitudesData.error);
             }
