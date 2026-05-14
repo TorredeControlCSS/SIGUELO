@@ -835,7 +835,12 @@
 
         function normalizeSolicitud(item, index) {
             const codigo_referencia = String(getCol(item,
-                'codigo_referencia', 'Código de referencia', 'Codigo', 'codigo', 'CODIGO') || '').trim();
+                'codigo_referencia',
+                'Código de referencia (Abasto) [solo numeros sin guiones]',
+                'Código de referencia (Abasto)',
+                'Código de referencia',
+                'Codigo de referencia',
+                'Codigo', 'codigo', 'CODIGO', 'SKU', 'sku') || '').trim();
             const codigoNorm = codigo_referencia.replace(/-/g, '').trim();
             const inv = state.abastecimiento[codigoNorm] || null;
             return {
@@ -843,15 +848,23 @@
                 marca_temporal: item.marca_temporal || item.timestamp || '',
                 fecha_solicitada: String(getCol(item,
                     'fecha_solicitada', 'fecha_entrega_solicitada',
-                    'Fecha entrega solicitada', 'Fecha Solicitada') || ''),
-                fecha_vencimiento: item.fecha_vencimiento || '',
+                    'Fecha entrega solicitada', 'Fecha Solicitada',
+                    'Fecha de entrega solicitada') || ''),
+                fecha_vencimiento: String(getCol(item,
+                    'fecha_vencimiento',
+                    'Fecha de vencimiento de la entrega',
+                    'fecha_vencimiento_entrega',
+                    'Fecha vencimiento') || ''),
                 hora_solicitada: String(item.hora_solicitada || '').trim(),
                 nombre_proveedor: String(getCol(item,
                     'nombre_proveedor', 'Nombre del Proveedor', 'Proveedor',
                     'proveedor', 'añadir_proveedor') || '').trim(),
                 numero_orden_compra: String(getCol(item,
-                    'numero_orden_compra', 'Número de Orden de Compra',
-                    'OC', 'orden_compra', 'oc') || '').trim(),
+                    'numero_orden_compra',
+                    'Número de Orden de Compra',
+                    'Numero de Orden de Compra',
+                    'Número OC', 'Numero OC',
+                    'OC', 'orden_compra', 'oc', 'N° OC') || '').trim(),
                 codigo_referencia,
                 codigo_normalizado: codigoNorm,
                 descripcion_producto: String(getCol(item,
@@ -860,9 +873,19 @@
                 cantidad_unidades: parseNumber(getCol(item,
                     'cantidad_unidades', 'Cantidad (en unidades)', 'Cantidad', 'cantidad')),
                 cantidad_bultos: parseNumber(item.cantidad_bultos),
-                cantidad_pallets: parseNumber(item.cantidad_pallets),
-                tipo_ambiente: String(item.tipo_ambiente || '').trim(),
-                area_correspondiente: String(item.area_correspondiente || '').trim(),
+                cantidad_pallets: parseNumber(getCol(item,
+                    'cantidad_pallets',
+                    'Cantidad de pallets (si aplica)',
+                    'Cantidad pallets', 'pallets')),
+                tipo_ambiente: String(getCol(item,
+                    'tipo_ambiente',
+                    'Tipo de ambiente requerido',
+                    'tipo_ambiente_requerido') || '').trim(),
+                area_correspondiente: String(getCol(item,
+                    'area_correspondiente',
+                    'Área correspondiente',
+                    'Area correspondiente',
+                    'area') || '').trim(),
                 nombre_solicitante: String(item.nombre_solicitante || '').trim(),
                 correo_solicitante: String(item.correo_solicitante || item.correo || '').trim(),
                 telefono: String(item.telefono || '').trim(),
@@ -948,7 +971,7 @@
             solicitudes = sortSolicitudes(solicitudes);
 
             if (!solicitudes.length) {
-                container.innerHTML = '<div class="conf-empty-state">No hay solicitudes pendientes para esta semana.</div>';
+                container.innerHTML = '<div class="conf-empty-state">No hay solicitudes pendientes.</div>';
                 return;
             }
 
@@ -975,6 +998,7 @@
                                     <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_referencia || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Descripción del producto</td><td class="card-value">${escapeHtml(item.descripcion_producto || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Cantidad (unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
+                                    ${item.fecha_vencimiento ? `<tr><td class="card-label">Fecha vto. entrega</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</td></tr>` : ''}
                                     <tr><td class="card-label">Fecha entrega solicitada</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</td></tr>
                                     ${item.hora_solicitada ? `<tr><td class="card-label">Hora solicitada</td><td class="card-value">${escapeHtml(item.hora_solicitada)}</td></tr>` : ''}
                                     <tr><td class="card-label">N° Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
@@ -1062,7 +1086,6 @@
             grid.querySelectorAll('.conf-day-cell').forEach(cell => {
                 cell.addEventListener('dragover', event => {
                     event.preventDefault();
-                    event.stopPropagation();
                     event.dataTransfer.dropEffect = 'move';
                     cell.classList.add('is-drag-over');
                 });
@@ -1306,7 +1329,11 @@
             const confirmedOcs = new Set(state.citas.map(c => c.numero_orden_compra).filter(Boolean));
             state.solicitudes = (solicitudesData.data || [])
                 .map(normalizeSolicitud)
-                .filter(item => item.numero_orden_compra && !confirmedOcs.has(item.numero_orden_compra));
+                .filter(item => {
+                    // Mostrar aunque no tenga OC; solo excluir si ya está confirmada
+                    if (!item.numero_orden_compra) return true;
+                    return !confirmedOcs.has(item.numero_orden_compra);
+                });
 
             populateFilters();
             renderSidebar();
