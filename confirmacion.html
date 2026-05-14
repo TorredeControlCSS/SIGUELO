@@ -682,6 +682,13 @@
             return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
 
+        function formatSuggestedDate(date) {
+            if (!date) return 'Sin fecha';
+            const weekday = date.toLocaleDateString('es-ES', { weekday: 'long' });
+            const datePart = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            return `${weekday} ${datePart}`;
+        }
+
         function formatDisplayDateStr(str) {
             const d = parseDateValue(str);
             return d ? formatDisplayDate(d) : (str || 'N/D');
@@ -817,21 +824,41 @@
 
         // ===== DATA NORMALIZERS =====
 
+        // Returns the first non-empty value found among the given keys in item.
+        function getCol(item, ...keys) {
+            for (const key of keys) {
+                const val = item[key];
+                if (val !== undefined && val !== null && String(val).trim() !== '') return val;
+            }
+            return '';
+        }
+
         function normalizeSolicitud(item, index) {
-            const codigoNorm = String(item.codigo_referencia || '').replace(/-/g, '').trim();
+            const codigo_referencia = String(getCol(item,
+                'codigo_referencia', 'Código de referencia', 'Codigo', 'codigo', 'CODIGO') || '').trim();
+            const codigoNorm = codigo_referencia.replace(/-/g, '').trim();
             const inv = state.abastecimiento[codigoNorm] || null;
             return {
                 id: String(item.id || `SOL-${index + 1}`),
                 marca_temporal: item.marca_temporal || item.timestamp || '',
-                fecha_solicitada: item.fecha_solicitada || item.fecha_entrega_solicitada || '',
+                fecha_solicitada: String(getCol(item,
+                    'fecha_solicitada', 'fecha_entrega_solicitada',
+                    'Fecha entrega solicitada', 'Fecha Solicitada') || ''),
                 fecha_vencimiento: item.fecha_vencimiento || '',
                 hora_solicitada: String(item.hora_solicitada || '').trim(),
-                nombre_proveedor: String(item.nombre_proveedor || item.añadir_proveedor || '').trim(),
-                numero_orden_compra: String(item.numero_orden_compra || item.oc || '').trim(),
-                codigo_referencia: String(item.codigo_referencia || '').trim(),
+                nombre_proveedor: String(getCol(item,
+                    'nombre_proveedor', 'Nombre del Proveedor', 'Proveedor',
+                    'proveedor', 'añadir_proveedor') || '').trim(),
+                numero_orden_compra: String(getCol(item,
+                    'numero_orden_compra', 'Número de Orden de Compra',
+                    'OC', 'orden_compra', 'oc') || '').trim(),
+                codigo_referencia,
                 codigo_normalizado: codigoNorm,
-                descripcion_producto: String(item.descripcion_producto || '').trim(),
-                cantidad_unidades: parseNumber(item.cantidad_unidades),
+                descripcion_producto: String(getCol(item,
+                    'descripcion_producto', 'Descripción del producto',
+                    'Descripcion', 'descripcion') || '').trim(),
+                cantidad_unidades: parseNumber(getCol(item,
+                    'cantidad_unidades', 'Cantidad (en unidades)', 'Cantidad', 'cantidad')),
                 cantidad_bultos: parseNumber(item.cantidad_bultos),
                 cantidad_pallets: parseNumber(item.cantidad_pallets),
                 tipo_ambiente: String(item.tipo_ambiente || '').trim(),
@@ -842,6 +869,7 @@
                 tipo_unidad_movil: String(item.tipo_unidad_movil || '').trim(),
                 personal_empresa_entrega: String(item.personal_empresa_entrega || '').trim(),
                 tipo_entrega: String(item.tipo_entrega || '').trim(),
+                estado: String(getCol(item, 'Estado', 'estado') || 'PENDIENTE X CONFIRMAR').trim(),
                 // Inventory cross-reference
                 inv_estado: inv ? String(inv.estado || '') : '',
                 cobertura: inv ? String(inv.cobertura || '') : '',
@@ -894,13 +922,8 @@
 
         function renderSidebar() {
             const container = document.getElementById('confSidebarList');
-            const cutoff = getLastThursdayCutoff();
-
-            // Filter: only solicitudes submitted up to the last Thursday cutoff
-            let solicitudes = state.solicitudes.filter(item => {
-                const mt = parseDateTimeValue(item.marca_temporal);
-                return !mt || mt <= cutoff;
-            });
+            // Show all pending items — cutoff date is only used for suggested-date calculation
+            let solicitudes = [...state.solicitudes];
 
             // Apply filter bar
             const filterProv = document.getElementById('filterProveedor').value;
@@ -933,43 +956,40 @@
                 const priority     = item._priority;
                 const urgency      = getUrgencyBadge(priority);
                 const suggestedDate = getSuggestedDate(item, priority);
-                const suggestedStr  = suggestedDate ? formatDisplayDate(suggestedDate) : 'Sin fecha';
+                const suggestedStr  = formatSuggestedDate(suggestedDate);
                 const hasInv        = !!state.abastecimiento[item.codigo_normalizado];
 
                 return `
                     <div class="conf-pending-card" draggable="true"
-                         data-pending-id="${escapeHtml(item.id)}"
+                         data-id="${escapeHtml(item.id)}"
                          style="border-left-color:${urgency.color}">
                         <div class="urgency-badge"
-                             style="background:${urgency.color}22;color:${urgency.color}">
+                             style="background:${urgency.color};color:#fff;">
                             ${urgency.emoji} ${escapeHtml(urgency.text)}
                         </div>
-                        <div class="card-section-header card-section-header-form">Tarjeta sugerida</div>
-                        <div class="card-section card-section-form">
+                        <div class="card-section-header card-section-header-form">Respuestas de formulario 1</div>
+                        <div class="card-section-form">
                             <table class="card-table">
                                 <tbody>
                                     <tr><td class="card-label">Nombre del Proveedor</td><td class="card-value">${escapeHtml(item.nombre_proveedor || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_normalizado || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">Código de referencia</td><td class="card-value">${escapeHtml(item.codigo_referencia || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Descripción del producto</td><td class="card-value">${escapeHtml(item.descripcion_producto || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Cantidad (en unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Fecha de vencimiento</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_vencimiento))}</td></tr>
+                                    <tr><td class="card-label">Cantidad (unidades)</td><td class="card-value">${escapeHtml(item.cantidad_unidades ? String(item.cantidad_unidades) : 'N/D')}</td></tr>
                                     <tr><td class="card-label">Fecha entrega solicitada</td><td class="card-value">${escapeHtml(formatDisplayDateStr(item.fecha_solicitada))}</td></tr>
                                     ${item.hora_solicitada ? `<tr><td class="card-label">Hora solicitada</td><td class="card-value">${escapeHtml(item.hora_solicitada)}</td></tr>` : ''}
-                                    <tr><td class="card-label">Número de Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Cantidad de pallets</td><td class="card-value">${escapeHtml(item.cantidad_pallets ? String(item.cantidad_pallets) : 'N/D')}</td></tr>
-                                    <tr><td class="card-label">Tipo de ambiente</td><td class="card-value">${escapeHtml(item.tipo_ambiente || 'N/D')}</td></tr>
+                                    <tr><td class="card-label">N° Orden de Compra</td><td class="card-value">${escapeHtml(item.numero_orden_compra || 'N/D')}</td></tr>
                                     <tr><td class="card-label">Área correspondiente</td><td class="card-value">${escapeHtml(item.area_correspondiente || 'N/D')}</td></tr>
-                                    <tr class="card-suggested-row"><td colspan="2">📅 Fecha sugerida: ${escapeHtml(suggestedStr)}</td></tr>
+                                    <tr class="card-suggested-row"><td class="card-label">📅 Fecha sugerida</td><td class="card-value">${escapeHtml(suggestedStr)}</td></tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="card-section-header card-section-header-inv">Tablero de Abastecimiento</div>
-                        <div class="card-section card-section-inv">
+                        <div class="card-section-inv">
                             <table class="card-table">
                                 <tbody>
                             ${hasInv ? `
                                 <tr><td class="card-label">Cobertura</td><td class="card-value">${escapeHtml(item.cobertura || 'N/D')}</td></tr>
-                                <tr><td class="card-label">Estado</td><td class="card-value">${escapeHtml(priority.estado || 'N/D')}</td></tr>
+                                <tr><td class="card-label">Estado</td><td class="card-value">${escapeHtml(item.inv_estado || priority.estado || 'N/D')}</td></tr>
                                 <tr><td class="card-label">Inv. Act</td><td class="card-value">${escapeHtml(String(item.inv_actual || 0))}</td></tr>
                                 <tr><td class="card-label">Reserva</td><td class="card-value">${escapeHtml(String(item.reserva || 0))}</td></tr>
                                 <tr><td class="card-label">Demanda</td><td class="card-value">${escapeHtml(String(item.demanda || 0))}</td></tr>
@@ -983,7 +1003,7 @@
 
             container.querySelectorAll('.conf-pending-card').forEach(card => {
                 card.addEventListener('dragstart', event => {
-                    state.dragPayload = { type: 'pending', id: card.dataset.pendingId };
+                    state.dragPayload = { type: 'pending', id: card.dataset.id };
                     event.dataTransfer.effectAllowed = 'move';
                     event.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
                 });
@@ -1259,17 +1279,26 @@
             const solicitudesData = await loadJsonp(
                 `${APPS_SCRIPT_URL}?action=getSolicitudesPendientes&callback=handleSolicitudesData`,
                 'handleSolicitudesData'
-            );
+            ).catch(err => {
+                console.warn('No se pudieron cargar solicitudes:', err.message);
+                return { success: false, data: [] };
+            });
+
             const citasData = await loadJsonp(
                 `${APPS_SCRIPT_URL}?action=getCitasData&callback=handleCitasData`,
                 'handleCitasData'
-            );
+            ).catch(err => {
+                console.warn('No se pudieron cargar citas:', err.message);
+                return { success: false, data: [] };
+            });
+
             state.abastecimiento = await loadAbastecimiento();
+
             if (!solicitudesData.success) {
-                console.error('Error solicitudes:', solicitudesData.error);
+                console.warn('Error solicitudes:', solicitudesData.error);
             }
             if (!citasData.success) {
-                console.error('Error citas:', citasData.error);
+                console.warn('Error citas:', citasData.error);
             }
 
             // normalizeSolicitud uses state.abastecimiento, so set it first
