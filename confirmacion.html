@@ -841,6 +841,7 @@
             const card = document.createElement('div');
             let wasDragged = false;
             let lastDragEndedAt = 0;
+            // Ventana corta para bloquear el click sintético que suele dispararse tras dragend.
             const DRAG_CLICK_GUARD_MS = 220;
             card.className = 'conf-cita-card';
             card.innerHTML = `
@@ -879,9 +880,9 @@
                 ev.preventDefault();
                 if (wasDragged) {
                     const elapsed = Date.now() - lastDragEndedAt;
+                    wasDragged = false;
                     if (elapsed <= DRAG_CLICK_GUARD_MS) return;
                 }
-                wasDragged = false;
                 openCitaModal(item, invData);
             });
             return card;
