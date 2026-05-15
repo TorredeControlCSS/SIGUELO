@@ -840,7 +840,8 @@
             const invData = state.abastecimiento[item.codigo_normalizado];
             const card = document.createElement('div');
             let wasDragged = false;
-            let dragResetTimer = null;
+            let lastDragEndedAt = 0;
+            const DRAG_CLICK_GUARD_MS = 220;
             card.className = 'conf-cita-card';
             card.innerHTML = `
                 <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
@@ -861,7 +862,7 @@
             card.draggable = true;
             card.addEventListener('dragstart', ev => {
                 wasDragged = true;
-                if (dragResetTimer) clearTimeout(dragResetTimer);
+                lastDragEndedAt = 0;
                 state.dragPayload = {
                     id: item.numero_orden_compra || item.id,
                     fromDate: dateStr,
@@ -872,11 +873,15 @@
             });
             card.addEventListener('dragend', () => {
                 card.classList.remove('is-dragging');
-                dragResetTimer = setTimeout(() => { wasDragged = false; }, 180);
+                lastDragEndedAt = Date.now();
             });
             card.addEventListener('click', ev => {
                 ev.preventDefault();
-                if (wasDragged) return;
+                if (wasDragged) {
+                    const elapsed = Date.now() - lastDragEndedAt;
+                    if (elapsed <= DRAG_CLICK_GUARD_MS) return;
+                    wasDragged = false;
+                }
                 openCitaModal(item, invData);
             });
             return card;
