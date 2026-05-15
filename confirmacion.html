@@ -858,6 +858,9 @@
                 <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
             `;
             card.markDragged = () => { wasDragged = true; };
+            card.resetDragged = () => {
+                setTimeout(() => { wasDragged = false; }, 0);
+            };
             card.addEventListener('click', ev => {
                 ev.preventDefault();
                 if (wasDragged) {
@@ -946,7 +949,10 @@
                             ev.dataTransfer.effectAllowed = 'move';
                             setTimeout(() => card.classList.add('is-dragging'), 0);
                         });
-                        card.addEventListener('dragend', () => card.classList.remove('is-dragging'));
+                        card.addEventListener('dragend', () => {
+                            card.classList.remove('is-dragging');
+                            if (typeof card.resetDragged === 'function') card.resetDragged();
+                        });
                         itemsDiv.appendChild(card);
                     });
 
