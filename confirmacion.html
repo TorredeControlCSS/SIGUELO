@@ -267,6 +267,87 @@
         body[data-theme="dark"] .status-blue   { background: #1e3a8a; color: #93c5fd; }
         body[data-theme="dark"] .status-default { background: #374151; color: #d1d5db; }
 
+        /* ===== MODAL DETALLE CITA ===== */
+        .conf-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 12000;
+            padding: 16px;
+        }
+
+        .conf-modal-overlay[hidden] { display: none !important; }
+
+        .conf-modal {
+            width: min(840px, 96vw);
+            max-height: 90vh;
+            overflow: auto;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+        }
+
+        .conf-modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #4a1572;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .conf-modal-close {
+            border: 0;
+            background: transparent;
+            color: #fff;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .conf-modal-body { padding: 12px; }
+
+        .detalle-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .detalle-table td {
+            border-bottom: 1px solid #eceaf1;
+            padding: 10px 12px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .detalle-table td:first-child {
+            width: 45%;
+            background: #6b21a8;
+            color: #fff;
+            font-style: italic;
+            font-weight: 700;
+        }
+
+        .detalle-table td:last-child {
+            width: 55%;
+            background: #fff;
+            color: #1f2937;
+            text-align: center;
+        }
+
+        .detalle-table .section-title td {
+            background: #4a1572 !important;
+            color: #fff !important;
+            text-align: left !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+        }
+
         /* ===== MISC ===== */
         .conf-card-note {
             color: var(--text-secondary);
@@ -329,6 +410,16 @@
                 <button id="confNextWeek" type="button">Semana siguiente ▶</button>
             </div>
             <div id="confCalGrid"></div>
+        </div>
+    </div>
+
+    <div id="citaModalOverlay" class="conf-modal-overlay" hidden>
+        <div class="conf-modal" role="dialog" aria-modal="true" aria-labelledby="citaModalTitle">
+            <div class="conf-modal-head">
+                <span id="citaModalTitle">Detalle de la cita</span>
+                <button id="citaModalCloseBtn" class="conf-modal-close" type="button" aria-label="Cerrar">✕</button>
+            </div>
+            <div id="citaModalBody" class="conf-modal-body"></div>
         </div>
     </div>
 
@@ -571,9 +662,9 @@
 
         function getInvStatusClass(estado) {
             const e = String(estado || '').toUpperCase().trim();
-            if (e.includes('CRITIC')) return 'red';
-            if (e.includes('RIESGO') || e.includes('ALERTA')) return 'orange';
-            if (e.includes('OK') || e.includes('NORMAL') || e.includes('SALUDABLE')) return 'green';
+            if (e.includes('CRITIC') || e.includes('AGOTADO') || e.includes('SIN STOCK')) return 'red';
+            if (e.includes('BAJO') || e.includes('RIESGO') || e.includes('ALERTA')) return 'orange';
+            if (e.includes('OK') || e.includes('NORMAL') || e.includes('SALUDABLE') || e.includes('ALTO') || e.includes('OPTIMO')) return 'green';
             return 'blue';
         }
 
@@ -696,6 +787,50 @@
             return solicitudes;
         }
 
+        function closeCitaModal() {
+            document.getElementById('citaModalOverlay').hidden = true;
+            document.getElementById('citaModalBody').innerHTML = '';
+        }
+
+        function openCitaModal(item, invData) {
+            const citaRows = [
+                ['Nombre del Proveedor', item.nombre_proveedor || 'N/D'],
+                ['Código de referencia (Abasto) [solo numeros sin guiones]', item.codigo_normalizado || item.codigo_referencia || 'N/D'],
+                ['Descripción del producto', item.descripcion_producto || 'N/D'],
+                ['Cantidad (en unidades)', String(item.cantidad_unidades || 0)],
+                ['Fecha de vencimiento de la entrega', formatDisplayDateStr(item.fecha_vencimiento_entrega)],
+                ['Fecha de entrega solicitada', formatDisplayDateStr(item.fecha_solicitada)],
+                ['Número de Orden de Compra', item.numero_orden_compra || 'N/D'],
+                ['Cantidad de pallets (si aplica)', String(item.cantidad_pallets || 0)],
+                ['Tipo de ambiente requerido', item.tipo_ambiente || 'N/D'],
+                ['Área correspondiente', item.area_correspondiente || 'N/D'],
+                ['Estado de la cita', `<span class="status-badge status-${escapeHtml(getCitaStatusClass(item.estado))}">${escapeHtml(item.estado || 'N/D')}</span>`]
+            ];
+
+            let html = '<table class="detalle-table"><tbody>';
+            citaRows.forEach(([label, value]) => {
+                html += `<tr><td>${escapeHtml(label)}</td><td>${label === 'Estado de la cita' ? value : escapeHtml(String(value))}</td></tr>`;
+            });
+
+            if (invData) {
+                html += '<tr class="section-title"><td colspan="2">Tablero de Abastecimiento</td></tr>';
+                const invRows = [
+                    ['Cobertura', String(invData.cobertura ?? 'N/D')],
+                    ['Estado', `<span class="status-badge status-${escapeHtml(getInvStatusClass(invData.estado))}">${escapeHtml(invData.estado || 'N/D')}</span>`],
+                    ['Inv. Act', String(invData.inv_actual ?? 0)],
+                    ['Reserva', String(invData.reserva ?? 0)],
+                    ['Demanda', String(invData.demanda ?? 0)]
+                ];
+                invRows.forEach(([label, value]) => {
+                    html += `<tr><td>${escapeHtml(label)}</td><td>${label === 'Estado' ? value : escapeHtml(String(value))}</td></tr>`;
+                });
+            }
+
+            html += '</tbody></table>';
+            document.getElementById('citaModalBody').innerHTML = html;
+            document.getElementById('citaModalOverlay').hidden = false;
+        }
+
         function buildCitaCard(item) {
             const statusClass = getCitaStatusClass(item.estado);
             const descripcion = String(item.descripcion_producto || 'N/D');
@@ -704,6 +839,7 @@
                 : descripcion;
             const invData = state.abastecimiento[item.codigo_normalizado];
             const card = document.createElement('div');
+            let wasDragged = false;
             card.className = 'conf-cita-card';
             card.innerHTML = `
                 <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
@@ -721,6 +857,15 @@
                 <div><b>Inv. Proyectado:</b> ${escapeHtml(String(invData.inv_actual || 0))}</div>` : ''}
                 <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
             `;
+            card.markDragged = () => { wasDragged = true; };
+            card.addEventListener('click', ev => {
+                ev.preventDefault();
+                if (wasDragged) {
+                    wasDragged = false;
+                    return;
+                }
+                openCitaModal(item, invData);
+            });
             return card;
         }
 
@@ -792,6 +937,7 @@
                         const card = buildCitaCard(s);
                         card.draggable = true;
                         card.addEventListener('dragstart', ev => {
+                            if (typeof card.markDragged === 'function') card.markDragged();
                             state.dragPayload = {
                                 id: s.numero_orden_compra || s.id,
                                 fromDate: dateStr,
@@ -883,21 +1029,20 @@
                     reserva: covHeader.indexOf('RESERVA'),
                     demanda: covHeader.indexOf('DEMANDA_MENSUAL')
                 };
-                if (Object.values(idx).some(i => i < 0)) {
-                    throw new Error('Columnas de cobertura incompletas');
-                }
                 const map = {};
-                covRows.forEach(row => {
-                    const codigo = normalizeCode(row[idx.codigo]);
-                    if (!codigo) return;
-                    map[codigo] = {
-                        estado: row[idx.estado] ?? '',
-                        cobertura: row[idx.cobertura] ?? '',
-                        inv_actual: row[idx.invActual] ?? 0,
-                        reserva: row[idx.reserva] ?? 0,
-                        demanda: row[idx.demanda] ?? 0
-                    };
-                });
+                if (idx.codigo >= 0) {
+                    covRows.forEach(row => {
+                        const codigo = normalizeCode(row[idx.codigo]);
+                        if (!codigo) return;
+                        map[codigo] = {
+                            estado: idx.estado >= 0 ? (row[idx.estado] ?? '') : '',
+                            cobertura: idx.cobertura >= 0 ? (row[idx.cobertura] ?? '') : '',
+                            inv_actual: idx.invActual >= 0 ? (row[idx.invActual] ?? 0) : 0,
+                            reserva: idx.reserva >= 0 ? (row[idx.reserva] ?? 0) : 0,
+                            demanda: idx.demanda >= 0 ? (row[idx.demanda] ?? 0) : 0
+                        };
+                    });
+                }
                 state.abastecimiento = map;
             } catch (err) {
                 state.abastecimiento = {};
@@ -941,6 +1086,10 @@
         document.getElementById('filterProveedor').addEventListener('change', renderCalendar);
         document.getElementById('filterCodigo').addEventListener('input', renderCalendar);
         document.getElementById('filterArea').addEventListener('change', renderCalendar);
+        document.getElementById('citaModalCloseBtn').addEventListener('click', closeCitaModal);
+        document.getElementById('citaModalOverlay').addEventListener('click', ev => {
+            if (ev.target.id === 'citaModalOverlay') closeCitaModal();
+        });
 
         const savedThemeMode = localStorage.getItem('confThemeMode') || 'auto';
         document.getElementById('confThemeMode').value = savedThemeMode;
