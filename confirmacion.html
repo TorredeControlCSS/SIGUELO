@@ -841,7 +841,7 @@
             const card = document.createElement('div');
             let wasDragged = false;
             let lastDragEndedAt = 0;
-            // Ventana corta para bloquear el click sintético que suele dispararse tras dragend.
+            // 220ms cubre el click sintético típico (100-200ms) que algunos navegadores disparan tras dragend.
             const DRAG_CLICK_GUARD_MS = 220;
             card.className = 'conf-cita-card';
             card.innerHTML = `
@@ -879,9 +879,13 @@
             card.addEventListener('click', ev => {
                 ev.preventDefault();
                 if (wasDragged) {
+                    if (!lastDragEndedAt) return;
                     const elapsed = Date.now() - lastDragEndedAt;
+                    if (elapsed <= DRAG_CLICK_GUARD_MS) {
+                        wasDragged = false;
+                        return;
+                    }
                     wasDragged = false;
-                    if (elapsed <= DRAG_CLICK_GUARD_MS) return;
                 }
                 openCitaModal(item, invData);
             });
@@ -1055,6 +1059,8 @@
                             demanda: idx.demanda >= 0 ? (row[idx.demanda] ?? 0) : 0
                         };
                     });
+                } else {
+                    console.warn('No se encontró la columna CODIGO en Curvas_de_Inventario.');
                 }
                 state.abastecimiento = map;
             } catch (err) {
