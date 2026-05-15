@@ -831,7 +831,7 @@
             document.getElementById('citaModalOverlay').hidden = false;
         }
 
-        function buildCitaCard(item) {
+        function buildCitaCard(item, dateStr, hour) {
             const statusClass = getCitaStatusClass(item.estado);
             const descripcion = String(item.descripcion_producto || 'N/D');
             const descripcionCorta = descripcion.length > MAX_DESCRIPTION_LENGTH
@@ -839,8 +839,9 @@
                 : descripcion;
             const invData = state.abastecimiento[item.codigo_normalizado];
             const card = document.createElement('div');
+            let wasDragged = false;
+            let dragResetTimer = null;
             card.className = 'conf-cita-card';
-            card.dataset.wasDragged = '0';
             card.innerHTML = `
                 <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
                 <div><b>Código:</b> ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
@@ -857,12 +858,25 @@
                 <div><b>Inv. Proyectado:</b> ${escapeHtml(String(invData.inv_actual || 0))}</div>` : ''}
                 <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
             `;
+            card.draggable = true;
+            card.addEventListener('dragstart', ev => {
+                wasDragged = true;
+                if (dragResetTimer) clearTimeout(dragResetTimer);
+                state.dragPayload = {
+                    id: item.numero_orden_compra || item.id,
+                    fromDate: dateStr,
+                    fromHour: hour === 'SIN HORA' ? '' : hour
+                };
+                ev.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => card.classList.add('is-dragging'), 0);
+            });
+            card.addEventListener('dragend', () => {
+                card.classList.remove('is-dragging');
+                dragResetTimer = setTimeout(() => { wasDragged = false; }, 180);
+            });
             card.addEventListener('click', ev => {
                 ev.preventDefault();
-                if (card.dataset.wasDragged === '1') {
-                    card.dataset.wasDragged = '0';
-                    return;
-                }
+                if (wasDragged) return;
                 openCitaModal(item, invData);
             });
             return card;
@@ -933,22 +947,7 @@
                     });
 
                     slotItems.forEach(s => {
-                        const card = buildCitaCard(s);
-                        card.draggable = true;
-                        card.addEventListener('dragstart', ev => {
-                            card.dataset.wasDragged = '1';
-                            state.dragPayload = {
-                                id: s.numero_orden_compra || s.id,
-                                fromDate: dateStr,
-                                fromHour: hour === 'SIN HORA' ? '' : hour
-                            };
-                            ev.dataTransfer.effectAllowed = 'move';
-                            setTimeout(() => card.classList.add('is-dragging'), 0);
-                        });
-                        card.addEventListener('dragend', () => {
-                            card.classList.remove('is-dragging');
-                            setTimeout(() => { card.dataset.wasDragged = '0'; }, 0);
-                        });
+                        const card = buildCitaCard(s, dateStr, hour);
                         itemsDiv.appendChild(card);
                     });
 
