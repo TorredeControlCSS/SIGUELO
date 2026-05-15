@@ -839,8 +839,8 @@
                 : descripcion;
             const invData = state.abastecimiento[item.codigo_normalizado];
             const card = document.createElement('div');
-            let wasDragged = false;
             card.className = 'conf-cita-card';
+            card.dataset.wasDragged = '0';
             card.innerHTML = `
                 <strong>${escapeHtml(item.nombre_proveedor || 'N/D')}</strong>
                 <div><b>Código:</b> ${escapeHtml(item.codigo_referencia || 'N/D')}</div>
@@ -857,14 +857,10 @@
                 <div><b>Inv. Proyectado:</b> ${escapeHtml(String(invData.inv_actual || 0))}</div>` : ''}
                 <span class="status-badge status-${statusClass}">${escapeHtml(item.estado || 'N/D')}</span>
             `;
-            card.markDragged = () => { wasDragged = true; };
-            card.resetDragged = () => {
-                setTimeout(() => { wasDragged = false; }, 0);
-            };
             card.addEventListener('click', ev => {
                 ev.preventDefault();
-                if (wasDragged) {
-                    wasDragged = false;
+                if (card.dataset.wasDragged === '1') {
+                    card.dataset.wasDragged = '0';
                     return;
                 }
                 openCitaModal(item, invData);
@@ -940,7 +936,7 @@
                         const card = buildCitaCard(s);
                         card.draggable = true;
                         card.addEventListener('dragstart', ev => {
-                            if (typeof card.markDragged === 'function') card.markDragged();
+                            card.dataset.wasDragged = '1';
                             state.dragPayload = {
                                 id: s.numero_orden_compra || s.id,
                                 fromDate: dateStr,
@@ -951,7 +947,7 @@
                         });
                         card.addEventListener('dragend', () => {
                             card.classList.remove('is-dragging');
-                            if (typeof card.resetDragged === 'function') card.resetDragged();
+                            setTimeout(() => { card.dataset.wasDragged = '0'; }, 0);
                         });
                         itemsDiv.appendChild(card);
                     });
