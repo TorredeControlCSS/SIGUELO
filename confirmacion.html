@@ -879,13 +879,9 @@
             card.addEventListener('click', ev => {
                 ev.preventDefault();
                 if (wasDragged) {
-                    if (!lastDragEndedAt) return;
-                    const elapsed = Date.now() - lastDragEndedAt;
-                    if (elapsed <= DRAG_CLICK_GUARD_MS) {
-                        wasDragged = false;
-                        return;
-                    }
+                    const elapsed = lastDragEndedAt === 0 ? 0 : (Date.now() - lastDragEndedAt);
                     wasDragged = false;
+                    if (lastDragEndedAt === 0 || elapsed <= DRAG_CLICK_GUARD_MS) return;
                 }
                 openCitaModal(item, invData);
             });
