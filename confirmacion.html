@@ -880,8 +880,8 @@
                 if (wasDragged) {
                     const elapsed = Date.now() - lastDragEndedAt;
                     if (elapsed <= DRAG_CLICK_GUARD_MS) return;
-                    wasDragged = false;
                 }
+                wasDragged = false;
                 openCitaModal(item, invData);
             });
             return card;
@@ -1037,6 +1037,12 @@
                 };
                 const map = {};
                 if (idx.codigo >= 0) {
+                    const missingCols = Object.entries(idx)
+                        .filter(([key, pos]) => key !== 'codigo' && pos < 0)
+                        .map(([key]) => key);
+                    if (missingCols.length) {
+                        console.warn('Columnas de cobertura faltantes:', missingCols.join(', '));
+                    }
                     covRows.forEach(row => {
                         const codigo = normalizeCode(row[idx.codigo]);
                         if (!codigo) return;
