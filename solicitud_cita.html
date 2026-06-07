@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solicitud de Cita de Entrega — CEDIS PANAMÁ CSS</title>
+<style>
+  :root{
+    --azul:#1e5a9e; --azul-osc:#16477d; --azul-claro:#e8f0f8;
+    --bg:#ececec; --panel:#fff; --borde:#a8a8a8; --borde-suave:#c8c8c8;
+    --texto:#222; --texto-tenue:#555; --rojo:#c0392b; --verde:#1e7e34; --ambar:#b8860b;
+    --mono:'Consolas','Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--texto);font-size:14px;line-height:1.45;}
+  .wrap{max-width:880px;margin:0 auto;padding:0 0 60px;}
+  header{background:var(--azul);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--azul-osc);}
+  header .logo{width:48px;height:48px;flex-shrink:0;object-fit:contain;background:#fff;border-radius:50%;padding:2px;}
+  header h1{font-size:17px;font-weight:700;}
+  header .sub{font-size:12px;opacity:.9;font-weight:400;margin-top:2px;}
+  .aviso{background:var(--azul-claro);border:1px solid var(--borde-suave);border-left:4px solid var(--azul);margin:18px 22px 0;padding:12px 16px;font-size:13px;}
+  .aviso b{color:var(--azul-osc);}
+  .aviso ul{margin:6px 0 0 18px;}
+  .aviso li{margin:2px 0;}
+  .seccion{background:var(--panel);border:1px solid var(--borde);margin:18px 22px 0;}
+  .seccion-titulo{background:#f4f4f4;border-bottom:1px solid var(--borde-suave);padding:8px 16px;font-weight:700;font-size:13px;color:var(--azul-osc);display:flex;align-items:center;gap:8px;}
+  .seccion-titulo .num{background:var(--azul);color:#fff;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+  .seccion-cuerpo{padding:16px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}}
+  .campo{display:flex;flex-direction:column;gap:4px;}
+  .campo.full{grid-column:1/-1;}
+  label{font-weight:600;font-size:12.5px;color:var(--texto-tenue);}
+  label .req{color:var(--rojo);}
+  input,select,textarea{border:1px solid var(--borde);background:#fff;padding:7px 9px;font-size:14px;font-family:inherit;border-radius:2px;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px var(--azul-claro);}
+  input[readonly]{background:#f4f4f4;color:var(--texto-tenue);}
+  .mono{font-family:var(--mono);}
+  .hint{font-size:11px;color:var(--texto-tenue);font-style:italic;}
+  .ficha-renglon{margin-top:12px;border:1px solid var(--borde-suave);background:#f7f9fc;padding:0;display:none;}
+  .ficha-renglon.activa{display:block;}
+  .ficha-head{background:var(--azul-osc);color:#fff;padding:6px 12px;font-size:12px;font-weight:600;}
+  .ficha-body{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:640px){.ficha-body{grid-template-columns:1fr;}}
+  .ficha-campo{font-size:12.5px;}
+  .ficha-campo .et{color:var(--texto-tenue);font-weight:600;display:block;margin-bottom:1px;}
+  .ficha-campo .vl{font-family:var(--mono);color:var(--azul-osc);}
+  .cat-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:2px;color:#fff;}
+  .btn{border:1px solid var(--azul-osc);background:var(--azul);color:#fff;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;}
+  .btn:hover{background:var(--azul-osc);}
+  .btn:disabled{background:#b0b0b0;border-color:#999;cursor:not-allowed;}
+  .btn-sec{background:#fff;color:var(--azul-osc);border:1px solid var(--azul);}
+  .btn-sec:hover{background:#f0f0f0;}
+  .footer-acciones{margin:24px 22px 0;display:flex;gap:12px;justify-content:flex-end;align-items:center;}
+  .alerta{padding:10px 14px;border-radius:2px;font-size:13px;margin:14px 22px 0;display:none;}
+  .alerta.err{background:#fdecea;border:1px solid var(--rojo);color:var(--rojo);display:block;}
+  .alerta.ok{background:#eafaf1;border:1px solid var(--verde);color:var(--verde);display:block;}
+  .contacto{font-size:12px;color:var(--texto-tenue);margin:18px 22px 0;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img class="logo" src="icons/icon-192.png" alt="Logo CSS Panamá">
+    <div>
+      <h1>Solicitud de Cita de Entrega — Almacén CEDIS PANAMÁ</h1>
+      <div class="sub">Caja de Seguro Social · Torre de Control · Único canal autorizado para coordinar entregas</div>
+    </div>
+  </header>
+
+  <div class="aviso">
+    <b>Lineamientos del proceso:</b>
+    <ul>
+      <li>Las solicitudes se reciben <b>hasta el miércoles</b>; las citas se confirman <b>los viernes</b>.</li>
+      <li>Horario de recepción: <b>lunes a viernes, de 8:00 a.m. a 1:00 p.m.</b></li>
+      <li><b>Una solicitud por renglón.</b> Si entrega varios renglones, envíe una solicitud por cada uno con su número de orden de compra.</li>
+    </ul>
+  </div>
+
+  <!-- 1. PROVEEDOR -->
+  <div class="seccion">
+    <div class="seccion-titulo"><span class="num">1</span> Identificación del Proveedor</div>
+    <div class="seccion-cuerpo">
+      <div class="grid">
+        <div class="campo full">
+          <label>Empresa proveedora <span class="req">*</span></label>
+          <select id="empresa"><option value="">— Seleccione su empresa —</option></select>
+          <span class="hint">Solo verá los renglones adjudicados a la empresa seleccionada.</span>
+        </div>
+        <div class="campo">
+          <label>Nombre del solicitante <span class="req">*</span></label>
+          <input type="text" id="solicitante" placeholder="Nombre y apellido">
+        </div>
+        <div class="campo">
+          <label>Correo de contacto <span class="req">*</span></label>
+          <input type="email" id="correo" placeholder="correo@empresa.com">
+        </div>
+        <div class="campo">
+          <label>Teléfono <span class="req">*</span></label>
+          <input type="tel" id="telefono" placeholder="+507 0000-0000">
+        </div>
+        <div class="campo">
+          <label>N.º de Orden de Compra / Contrato <span class="req">*</span></label>
+          <input type="text" id="oc" class="mono" placeholder="Ej. 1001016980">
+          <span class="hint">Una orden por renglón. No se admite el mismo renglón dos veces bajo la misma orden.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. RENGLÓN -->
+  <div class="seccion">
+    <div class="seccion-titulo"><span class="num">2</span> Renglón a Entregar</div>
+    <div class="seccion-cuerpo">
+      <div class="grid">
+        <div class="campo full">
+          <label>Renglón adjudicado <span class="req">*</span></label>
+          <select id="renglon" disabled><option value="">— Primero seleccione su empresa —</option></select>
+        </div>
+      </div>
+
+      <div class="ficha-renglon" id="ficha">
+        <div class="ficha-head">Renglón seleccionado — códigos confirmados automáticamente</div>
+        <div class="ficha-body">
+          <div class="ficha-campo"><span class="et">Código Abasto (SALMI)</span><span class="vl" id="f-abasto">—</span></div>
+          <div class="ficha-campo"><span class="et">Código SAP</span><span class="vl" id="f-sap">—</span></div>
+          <div class="ficha-campo"><span class="et">Descripción</span><span id="f-desc">—</span></div>
+          <div class="ficha-campo"><span class="et">Categoría</span><span id="f-cat">—</span></div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px;">
+        <div class="campo">
+          <label>Cantidad (unidades) <span class="req">*</span></label>
+          <input type="number" id="cantUnid" min="1" step="1" placeholder="0">
+        </div>
+        <div class="campo">
+          <label>Cantidad de bultos</label>
+          <input type="number" id="cantBultos" min="0" step="1" placeholder="declarar">
+        </div>
+        <div class="campo">
+          <label>Cantidad de pallets</label>
+          <input type="number" id="cantPallets" min="0" step="0.01" placeholder="declarar">
+        </div>
+      </div>
+      <span class="hint" style="display:block;margin-top:6px;">Bultos y pallets son declarados por el proveedor. Verifique según su Lista de Empaque.</span>
+    </div>
+  </div>
+
+  <!-- 3. LOGÍSTICA -->
+  <div class="seccion">
+    <div class="seccion-titulo"><span class="num">3</span> Detalles Logísticos de la Entrega</div>
+    <div class="seccion-cuerpo">
+      <div class="grid">
+        <div class="campo">
+          <label>Fecha de entrega solicitada <span class="req">*</span></label>
+          <input type="date" id="fechaSolic">
+        </div>
+        <div class="campo">
+          <label>Fecha de vencimiento del documento</label>
+          <input type="date" id="fechaVenc">
+        </div>
+        <div class="campo">
+          <label>Tipo de ambiente <span class="req">*</span></label>
+          <select id="ambiente">
+            <option value="">— Seleccione —</option>
+            <option>Ambiente / Seco</option>
+            <option>Cadena de Frío (Refrigerado)</option>
+            <option>Congelado</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Estado de los bultos <span class="req">*</span></label>
+          <select id="estadoBulto">
+            <option value="">— Seleccione —</option>
+            <option>BULTOS COMPLETOS</option>
+            <option>BULTO INCOMPLETO</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Tipo de unidad móvil <span class="req">*</span></label>
+          <select id="unidadMovil">
+            <option value="">— Seleccione —</option>
+            <option>Camión</option>
+            <option>Furgón / Contenedor</option>
+            <option>Panel / Van</option>
+            <option>Pick-up</option>
+            <option>Vehículo liviano</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Tipo de entrega <span class="req">*</span></label>
+          <select id="tipoEntrega">
+            <option value="">— Seleccione —</option>
+            <option>Paletizada</option>
+            <option>Suelta / Manual</option>
+            <option>Mixta</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Personal de la empresa que entrega</label>
+          <input type="text" id="personal" placeholder="Nombre(s) del personal de entrega">
+        </div>
+        <div class="campo full">
+          <label>Observaciones</label>
+          <textarea id="observaciones" rows="2" placeholder="Comentarios adicionales (opcional)"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alerta" id="alerta"></div>
+
+  <div class="footer-acciones">
+    <button class="btn-sec btn" id="btnLimpiar">Limpiar formulario</button>
+    <button class="btn" id="btnEnviar">Enviar solicitud</button>
+  </div>
+
+  <div class="contacto">
+    Dudas: dbethancourth@css.gob.pa · ildvasquez@css.gob.pa &nbsp;|&nbsp; Tel. +507 513-7000 Ext. 86322
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+const DATA_URL = 'maestro_renglones.json';
+
+let MAESTRO = { proveedores: [], catalogo: {} };
+let renglonActual = null;
+
+const COLORES_CAT = {
+  'MEDICAMENTO':'#1e5a9e','MEDICAMENTOS':'#1e5a9e',
+  'MEDICO QUIRURGICO':'#7d3c98','MEDICO QUIRÚRGICO':'#7d3c98',
+  'LABORATORIO':'#117a65','ODONTOLOGIA':'#b9770e','ODONTOLOGÍA':'#b9770e',
+  'RADIOLOGIA':'#5d6d7e','UROLOGIA':'#a04000','SUSTANCIAS CONTROLADAS':'#922b21'
+};
+
+async function init(){
+  try{
+    const resp = await fetch(DATA_URL);
+    MAESTRO = await resp.json();
+    const sel = document.getElementById('empresa');
+    (MAESTRO.proveedores||[]).forEach(p=>{
+      const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
+    });
+  }catch(e){
+    mostrarAlerta('err','No se pudo cargar el catálogo de renglones ('+DATA_URL+'). Verifique que el archivo esté publicado junto al formulario.');
+  }
+  const hoy=new Date().toISOString().slice(0,10);
+  document.getElementById('fechaSolic').min=hoy;
+}
+
+document.getElementById('empresa').addEventListener('change', function(){
+  const empresa=this.value;
+  const selR=document.getElementById('renglon');
+  selR.innerHTML='';
+  renglonActual=null;
+  document.getElementById('ficha').classList.remove('activa');
+  if(!empresa){
+    selR.disabled=true;
+    selR.innerHTML='<option value="">— Primero seleccione su empresa —</option>';
+    return;
+  }
+  const lista=MAESTRO.catalogo[empresa]||[];
+  selR.disabled=false;
+  selR.innerHTML='<option value="">— Seleccione un renglón ('+lista.length+' adjudicados) —</option>';
+  lista.forEach((r,i)=>{
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=r.desc+'  ['+r.cod_abasto+' / '+r.cod_sap+']';
+    selR.appendChild(o);
+  });
+});
+
+document.getElementById('renglon').addEventListener('change', function(){
+  const empresa=document.getElementById('empresa').value;
+  const idx=this.value;
+  const ficha=document.getElementById('ficha');
+  if(idx===''){ renglonActual=null; ficha.classList.remove('activa'); return; }
+  renglonActual=MAESTRO.catalogo[empresa][parseInt(idx,10)];
+  document.getElementById('f-abasto').textContent=renglonActual.cod_abasto;
+  document.getElementById('f-sap').textContent=renglonActual.cod_sap||'—';
+  document.getElementById('f-desc').textContent=renglonActual.desc;
+  const color=COLORES_CAT[(renglonActual.categoria||'').toUpperCase()]||'#666';
+  document.getElementById('f-cat').innerHTML='<span class="cat-tag" style="background:'+color+'">'+escAttr(renglonActual.categoria||'—')+'</span>';
+  ficha.classList.add('activa');
+});
+
+document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
+
+function enviarSolicitud(){
+  ocultarAlerta();
+  const req={
+    empresa:val('empresa'), solicitante:val('solicitante'), correo:val('correo'),
+    telefono:val('telefono'), oc:val('oc'),
+    fecha_solicitada:val('fechaSolic'), fecha_vencimiento:val('fechaVenc'),
+    tipo_ambiente:val('ambiente'), estado_bulto:val('estadoBulto'),
+    unidad_movil:val('unidadMovil'), tipo_entrega:val('tipoEntrega'),
+    personal_entrega:val('personal'), observaciones:val('observaciones'),
+    cant_unidades:parseInt(val('cantUnid'),10)||0,
+    cant_bultos:parseInt(val('cantBultos'),10)||0,
+    cant_pallets:parseFloat(val('cantPallets'))||0
+  };
+
+  const obligatorios={empresa:'empresa',solicitante:'nombre del solicitante',correo:'correo',
+    telefono:'teléfono',oc:'orden de compra',fecha_solicitada:'fecha de entrega',
+    tipo_ambiente:'tipo de ambiente',estado_bulto:'estado de bultos',
+    unidad_movil:'unidad móvil',tipo_entrega:'tipo de entrega'};
+  for(const k in obligatorios){
+    if(!req[k]){ mostrarAlerta('err','Falta completar: '+obligatorios[k]+'.'); return; }
+  }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(req.correo)){ mostrarAlerta('err','El correo no tiene un formato válido.'); return; }
+  if(!renglonActual){ mostrarAlerta('err','Debe seleccionar un renglón.'); return; }
+  if(req.cant_unidades<1){ mostrarAlerta('err','Indique una cantidad de unidades válida.'); return; }
+
+  req.cod_abasto=renglonActual.cod_abasto;
+  req.cod_sap=renglonActual.cod_sap;
+  req.descripcion=renglonActual.desc;
+  req.categoria=renglonActual.categoria;
+
+  const payload={action:'nuevaSolicitud', data:req};
+
+  const btn=document.getElementById('btnEnviar');
+  btn.disabled=true; btn.textContent='Enviando...';
+
+  if(API_URL==='PEGAR_AQUI_URL_DEL_APPS_SCRIPT'){
+    console.log('PAYLOAD (modo prueba):',payload);
+    mostrarAlerta('ok','MODO PRUEBA: la solicitud es válida y está lista para enviarse. Conecte el API_URL del Apps Script para registrarla. (Payload en consola.)');
+    btn.disabled=false; btn.textContent='Enviar solicitud';
+    return;
+  }
+
+  fetch(API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(payload)
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.success){
+      mostrarAlerta('ok','✓ Solicitud registrada ('+res.id_solicitud+'). Su cita será confirmada el próximo viernes al correo indicado.');
+      limpiarTodo();
+    }else{
+      mostrarAlerta('err','No se pudo registrar: '+(res.error||'error desconocido'));
+    }
+  })
+  .catch(e=>mostrarAlerta('err','Error de red al enviar: '+e.message))
+  .finally(()=>{ btn.disabled=false; btn.textContent='Enviar solicitud'; });
+}
+
+document.getElementById('btnLimpiar').addEventListener('click', limpiarTodo);
+function limpiarTodo(){
+  document.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
+  });
+  document.getElementById('renglon').disabled=true;
+  document.getElementById('ficha').classList.remove('activa');
+  renglonActual=null;
+  document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+function mostrarAlerta(tipo,msg){
+  const a=document.getElementById('alerta');
+  a.className='alerta '+tipo; a.textContent=msg;
+  a.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function ocultarAlerta(){ document.getElementById('alerta').className='alerta'; }
+function escAttr(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+init();
+</script>
+</body>
+</html>
