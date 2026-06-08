@@ -630,14 +630,17 @@ function subirArchivo(archivo, idSolicitud){
 
   // Barra simulada: avanza gradualmente hasta 90% mientras la subida está en curso
   let simTimer=null;
+  const esGrande = archivo.size > 1.5*1024*1024; // >1.5 MB tarda en red lenta
   function iniciarSimulacion(intento){
     let pct=25;
-    setProg(pct, 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...');
+    const base='Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+(esGrande?' — archivo grande, puede tardar 1-2 min':'')+'...';
+    setProg(pct, base);
     simTimer=setInterval(()=>{
-      pct += Math.max(1, Math.round((90-pct)*0.08));
-      if(pct>=90){ pct=90; }
-      setProg(pct, 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...');
-    }, 400);
+      // Avance más lento para archivos grandes (no llega a 90 tan rápido y refleja mejor la realidad)
+      pct += Math.max(0.5, (88-pct)*(esGrande?0.025:0.06));
+      if(pct>=88){ pct=88; }
+      setProg(Math.round(pct), base);
+    }, 500);
   }
   function detenerSimulacion(){ if(simTimer){ clearInterval(simTimer); simTimer=null; } }
 
@@ -655,14 +658,14 @@ function subirArchivo(archivo, idSolicitud){
   }
 
   return leerBase64().then(async (b64)=>{
-    const MAX_INTENTOS=3;
+    const MAX_INTENTOS=5; // más reintentos para tolerar redes lentas/inestables
     let ultimo={success:false,error:'desconocido'};
     for(let intento=1; intento<=MAX_INTENTOS; intento++){
       ultimo=await intentoSubida(b64, intento);
       if(ultimo && ultimo.success){ setProg(100,'Documento subido.'); return ultimo; }
       if(intento<MAX_INTENTOS){
-        setProg(25,'Conexión interrumpida. Reintentando en breve...');
-        await new Promise(r=>setTimeout(r, 1500*intento));
+        setProg(25,'Conexión interrumpida. Reintentando ('+(intento+1)+' de '+MAX_INTENTOS+')...');
+        await new Promise(r=>setTimeout(r, 2000*intento)); // pausa creciente: 2s, 4s, 6s, 8s
         continue;
       }
       break;
