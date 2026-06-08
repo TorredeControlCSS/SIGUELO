@@ -27,7 +27,8 @@
   .seccion-titulo .num{background:var(--azul);color:#fff;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
   .seccion-cuerpo{padding:16px;}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  @media(max-width:640px){.grid{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:640px){.grid,.grid-3{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}}
   .campo{display:flex;flex-direction:column;gap:4px;}
   .campo.full{grid-column:1/-1;}
   label{font-weight:600;font-size:12.5px;color:var(--texto-tenue);}
@@ -39,23 +40,39 @@
   .hint{font-size:11px;color:var(--texto-tenue);font-style:italic;}
   .ficha-renglon{margin-top:12px;border:1px solid var(--borde-suave);background:#f7f9fc;padding:0;display:none;}
   .ficha-renglon.activa{display:block;}
-  .ficha-head{background:var(--azul-osc);color:#fff;padding:6px 12px;font-size:12px;font-weight:600;}
+  .ficha-head{background:var(--azul-osc);color:#fff;padding:6px 12px;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
   .ficha-body{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   @media(max-width:640px){.ficha-body{grid-template-columns:1fr;}}
   .ficha-campo{font-size:12.5px;}
   .ficha-campo .et{color:var(--texto-tenue);font-weight:600;display:block;margin-bottom:1px;}
   .ficha-campo .vl{font-family:var(--mono);color:var(--azul-osc);}
   .cat-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:2px;color:#fff;}
+  .badge-control{background:#922b21;color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:2px;display:none;}
+  .badge-control.activo{display:inline-block;}
+  .aviso-control{display:none;margin-top:10px;padding:8px 12px;background:#fdecea;border:1px solid #922b21;border-left:4px solid #922b21;font-size:12px;color:#922b21;}
+  .aviso-control.activo{display:block;}
+  .aviso-compromiso{display:none;margin-top:10px;padding:8px 12px;background:#fff8e1;border:1px solid var(--ambar);border-left:4px solid var(--ambar);font-size:12px;color:#7a5c00;}
+  .aviso-compromiso.activo{display:block;}
   .btn{border:1px solid var(--azul-osc);background:var(--azul);color:#fff;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;border-radius:2px;}
   .btn:hover{background:var(--azul-osc);}
   .btn:disabled{background:#b0b0b0;border-color:#999;cursor:not-allowed;}
   .btn-sec{background:#fff;color:var(--azul-osc);border:1px solid var(--azul);}
   .btn-sec:hover{background:#f0f0f0;}
+  .btn-mini{padding:5px 11px;font-size:12px;}
+  .btn-rojo{background:var(--rojo);border-color:#922;}
   .footer-acciones{margin:24px 22px 0;display:flex;gap:12px;justify-content:flex-end;align-items:center;}
   .alerta{padding:10px 14px;border-radius:2px;font-size:13px;margin:14px 22px 0;display:none;}
   .alerta.err{background:#fdecea;border:1px solid var(--rojo);color:var(--rojo);display:block;}
   .alerta.ok{background:#eafaf1;border:1px solid var(--verde);color:var(--verde);display:block;}
   .contacto{font-size:12px;color:var(--texto-tenue);margin:18px 22px 0;text-align:center;}
+  /* tabla lista de empaque */
+  table.lote{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  table.lote th{background:var(--azul);color:#fff;padding:6px 7px;font-size:11px;font-weight:600;border:1px solid var(--azul-osc);text-align:left;}
+  table.lote td{border:1px solid var(--borde-suave);padding:3px 4px;}
+  table.lote td input,table.lote td select{width:100%;padding:4px 5px;font-size:12.5px;}
+  table.lote td.acc{text-align:center;width:38px;}
+  .lote-resumen{margin-top:8px;padding:8px 12px;background:#f4f4f4;border:1px solid var(--borde-suave);font-size:12.5px;display:flex;gap:20px;flex-wrap:wrap;}
+  .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
 </style>
 </head>
 <body>
@@ -97,14 +114,32 @@
           <input type="email" id="correo" placeholder="correo@empresa.com">
         </div>
         <div class="campo">
-          <label>Teléfono <span class="req">*</span></label>
+          <label>Teléfono de contacto <span class="req">*</span></label>
           <input type="tel" id="telefono" placeholder="+507 0000-0000">
         </div>
         <div class="campo">
+          <label>Tipo de entrega <span class="req">*</span></label>
+          <select id="tipoEntrega">
+            <option value="">— Seleccione —</option>
+            <option value="Reposicion">Reposición (con carta de compromiso)</option>
+            <option value="Completa">Completa</option>
+            <option value="Parcial">Parcial</option>
+            <option value="Adelanto">Adelanto (sin orden de compra)</option>
+          </select>
+        </div>
+        <div class="campo" id="campoOC">
           <label>N.º de Orden de Compra / Contrato <span class="req">*</span></label>
           <input type="text" id="oc" class="mono" placeholder="Ej. 1001016980">
           <span class="hint">Una orden por renglón. No se admite el mismo renglón dos veces bajo la misma orden.</span>
         </div>
+        <div class="campo" id="campoNotaAdelanto" style="display:none;">
+          <label>N.º de Nota de Adelanto <span class="req">*</span></label>
+          <input type="text" id="notaAdelanto" class="mono" placeholder="Nota autorizada por Dirección">
+          <span class="hint">El adelanto requiere autorización de la Dirección.</span>
+        </div>
+      </div>
+      <div class="aviso-compromiso" id="avisoCompromiso">
+        <b>Reposición:</b> el proveedor se compromete a retirar el producto si vence. Adjunte la carta de compromiso en la sección de documentación.
       </div>
     </div>
   </div>
@@ -121,36 +156,55 @@
       </div>
 
       <div class="ficha-renglon" id="ficha">
-        <div class="ficha-head">Renglón seleccionado — códigos confirmados automáticamente</div>
+        <div class="ficha-head">
+          <span>Renglón seleccionado — códigos confirmados automáticamente</span>
+          <span class="badge-control" id="badgeControl">⚠ SUSTANCIA CONTROLADA</span>
+        </div>
         <div class="ficha-body">
           <div class="ficha-campo"><span class="et">Código Abasto (SALMI)</span><span class="vl" id="f-abasto">—</span></div>
           <div class="ficha-campo"><span class="et">Código SAP</span><span class="vl" id="f-sap">—</span></div>
           <div class="ficha-campo"><span class="et">Descripción</span><span id="f-desc">—</span></div>
           <div class="ficha-campo"><span class="et">Categoría</span><span id="f-cat">—</span></div>
         </div>
-      </div>
-
-      <div class="grid" style="margin-top:14px;">
-        <div class="campo">
-          <label>Cantidad (unidades) <span class="req">*</span></label>
-          <input type="number" id="cantUnid" min="1" step="1" placeholder="0">
-        </div>
-        <div class="campo">
-          <label>Cantidad de bultos</label>
-          <input type="number" id="cantBultos" min="0" step="1" placeholder="declarar">
-        </div>
-        <div class="campo">
-          <label>Cantidad de pallets</label>
-          <input type="number" id="cantPallets" min="0" step="0.01" placeholder="declarar">
+        <div class="aviso-control" id="avisoControl" style="margin:0 12px 12px;">
+          <b>Custodia requerida:</b> esta es una sustancia controlada (narcótico/psicotrópico). Requiere custodia de la cadena logística de punto a punto y documentación regulatoria.
         </div>
       </div>
-      <span class="hint" style="display:block;margin-top:6px;">Bultos y pallets son declarados por el proveedor. Verifique según su Lista de Empaque.</span>
     </div>
   </div>
 
-  <!-- 3. LOGÍSTICA -->
+  <!-- 3. LISTA DE EMPAQUE -->
   <div class="seccion">
-    <div class="seccion-titulo"><span class="num">3</span> Detalles Logísticos de la Entrega</div>
+    <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote)</div>
+    <div class="seccion-cuerpo">
+      <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
+      <table class="lote">
+        <thead>
+          <tr>
+            <th>Lote</th>
+            <th>Fecha vencimiento</th>
+            <th>Cantidad (unid.)</th>
+            <th>Bultos</th>
+            <th>Pallets</th>
+            <th>Emp. primario</th>
+            <th class="acc"></th>
+          </tr>
+        </thead>
+        <tbody id="cuerpoLotes"></tbody>
+      </table>
+      <button class="btn btn-sec btn-mini" id="btnAddLote" style="margin-top:8px;">+ Agregar lote</button>
+      <div class="lote-resumen">
+        <span>Lotes: <b id="totLotes">0</b></span>
+        <span>Total unidades: <b id="totUnid">0</b></span>
+        <span>Total bultos: <b id="totBultos">0</b></span>
+        <span>Total pallets: <b id="totPallets">0</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. LOGÍSTICA -->
+  <div class="seccion">
+    <div class="seccion-titulo"><span class="num">4</span> Detalles Logísticos de la Entrega</div>
     <div class="seccion-cuerpo">
       <div class="grid">
         <div class="campo">
@@ -162,12 +216,13 @@
           <input type="date" id="fechaVenc">
         </div>
         <div class="campo">
-          <label>Tipo de ambiente <span class="req">*</span></label>
+          <label>Tipo de ambiente requerido <span class="req">*</span></label>
           <select id="ambiente">
             <option value="">— Seleccione —</option>
-            <option>Ambiente / Seco</option>
-            <option>Cadena de Frío (Refrigerado)</option>
-            <option>Congelado</option>
+            <option>&gt; 25 °C</option>
+            <option>15 °C a 25 °C</option>
+            <option>2 °C a 8 °C</option>
+            <option>&lt; 2 °C</option>
           </select>
         </div>
         <div class="campo">
@@ -182,16 +237,19 @@
           <label>Tipo de unidad móvil <span class="req">*</span></label>
           <select id="unidadMovil">
             <option value="">— Seleccione —</option>
-            <option>Camión</option>
-            <option>Furgón / Contenedor</option>
-            <option>Panel / Van</option>
-            <option>Pick-up</option>
-            <option>Vehículo liviano</option>
+            <option>Furgón 53 pies</option>
+            <option>Furgón 48 pies</option>
+            <option>Contenedor 40 pies</option>
+            <option>Contenedor 20 pies</option>
+            <option>Camión Grande (24 a 26 pies)</option>
+            <option>Camión Mediano (20 a 22 pies)</option>
+            <option>Camión Pequeño (16 a 18 pies)</option>
+            <option>Panel</option>
           </select>
         </div>
         <div class="campo">
-          <label>Tipo de entrega <span class="req">*</span></label>
-          <select id="tipoEntrega">
+          <label>Modalidad de transporte <span class="req">*</span></label>
+          <select id="modalidad">
             <option value="">— Seleccione —</option>
             <option>Paletizada</option>
             <option>Suelta / Manual</option>
@@ -199,8 +257,12 @@
           </select>
         </div>
         <div class="campo">
-          <label>Personal de la empresa que entrega</label>
-          <input type="text" id="personal" placeholder="Nombre(s) del personal de entrega">
+          <label>Personal / Empresa que realiza la entrega <span class="req">*</span></label>
+          <input type="text" id="personal" placeholder="Flota propia o transportista tercerizado">
+        </div>
+        <div class="campo">
+          <label>N.º de Autorización de Entrega (posterior al vencimiento)</label>
+          <input type="text" id="autorizacion" class="mono" placeholder="Solo si aplica">
         </div>
         <div class="campo full">
           <label>Observaciones</label>
@@ -226,8 +288,12 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 const DATA_URL = 'maestro_renglones.json';
 
+// Códigos de sustancias controladas (detección automática, el proveedor no la declara)
+const CONTROLADOS = new Set(["101003201","101012201","101012301","101027201","101043501","101066401","101077501","101082801","101084001","101097201","101097301","101101301","101101401","102005901","102007401","102011801","102030701","102059401","102066801","102073701","103042901","103060601"]);
+
 let MAESTRO = { proveedores: [], catalogo: {} };
 let renglonActual = null;
+let lotes = [];
 
 const COLORES_CAT = {
   'MEDICAMENTO':'#1e5a9e','MEDICAMENTOS':'#1e5a9e',
@@ -235,6 +301,9 @@ const COLORES_CAT = {
   'LABORATORIO':'#117a65','ODONTOLOGIA':'#b9770e','ODONTOLOGÍA':'#b9770e',
   'RADIOLOGIA':'#5d6d7e','UROLOGIA':'#a04000','SUSTANCIAS CONTROLADAS':'#922b21'
 };
+const EMP_PRIMARIO = ['','01 TABLETAS','02 AMPOLLAS','03 JARABES','04 CREMAS','05 OVULOS/SUPOSITORIOS','09 MAT. MEDICO QUIRURGICO','10 ALCOHOLES/FRASCOS','11 EQUIPO MEDICO DENTAL','12 MAT. RADIOGRAFICOS','13 ART. LABORATORIO','14 REACTIVOS ANALITICOS','15 REACTIVOS BIOLOGICOS'];
+
+function norm(c){ return String(c||'').replace(/\.0$/,'').replace(/[-\s]/g,'').toUpperCase(); }
 
 async function init(){
   try{
@@ -245,30 +314,33 @@ async function init(){
       const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
     });
   }catch(e){
-    mostrarAlerta('err','No se pudo cargar el catálogo de renglones ('+DATA_URL+'). Verifique que el archivo esté publicado junto al formulario.');
+    mostrarAlerta('err','No se pudo cargar el catálogo de renglones ('+DATA_URL+').');
   }
-  const hoy=new Date().toISOString().slice(0,10);
-  document.getElementById('fechaSolic').min=hoy;
+  document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
+  agregarLote();
 }
+
+// Tipo de entrega -> mostrar/ocultar OC vs Nota de Adelanto, aviso de compromiso
+document.getElementById('tipoEntrega').addEventListener('change', function(){
+  const t=this.value;
+  const esAdelanto = t==='Adelanto';
+  document.getElementById('campoOC').style.display = esAdelanto?'none':'flex';
+  document.getElementById('campoNotaAdelanto').style.display = esAdelanto?'flex':'none';
+  document.getElementById('avisoCompromiso').classList.toggle('activo', t==='Reposicion');
+});
 
 document.getElementById('empresa').addEventListener('change', function(){
   const empresa=this.value;
   const selR=document.getElementById('renglon');
-  selR.innerHTML='';
-  renglonActual=null;
+  selR.innerHTML=''; renglonActual=null;
   document.getElementById('ficha').classList.remove('activa');
-  if(!empresa){
-    selR.disabled=true;
-    selR.innerHTML='<option value="">— Primero seleccione su empresa —</option>';
-    return;
-  }
+  if(!empresa){ selR.disabled=true; selR.innerHTML='<option value="">— Primero seleccione su empresa —</option>'; return; }
   const lista=MAESTRO.catalogo[empresa]||[];
   selR.disabled=false;
   selR.innerHTML='<option value="">— Seleccione un renglón ('+lista.length+' adjudicados) —</option>';
   lista.forEach((r,i)=>{
     const o=document.createElement('option');
-    o.value=i;
-    o.textContent=r.desc+'  ['+r.cod_abasto+' / '+r.cod_sap+']';
+    o.value=i; o.textContent=r.desc+'  ['+r.cod_abasto+' / '+r.cod_sap+']';
     selR.appendChild(o);
   });
 });
@@ -284,66 +356,103 @@ document.getElementById('renglon').addEventListener('change', function(){
   document.getElementById('f-desc').textContent=renglonActual.desc;
   const color=COLORES_CAT[(renglonActual.categoria||'').toUpperCase()]||'#666';
   document.getElementById('f-cat').innerHTML='<span class="cat-tag" style="background:'+color+'">'+escAttr(renglonActual.categoria||'—')+'</span>';
+  // Detección automática de sustancia controlada
+  const esControlado = CONTROLADOS.has(norm(renglonActual.cod_abasto));
+  document.getElementById('badgeControl').classList.toggle('activo', esControlado);
+  document.getElementById('avisoControl').classList.toggle('activo', esControlado);
+  renglonActual._controlado = esControlado;
   ficha.classList.add('activa');
 });
 
-document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
+// ---- Lista de empaque por lote ----
+document.getElementById('btnAddLote').addEventListener('click', agregarLote);
+function agregarLote(){
+  lotes.push({lote:'',venc:'',unid:0,bultos:0,pallets:0,emp:''});
+  renderLotes();
+}
+function renderLotes(){
+  const tb=document.getElementById('cuerpoLotes');
+  tb.innerHTML=lotes.map((l,i)=>`<tr>
+    <td><input type="text" data-i="${i}" data-f="lote" value="${escAttr(l.lote)}"></td>
+    <td><input type="date" data-i="${i}" data-f="venc" value="${l.venc}"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="unid" value="${l.unid||''}"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="bultos" value="${l.bultos||''}"></td>
+    <td><input type="number" min="0" step="0.01" data-i="${i}" data-f="pallets" value="${l.pallets||''}"></td>
+    <td><select data-i="${i}" data-f="emp">${EMP_PRIMARIO.map(e=>`<option ${e===l.emp?'selected':''}>${e}</option>`).join('')}</select></td>
+    <td class="acc">${lotes.length>1?`<button class="btn btn-mini btn-rojo" data-del="${i}">✕</button>`:''}</td>
+  </tr>`).join('');
+  tb.querySelectorAll('input[data-i],select[data-i]').forEach(el=>{
+    el.addEventListener('input',e=>{
+      const i=+e.target.dataset.i,f=e.target.dataset.f;
+      lotes[i][f]= (f==='unid'||f==='bultos')?(parseInt(e.target.value,10)||0):(f==='pallets')?(parseFloat(e.target.value)||0):e.target.value;
+      totales();
+    });
+  });
+  tb.querySelectorAll('button[data-del]').forEach(b=>{
+    b.addEventListener('click',e=>{ lotes.splice(+e.target.dataset.del,1); renderLotes(); });
+  });
+  totales();
+}
+function totales(){
+  const u=lotes.reduce((s,l)=>s+(+l.unid||0),0);
+  const b=lotes.reduce((s,l)=>s+(+l.bultos||0),0);
+  const p=lotes.reduce((s,l)=>s+(+l.pallets||0),0);
+  document.getElementById('totLotes').textContent=lotes.length;
+  document.getElementById('totUnid').textContent=u.toLocaleString('es-PA');
+  document.getElementById('totBultos').textContent=b.toLocaleString('es-PA');
+  document.getElementById('totPallets').textContent=p.toLocaleString('es-PA',{maximumFractionDigits:2});
+}
 
+document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
 function enviarSolicitud(){
   ocultarAlerta();
+  const tipo=val('tipoEntrega');
+  const esAdelanto = tipo==='Adelanto';
   const req={
     empresa:val('empresa'), solicitante:val('solicitante'), correo:val('correo'),
-    telefono:val('telefono'), oc:val('oc'),
+    telefono:val('telefono'), tipo_entrega:tipo,
+    oc: esAdelanto ? ('ADELANTO-'+val('notaAdelanto')) : val('oc'),
+    nota_adelanto: esAdelanto ? val('notaAdelanto') : '',
     fecha_solicitada:val('fechaSolic'), fecha_vencimiento:val('fechaVenc'),
     tipo_ambiente:val('ambiente'), estado_bulto:val('estadoBulto'),
-    unidad_movil:val('unidadMovil'), tipo_entrega:val('tipoEntrega'),
-    personal_entrega:val('personal'), observaciones:val('observaciones'),
-    cant_unidades:parseInt(val('cantUnid'),10)||0,
-    cant_bultos:parseInt(val('cantBultos'),10)||0,
-    cant_pallets:parseFloat(val('cantPallets'))||0
+    unidad_movil:val('unidadMovil'), modalidad:val('modalidad'),
+    personal_entrega:val('personal'), autorizacion_entrega:val('autorizacion'),
+    observaciones:val('observaciones')
   };
 
   const obligatorios={empresa:'empresa',solicitante:'nombre del solicitante',correo:'correo',
-    telefono:'teléfono',oc:'orden de compra',fecha_solicitada:'fecha de entrega',
+    telefono:'teléfono',tipo_entrega:'tipo de entrega',fecha_solicitada:'fecha de entrega',
     tipo_ambiente:'tipo de ambiente',estado_bulto:'estado de bultos',
-    unidad_movil:'unidad móvil',tipo_entrega:'tipo de entrega'};
-  for(const k in obligatorios){
-    if(!req[k]){ mostrarAlerta('err','Falta completar: '+obligatorios[k]+'.'); return; }
-  }
+    unidad_movil:'unidad móvil',modalidad:'modalidad de transporte',personal_entrega:'personal/empresa que entrega'};
+  for(const k in obligatorios){ if(!req[k]){ mostrarAlerta('err','Falta completar: '+obligatorios[k]+'.'); return; } }
+  if(esAdelanto && !val('notaAdelanto')){ mostrarAlerta('err','El adelanto requiere número de nota de adelanto.'); return; }
+  if(!esAdelanto && !val('oc')){ mostrarAlerta('err','Falta el número de orden de compra.'); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(req.correo)){ mostrarAlerta('err','El correo no tiene un formato válido.'); return; }
   if(!renglonActual){ mostrarAlerta('err','Debe seleccionar un renglón.'); return; }
-  if(req.cant_unidades<1){ mostrarAlerta('err','Indique una cantidad de unidades válida.'); return; }
+  const lotesValidos=lotes.filter(l=>l.unid>0);
+  if(lotesValidos.length===0){ mostrarAlerta('err','Capture al menos un lote con cantidad en la lista de empaque.'); return; }
 
   req.cod_abasto=renglonActual.cod_abasto;
   req.cod_sap=renglonActual.cod_sap;
   req.descripcion=renglonActual.desc;
   req.categoria=renglonActual.categoria;
+  req.es_controlado=renglonActual._controlado?'SI':'NO';
+  req.lotes=lotesValidos;
+  req.cant_unidades=lotesValidos.reduce((s,l)=>s+(+l.unid||0),0);
+  req.cant_bultos=lotesValidos.reduce((s,l)=>s+(+l.bultos||0),0);
+  req.cant_pallets=lotesValidos.reduce((s,l)=>s+(+l.pallets||0),0);
 
   const payload={action:'nuevaSolicitud', data:req};
-
   const btn=document.getElementById('btnEnviar');
   btn.disabled=true; btn.textContent='Enviando...';
 
-  if(API_URL==='PEGAR_AQUI_URL_DEL_APPS_SCRIPT'){
-    console.log('PAYLOAD (modo prueba):',payload);
-    mostrarAlerta('ok','MODO PRUEBA: la solicitud es válida y está lista para enviarse. Conecte el API_URL del Apps Script para registrarla. (Payload en consola.)');
-    btn.disabled=false; btn.textContent='Enviar solicitud';
-    return;
-  }
-
-  fetch(API_URL,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(payload)
-  })
+  fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload) })
   .then(r=>r.json())
   .then(res=>{
     if(res.success){
       mostrarAlerta('ok','✓ Solicitud registrada ('+res.id_solicitud+'). Su cita será confirmada el próximo viernes al correo indicado.');
       limpiarTodo();
-    }else{
-      mostrarAlerta('err','No se pudo registrar: '+(res.error||'error desconocido'));
-    }
+    }else{ mostrarAlerta('err','No se pudo registrar: '+(res.error||'error desconocido')); }
   })
   .catch(e=>mostrarAlerta('err','Error de red al enviar: '+e.message))
   .finally(()=>{ btn.disabled=false; btn.textContent='Enviar solicitud'; });
@@ -351,20 +460,17 @@ function enviarSolicitud(){
 
 document.getElementById('btnLimpiar').addEventListener('click', limpiarTodo);
 function limpiarTodo(){
-  document.querySelectorAll('input,select,textarea').forEach(el=>{
-    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
-  });
+  document.querySelectorAll('input,select,textarea').forEach(el=>{ if(el.tagName==='SELECT') el.selectedIndex=0; else el.value=''; });
   document.getElementById('renglon').disabled=true;
   document.getElementById('ficha').classList.remove('activa');
-  renglonActual=null;
+  document.getElementById('campoOC').style.display='flex';
+  document.getElementById('campoNotaAdelanto').style.display='none';
+  document.getElementById('avisoCompromiso').classList.remove('activo');
+  renglonActual=null; lotes=[]; agregarLote();
   document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
 }
 function val(id){ return document.getElementById(id).value.trim(); }
-function mostrarAlerta(tipo,msg){
-  const a=document.getElementById('alerta');
-  a.className='alerta '+tipo; a.textContent=msg;
-  a.scrollIntoView({behavior:'smooth',block:'center'});
-}
+function mostrarAlerta(tipo,msg){ const a=document.getElementById('alerta'); a.className='alerta '+tipo; a.textContent=msg; a.scrollIntoView({behavior:'smooth',block:'center'}); }
 function ocultarAlerta(){ document.getElementById('alerta').className='alerta'; }
 function escAttr(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
