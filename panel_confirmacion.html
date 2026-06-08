@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="./favicon.ico?v=1">
+<link rel="shortcut icon" href="./favicon.ico?v=1">
+<title>Panel de Confirmación de Citas — CEDIS Panamá</title>
+<style>
+  :root{
+    --azul:#1e5a9e; --azul-osc:#0C447C; --fondo:#ececec; --borde:#a8a8a8;
+    --borde-suave:#c8c8c8; --mono:'Consolas','Courier New',monospace;
+    --rojo:#A32D2D; --rojo-bg:#fcecec; --verde:#0F6E56; --verde-bg:#e1f5ee;
+    --ambar:#854F0B; --ambar-bg:#fdf4e3; --gris-bg:#f1efe8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--fondo);font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px;}
+  .header{background:var(--azul-osc);color:#fff;padding:14px 18px;border-radius:4px 4px 0 0;display:flex;align-items:center;gap:14px;}
+  .header .logo{width:48px;height:48px;flex-shrink:0;object-fit:contain;}
+  .header h1{margin:0;font-size:18px;font-weight:600;}
+  .header .sub{font-size:12.5px;color:#B5D4F4;margin-top:3px;}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px;background:#fff;border:1px solid var(--borde-suave);border-top:none;}
+  .kpi{background:var(--fondo);border:1px solid var(--borde-suave);border-radius:3px;padding:10px 12px;}
+  .kpi .lbl{font-size:12px;color:#555;}
+  .kpi .val{font-size:24px;font-weight:700;font-family:var(--mono);}
+  .tabs{display:flex;gap:3px;padding:0 14px;background:#fff;border-left:1px solid var(--borde-suave);border-right:1px solid var(--borde-suave);}
+  .tab{padding:9px 18px;border-radius:3px 3px 0 0;font-size:13px;cursor:pointer;background:var(--fondo);color:#555;border:1px solid var(--borde-suave);border-bottom:none;}
+  .tab.activa{background:var(--azul-osc);color:#fff;font-weight:600;}
+  .panel-body{background:#fff;border:1px solid var(--borde-suave);border-top:none;border-radius:0 0 4px 4px;padding:14px;min-height:300px;}
+  .filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+  .filtros input,.filtros select{padding:6px 8px;border:1px solid var(--borde);font-size:13px;font-family:inherit;}
+  .filtros input{flex:1;min-width:160px;}
+  .cita{border:1px solid var(--borde-suave);border-left:5px solid #ccc;border-radius:0 4px 4px 0;padding:12px 14px;margin-bottom:10px;}
+  .cita.recepcion{border-left-color:var(--rojo);}
+  .cita.redistribucion{border-left-color:var(--verde);}
+  .cita-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .cita-nombre{font-size:14px;font-weight:600;}
+  .cita-meta{font-size:12px;color:#666;font-family:var(--mono);margin-top:2px;}
+  .cita-fecha{font-size:12.5px;color:var(--ambar);font-weight:600;margin-top:4px;}
+  .ipr-box{text-align:center;border-radius:4px;padding:4px 12px;min-width:54px;}
+  .ipr-box.recepcion{background:var(--rojo-bg);} .ipr-box.recepcion .n{color:var(--rojo);}
+  .ipr-box.redistribucion{background:var(--verde-bg);} .ipr-box.redistribucion .n{color:var(--verde);}
+  .ipr-box .lbl{font-size:10px;}
+  .ipr-box .n{font-size:22px;font-weight:700;font-family:var(--mono);}
+  .badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .badge{font-size:11px;padding:2px 8px;border-radius:3px;}
+  .badge.rojo{background:var(--rojo-bg);color:var(--rojo);}
+  .badge.verde{background:var(--verde-bg);color:var(--verde);}
+  .badge.gris{background:var(--gris-bg);color:#5F5E5A;}
+  .badge.ambar{background:var(--ambar-bg);color:var(--ambar);}
+  .badge.clic{cursor:pointer;text-decoration:underline dotted;}
+  .acciones{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .btn{padding:5px 12px;font-size:12px;border:1px solid var(--borde);background:#fff;cursor:pointer;font-family:inherit;border-radius:3px;}
+  .btn:hover{background:var(--fondo);}
+  .btn.primary{background:var(--azul);color:#fff;border-color:var(--azul-osc);}
+  .btn.primary:hover{background:var(--azul-osc);}
+  .estado-msg{padding:14px;text-align:center;color:#666;font-size:13px;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .overlay.activo{display:flex;}
+  .modal{background:#fff;border-radius:4px;max-width:560px;width:100%;max-height:85vh;overflow:auto;}
+  .modal-head{background:var(--azul-osc);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-radius:4px 4px 0 0;position:sticky;top:0;}
+  .modal-head h3{margin:0;font-size:15px;font-weight:600;}
+  .modal-x{cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;}
+  .modal-body{padding:16px;}
+  .modal-body table{width:100%;border-collapse:collapse;font-size:13px;}
+  .modal-body td{padding:5px 6px;border-bottom:1px solid #eee;}
+  .modal-body td.k{color:#666;width:38%;}
+  .modal-body td.v{font-family:var(--mono);}
+  .ue-list{columns:2;font-size:12.5px;line-height:1.7;}
+  .ue-list div{break-inside:avoid;}
+  .tab-cal{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <img class="logo" src="icons/icon-192.png" alt="Logo CSS Panamá">
+    <div>
+      <h1>Panel de Confirmación de Citas — CEDIS Panamá</h1>
+      <div class="sub">Dirección Nacional de Logística · prioriza por Índice de Priorización de Recepción (IPR)</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Solicitudes pendientes</div><div class="val" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="lbl">Cola recepción (urgente)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
+    <div class="kpi"><div class="lbl">Cola redistribución</div><div class="val" id="kpiRedist" style="color:var(--verde);">—</div></div>
+    <div class="kpi"><div class="lbl">Actualizado</div><div class="val" id="kpiHora" style="font-size:14px;">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab activa" data-tab="lista">Lista priorizada</div>
+    <div class="tab" data-tab="calendario">Calendario</div>
+  </div>
+
+  <div class="panel-body">
+    <div class="filtros">
+      <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
+      <select id="filtroCola">
+        <option value="">Todas las colas</option>
+        <option value="RECEPCION">Solo recepción</option>
+        <option value="REDISTRIBUCION">Solo redistribución</option>
+      </select>
+      <button class="btn" id="btnRefrescar">Refrescar</button>
+    </div>
+    <div id="tabLista"></div>
+    <div id="tabCalendario" class="tab-cal">
+      <div class="estado-msg">La vista de calendario se agregará en la siguiente capa del panel.</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitulo">Detalle</h3><button class="modal-x" id="modalX">&times;</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+let SOLICITUDES = [];
+
+function loadJsonp(action){
+  return new Promise((resolve,reject)=>{
+    const cb='_cb_'+Date.now()+Math.floor(Math.random()*1000);
+    window[cb]=(resp)=>{ delete window[cb]; const s=document.getElementById(cb); if(s)s.remove(); resolve(resp); };
+    const s=document.createElement('script'); s.id=cb;
+    s.src=API_URL+'?action='+action+'&callback='+cb;
+    s.onerror=()=>{ delete window[cb]; reject(new Error('Error de red')); };
+    document.body.appendChild(s);
+  });
+}
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function num(n){ return Number(n||0).toLocaleString('es-PA'); }
+
+async function cargar(){
+  document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
+  try{
+    const resp=await loadJsonp('getSolicitudesPriorizadas');
+    if(!resp.success){ throw new Error(resp.error||'error'); }
+    SOLICITUDES=resp.solicitudes||[];
+    actualizarKPIs();
+    render();
+  }catch(e){
+    document.getElementById('tabLista').innerHTML='<div class="estado-msg">No se pudieron cargar las solicitudes: '+esc(e.message)+'</div>';
+  }
+}
+
+function actualizarKPIs(){
+  const rec=SOLICITUDES.filter(s=>s.cola==='RECEPCION').length;
+  const red=SOLICITUDES.filter(s=>s.cola==='REDISTRIBUCION').length;
+  document.getElementById('kpiTotal').textContent=SOLICITUDES.length;
+  document.getElementById('kpiRecepcion').textContent=rec;
+  document.getElementById('kpiRedist').textContent=red;
+  const now=new Date();
+  document.getElementById('kpiHora').textContent=now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+}
+
+function getFiltradas(){
+  const q=document.getElementById('buscar').value.toLowerCase().trim();
+  const cola=document.getElementById('filtroCola').value;
+  return SOLICITUDES.filter(s=>{
+    if(cola && s.cola!==cola) return false;
+    if(q){
+      const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
+      if(blob.indexOf(q)<0) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  const cont=document.getElementById('tabLista');
+  const lista=getFiltradas();
+  if(lista.length===0){ cont.innerHTML='<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
+  cont.innerHTML=lista.map((s,idx)=>{
+    const cls=s.cola==='RECEPCION'?'recepcion':'redistribucion';
+    const colaLabel=s.cola==='RECEPCION'?'Recepción urgente':'Redistribución';
+    const colaBadge=s.cola==='RECEPCION'?'rojo':'verde';
+    const statusCedis = s.status_cedis ? `<span class="badge ${s.cola==='RECEPCION'?'rojo':'verde'}">CEDIS: ${esc(s.status_cedis)}</span>` : '';
+    const cedisNota = (s.cola==='REDISTRIBUCION' && s.cedis_saldo>0) ? `<span class="badge gris">Hay stock en CEDIS (${num(s.cedis_saldo)}), mal repartido</span>` : '';
+    return `
+    <div class="cita ${cls}">
+      <div class="cita-top">
+        <div>
+          <div class="cita-nombre">${esc(s.empresa)} — ${esc(s.descripcion)}</div>
+          <div class="cita-meta">OC ${esc(s.oc)} · Abasto ${esc(s.cod_abasto)} · ${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</div>
+          <div class="cita-fecha">Fecha solicitada: ${esc(s.fecha_solicitada||'—')} · Estado: ${esc(s.estado)}</div>
+        </div>
+        <div class="ipr-box ${cls}"><div class="lbl">IPR</div><div class="n">${s.ipr}</div></div>
+      </div>
+      <div class="badges">
+        <span class="badge ${colaBadge}">${colaLabel}</span>
+        <span class="badge gris clic" data-ue="${idx}">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
+        ${statusCedis}
+        ${cedisNota}
+        ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
+        ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}
+      </div>
+      <div class="acciones">
+        <button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+        <button class="btn" data-dif="${idx}">Diferir</button>
+        <button class="btn" data-ent="${idx}">Registrar entrega</button>
+        <button class="btn" data-det="${idx}">Ver detalle</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // listeners
+  cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
+  cont.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>verUE(lista[+b.dataset.ue])));
+  cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Confirmar cita',lista[+b.dataset.conf])));
+  cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Diferir',lista[+b.dataset.dif])));
+  cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Registrar entrega',lista[+b.dataset.ent])));
+}
+
+function verDetalle(s){
+  let lotes=[];
+  try{ lotes=JSON.parse(s.lotes_json||'[]'); }catch(e){ lotes=[]; }
+  const lotesHtml = lotes.length ? lotes.map(l=>
+    `<tr><td class="v">${esc(l.lote||'')}</td><td class="v">${esc(l.venc||'')}</td><td class="v">${num(l.cant_lote)}</td><td class="v">${esc(l.presentacion||'')}</td></tr>`
+  ).join('') : '<tr><td colspan="4" style="color:#999;">Sin lotes capturados</td></tr>';
+  const sustento = s.link_sustento ? `<a href="${esc(s.link_sustento)}" target="_blank">Ver documento adjunto</a>` : '<span style="color:#999;">Sin documento</span>';
+  document.getElementById('modalTitulo').textContent='Detalle — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Fecha solicitada</td><td class="v">${esc(s.fecha_solicitada||'—')}</td></tr>
+      <tr><td class="k">Cantidades</td><td class="v">${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</td></tr>
+      <tr><td class="k">Ambiente / Modalidad</td><td class="v">${esc(s.tipo_ambiente||'—')} · ${esc(s.modalidad||'—')}</td></tr>
+      <tr><td class="k">Saldo pendiente</td><td class="v">${num(s.saldo_pendiente)}</td></tr>
+      <tr><td class="k">Documento sustento</td><td class="v">${sustento}</td></tr>
+    </table>
+    <div style="font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--azul-osc);">Lotes</div>
+    <table>
+      <tr><td class="k">Lote</td><td class="k">Vence</td><td class="k">Cantidad</td><td class="k">Present.</td></tr>
+      ${lotesHtml}
+    </table>`;
+  abrirModal();
+}
+
+function verUE(s){
+  const lista=(s.ue_cero_lista||'').split(';').map(x=>x.trim()).filter(Boolean);
+  const items = lista.length ? lista.map(u=>`<div>• ${esc(u)}</div>`).join('') : '<div style="color:#999;">Sin UE en cero registradas</div>';
+  document.getElementById('modalTitulo').textContent='UE en cero — '+s.descripcion;
+  document.getElementById('modalBody').innerHTML=`
+    <div style="font-size:13px;margin-bottom:10px;">
+      <b>${s.ue_cero}</b> de <b>${s.ue_total}</b> unidades ejecutoras con saldo &lt; 10 unidades (${s.ue_pct}% de escasez).
+      ${s.cedis_saldo>0?`<br>En CEDIS hay <b>${num(s.cedis_saldo)}</b> unidades disponibles para redistribuir.`:''}
+    </div>
+    <div class="ue-list">${items}</div>`;
+  abrirModal();
+}
+
+function accionPendiente(nombre,s){
+  document.getElementById('modalTitulo').textContent=nombre;
+  document.getElementById('modalBody').innerHTML=`<div style="font-size:13px;line-height:1.7;">La acción <b>${esc(nombre)}</b> para la solicitud de <b>${esc(s.empresa)}</b> (OC ${esc(s.oc)}) se construirá en la siguiente capa del panel, junto con el envío de correos y el registro de entregas parciales.</div>`;
+  abrirModal();
+}
+
+function abrirModal(){ document.getElementById('overlay').classList.add('activo'); }
+function cerrarModal(){ document.getElementById('overlay').classList.remove('activo'); }
+
+document.getElementById('modalX').addEventListener('click',cerrarModal);
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') cerrarModal(); });
+document.getElementById('buscar').addEventListener('input',render);
+document.getElementById('filtroCola').addEventListener('change',render);
+document.getElementById('btnRefrescar').addEventListener('click',cargar);
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('activa'));
+  t.classList.add('activa');
+  const tab=t.dataset.tab;
+  document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
+  document.querySelector('.filtros').style.display = tab==='lista'?'flex':'none';
+  document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
+}));
+
+cargar();
+</script>
+</body>
+</html>
