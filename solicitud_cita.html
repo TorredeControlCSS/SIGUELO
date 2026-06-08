@@ -74,6 +74,21 @@
   table.lote td input,table.lote td select{width:100%;padding:4px 5px;font-size:12.5px;}
   table.lote td.acc{text-align:center;width:38px;background:#fff !important;border-left:none;}
   table.lote th:first-child,table.lote td:first-child{min-width:90px;}
+  .cal-carga{margin-bottom:16px;padding:12px;background:#f4f4f4;border:1px solid var(--borde-suave);}
+  .cal-titulo{font-size:13px;font-weight:600;color:var(--azul-osc);margin-bottom:10px;}
+  .cal-hint{font-weight:400;color:#666;font-size:11.5px;}
+  .cal-dias{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .cal-dia{border:1px solid var(--borde-suave);border-radius:3px;padding:8px 4px;text-align:center;background:#fff;cursor:pointer;transition:transform .1s;}
+  .cal-dia:hover{transform:translateY(-2px);}
+  .cal-dia .cd-fecha{font-size:11px;font-weight:600;color:#333;}
+  .cal-dia .cd-num{font-size:20px;font-weight:700;font-family:var(--mono);margin:3px 0;}
+  .cal-dia .cd-estado{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+  .cd-disp{background:#eaf5ea;} .cd-disp .cd-num,.cd-disp .cd-estado{color:#2E7D32;}
+  .cd-medio{background:#fdf4e3;} .cd-medio .cd-num,.cd-medio .cd-estado{color:#854F0B;}
+  .cd-lleno{background:#fcecec;} .cd-lleno .cd-num,.cd-lleno .cd-estado{color:#A32D2D;}
+  .cd-sugerido{border:2px solid #2E7D32;position:relative;}
+  .cd-sugerido::after{content:'sugerido';position:absolute;top:-8px;right:-4px;background:#2E7D32;color:#fff;font-size:8.5px;padding:1px 5px;border-radius:7px;}
+  .cal-sugerencia{margin-top:10px;font-size:12.5px;color:#444;}
   .lote-resumen{margin-top:8px;padding:8px 12px;background:#f4f4f4;border:1px solid var(--borde-suave);font-size:12.5px;display:flex;gap:20px;flex-wrap:wrap;}
   .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
   .vida-corta{font-size:10px;color:#b8860b;font-weight:700;margin-top:2px;}
@@ -221,6 +236,11 @@
   <div class="seccion">
     <div class="seccion-titulo"><span class="num">4</span> Detalles Logísticos de la Entrega</div>
     <div class="seccion-cuerpo">
+      <div id="calCarga" class="cal-carga" style="display:none;">
+        <div class="cal-titulo">Carga de citas de las próximas dos semanas <span class="cal-hint">(solicitudes ya pedidas por día)</span></div>
+        <div id="calDias" class="cal-dias"></div>
+        <div id="calSugerencia" class="cal-sugerencia"></div>
+      </div>
       <div class="grid">
         <div class="campo">
           <label>Fecha de entrega solicitada <span class="req">*</span></label>
@@ -369,6 +389,77 @@ async function init(){
     info.style.color='var(--azul-osc)';
     info.textContent='Archivo: '+f.name+' ('+(f.size/1024).toFixed(0)+' KB)';
   });
+  cargarCalendarioCarga();
+}
+
+// ===== Mini-calendario de carga de citas (próximas 2 semanas) =====
+function cargarCalendarioCarga(){
+  // Lectura vía JSONP (GET con callback) para evitar problemas de CORS
+  const cb='_calCB_'+Date.now();
+  window[cb]=function(resp){
+    try{ if(resp && resp.success){ renderCalendario(resp.carga||{}); } }
+    finally{ delete window[cb]; const s=document.getElementById('jsonpCal'); if(s) s.remove(); }
+  };
+  const s=document.createElement('script');
+  s.id='jsonpCal';
+  s.src=API_URL+'?action=getCargaPorFecha&callback='+cb;
+  s.onerror=()=>{ delete window[cb]; }; // si falla, el calendario simplemente no se muestra
+  document.body.appendChild(s);
+}
+
+function clasifCarga(n){
+  if(n>=8) return ['cd-lleno','Lleno'];
+  if(n>=4) return ['cd-medio','Medio'];
+  return ['cd-disp','Disponible'];
+}
+
+function renderCalendario(carga){
+  const cont=document.getElementById('calDias');
+  const wrap=document.getElementById('calCarga');
+  const sug=document.getElementById('calSugerencia');
+  if(!cont) return;
+  // Construir los próximos 10 días hábiles (lun-vie), saltando fines de semana
+  const dias=[]; const hoy=new Date(); let d=new Date(hoy);
+  while(dias.length<10){
+    const dow=d.getDay();
+    if(dow!==0 && dow!==6){ dias.push(new Date(d)); }
+    d.setDate(d.getDate()+1);
+  }
+  const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const semana=['dom','lun','mar','mié','jue','vie','sáb'];
+  // encontrar el día con menos carga (sugerido)
+  let minN=Infinity, minKey=null;
+  const info=dias.map(fec=>{
+    const key=fec.toISOString().slice(0,10);
+    const n=carga[key]||0;
+    if(n<minN){ minN=n; minKey=key; }
+    return {fec,key,n};
+  });
+  cont.innerHTML=info.map(it=>{
+    const [cls,txt]=clasifCarga(it.n);
+    const sugerido = (it.key===minKey && minN<8) ? ' cd-sugerido' : '';
+    const etiqueta=semana[it.fec.getDay()]+' '+it.fec.getDate()+' '+meses[it.fec.getMonth()];
+    return `<div class="cal-dia ${cls}${sugerido}" data-fecha="${it.key}" title="Clic para elegir este día">
+      <div class="cd-fecha">${etiqueta}</div>
+      <div class="cd-num">${it.n}</div>
+      <div class="cd-estado">${txt}</div>
+    </div>`;
+  }).join('');
+  // clic en un día -> setear la fecha de entrega
+  cont.querySelectorAll('.cal-dia').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const f=el.dataset.fecha;
+      const inp=document.getElementById('fechaSolic');
+      inp.value=f; inp.dispatchEvent(new Event('change'));
+    });
+  });
+  if(minKey && minN<8){
+    const fs=info.find(x=>x.key===minKey).fec;
+    sug.innerHTML='Sugerencia: el <b>'+semana[fs.getDay()]+' '+fs.getDate()+' '+meses[fs.getMonth()]+'</b> tiene más espacio disponible. Puede elegir cualquier día.';
+  } else {
+    sug.textContent='Todos los días próximos tienen alta demanda. Considere coordinar con el equipo.';
+  }
+  wrap.style.display='block';
 }
 
 // Tipo de entrega -> mostrar/ocultar OC vs Nota de Adelanto, aviso de compromiso
