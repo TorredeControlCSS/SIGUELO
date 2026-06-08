@@ -606,51 +606,52 @@ function enviarSolicitud(){
 }
 
 // Sube el archivo a Drive vía backend (Opción 2: petición separada)
-// Con barra de progreso real (XHR) y reintento automático ante fallo de red.
+// Usa fetch con text/plain (evita el preflight CORS que Apps Script no maneja).
+// Barra de progreso simulada (fetch no reporta progreso de subida) + reintento automático.
 function subirArchivo(archivo, idSolicitud){
   const wrap=document.getElementById('barraWrap');
   const barra=document.getElementById('barraProg');
   const texto=document.getElementById('barraTexto');
   wrap.style.display='block';
 
-  function setProg(pct, msg){
-    barra.style.width=pct+'%';
-    texto.textContent=msg||(pct+'%');
-  }
+  function setProg(pct, msg){ barra.style.width=pct+'%'; texto.textContent=msg||(pct+'%'); }
 
   // Lee el archivo a base64 una sola vez
   function leerBase64(){
     return new Promise((res,rej)=>{
       setProg(5,'Leyendo el archivo...');
       const reader=new FileReader();
-      reader.onprogress=(e)=>{ if(e.lengthComputable){ setProg(5+Math.round((e.loaded/e.total)*25),'Leyendo el archivo...'); } };
+      reader.onprogress=(e)=>{ if(e.lengthComputable){ setProg(5+Math.round((e.loaded/e.total)*20),'Leyendo el archivo...'); } };
       reader.onload=()=>res(String(reader.result).split(',')[1]);
       reader.onerror=()=>rej(new Error('No se pudo leer el archivo'));
       reader.readAsDataURL(archivo);
     });
   }
 
-  // Un intento de subida con XHR (reporta progreso de subida)
+  // Barra simulada: avanza gradualmente hasta 90% mientras la subida está en curso
+  let simTimer=null;
+  function iniciarSimulacion(intento){
+    let pct=25;
+    setProg(pct, 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...');
+    simTimer=setInterval(()=>{
+      pct += Math.max(1, Math.round((90-pct)*0.08));
+      if(pct>=90){ pct=90; }
+      setProg(pct, 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...');
+    }, 400);
+  }
+  function detenerSimulacion(){ if(simTimer){ clearInterval(simTimer); simTimer=null; } }
+
+  // Un intento de subida con fetch (text/plain evita el preflight CORS)
   function intentoSubida(b64, intento){
-    return new Promise((resolve)=>{
-      const payload=JSON.stringify({ action:'subirSustento', data:{
-        id_solicitud:idSolicitud, nombre_archivo:archivo.name,
-        mime_type:archivo.type||'application/octet-stream', contenido_base64:b64
-      }});
-      const xhr=new XMLHttpRequest();
-      xhr.open('POST', API_URL, true);
-      xhr.setRequestHeader('Content-Type','text/plain;charset=utf-8');
-      xhr.upload.onprogress=(e)=>{ if(e.lengthComputable){ setProg(30+Math.round((e.loaded/e.total)*60), 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...'); } };
-      xhr.onload=()=>{
-        setProg(100,'Procesando...');
-        try{ resolve(JSON.parse(xhr.responseText)); }
-        catch(e){ resolve({success:false,error:'Respuesta inesperada del servidor'}); }
-      };
-      xhr.onerror=()=>resolve({success:false, _red:true, error:'Fallo de red'});
-      xhr.ontimeout=()=>resolve({success:false, _red:true, error:'Tiempo de espera agotado'});
-      xhr.timeout=120000; // 2 minutos
-      xhr.send(payload);
-    });
+    const payload=JSON.stringify({ action:'subirSustento', data:{
+      id_solicitud:idSolicitud, nombre_archivo:archivo.name,
+      mime_type:archivo.type||'application/octet-stream', contenido_base64:b64
+    }});
+    iniciarSimulacion(intento);
+    return fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:payload })
+      .then(r=>r.json())
+      .then(res=>{ detenerSimulacion(); return res; })
+      .catch(err=>{ detenerSimulacion(); return {success:false, _red:true, error:err.message||'Fallo de red'}; });
   }
 
   return leerBase64().then(async (b64)=>{
@@ -658,10 +659,9 @@ function subirArchivo(archivo, idSolicitud){
     let ultimo={success:false,error:'desconocido'};
     for(let intento=1; intento<=MAX_INTENTOS; intento++){
       ultimo=await intentoSubida(b64, intento);
-      if(ultimo.success){ setProg(100,'Documento subido.'); return ultimo; }
-      // Si fue fallo de red y quedan intentos, reintenta tras una pausa
-      if(ultimo._red && intento<MAX_INTENTOS){
-        setProg(30,'Conexión interrumpida. Reintentando en breve...');
+      if(ultimo && ultimo.success){ setProg(100,'Documento subido.'); return ultimo; }
+      if(intento<MAX_INTENTOS){
+        setProg(25,'Conexión interrumpida. Reintentando en breve...');
         await new Promise(r=>setTimeout(r, 1500*intento));
         continue;
       }
