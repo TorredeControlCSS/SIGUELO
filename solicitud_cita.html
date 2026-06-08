@@ -187,17 +187,20 @@
     <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote) <span class="req" style="margin-left:4px;">*</span></div>
     <div class="seccion-cuerpo">
       <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
+      <span class="hint" style="display:block;margin-bottom:8px;color:var(--azul-osc);">Empaque (unidades que agrupa cada nivel): <b>Terciario</b> = bulto o master · <b>Secundario</b> = caja interna · <b>Primario</b> = empaque que toca el producto. La presentación comercial se sugiere desde el renglón.</span>
       <table class="lote">
         <thead>
           <tr>
             <th>Lote</th>
             <th>Fecha vencimiento</th>
             <th>Cantidad x lote</th>
-            <th>Cant. x bulto</th>
-            <th>Presentación/caja</th>
-            <th>Total bultos</th>
+            <th title="Unidades por bulto/master (nivel exterior)">Emp. Terciario</th>
+            <th title="Unidades por caja (nivel intermedio)">Emp. Secundario</th>
+            <th title="Unidades por empaque que toca el producto">Emp. Primario</th>
+            <th>Presentación comercial</th>
             <th>Pallets</th>
             <th>Clasificación bulto</th>
+            <th class="acc"></th>
             <th class="acc"></th>
           </tr>
         </thead>
@@ -207,7 +210,7 @@
       <div class="lote-resumen">
         <span>Lotes: <b id="totLotes">0</b></span>
         <span>Total unidades: <b id="totUnid">0</b></span>
-        <span>Total bultos: <b id="totBultos">0</b></span>
+        <span>Lotes con cantidad: <b id="totBultos">0</b></span>
         <span>Total pallets: <b id="totPallets">0</b></span>
       </div>
     </div>
@@ -292,6 +295,12 @@
         <input type="file" id="archivoSustento" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         <span class="hint">Formato PDF, JPG o PNG · máximo 10 MB · obligatorio.</span>
         <span class="hint" id="archivoInfo" style="color:var(--azul-osc);"></span>
+        <div id="barraWrap" style="display:none;margin-top:8px;">
+          <div style="background:#e0e0e0;border:1px solid var(--borde-suave);border-radius:3px;height:18px;overflow:hidden;">
+            <div id="barraProg" style="background:var(--azul);height:100%;width:0%;transition:width .2s;"></div>
+          </div>
+          <span class="hint" id="barraTexto" style="display:block;margin-top:3px;color:var(--azul-osc);"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -403,12 +412,18 @@ document.getElementById('renglon').addEventListener('change', function(){
   document.getElementById('avisoControl').classList.toggle('activo', esControlado);
   renglonActual._controlado = esControlado;
   ficha.classList.add('activa');
+  // Precargar la presentación comercial del renglón en los lotes que no la tengan
+  const pres = renglonActual.presentacion_comercial || '';
+  if(pres){
+    lotes.forEach(l=>{ if(!l.presentacion) l.presentacion=pres; });
+    renderLotes();
+  }
 });
 
 // ---- Lista de empaque por lote ----
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
 function agregarLote(){
-  lotes.push({lote:'',venc:'',cant_lote:0,cant_bulto:0,presentacion:'',total_bultos:0,pallets:0,clasif:''});
+  lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',pallets:0,clasif:''});
   renderLotes();
 }
 function mesesEntre(desde, hasta){
@@ -432,9 +447,10 @@ function renderLotes(){
     <td><input type="text" data-i="${i}" data-f="lote" value="${escAttr(l.lote)}" placeholder="ej. E250519"></td>
     <td><input type="date" data-i="${i}" data-f="venc" value="${l.venc}" min="2024-01-01" max="2099-12-31">${corta?'<div class="vida-corta">⚠ &lt;18 meses</div>':''}</td>
     <td><input type="number" min="0" data-i="${i}" data-f="cant_lote" value="${l.cant_lote||''}" placeholder="ej. 42000"></td>
-    <td><input type="number" min="0" data-i="${i}" data-f="cant_bulto" value="${l.cant_bulto||''}" placeholder="ej. 6000"></td>
-    <td><input type="text" data-i="${i}" data-f="presentacion" value="${escAttr(l.presentacion)}" placeholder="ej. 500x12"></td>
-    <td><input type="number" min="0" data-i="${i}" data-f="total_bultos" value="${l.total_bultos||''}" placeholder="ej. 7"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="emp_terciario" value="${l.emp_terciario||''}" placeholder="ej. 6000"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="emp_secundario" value="${l.emp_secundario||''}" placeholder="ej. 500"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="emp_primario" value="${l.emp_primario||''}" placeholder="ej. 12"></td>
+    <td><input type="text" data-i="${i}" data-f="presentacion" value="${escAttr(l.presentacion)}" placeholder="del renglón"></td>
     <td><input type="number" min="0" step="0.01" data-i="${i}" data-f="pallets" value="${l.pallets||''}" placeholder="ej. 5"></td>
     <td><select data-i="${i}" data-f="clasif">${CLASIF_BULTO.map(e=>`<option ${e===l.clasif?'selected':''}>${e}</option>`).join('')}</select></td>
     <td class="acc">${lotes.length>1?`<button class="btn btn-mini btn-rojo" data-del="${i}">✕</button>`:''}</td>
@@ -442,7 +458,7 @@ function renderLotes(){
   tb.querySelectorAll('input[data-i],select[data-i]').forEach(el=>{
     el.addEventListener('input',e=>{
       const i=+e.target.dataset.i,f=e.target.dataset.f;
-      const numericos=['cant_bulto','total_bultos','cant_lote'];
+      const numericos=['emp_terciario','emp_secundario','emp_primario','cant_lote'];
       lotes[i][f]= numericos.includes(f)?(parseInt(e.target.value,10)||0):(f==='pallets')?(parseFloat(e.target.value)||0):e.target.value;
       totales();
     });
@@ -473,17 +489,36 @@ function actualizarMarcaCorta(inputVenc){
 }
 function totales(){
   const u=lotes.reduce((s,l)=>s+(+l.cant_lote||0),0);
-  const b=lotes.reduce((s,l)=>s+(+l.total_bultos||0),0);
   const p=lotes.reduce((s,l)=>s+(+l.pallets||0),0);
   document.getElementById('totLotes').textContent=lotes.length;
   document.getElementById('totUnid').textContent=u.toLocaleString('es-PA');
-  document.getElementById('totBultos').textContent=b.toLocaleString('es-PA');
+  document.getElementById('totBultos').textContent=lotes.filter(l=>l.cant_lote>0).length;
   document.getElementById('totPallets').textContent=p.toLocaleString('es-PA',{maximumFractionDigits:2});
 }
 
 document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
 function enviarSolicitud(){
   ocultarAlerta();
+
+  // Reintento de solo-documento: la solicitud ya se guardó antes, solo falta el archivo
+  if(window._idSolicitudPendiente){
+    const arch=document.getElementById('archivoSustento').files[0];
+    if(!arch){ mostrarAlerta('err','Adjunte el documento para reintentar.'); return; }
+    const idPend=window._idSolicitudPendiente;
+    const btnR=document.getElementById('btnEnviar');
+    btnR.disabled=true; btnR.textContent='Reintentando documento...';
+    subirArchivo(arch, idPend).then(up=>{
+      if(up && up.success){
+        mostrarAlerta('ok','✓ Documento adjuntado a la solicitud '+idPend+'. Todo quedó completo.');
+        window._idSolicitudPendiente=null;
+        limpiarTodo();
+      }else{
+        mostrarAlerta('err','El documento aún no se pudo subir ('+((up&&up.error)||'error de red')+'). Intente con mejor conexión.');
+      }
+    }).finally(()=>{ btnR.disabled=false; btnR.textContent='Enviar solicitud'; });
+    return;
+  }
+
   const tipo=val('tipoEntrega');
   const esAdelanto = tipo==='Adelanto';
   const req={
@@ -515,9 +550,8 @@ function enviarSolicitud(){
     const l=lotesValidos[n];
     if(!l.lote){ mostrarAlerta('err','Lote '+(n+1)+': falta el número de lote.'); return; }
     if(!l.venc){ mostrarAlerta('err','Lote '+(n+1)+': falta la fecha de vencimiento.'); return; }
-    if(!(l.cant_bulto>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta la cantidad por bulto.'); return; }
-    if(!l.presentacion){ mostrarAlerta('err','Lote '+(n+1)+': falta la presentación por caja.'); return; }
-    if(!(l.total_bultos>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta el total de bultos.'); return; }
+    if(!(l.emp_primario>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta el empaque primario.'); return; }
+    if(!l.presentacion){ mostrarAlerta('err','Lote '+(n+1)+': falta la presentación comercial.'); return; }
     if(!l.clasif){ mostrarAlerta('err','Lote '+(n+1)+': falta la clasificación del bulto.'); return; }
   }
 
@@ -534,7 +568,7 @@ function enviarSolicitud(){
   req.lotes=lotesValidos.map(l=>({...l, fecha_corta: loteFechaCorta(l)?'SI':'NO'}));
   req.tiene_fecha_corta = lotesValidos.some(l=>loteFechaCorta(l)) ? 'SI' : 'NO';
   req.cant_unidades=lotesValidos.reduce((s,l)=>s+(+l.cant_lote||0),0);
-  req.cant_bultos=lotesValidos.reduce((s,l)=>s+(+l.total_bultos||0),0);
+  req.cant_bultos=lotesValidos.length;
   req.cant_pallets=lotesValidos.reduce((s,l)=>s+(+l.pallets||0),0);
 
   const payload={action:'nuevaSolicitud', data:req};
@@ -552,10 +586,11 @@ function enviarSolicitud(){
       return subirArchivo(archivo, idSol).then(up=>{
         if(up && up.success){
           mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+') y documento adjunto. Su cita será confirmada el próximo viernes.');
+          limpiarTodo();
         }else{
-          mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+'). Nota: el documento no se pudo adjuntar ('+((up&&up.error)||'error')+'). Puede reenviarlo luego. La solicitud quedó guardada.');
+          mostrarAlerta('err','La solicitud ('+idSol+') quedó guardada, pero el documento no se pudo adjuntar tras varios intentos ('+((up&&up.error)||'error de red')+'). Su conexión puede estar lenta. Vuelva a presionar "Enviar solicitud" para reintentar solo el documento — no se duplicará la solicitud.');
+          window._idSolicitudPendiente = idSol; // recordar para reintento de solo-archivo
         }
-        limpiarTodo();
       });
     }else{
       mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+'). Su cita será confirmada el próximo viernes al correo indicado.');
@@ -567,21 +602,69 @@ function enviarSolicitud(){
 }
 
 // Sube el archivo a Drive vía backend (Opción 2: petición separada)
+// Con barra de progreso real (XHR) y reintento automático ante fallo de red.
 function subirArchivo(archivo, idSolicitud){
-  return new Promise((resolve)=>{
-    const reader=new FileReader();
-    reader.onload=()=>{
-      const b64 = String(reader.result).split(',')[1]; // quita el prefijo data:...;base64,
-      const payload={ action:'subirSustento', data:{
+  const wrap=document.getElementById('barraWrap');
+  const barra=document.getElementById('barraProg');
+  const texto=document.getElementById('barraTexto');
+  wrap.style.display='block';
+
+  function setProg(pct, msg){
+    barra.style.width=pct+'%';
+    texto.textContent=msg||(pct+'%');
+  }
+
+  // Lee el archivo a base64 una sola vez
+  function leerBase64(){
+    return new Promise((res,rej)=>{
+      setProg(5,'Leyendo el archivo...');
+      const reader=new FileReader();
+      reader.onprogress=(e)=>{ if(e.lengthComputable){ setProg(5+Math.round((e.loaded/e.total)*25),'Leyendo el archivo...'); } };
+      reader.onload=()=>res(String(reader.result).split(',')[1]);
+      reader.onerror=()=>rej(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(archivo);
+    });
+  }
+
+  // Un intento de subida con XHR (reporta progreso de subida)
+  function intentoSubida(b64, intento){
+    return new Promise((resolve)=>{
+      const payload=JSON.stringify({ action:'subirSustento', data:{
         id_solicitud:idSolicitud, nombre_archivo:archivo.name,
         mime_type:archivo.type||'application/octet-stream', contenido_base64:b64
-      }};
-      fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload) })
-        .then(r=>r.json()).then(resolve).catch(err=>resolve({success:false,error:err.message}));
-    };
-    reader.onerror=()=>resolve({success:false,error:'No se pudo leer el archivo'});
-    reader.readAsDataURL(archivo);
-  });
+      }});
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST', API_URL, true);
+      xhr.setRequestHeader('Content-Type','text/plain;charset=utf-8');
+      xhr.upload.onprogress=(e)=>{ if(e.lengthComputable){ setProg(30+Math.round((e.loaded/e.total)*60), 'Subiendo documento'+(intento>1?' (reintento '+intento+')':'')+'...'); } };
+      xhr.onload=()=>{
+        setProg(100,'Procesando...');
+        try{ resolve(JSON.parse(xhr.responseText)); }
+        catch(e){ resolve({success:false,error:'Respuesta inesperada del servidor'}); }
+      };
+      xhr.onerror=()=>resolve({success:false, _red:true, error:'Fallo de red'});
+      xhr.ontimeout=()=>resolve({success:false, _red:true, error:'Tiempo de espera agotado'});
+      xhr.timeout=120000; // 2 minutos
+      xhr.send(payload);
+    });
+  }
+
+  return leerBase64().then(async (b64)=>{
+    const MAX_INTENTOS=3;
+    let ultimo={success:false,error:'desconocido'};
+    for(let intento=1; intento<=MAX_INTENTOS; intento++){
+      ultimo=await intentoSubida(b64, intento);
+      if(ultimo.success){ setProg(100,'Documento subido.'); return ultimo; }
+      // Si fue fallo de red y quedan intentos, reintenta tras una pausa
+      if(ultimo._red && intento<MAX_INTENTOS){
+        setProg(30,'Conexión interrumpida. Reintentando en breve...');
+        await new Promise(r=>setTimeout(r, 1500*intento));
+        continue;
+      }
+      break;
+    }
+    return ultimo;
+  }).catch(err=>({success:false,error:err.message}));
 }
 
 document.getElementById('btnLimpiar').addEventListener('click', limpiarTodo);
@@ -594,6 +677,10 @@ function limpiarTodo(){
   document.getElementById('avisoCompromiso').classList.remove('activo');
   renglonActual=null; lotes=[]; agregarLote();
   document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
+  document.getElementById('archivoInfo').textContent='';
+  document.getElementById('barraWrap').style.display='none';
+  document.getElementById('barraProg').style.width='0%';
+  window._idSolicitudPendiente=null;
 }
 function val(id){ return document.getElementById(id).value.trim(); }
 function mostrarAlerta(tipo,msg){ const a=document.getElementById('alerta'); a.className='alerta '+tipo; a.textContent=msg; a.scrollIntoView({behavior:'smooth',block:'center'}); }
