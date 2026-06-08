@@ -401,7 +401,7 @@ function renderLotes(){
     const corta=loteFechaCorta(l);
     return `<tr${corta?' style="background:#fff8e1;"':''}>
     <td><input type="text" data-i="${i}" data-f="lote" value="${escAttr(l.lote)}" placeholder="ej. E250519"></td>
-    <td><input type="date" data-i="${i}" data-f="venc" value="${l.venc}">${corta?'<div class="vida-corta">⚠ &lt;18 meses</div>':''}</td>
+    <td><input type="date" data-i="${i}" data-f="venc" value="${l.venc}" min="2024-01-01" max="2099-12-31">${corta?'<div class="vida-corta">⚠ &lt;18 meses</div>':''}</td>
     <td><input type="number" min="0" data-i="${i}" data-f="cant_lote" value="${l.cant_lote||''}" placeholder="ej. 42000"></td>
     <td><input type="number" min="0" data-i="${i}" data-f="cant_bulto" value="${l.cant_bulto||''}" placeholder="ej. 6000"></td>
     <td><input type="text" data-i="${i}" data-f="presentacion" value="${escAttr(l.presentacion)}" placeholder="ej. 500x12"></td>
@@ -415,7 +415,10 @@ function renderLotes(){
       const i=+e.target.dataset.i,f=e.target.dataset.f;
       const numericos=['cant_bulto','total_bultos','cant_lote'];
       lotes[i][f]= numericos.includes(f)?(parseInt(e.target.value,10)||0):(f==='pallets')?(parseFloat(e.target.value)||0):e.target.value;
-      if(f==='venc') renderLotes(); else totales();
+      totales();
+    });
+    el.addEventListener('change',e=>{
+      if(e.target.dataset.f==='venc') renderLotes();
     });
   });
   tb.querySelectorAll('button[data-del]').forEach(b=>{
