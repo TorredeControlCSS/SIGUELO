@@ -187,7 +187,7 @@
     <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote) <span class="req" style="margin-left:4px;">*</span></div>
     <div class="seccion-cuerpo">
       <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
-      <span class="hint" style="display:block;margin-bottom:8px;color:var(--azul-osc);">Empaque (unidades que agrupa cada nivel): <b>Terciario</b> = bulto o master · <b>Secundario</b> = caja interna · <b>Primario</b> = empaque que toca el producto. La presentación comercial se sugiere desde el renglón.</span>
+      <span class="hint" style="display:block;margin-bottom:8px;color:var(--azul-osc);">Empaque (unidades que agrupa cada nivel): <b>Terciario</b> = bulto o master · <b>Secundario</b> = caja interna · <b>Primario</b> = empaque que toca el producto. La <b>Presentación</b> es la forma física del insumo (tableta, ampolla, vial...) y se sugiere desde el renglón.</span>
       <table class="lote">
         <thead>
           <tr>
@@ -197,7 +197,8 @@
             <th title="Unidades por bulto/master (nivel exterior)">Emp. Terciario</th>
             <th title="Unidades por caja (nivel intermedio)">Emp. Secundario</th>
             <th title="Unidades por empaque que toca el producto">Emp. Primario</th>
-            <th>Presentación comercial</th>
+            <th title="Forma física del insumo">Presentación</th>
+            <th>Total bultos</th>
             <th>Pallets</th>
             <th>Clasificación bulto</th>
             <th class="acc"></th>
@@ -210,7 +211,7 @@
       <div class="lote-resumen">
         <span>Lotes: <b id="totLotes">0</b></span>
         <span>Total unidades: <b id="totUnid">0</b></span>
-        <span>Lotes con cantidad: <b id="totBultos">0</b></span>
+        <span>Total bultos: <b id="totBultos">0</b></span>
         <span>Total pallets: <b id="totPallets">0</b></span>
       </div>
     </div>
@@ -423,7 +424,7 @@ document.getElementById('renglon').addEventListener('change', function(){
 // ---- Lista de empaque por lote ----
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
 function agregarLote(){
-  lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',pallets:0,clasif:''});
+  lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',total_bultos:0,pallets:0,clasif:''});
   renderLotes();
 }
 function mesesEntre(desde, hasta){
@@ -451,6 +452,7 @@ function renderLotes(){
     <td><input type="number" min="0" data-i="${i}" data-f="emp_secundario" value="${l.emp_secundario||''}" placeholder="ej. 500"></td>
     <td><input type="number" min="0" data-i="${i}" data-f="emp_primario" value="${l.emp_primario||''}" placeholder="ej. 12"></td>
     <td><input type="text" data-i="${i}" data-f="presentacion" value="${escAttr(l.presentacion)}" placeholder="del renglón"></td>
+    <td><input type="number" min="0" data-i="${i}" data-f="total_bultos" value="${l.total_bultos||''}" placeholder="ej. 7"></td>
     <td><input type="number" min="0" step="0.01" data-i="${i}" data-f="pallets" value="${l.pallets||''}" placeholder="ej. 5"></td>
     <td><select data-i="${i}" data-f="clasif">${CLASIF_BULTO.map(e=>`<option ${e===l.clasif?'selected':''}>${e}</option>`).join('')}</select></td>
     <td class="acc">${lotes.length>1?`<button class="btn btn-mini btn-rojo" data-del="${i}">✕</button>`:''}</td>
@@ -458,7 +460,7 @@ function renderLotes(){
   tb.querySelectorAll('input[data-i],select[data-i]').forEach(el=>{
     el.addEventListener('input',e=>{
       const i=+e.target.dataset.i,f=e.target.dataset.f;
-      const numericos=['emp_terciario','emp_secundario','emp_primario','cant_lote'];
+      const numericos=['emp_terciario','emp_secundario','emp_primario','total_bultos','cant_lote'];
       lotes[i][f]= numericos.includes(f)?(parseInt(e.target.value,10)||0):(f==='pallets')?(parseFloat(e.target.value)||0):e.target.value;
       totales();
     });
@@ -489,10 +491,11 @@ function actualizarMarcaCorta(inputVenc){
 }
 function totales(){
   const u=lotes.reduce((s,l)=>s+(+l.cant_lote||0),0);
+  const b=lotes.reduce((s,l)=>s+(+l.total_bultos||0),0);
   const p=lotes.reduce((s,l)=>s+(+l.pallets||0),0);
   document.getElementById('totLotes').textContent=lotes.length;
   document.getElementById('totUnid').textContent=u.toLocaleString('es-PA');
-  document.getElementById('totBultos').textContent=lotes.filter(l=>l.cant_lote>0).length;
+  document.getElementById('totBultos').textContent=b.toLocaleString('es-PA');
   document.getElementById('totPallets').textContent=p.toLocaleString('es-PA',{maximumFractionDigits:2});
 }
 
@@ -551,7 +554,8 @@ function enviarSolicitud(){
     if(!l.lote){ mostrarAlerta('err','Lote '+(n+1)+': falta el número de lote.'); return; }
     if(!l.venc){ mostrarAlerta('err','Lote '+(n+1)+': falta la fecha de vencimiento.'); return; }
     if(!(l.emp_primario>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta el empaque primario.'); return; }
-    if(!l.presentacion){ mostrarAlerta('err','Lote '+(n+1)+': falta la presentación comercial.'); return; }
+    if(!l.presentacion){ mostrarAlerta('err','Lote '+(n+1)+': falta la presentación.'); return; }
+    if(!(l.total_bultos>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta el total de bultos.'); return; }
     if(!l.clasif){ mostrarAlerta('err','Lote '+(n+1)+': falta la clasificación del bulto.'); return; }
   }
 
@@ -568,7 +572,7 @@ function enviarSolicitud(){
   req.lotes=lotesValidos.map(l=>({...l, fecha_corta: loteFechaCorta(l)?'SI':'NO'}));
   req.tiene_fecha_corta = lotesValidos.some(l=>loteFechaCorta(l)) ? 'SI' : 'NO';
   req.cant_unidades=lotesValidos.reduce((s,l)=>s+(+l.cant_lote||0),0);
-  req.cant_bultos=lotesValidos.length;
+  req.cant_bultos=lotesValidos.reduce((s,l)=>s+(+l.total_bultos||0),0);
   req.cant_pallets=lotesValidos.reduce((s,l)=>s+(+l.pallets||0),0);
 
   const payload={action:'nuevaSolicitud', data:req};
