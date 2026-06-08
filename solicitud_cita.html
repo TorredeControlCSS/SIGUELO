@@ -184,7 +184,7 @@
 
   <!-- 3. LISTA DE EMPAQUE -->
   <div class="seccion">
-    <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote)</div>
+    <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote) <span class="req" style="margin-left:4px;">*</span></div>
     <div class="seccion-cuerpo">
       <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
       <table class="lote">
@@ -283,6 +283,19 @@
     </div>
   </div>
 
+  <!-- 5. DOCUMENTACIÓN DE SUSTENTO -->
+  <div class="seccion">
+    <div class="seccion-titulo"><span class="num">5</span> Documentación de Sustento</div>
+    <div class="seccion-cuerpo">
+      <div class="campo full">
+        <label>Adjunte la Orden de Compra o Carta de Compromiso de entrega <span class="req">*</span></label>
+        <input type="file" id="archivoSustento" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+        <span class="hint">Formato PDF, JPG o PNG · máximo 10 MB · obligatorio.</span>
+        <span class="hint" id="archivoInfo" style="color:var(--azul-osc);"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="alerta" id="alerta"></div>
 
   <div class="footer-acciones">
@@ -332,6 +345,20 @@ async function init(){
     document.querySelectorAll('#cuerpoLotes input[data-f="venc"]').forEach(actualizarMarcaCorta);
   });
   agregarLote();
+  document.getElementById('archivoSustento').addEventListener('change', function(){
+    const info=document.getElementById('archivoInfo');
+    const f=this.files && this.files[0];
+    if(!f){ info.textContent=''; return; }
+    const MAX=10*1024*1024;
+    if(f.size>MAX){
+      info.style.color='var(--rojo)';
+      info.textContent='El archivo pesa '+(f.size/1048576).toFixed(1)+' MB y excede el máximo de 10 MB. Elija uno más liviano.';
+      this.value='';
+      return;
+    }
+    info.style.color='var(--azul-osc)';
+    info.textContent='Archivo: '+f.name+' ('+(f.size/1024).toFixed(0)+' KB)';
+  });
 }
 
 // Tipo de entrega -> mostrar/ocultar OC vs Nota de Adelanto, aviso de compromiso
@@ -480,8 +507,24 @@ function enviarSolicitud(){
   if(!esAdelanto && !val('oc')){ mostrarAlerta('err','Falta el número de orden de compra.'); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(req.correo)){ mostrarAlerta('err','El correo no tiene un formato válido.'); return; }
   if(!renglonActual){ mostrarAlerta('err','Debe seleccionar un renglón.'); return; }
+
+  // Lista de empaque obligatoria: al menos un lote con todos sus campos clave
   const lotesValidos=lotes.filter(l=>l.cant_lote>0);
-  if(lotesValidos.length===0){ mostrarAlerta('err','Capture al menos un lote con cantidad en la lista de empaque.'); return; }
+  if(lotesValidos.length===0){ mostrarAlerta('err','Capture al menos un lote en la lista de empaque.'); return; }
+  for(let n=0;n<lotesValidos.length;n++){
+    const l=lotesValidos[n];
+    if(!l.lote){ mostrarAlerta('err','Lote '+(n+1)+': falta el número de lote.'); return; }
+    if(!l.venc){ mostrarAlerta('err','Lote '+(n+1)+': falta la fecha de vencimiento.'); return; }
+    if(!(l.cant_bulto>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta la cantidad por bulto.'); return; }
+    if(!l.presentacion){ mostrarAlerta('err','Lote '+(n+1)+': falta la presentación por caja.'); return; }
+    if(!(l.total_bultos>0)){ mostrarAlerta('err','Lote '+(n+1)+': falta el total de bultos.'); return; }
+    if(!l.clasif){ mostrarAlerta('err','Lote '+(n+1)+': falta la clasificación del bulto.'); return; }
+  }
+
+  // Documentación de sustento obligatoria
+  const archivoInput=document.getElementById('archivoSustento');
+  const archivo = archivoInput.files && archivoInput.files[0];
+  if(!archivo){ mostrarAlerta('err','Debe adjuntar la documentación de sustento (Orden de Compra o Carta de Compromiso).'); return; }
 
   req.cod_abasto=renglonActual.cod_abasto;
   req.cod_sap=renglonActual.cod_sap;
@@ -501,13 +544,44 @@ function enviarSolicitud(){
   fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload) })
   .then(r=>r.json())
   .then(res=>{
-    if(res.success){
-      mostrarAlerta('ok','✓ Solicitud registrada ('+res.id_solicitud+'). Su cita será confirmada el próximo viernes al correo indicado.');
+    if(!res.success){ throw new Error(res.error||'error desconocido'); }
+    const idSol = res.id_solicitud;
+    // Paso 2: si hay archivo, subirlo en petición independiente. La solicitud YA está guardada.
+    if(archivo){
+      btn.textContent='Subiendo documento...';
+      return subirArchivo(archivo, idSol).then(up=>{
+        if(up && up.success){
+          mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+') y documento adjunto. Su cita será confirmada el próximo viernes.');
+        }else{
+          mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+'). Nota: el documento no se pudo adjuntar ('+((up&&up.error)||'error')+'). Puede reenviarlo luego. La solicitud quedó guardada.');
+        }
+        limpiarTodo();
+      });
+    }else{
+      mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+'). Su cita será confirmada el próximo viernes al correo indicado.');
       limpiarTodo();
-    }else{ mostrarAlerta('err','No se pudo registrar: '+(res.error||'error desconocido')); }
+    }
   })
-  .catch(e=>mostrarAlerta('err','Error de red al enviar: '+e.message))
+  .catch(e=>mostrarAlerta('err','No se pudo registrar: '+e.message))
   .finally(()=>{ btn.disabled=false; btn.textContent='Enviar solicitud'; });
+}
+
+// Sube el archivo a Drive vía backend (Opción 2: petición separada)
+function subirArchivo(archivo, idSolicitud){
+  return new Promise((resolve)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const b64 = String(reader.result).split(',')[1]; // quita el prefijo data:...;base64,
+      const payload={ action:'subirSustento', data:{
+        id_solicitud:idSolicitud, nombre_archivo:archivo.name,
+        mime_type:archivo.type||'application/octet-stream', contenido_base64:b64
+      }};
+      fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload) })
+        .then(r=>r.json()).then(resolve).catch(err=>resolve({success:false,error:err.message}));
+    };
+    reader.onerror=()=>resolve({success:false,error:'No se pudo leer el archivo'});
+    reader.readAsDataURL(archivo);
+  });
 }
 
 document.getElementById('btnLimpiar').addEventListener('click', limpiarTodo);
