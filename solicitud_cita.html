@@ -328,7 +328,9 @@ async function init(){
     mostrarAlerta('err','No se pudo cargar el catálogo de renglones ('+DATA_URL+').');
   }
   document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
-  document.getElementById('fechaSolic').addEventListener('change', renderLotes);
+  document.getElementById('fechaSolic').addEventListener('change', ()=>{
+    document.querySelectorAll('#cuerpoLotes input[data-f="venc"]').forEach(actualizarMarcaCorta);
+  });
   agregarLote();
 }
 
@@ -418,13 +420,29 @@ function renderLotes(){
       totales();
     });
     el.addEventListener('change',e=>{
-      if(e.target.dataset.f==='venc') renderLotes();
+      if(e.target.dataset.f==='venc') actualizarMarcaCorta(e.target);
     });
   });
   tb.querySelectorAll('button[data-del]').forEach(b=>{
     b.addEventListener('click',e=>{ lotes.splice(+e.target.dataset.del,1); renderLotes(); });
   });
   totales();
+}
+function actualizarMarcaCorta(inputVenc){
+  const i=+inputVenc.dataset.i;
+  const fila=inputVenc.closest('tr');
+  const celda=inputVenc.closest('td');
+  const corta=loteFechaCorta(lotes[i]);
+  fila.style.background = corta ? '#fff8e1' : '';
+  let marca=celda.querySelector('.vida-corta');
+  if(corta && !marca){
+    marca=document.createElement('div');
+    marca.className='vida-corta';
+    marca.innerHTML='⚠ &lt;18 meses';
+    celda.appendChild(marca);
+  } else if(!corta && marca){
+    marca.remove();
+  }
 }
 function totales(){
   const u=lotes.reduce((s,l)=>s+(+l.cant_lote||0),0);
