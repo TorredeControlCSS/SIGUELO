@@ -72,7 +72,8 @@
   table.lote th{background:var(--azul);color:#fff;padding:6px 7px;font-size:11px;font-weight:600;border:1px solid var(--azul-osc);text-align:left;}
   table.lote td{border:1px solid var(--borde-suave);padding:3px 4px;}
   table.lote td input,table.lote td select{width:100%;padding:4px 5px;font-size:12.5px;}
-  table.lote td.acc{text-align:center;width:38px;}
+  table.lote td.acc{text-align:center;width:38px;background:#fff !important;border-left:none;}
+  table.lote th:first-child,table.lote td:first-child{min-width:90px;}
   .lote-resumen{margin-top:8px;padding:8px 12px;background:#f4f4f4;border:1px solid var(--borde-suave);font-size:12.5px;display:flex;gap:20px;flex-wrap:wrap;}
   .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
   .vida-corta{font-size:10px;color:#b8860b;font-weight:700;margin-top:2px;}
@@ -201,7 +202,6 @@
             <th>Total bultos</th>
             <th>Pallets</th>
             <th>Clasificación bulto</th>
-            <th class="acc"></th>
             <th class="acc"></th>
           </tr>
         </thead>
