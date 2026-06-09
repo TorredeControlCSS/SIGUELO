@@ -20,7 +20,7 @@
   .header .logo{width:48px;height:48px;flex-shrink:0;object-fit:contain;}
   .header h1{margin:0;font-size:18px;font-weight:600;}
   .header .sub{font-size:12.5px;color:#B5D4F4;margin-top:3px;}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px;background:#fff;border:1px solid var(--borde-suave);border-top:none;}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px;background:#fff;border:1px solid var(--borde-suave);border-top:none;}
   .kpi{background:var(--fondo);border:1px solid var(--borde-suave);border-radius:3px;padding:10px 12px;}
   .kpi-click{cursor:pointer;transition:background .15s,border-color .15s;}
   .kpi-click:hover{background:var(--azul-claro,#e8f0f8);}
@@ -98,6 +98,7 @@
     <div class="kpi kpi-click" data-filtro="PENDIENTE"><div class="lbl">Pendientes por confirmar</div><div class="val" id="kpiTotal">—</div></div>
     <div class="kpi kpi-click" data-filtro="AGENDADA"><div class="lbl">Agendadas (ya confirmadas)</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
     <div class="kpi kpi-click" data-filtro="RECEPCION"><div class="lbl">Cola recepción (urgente)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (≤3 días)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
     <div class="kpi"><div class="lbl">Actualizado</div><div class="val" id="kpiHora" style="font-size:14px;">—</div></div>
   </div>
 
@@ -170,9 +171,11 @@ function actualizarKPIs(){
   const pend=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='PENDIENTE').length;
   const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
   const rec=SOLICITUDES.filter(s=>s.cola==='RECEPCION').length;
+  const vence=SOLICITUDES.filter(s=>s.venc && s.venc.estado==='ROJO').length;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
   document.getElementById('kpiRecepcion').textContent=rec;
+  document.getElementById('kpiVence').textContent=vence;
   const now=new Date();
   document.getElementById('kpiHora').textContent=now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
 }
@@ -186,6 +189,7 @@ function getFiltradas(){
     if(filtroEstado==='PENDIENTE' && String(s.estado||'').toUpperCase()!=='PENDIENTE') return false;
     if(filtroEstado==='AGENDADA' && String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
     if(filtroEstado==='RECEPCION' && s.cola!=='RECEPCION') return false;
+    if(filtroEstado==='VENCE' && !(s.venc && s.venc.estado==='ROJO')) return false;
     if(q){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
       if(blob.indexOf(q)<0) return false;
@@ -211,6 +215,11 @@ function render(){
     } else {
       coberturaBadge = `<span class="badge gris">Sin dato de consumo</span>`;
     }
+    let vencBadge='';
+    if(s.venc && s.venc.estado){
+      const vcls = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'verde');
+      vencBadge = `<span class="badge ${vcls}" title="Vence ${esc(s.venc.fecha||'')}">⏱ ${esc(s.venc.etiqueta)}</span>`;
+    }
     return `
     <div class="cita ${cls}">
       <div class="cita-top">
@@ -222,6 +231,7 @@ function render(){
         <div class="ipr-box ${cls}"><div class="lbl">IPR</div><div class="n">${s.ipr}</div></div>
       </div>
       <div class="badges">
+        ${vencBadge}
         <span class="badge ${colaBadge}">${colaLabel}</span>
         <span class="badge gris clic" data-ue="${idx}">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
         ${coberturaBadge}
