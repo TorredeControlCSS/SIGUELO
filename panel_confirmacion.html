@@ -228,7 +228,7 @@ function render(){
   // listeners
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
   cont.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>verUE(lista[+b.dataset.ue])));
-  cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Confirmar cita',lista[+b.dataset.conf])));
+  cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Diferir',lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Registrar entrega',lista[+b.dataset.ent])));
 }
@@ -289,6 +289,75 @@ function verUE(s){
     <div style="font-size:11.5px;color:#777;margin:2px 0 12px;">Cobertura = saldo del punto ÷ su consumo mensual. Menos de 1 mes se considera escasez. "s/d" = sin dato de consumo (se evaluó por saldo).</div>
     ${tabla}`;
   abrirModal();
+}
+
+// ===== POST a GAS sin preflight CORS (text/plain) =====
+function postGAS(action,data){
+  return fetch(API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:action,data:data})
+  }).then(r=>r.json());
+}
+
+// ===== Próximo viernes (sugerencia por defecto) en YYYY-MM-DD =====
+function proximoViernesISO(){
+  const d=new Date(); d.setHours(12,0,0,0);
+  const diff=(5 - d.getDay() + 7)%7 || 7; // siguiente viernes (nunca hoy)
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+
+// ===== Modal de confirmación: fecha + hora =====
+function abrirConfirmar(s){
+  document.getElementById('modalTitulo').textContent='Confirmar cita — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Cantidades</td><td class="v">${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</td></tr>
+      <tr><td class="k">Fecha solicitada</td><td class="v">${esc(s.fecha_solicitada||'—')}</td></tr>
+    </table>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 6px;">
+      <div style="flex:1;min-width:150px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Fecha confirmada</label>
+        <input type="date" id="confFecha" value="${proximoViernesISO()}" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;font-family:Consolas,'Courier New',monospace;">
+      </div>
+      <div style="flex:1;min-width:150px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Hora confirmada</label>
+        <input type="time" id="confHora" value="07:30" step="900" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;font-family:Consolas,'Courier New',monospace;">
+      </div>
+    </div>
+    <div id="confMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="confCancelar">Cancelar</button>
+      <button class="btn primary" id="confEnviar">Confirmar y enviar correo</button>
+    </div>`;
+  abrirModal();
+
+  document.getElementById('confCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('confEnviar').addEventListener('click',async ()=>{
+    const fecha=document.getElementById('confFecha').value;
+    const hora=document.getElementById('confHora').value;
+    const msg=document.getElementById('confMsg');
+    const btn=document.getElementById('confEnviar');
+    if(!fecha||!hora){ msg.style.color='#b00020'; msg.textContent='Indica fecha y hora.'; return; }
+    btn.disabled=true; msg.style.color='#555'; msg.textContent='Confirmando y enviando correo...';
+    try{
+      const resp=await postGAS('confirmarCita',{
+        id:s.id, fecha_confirmada:fecha, hora_confirmada:hora, usuario:'Panel SÍGUELO'
+      });
+      if(!resp.success){ throw new Error(resp.error||'Error al confirmar'); }
+      msg.style.color='#0a7a2f';
+      msg.textContent = resp.correo_enviado
+        ? 'Cita confirmada (AGENDADA) y correo enviado.'
+        : 'Cita confirmada (AGENDADA). Aviso: el correo no se envió'+(resp.correo_error?' ('+resp.correo_error+')':'')+'.';
+      setTimeout(()=>{ cerrarModal(); cargar(); }, 1200);
+    }catch(e){
+      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo confirmar: '+e.message;
+    }
+  });
 }
 
 function accionPendiente(nombre,s){
