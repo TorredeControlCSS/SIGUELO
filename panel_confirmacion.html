@@ -91,9 +91,9 @@
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="lbl">Solicitudes pendientes</div><div class="val" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="lbl">Pendientes por confirmar</div><div class="val" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="lbl">Agendadas (ya confirmadas)</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
     <div class="kpi"><div class="lbl">Cola recepción (urgente)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
-    <div class="kpi"><div class="lbl">Cola redistribución</div><div class="val" id="kpiRedist" style="color:var(--verde);">—</div></div>
     <div class="kpi"><div class="lbl">Actualizado</div><div class="val" id="kpiHora" style="font-size:14px;">—</div></div>
   </div>
 
@@ -114,6 +114,7 @@
         <input type="checkbox" id="verHistorico" style="cursor:pointer;"> Ver histórico
       </label>
       <button class="btn" id="btnRefrescar">Refrescar</button>
+      <button class="btn primary" id="btnExcel">⬇ Excel</button>
     </div>
     <div id="tabLista"></div>
     <div id="tabCalendario" class="tab-cal">
@@ -162,11 +163,12 @@ async function cargar(){
 }
 
 function actualizarKPIs(){
+  const pend=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='PENDIENTE').length;
+  const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
   const rec=SOLICITUDES.filter(s=>s.cola==='RECEPCION').length;
-  const red=SOLICITUDES.filter(s=>s.cola==='REDISTRIBUCION').length;
-  document.getElementById('kpiTotal').textContent=SOLICITUDES.length;
+  document.getElementById('kpiTotal').textContent=pend;
+  document.getElementById('kpiAgendadas').textContent=agen;
   document.getElementById('kpiRecepcion').textContent=rec;
-  document.getElementById('kpiRedist').textContent=red;
   const now=new Date();
   document.getElementById('kpiHora').textContent=now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
 }
@@ -406,6 +408,21 @@ document.getElementById('buscar').addEventListener('input',render);
 document.getElementById('filtroCola').addEventListener('change',render);
 document.getElementById('verHistorico').addEventListener('change',cargar);
 document.getElementById('btnRefrescar').addEventListener('click',cargar);
+document.getElementById('btnExcel').addEventListener('click',descargarExcel);
+
+function descargarExcel(){
+  const btn=document.getElementById('btnExcel');
+  const txt=btn.textContent;
+  btn.disabled=true; btn.textContent='Generando...';
+  loadJsonp('generarExcelCitas').then(resp=>{
+    btn.disabled=false; btn.textContent=txt;
+    if(resp && resp.success && resp.url){
+      window.open(resp.url,'_blank');
+    }else{
+      alert('No se pudo generar el Excel: '+((resp&&resp.error)||'error desconocido'));
+    }
+  }).catch(e=>{ btn.disabled=false; btn.textContent=txt; alert('Error: '+e.message); });
+}
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('activa'));
