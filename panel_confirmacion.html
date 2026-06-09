@@ -25,7 +25,7 @@
   .kpi-click{cursor:pointer;transition:background .15s,border-color .15s;}
   .kpi-click:hover{background:var(--azul-claro,#e8f0f8);}
   .kpi-click.activo{background:var(--azul-claro,#e8f0f8);border-color:var(--azul);box-shadow:inset 0 0 0 1px var(--azul);}
-  .chk-hist{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--azul-osc);cursor:pointer;background:#fff;border:1px solid var(--borde);border-radius:3px;padding:5px 9px;}
+  .chk-hist{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--azul-osc);cursor:pointer;}
   .kpi .lbl{font-size:12px;color:#555;}
   .kpi .val{font-size:24px;font-weight:700;font-family:var(--mono);}
   .tabs{display:flex;gap:3px;padding:0 14px;background:#fff;border-left:1px solid var(--borde-suave);border-right:1px solid var(--borde-suave);}
@@ -118,6 +118,7 @@
       <label class="chk-hist">
         <input type="checkbox" id="verHistorico" style="cursor:pointer;"> Ver histórico
       </label>
+      <button class="btn" id="btnLimpiar" style="display:none;">✕ Quitar filtros</button>
       <button class="btn" id="btnRefrescar">Refrescar</button>
       <button class="btn primary" id="btnExcel">⬇ Excel</button>
     </div>
@@ -199,6 +200,7 @@ function getFiltradas(){
 }
 
 function render(){
+  actualizarBotonLimpiar();
   const cont=document.getElementById('tabLista');
   const lista=getFiltradas();
   if(lista.length===0){ cont.innerHTML='<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
@@ -241,15 +243,18 @@ function render(){
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}
       </div>
       <div class="acciones">
-        <button class="btn primary" data-conf="${idx}">Confirmar cita</button>
-        <button class="btn" data-dif="${idx}">Diferir</button>
-        <button class="btn" data-ent="${idx}">Registrar entrega</button>
+        ${String(s.estado||'').toUpperCase()==='AGENDADA'
+          ? `<button class="btn primary" data-asis="${idx}">Marcar asistencia</button>
+             <button class="btn" data-ent="${idx}">Registrar entrega</button>`
+          : `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+             <button class="btn" data-dif="${idx}">Diferir</button>`}
         <button class="btn" data-det="${idx}">Ver detalle</button>
       </div>
     </div>`;
   }).join('');
 
   // listeners
+  cont.querySelectorAll('[data-asis]').forEach(b=>b.addEventListener('click',()=>abrirAsistencia(lista[+b.dataset.asis])));
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
   cont.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>verUE(lista[+b.dataset.ue])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
@@ -411,6 +416,46 @@ function abrirConfirmar(s){
   });
 }
 
+function abrirAsistencia(s){
+  document.getElementById('modalTitulo').textContent='Marcar asistencia — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Cita confirmada</td><td class="v">${esc(s.fecha_confirmada||s.fecha_solicitada||'—')}</td></tr>
+    </table>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 8px;">Registra si el proveedor se present&oacute; a la cita. Esto cierra el ciclo: la cita pasa al hist&oacute;rico.</div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Nota (opcional)</label>
+      <input type="text" id="asisNota" placeholder="Ej. lleg&oacute; tarde, entrega parcial..." style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+    </div>
+    <div id="asisMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="asisCancelar">Cancelar</button>
+      <button class="btn" id="asisNo" style="border-color:#b00020;color:#b00020;">No asisti&oacute;</button>
+      <button class="btn primary" id="asisSi">Asisti&oacute;</button>
+    </div>`;
+  abrirModal();
+  document.getElementById('asisCancelar').addEventListener('click',cerrarModal);
+  const enviar=async(asistio)=>{
+    const nota=document.getElementById('asisNota').value;
+    const msg=document.getElementById('asisMsg');
+    const bSi=document.getElementById('asisSi'), bNo=document.getElementById('asisNo');
+    bSi.disabled=true; bNo.disabled=true; msg.style.color='#555'; msg.textContent='Registrando...';
+    try{
+      const resp=await postGAS('marcarAsistencia',{id:s.id, asistio:asistio, nota:nota, usuario:'Panel SÍGUELO'});
+      if(!resp.success){ throw new Error(resp.error||'Error'); }
+      msg.style.color='#0a7a2f'; msg.textContent=resp.message+'.';
+      setTimeout(()=>{ cerrarModal(); cargar(); }, 1100);
+    }catch(e){
+      bSi.disabled=false; bNo.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
+    }
+  };
+  document.getElementById('asisSi').addEventListener('click',()=>enviar(true));
+  document.getElementById('asisNo').addEventListener('click',()=>enviar(false));
+}
+
 function accionPendiente(nombre,s){
   document.getElementById('modalTitulo').textContent=nombre;
   document.getElementById('modalBody').innerHTML=`<div style="font-size:13px;line-height:1.7;">La acción <b>${esc(nombre)}</b> para la solicitud de <b>${esc(s.empresa)}</b> (OC ${esc(s.oc)}) se construirá en la siguiente capa del panel, junto con el envío de correos y el registro de entregas parciales.</div>`;
@@ -427,6 +472,21 @@ document.getElementById('filtroCola').addEventListener('change',render);
 document.getElementById('verHistorico').addEventListener('change',cargar);
 document.getElementById('btnRefrescar').addEventListener('click',cargar);
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
+document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
+
+function hayFiltroActivo(){
+  return !!(filtroEstado || document.getElementById('buscar').value.trim() || document.getElementById('filtroCola').value);
+}
+function actualizarBotonLimpiar(){
+  document.getElementById('btnLimpiar').style.display = hayFiltroActivo() ? '' : 'none';
+}
+function limpiarFiltros(){
+  filtroEstado='';
+  document.getElementById('buscar').value='';
+  document.getElementById('filtroCola').value='';
+  document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));
+  render();
+}
 
 // Tarjetas KPI clicleables -> filtran la lista (clic de nuevo = quitar filtro)
 document.querySelectorAll('.kpi-click').forEach(card=>{
