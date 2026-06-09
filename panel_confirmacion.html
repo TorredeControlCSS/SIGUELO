@@ -254,6 +254,7 @@ function verDetalle(s){
       <tr><td class="k">Ambiente / Modalidad</td><td class="v">${esc(s.tipo_ambiente||'—')} · ${esc(s.modalidad||'—')}</td></tr>
       <tr><td class="k">Saldo pendiente</td><td class="v">${num(s.saldo_pendiente)}</td></tr>
       <tr><td class="k">Documento sustento</td><td class="v">${sustento}</td></tr>
+      ${s.historial_oc ? `<tr><td class="k">Historial de esta OC</td><td class="v" style="color:#b8860b;font-weight:600;">${esc(s.historial_oc)}</td></tr>` : ''}
     </table>
     <div style="font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--azul-osc);">Lotes</div>
     <table>
