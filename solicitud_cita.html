@@ -14,6 +14,7 @@
     --mono:'Consolas','Courier New',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{max-width:100%;overflow-x:hidden;}
   body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg);color:var(--texto);font-size:14px;line-height:1.45;}
   .wrap{max-width:1040px;margin:0 auto;padding:0 0 60px;}
   header{background:var(--azul);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--azul-osc);}
@@ -30,7 +31,8 @@
   .seccion-cuerpo{padding:16px;}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
-  @media(max-width:640px){.grid,.grid-3{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}}
+  @media(max-width:640px){.grid,.grid-3{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}
+    table.lote{min-width:720px;} .cob-cajas{flex-direction:column;} header{padding:12px 14px;}}
   .campo{display:flex;flex-direction:column;gap:4px;}
   .campo.full{grid-column:1/-1;}
   label{font-weight:600;font-size:12.5px;color:var(--texto-tenue);}
@@ -97,7 +99,8 @@
   .alerta.ok{background:#eafaf1;border:1px solid var(--verde);color:var(--verde);display:block;}
   .contacto{font-size:12px;color:var(--texto-tenue);margin:18px 22px 0;text-align:center;}
   /* tabla lista de empaque */
-  table.lote{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  .lote-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:8px;}
+  table.lote{width:100%;border-collapse:collapse;font-size:13px;}
   table.lote th{background:var(--azul);color:#fff;padding:6px 7px;font-size:11px;font-weight:600;border:1px solid var(--azul-osc);text-align:left;}
   table.lote td{border:1px solid var(--borde-suave);padding:3px 4px;}
   table.lote td input,table.lote td select{width:100%;padding:4px 5px;font-size:12.5px;}
@@ -248,6 +251,7 @@
     <div class="seccion-cuerpo">
       <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
       <span class="hint" style="display:block;margin-bottom:8px;color:var(--azul-osc);">Empaque (unidades que agrupa cada nivel): <b>Terciario</b> = bulto o master · <b>Secundario</b> = caja interna · <b>Primario</b> = empaque que toca el producto. La <b>Presentación</b> es la forma física del insumo (tableta, ampolla, vial...) y se sugiere desde el renglón.</span>
+      <div class="lote-scroll">
       <table class="lote">
         <thead>
           <tr>
@@ -266,6 +270,7 @@
         </thead>
         <tbody id="cuerpoLotes"></tbody>
       </table>
+      </div>
       <button class="btn btn-sec btn-mini" id="btnAddLote" style="margin-top:8px;">+ Agregar lote</button>
       <div class="lote-resumen">
         <span>Lotes: <b id="totLotes">0</b></span>
