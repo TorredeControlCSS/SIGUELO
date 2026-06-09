@@ -51,6 +51,35 @@
   .cat-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:2px;color:#fff;}
   .badge-control{background:#922b21;color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:2px;display:none;}
   .badge-control.activo{display:inline-block;}
+  /* ---- Cobertura (señal de demanda) en la ficha ---- */
+  .ficha-cobertura{grid-column:1 / -1;border-top:1px dashed var(--borde-suave);margin-top:4px;padding-top:10px;display:none;}
+  .ficha-cobertura.activa{display:block;}
+  .cob-titulo{font-size:11px;font-weight:700;color:var(--texto-tenue);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;}
+  .cob-cajas{display:flex;gap:10px;flex-wrap:wrap;}
+  .cob-caja{flex:1;min-width:150px;border:1px solid var(--borde-suave);background:#fff;padding:8px 10px;}
+  .cob-caja .lbl{font-size:10.5px;color:var(--texto-tenue);font-weight:600;margin-bottom:3px;}
+  .cob-caja .val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--azul-osc);}
+  .cob-caja .sub{font-size:10.5px;color:var(--texto-tenue);margin-top:2px;}
+  .cob-caja.clic{cursor:pointer;transition:background .15s;}
+  .cob-caja.clic:hover{background:var(--azul-claro);}
+  .cob-pill{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:2px;color:#fff;vertical-align:middle;margin-left:6px;}
+  .cob-pill.rojo{background:var(--rojo);} .cob-pill.ambar{background:var(--ambar);} .cob-pill.verde{background:var(--verde);} .cob-pill.gris{background:#888;}
+  /* ---- Modal proveedor ---- */
+  .pv-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:flex-start;justify-content:center;padding:40px 16px;}
+  .pv-overlay.activo{display:flex;}
+  .pv-modal{background:#fff;border:1px solid var(--borde);max-width:520px;width:100%;max-height:85vh;overflow:auto;}
+  .pv-modal-head{background:var(--azul-osc);color:#fff;padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+  .pv-modal-x{background:none;border:none;color:#fff;font-size:20px;line-height:1;cursor:pointer;}
+  .pv-modal-body{padding:14px;}
+  .pv-res{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .pv-res-item{flex:1;min-width:110px;border:1px solid var(--borde-suave);background:#f7f9fc;padding:8px;text-align:center;}
+  .pv-res-item .l{font-size:10.5px;color:var(--texto-tenue);font-weight:600;}
+  .pv-res-item .v{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--azul-osc);}
+  .pv-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .pv-tabla th{background:#f4f4f4;border:1px solid var(--borde-suave);padding:5px 8px;text-align:left;color:var(--azul-osc);}
+  .pv-tabla td{border:1px solid var(--borde-suave);padding:4px 8px;}
+  .pv-tabla tr:nth-child(even) td{background:#fafafa;}
+  .pv-nota{font-size:11px;color:var(--texto-tenue);font-style:italic;margin-top:10px;}
   .aviso-control{display:none;margin-top:10px;padding:8px 12px;background:#fdecea;border:1px solid #922b21;border-left:4px solid #922b21;font-size:12px;color:#922b21;}
   .aviso-control.activo{display:block;}
   .aviso-compromiso{display:none;margin-top:10px;padding:8px 12px;background:#fff8e1;border:1px solid var(--ambar);border-left:4px solid var(--ambar);font-size:12px;color:#7a5c00;}
@@ -190,6 +219,21 @@
           <div class="ficha-campo"><span class="et">Código SAP</span><span class="vl" id="f-sap">—</span></div>
           <div class="ficha-campo"><span class="et">Descripción</span><span id="f-desc">—</span></div>
           <div class="ficha-campo"><span class="et">Categoría</span><span id="f-cat">—</span></div>
+          <div class="ficha-cobertura" id="fichaCobertura">
+            <div class="cob-titulo">Señal de demanda &mdash; cobertura actual</div>
+            <div class="cob-cajas">
+              <div class="cob-caja">
+                <div class="lbl">Cobertura CEDIS Panamá</div>
+                <div class="val" id="cobCedisVal">—</div>
+                <div class="sub" id="cobCedisSub"></div>
+              </div>
+              <div class="cob-caja clic" id="cobNacionalCaja">
+                <div class="lbl">Cobertura nacional (UE) <span style="font-weight:400;">&middot; ver detalle</span></div>
+                <div class="val" id="cobNacVal">—</div>
+                <div class="sub" id="cobNacSub"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="aviso-control" id="avisoControl" style="margin:0 12px 12px;">
           <b>Custodia requerida:</b> esta es una sustancia controlada (narcótico/psicotrópico). Requiere custodia de la cadena logística de punto a punto y documentación regulatoria.
@@ -338,8 +382,97 @@
   </div>
 </div>
 
+<div class="pv-overlay" id="pvOverlay">
+  <div class="pv-modal">
+    <div class="pv-modal-head"><span id="pvTitulo">Cobertura nacional por Unidad Ejecutora</span><button class="pv-modal-x" id="pvX">&times;</button></div>
+    <div class="pv-modal-body" id="pvBody"></div>
+  </div>
+</div>
+
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
+
+// ---- Señal de demanda (cobertura por renglón). Se carga una vez y se busca local. ----
+let SENAL_UE = {};
+function cargarSenalUE(){
+  const cb='_senalCB_'+Date.now();
+  window[cb]=function(resp){
+    try{ if(resp && resp.success && resp.senal){ SENAL_UE = resp.senal; } }
+    finally{ delete window[cb]; const s=document.getElementById('jsonpSenal'); if(s) s.remove(); }
+  };
+  const s=document.createElement('script');
+  s.id='jsonpSenal';
+  s.src=API_URL+'?action=getSenalUE&callback='+cb;
+  s.onerror=()=>{ delete window[cb]; }; // si falla, la ficha simplemente no muestra cobertura
+  document.body.appendChild(s);
+}
+cargarSenalUE();
+
+// Normaliza el código para cruzar con SENAL_UE (quita decimales tipo "101099901.0")
+function normCod_(c){ return String(c==null?'':c).replace(/\.0+$/,'').trim(); }
+
+// Clase de color por meses de cobertura
+function clsCobertura_(m){ return m<1 ? 'rojo' : (m<3 ? 'ambar' : 'verde'); }
+
+// Pinta la cobertura en la ficha al seleccionar renglón
+function pintarCobertura(cod){
+  const wrap=document.getElementById('fichaCobertura');
+  const sig=SENAL_UE[normCod_(cod)];
+  if(!sig){
+    // Sin dato calculado para este renglón
+    document.getElementById('cobCedisVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
+    document.getElementById('cobCedisSub').textContent='';
+    document.getElementById('cobNacVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
+    document.getElementById('cobNacSub').textContent='';
+    document.getElementById('cobNacionalCaja').classList.remove('clic');
+    wrap.classList.add('activa');
+    return;
+  }
+  // CEDIS Panamá
+  const cm = sig.cobertura_meses;
+  if(cm>=0){
+    document.getElementById('cobCedisVal').innerHTML = cm.toLocaleString('es-PA',{maximumFractionDigits:1})+' meses <span class="cob-pill '+clsCobertura_(cm)+'">'+(cm<1?'crítico':(cm<3?'bajo':'normal'))+'</span>';
+    document.getElementById('cobCedisSub').textContent = 'Saldo CEDIS PMA: '+Number(sig.cedis_pma||0).toLocaleString('es-PA')+' und · consumo '+Number(sig.consumo_mensual||0).toLocaleString('es-PA')+'/mes';
+  }else{
+    document.getElementById('cobCedisVal').innerHTML='<span class="cob-pill gris">sin consumo</span>';
+    document.getElementById('cobCedisSub').textContent='Saldo CEDIS PMA: '+Number(sig.cedis_pma||0).toLocaleString('es-PA')+' und';
+  }
+  // Nacional (UE)
+  document.getElementById('cobNacVal').innerHTML = sig.ue_cero+' / '+sig.ue_total+' UE en escasez <span class="cob-pill '+(sig.pct>=50?'rojo':(sig.pct>=25?'ambar':'verde'))+'">'+sig.pct+'%</span>';
+  document.getElementById('cobNacSub').textContent = 'Toca para ver el detalle por Unidad Ejecutora';
+  document.getElementById('cobNacionalCaja').classList.add('clic');
+  document.getElementById('cobNacionalCaja')._sig = sig;
+  document.getElementById('cobNacionalCaja')._desc = (renglonActual && renglonActual.desc) || '';
+  wrap.classList.add('activa');
+}
+
+// Modal simplificado de cobertura nacional por UE
+function abrirCoberturaNacional(sig, desc){
+  document.getElementById('pvTitulo').textContent='Cobertura nacional — '+(desc||'renglón');
+  const lista=(sig.ue_cero_lista||'').split(';').map(x=>x.trim()).filter(Boolean);
+  const filas=lista.map(u=>{
+    const m=u.match(/^(.*?)\s*\(([\d.]+)m\)\s*$/);
+    if(m){ const cob=parseFloat(m[2]); const c=clsCobertura_(cob);
+      return '<tr><td>'+escAttr(m[1].trim())+'</td><td style="text-align:right;"><span class="cob-pill '+c+'">'+cob+'m</span></td></tr>'; }
+    return '<tr><td>'+escAttr(u)+'</td><td style="text-align:right;color:#999;">s/d</td></tr>';
+  }).join('');
+  const tabla = lista.length
+    ? '<table class="pv-tabla"><thead><tr><th>Unidad Ejecutora</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'
+    : '<div style="color:#999;">No hay UE en escasez registradas para este renglón.</div>';
+  document.getElementById('pvBody').innerHTML =
+    '<div class="pv-res">'+
+      '<div class="pv-res-item"><div class="l">UE en escasez</div><div class="v">'+sig.ue_cero+' / '+sig.ue_total+'</div></div>'+
+      '<div class="pv-res-item"><div class="l">% escasez</div><div class="v">'+sig.pct+'%</div></div>'+
+    '</div>'+
+    tabla+
+    '<div class="pv-nota">Cobertura = saldo del punto ÷ su consumo mensual. Menos de 1 mes se considera escasez. "s/d" = sin dato de consumo.</div>';
+  document.getElementById('pvOverlay').classList.add('activo');
+}
+document.getElementById('cobNacionalCaja').addEventListener('click',function(){
+  if(this._sig) abrirCoberturaNacional(this._sig, this._desc);
+});
+document.getElementById('pvX').addEventListener('click',()=>document.getElementById('pvOverlay').classList.remove('activo'));
+document.getElementById('pvOverlay').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('activo'); });
 const DATA_URL = 'maestro_renglones.json';
 
 // Códigos de sustancias controladas (detección automática, el proveedor no la declara)
@@ -491,7 +624,7 @@ document.getElementById('renglon').addEventListener('change', function(){
   const empresa=document.getElementById('empresa').value;
   const idx=this.value;
   const ficha=document.getElementById('ficha');
-  if(idx===''){ renglonActual=null; ficha.classList.remove('activa'); return; }
+  if(idx===''){ renglonActual=null; ficha.classList.remove('activa'); document.getElementById('fichaCobertura').classList.remove('activa'); return; }
   renglonActual=MAESTRO.catalogo[empresa][parseInt(idx,10)];
   document.getElementById('f-abasto').textContent=renglonActual.cod_abasto;
   document.getElementById('f-sap').textContent=renglonActual.cod_sap||'—';
@@ -504,6 +637,7 @@ document.getElementById('renglon').addEventListener('change', function(){
   document.getElementById('avisoControl').classList.toggle('activo', esControlado);
   renglonActual._controlado = esControlado;
   ficha.classList.add('activa');
+  pintarCobertura(renglonActual.cod_abasto);
   // Precargar la presentación comercial del renglón en los lotes que no la tengan
   const pres = renglonActual.presentacion_comercial || '';
   if(pres){
