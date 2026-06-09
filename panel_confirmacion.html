@@ -84,6 +84,22 @@
   .ue-tabla td{padding:5px 8px;border-bottom:1px solid #eee;}
   .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
+  .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .cal-titulo{font-size:16px;font-weight:700;color:var(--azul-osc);min-width:180px;text-align:center;text-transform:capitalize;}
+  .cal-leyenda{font-size:11px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .cal-chip{display:inline-block;width:11px;height:11px;border-radius:2px;margin-left:8px;vertical-align:middle;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--borde-suave);border:1px solid var(--borde-suave);}
+  .cal-dow{background:var(--azul);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;}
+  .cal-dia{background:#fff;min-height:96px;padding:4px 5px;font-size:11px;vertical-align:top;overflow:hidden;}
+  .cal-dia.otro{background:#f6f6f6;color:#bbb;}
+  .cal-dia.hoy{box-shadow:inset 0 0 0 2px var(--azul);}
+  .cal-dia .dnum{font-weight:700;color:#444;font-size:12px;display:block;margin-bottom:2px;}
+  .cal-ev{display:block;width:100%;box-sizing:border-box;font-size:10px;line-height:1.3;padding:1px 4px;margin-bottom:2px;border-radius:2px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border:none;text-align:left;}
+  .cal-ev.conf{background:#1e5a9e;}
+  .cal-ev.pend{background:#fff;color:#9a5b00;border:1px dashed #c97a00;}
+  .cal-ev.ok{background:#0a7a2f;}
+  .cal-ev.no{background:#b00020;}
+  .cal-mas{font-size:10px;color:var(--azul);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -142,7 +158,28 @@
     </div>
     <div id="tabLista"></div>
     <div id="tabCalendario" class="tab-cal">
-      <div class="estado-msg">La vista de calendario se agregará en la siguiente capa del panel.</div>
+      <div class="cal-toolbar">
+        <button class="btn" id="calPrev">‹ Mes anterior</button>
+        <div class="cal-titulo" id="calTitulo">—</div>
+        <button class="btn" id="calNext">Mes siguiente ›</button>
+        <button class="btn" id="calHoy">Hoy</button>
+        <select id="calCategoria">
+          <option value="">Todas las categorías</option>
+          <option value="Medicamentos">Medicamentos</option>
+          <option value="Médico Quirúrgico">Médico Quirúrgico</option>
+          <option value="Laboratorio">Laboratorio</option>
+          <option value="Odontología">Odontología</option>
+          <option value="Sustancias Controladas">Sustancias Controladas</option>
+        </select>
+        <span class="cal-leyenda">
+          <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
+          <span class="cal-chip" style="background:#fff;border:1px dashed #c97a00;"></span>Pendiente (fecha solicitada)
+          <span class="cal-chip" style="background:#0a7a2f;"></span>Asistió/Entregada
+          <span class="cal-chip" style="background:#b00020;"></span>No asistió/Cancelada
+        </span>
+      </div>
+      <div id="calGrid" class="cal-grid"></div>
+      <div class="estado-msg" id="calMsg" style="display:none;">Cargando historial...</div>
     </div>
   </div>
 </div>
@@ -157,6 +194,7 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 let SOLICITUDES = [];
+let CAL_DATA=null;          // historia completa para el calendario (carga diferida)
 
 function loadJsonp(action, extra){
   return new Promise((resolve,reject)=>{
@@ -173,6 +211,7 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function num(n){ return Number(n||0).toLocaleString('es-PA'); }
 
 async function cargar(){
+  CAL_DATA=null; // invalidar cache del calendario para que refleje cambios
   document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
   try{
     const resp=await loadJsonp('getSolicitudesPriorizadas', verHistorico ? '&historico=1' : '');
@@ -234,7 +273,7 @@ function render(){
   if(lista.length===0){ cont.innerHTML='<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
   cont.innerHTML=lista.map((s,idx)=>{
     const estadoU=String(s.estado||'').toUpperCase();
-    const CERRADA=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'].indexOf(estadoU)>=0;
+    const CERRADA=['ENTREGADA','ENTREGADO','CANCELADA'].indexOf(estadoU)>=0;
     const cls=CERRADA?'cerrada':(s.cola==='RECEPCION'?'recepcion':'redistribucion');
     const colaLabel=s.cola==='RECEPCION'?'Recepción urgente':'Redistribución';
     const colaBadge=s.cola==='RECEPCION'?'rojo':'verde';
@@ -244,9 +283,20 @@ function render(){
                  : estadoU==='NO_ASISTIO'||estadoU==='CANCELADA' ? '#b00020'
                  : estadoU==='AGENDADA' ? '#1e5a9e' : 'var(--ambar)';
 
-    // Las alarmas (vencimiento, cola, cobertura, UE en cero) SOLO aplican a citas activas.
+    // Las alarmas (vencimiento, cola, cobertura, UE en cero) aplican a citas por confirmar/agendar.
+    // ASISTIO/NO_ASISTIO ya avanzaron: muestran un sello de su estado, no alarmas de priorización.
     let badgesActivas='';
-    if(!CERRADA){
+    const AVANZADA = (estadoU==='ASISTIO' || estadoU==='NO_ASISTIO');
+    if(CERRADA){
+      badgesActivas = `<span class="badge gris">Cita cerrada · ${esc(s.estado)}</span>`;
+    } else if(AVANZADA){
+      const sello = estadoU==='ASISTIO'
+        ? `<span class="badge verde">Asistió · falta registrar entrega</span>`
+        : `<span class="badge rojo">No asistió · por reprogramar</span>`;
+      const saldoTxt = (s.saldo_pendiente!=null && Number(s.saldo_pendiente)>0)
+        ? `<span class="badge gris">Saldo pendiente: ${num(s.saldo_pendiente)}</span>` : '';
+      badgesActivas = sello + saldoTxt;
+    } else {
       let vencBadge='';
       if(s.venc && s.venc.estado){
         const vcls = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'verde');
@@ -270,18 +320,22 @@ function render(){
         ${cedisNota}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}`;
-    } else {
-      // Cita cerrada (historia): solo un sello del estado final, sin alarmas.
-      badgesActivas = `<span class="badge gris">Cita cerrada · ${esc(s.estado)}</span>`;
     }
 
-    // Botones: las cerradas solo permiten Ver detalle (no se confirma/asiste lo ya cerrado).
+    // Botones según el estado del ciclo.
     let acciones;
     if(CERRADA){
       acciones = `<button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='AGENDADA'){
       acciones = `<button class="btn primary" data-asis="${idx}">Marcar asistencia</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>
+                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+    } else if(estadoU==='ASISTIO'){
+      acciones = `<button class="btn primary" data-ent="${idx}">Registrar entrega</button>
+                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+    } else if(estadoU==='NO_ASISTIO'){
+      acciones = `<button class="btn primary" data-conf="${idx}">Reprogramar (confirmar)</button>
+                  <button class="btn" data-dif="${idx}">Diferir</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
@@ -579,6 +633,122 @@ function descargarExcel(){
   }).catch(e=>{ btn.disabled=false; btn.textContent=txt; alert('Error: '+e.message); });
 }
 
+// ===== CALENDARIO =====
+let calMes=new Date();      // mes visible (arranca en el actual)
+calMes.setDate(1);
+
+async function cargarCalendario(){
+  if(CAL_DATA!==null){ renderCalendario(); return; }
+  const grid=document.getElementById('calGrid');
+  const msg=document.getElementById('calMsg');
+  grid.innerHTML=''; msg.style.display='block'; msg.textContent='Cargando historial completo...';
+  try{
+    const resp=await loadJsonp('getSolicitudesPriorizadas','&historico=1');
+    CAL_DATA = (resp && resp.solicitudes) ? resp.solicitudes : [];
+    msg.style.display='none';
+    renderCalendario();
+  }catch(e){
+    msg.style.display='block'; msg.textContent='No se pudo cargar el historial: '+esc(e.message);
+  }
+}
+
+function calFechaDe(s){
+  // Por fecha confirmada; si no hay (pendiente), por la solicitada.
+  const f = (s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada : s.fecha_solicitada;
+  if(!f || f.length<10) return null;
+  return f.slice(0,10); // 'YYYY-MM-DD'
+}
+function calClase(s){
+  const e=String(s.estado||'').toUpperCase();
+  if(['ENTREGADA','ENTREGADO','ASISTIO'].indexOf(e)>=0) return 'ok';
+  if(['NO_ASISTIO','CANCELADA'].indexOf(e)>=0) return 'no';
+  if(e==='AGENDADA') return 'conf';
+  return 'pend'; // pendiente / solicitada / diferida
+}
+
+function renderCalendario(){
+  const grid=document.getElementById('calGrid');
+  const catSel=document.getElementById('calCategoria').value.toLowerCase();
+  const y=calMes.getFullYear(), m=calMes.getMonth();
+  const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('calTitulo').textContent=meses[m]+' '+y;
+
+  // Indexar citas por día del mes visible
+  const porDia={};
+  (CAL_DATA||[]).forEach(s=>{
+    if(catSel){
+      const c=String(s.categoria||'').toLowerCase();
+      if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return;
+    }
+    const f=calFechaDe(s); if(!f) return;
+    const [yy,mm]=f.split('-').map(Number);
+    if(yy===y && (mm-1)===m){ (porDia[f]=porDia[f]||[]).push(s); }
+  });
+
+  // Construir la grilla
+  const dow=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let html=dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const primero=new Date(y,m,1);
+  const inicioDow=primero.getDay();
+  const diasMes=new Date(y,m+1,0).getDate();
+  const hoyISO=new Date().toISOString().slice(0,10);
+
+  // Días del mes anterior (relleno)
+  const diasMesAnt=new Date(y,m,0).getDate();
+  for(let i=inicioDow-1;i>=0;i--){ html+=`<div class="cal-dia otro"><span class="dnum">${diasMesAnt-i}</span></div>`; }
+
+  for(let d=1;d<=diasMes;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs=porDia[iso]||[];
+    const esHoy = iso===hoyISO ? ' hoy':'';
+    let evHtml='';
+    const max=3;
+    evs.slice(0,max).forEach((s,i)=>{
+      const cl=calClase(s);
+      evHtml+=`<button class="cal-ev ${cl}" data-cal-ev="${iso}|${i}" title="${esc(s.empresa)} — ${esc(s.descripcion)}">${esc(s.empresa)}</button>`;
+    });
+    if(evs.length>max){ evHtml+=`<span class="cal-mas" data-cal-dia="${iso}">+${evs.length-max} más</span>`; }
+    html+=`<div class="cal-dia${esHoy}">${evs.length?`<span class="dnum" data-cal-dia="${iso}" style="cursor:pointer;">${d}</span>`:`<span class="dnum">${d}</span>`}${evHtml}</div>`;
+  }
+  // Relleno final
+  const celdas=inicioDow+diasMes;
+  const resto=(7-(celdas%7))%7;
+  for(let i=1;i<=resto;i++){ html+=`<div class="cal-dia otro"><span class="dnum">${i}</span></div>`; }
+
+  grid.innerHTML=html;
+  // Guardar índice para los clics
+  grid._porDia=porDia;
+  grid.querySelectorAll('[data-cal-ev]').forEach(b=>b.addEventListener('click',()=>{
+    const [iso,i]=b.dataset.calEv.split('|'); verDetalle(porDia[iso][+i]);
+  }));
+  grid.querySelectorAll('[data-cal-dia]').forEach(b=>b.addEventListener('click',()=>{
+    verDiaCalendario(b.dataset.calDia, porDia[b.dataset.calDia]||[]);
+  }));
+}
+
+function verDiaCalendario(iso, citas){
+  const [y,mm,dd]=iso.split('-');
+  document.getElementById('modalTitulo').textContent=`Citas del ${dd}/${mm}/${y}`;
+  const filas=citas.map(s=>{
+    const cl=calClase(s);
+    const color=cl==='ok'?'#0a7a2f':cl==='no'?'#b00020':cl==='conf'?'#1e5a9e':'#9a5b00';
+    return `<div style="border-left:4px solid ${color};padding:6px 10px;margin-bottom:6px;background:#fafafa;">
+      <div style="font-weight:600;font-size:13px;">${esc(s.empresa)}</div>
+      <div style="font-size:12px;color:#555;">${esc(s.descripcion)}</div>
+      <div style="font-size:11px;color:#777;font-family:var(--mono);">OC ${esc(s.oc)} · ${esc(s.categoria||'—')} · ${esc(s.estado)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('modalBody').innerHTML = citas.length
+    ? `<div style="font-size:12px;color:#666;margin-bottom:8px;">${citas.length} cita(s)</div>${filas}`
+    : '<div style="color:#999;">Sin citas este día.</div>';
+  abrirModal();
+}
+
+document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()-1); renderCalendario(); });
+document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); renderCalendario(); });
+document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); renderCalendario(); });
+document.getElementById('calCategoria').addEventListener('change',renderCalendario);
+
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('activa'));
   t.classList.add('activa');
@@ -586,6 +756,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
   document.querySelector('.filtros').style.display = tab==='lista'?'flex':'none';
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
+  if(tab==='calendario') cargarCalendario();
 }));
 
 cargar();
