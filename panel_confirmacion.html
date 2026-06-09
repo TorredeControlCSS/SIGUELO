@@ -182,6 +182,13 @@ function render(){
     const colaBadge=s.cola==='RECEPCION'?'rojo':'verde';
     const statusCedis = s.status_cedis ? `<span class="badge ${s.cola==='RECEPCION'?'rojo':'verde'}">CEDIS: ${esc(s.status_cedis)}</span>` : '';
     const cedisNota = (s.cola==='REDISTRIBUCION' && s.cedis_saldo>0) ? `<span class="badge gris">Hay stock en CEDIS (${num(s.cedis_saldo)}), mal repartido</span>` : '';
+    let coberturaBadge='';
+    if(s.cobertura_meses>=0){
+      const cls = s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde');
+      coberturaBadge = `<span class="badge ${cls}">Cobertura CEDIS: ${s.cobertura_meses} meses</span>`;
+    } else {
+      coberturaBadge = `<span class="badge gris">Sin dato de consumo</span>`;
+    }
     return `
     <div class="cita ${cls}">
       <div class="cita-top">
@@ -195,6 +202,7 @@ function render(){
       <div class="badges">
         <span class="badge ${colaBadge}">${colaLabel}</span>
         <span class="badge gris clic" data-ue="${idx}">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
+        ${coberturaBadge}
         ${statusCedis}
         ${cedisNota}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
@@ -251,6 +259,7 @@ function verUE(s){
     <div style="font-size:13px;margin-bottom:10px;">
       <b>${s.ue_cero}</b> de <b>${s.ue_total}</b> unidades ejecutoras con saldo &lt; 10 unidades (${s.ue_pct}% de escasez).
       ${s.cedis_saldo>0?`<br>En CEDIS hay <b>${num(s.cedis_saldo)}</b> unidades disponibles para redistribuir.`:''}
+      ${s.cobertura_meses>=0?`<br>Cobertura del CEDIS Panamá: <b>${s.cobertura_meses} meses</b> (consumo mensual de la red: ${num(s.consumo_mensual)}).`:''}
     </div>
     <div class="ue-list">${items}</div>`;
   abrirModal();
