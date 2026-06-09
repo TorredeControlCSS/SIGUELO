@@ -383,7 +383,7 @@ function render(){
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
   cont.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>verUE(lista[+b.dataset.ue])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
-  cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Diferir',lista[+b.dataset.dif])));
+  cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Registrar entrega',lista[+b.dataset.ent])));
 }
 
@@ -579,6 +579,55 @@ function abrirAsistencia(s){
   };
   document.getElementById('asisSi').addEventListener('click',()=>enviar(true));
   document.getElementById('asisNo').addEventListener('click',()=>enviar(false));
+}
+
+function abrirDiferir(s){
+  document.getElementById('modalTitulo').textContent='Diferir cita — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Área</td><td class="v">${esc(s.categoria||'—')}</td></tr>
+    </table>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 8px;">La cita se difiere (no se agenda a&uacute;n) y se notifica al proveedor por correo. La nueva fecha se le informa despu&eacute;s.</div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Motivo</label>
+      <select id="difMotivo" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+        <option value="Análisis en reunión (jueves)">Análisis en reunión (jueves)</option>
+        <option value="Segregación de entrega">Segregación de entrega</option>
+        <option value="Priorización de entregas">Priorización de entregas</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Nota interna (opcional)</label>
+      <input type="text" id="difNota" placeholder="Ej. dividir en 2 entregas, esperar cupo..." style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+    </div>
+    <div id="difMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="difCancelar">Cancelar</button>
+      <button class="btn primary" id="difOk">Diferir y notificar</button>
+    </div>`;
+  abrirModal();
+  document.getElementById('difCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('difOk').addEventListener('click',async()=>{
+    const motivo=document.getElementById('difMotivo').value;
+    const nota=document.getElementById('difNota').value;
+    const msg=document.getElementById('difMsg');
+    const btn=document.getElementById('difOk');
+    btn.disabled=true; msg.style.color='#555'; msg.textContent='Difiriendo y enviando correo...';
+    try{
+      const resp=await postGAS('diferirCita',{id:s.id, motivo:motivo, nota:nota, usuario:'Panel SÍGUELO'});
+      if(!resp.success){ throw new Error(resp.error||'Error'); }
+      let txt=resp.message+'.';
+      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
+      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
+      msg.textContent=txt;
+      setTimeout(()=>{ cerrarModal(); cargar(); }, 1300);
+    }catch(e){
+      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
+    }
+  });
 }
 
 function accionPendiente(nombre,s){
