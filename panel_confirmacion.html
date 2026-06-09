@@ -818,12 +818,11 @@ function imprimirListaDia(){
   const fecha=prompt('Fecha a imprimir (AAAA-MM-DD):', defISO);
   if(!fecha) return;
   const f=fecha.trim().slice(0,10);
-  // Recoger citas de ese día (confirmadas y agendadas; excluye canceladas)
+  // Solo AGENDADA (citas confirmadas), ubicadas por fecha confirmada
   const citas=(CAL_DATA||[]).filter(s=>{
-    const fc=calFechaDe(s);
-    if(fc!==f) return false;
-    const e=String(s.estado||'').toUpperCase();
-    return e!=='CANCELADA';
+    if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
+    const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada.slice(0,10) : '';
+    return fc===f;
   });
   // Ordenar por hora confirmada, luego empresa
   citas.sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) || String(a.empresa||'').localeCompare(String(b.empresa||'')));
