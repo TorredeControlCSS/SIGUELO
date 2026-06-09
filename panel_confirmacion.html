@@ -213,7 +213,7 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 let SOLICITUDES = [];
-let CAL_DATA=null;          // historia completa para el calendario (carga diferida)
+let CAL_MESES={};           // cache del calendario por mes: { 'YYYY-MM': [citas] }
 
 function loadJsonp(action, extra){
   return new Promise((resolve,reject)=>{
@@ -230,7 +230,7 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function num(n){ return Number(n||0).toLocaleString('es-PA'); }
 
 async function cargar(){
-  CAL_DATA=null; // invalidar cache del calendario para que refleje cambios
+  CAL_MESES={}; // invalidar cache del calendario para que refleje cambios
   document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
   try{
     const resp=await loadJsonp('getSolicitudesPriorizadas', verHistorico ? '&historico=1' : '');
@@ -652,22 +652,29 @@ function descargarExcel(){
   }).catch(e=>{ btn.disabled=false; btn.textContent=txt; alert('Error: '+e.message); });
 }
 
-// ===== CALENDARIO =====
+// ===== CALENDARIO (carga por mes, cacheando meses ya vistos) =====
 let calMes=new Date();      // mes visible (arranca en el actual)
 calMes.setDate(1);
 
+function calClaveMes(){
+  return calMes.getFullYear()+'-'+String(calMes.getMonth()+1).padStart(2,'0');
+}
+
 async function cargarCalendario(){
-  if(CAL_DATA!==null){ renderCalendario(); return; }
+  const clave=calClaveMes();
+  if(CAL_MESES[clave]){ renderCalendario(); return; }
   const grid=document.getElementById('calGrid');
   const msg=document.getElementById('calMsg');
-  grid.innerHTML=''; msg.style.display='block'; msg.textContent='Cargando historial completo...';
+  const res=document.getElementById('calResumen');
+  grid.innerHTML=''; if(res) res.innerHTML='';
+  msg.style.display='block'; msg.textContent='Cargando '+clave+'...';
   try{
-    const resp=await loadJsonp('getSolicitudesPriorizadas','&historico=1');
-    CAL_DATA = (resp && resp.solicitudes) ? resp.solicitudes : [];
+    const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+clave);
+    CAL_MESES[clave]=(resp && resp.solicitudes) ? resp.solicitudes : [];
     msg.style.display='none';
     renderCalendario();
   }catch(e){
-    msg.style.display='block'; msg.textContent='No se pudo cargar el historial: '+esc(e.message);
+    msg.style.display='block'; msg.textContent='No se pudo cargar el mes: '+esc(e.message);
   }
 }
 
@@ -693,9 +700,11 @@ function renderCalendario(){
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   document.getElementById('calTitulo').textContent=meses[m]+' '+y;
 
+  // Citas del mes visible (desde el cache de ese mes)
+  const datosMes = CAL_MESES[calClaveMes()] || [];
   // Indexar citas por día del mes visible
   const porDia={};
-  (CAL_DATA||[]).forEach(s=>{
+  datosMes.forEach(s=>{
     if(catSel){
       const c=String(s.categoria||'').toLowerCase();
       if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return;
@@ -804,22 +813,30 @@ function verDiaCalendario(iso, citas){
   abrirModal();
 }
 
-document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()-1); renderCalendario(); });
-document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); renderCalendario(); });
-document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); renderCalendario(); });
+document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()-1); cargarCalendario(); });
+document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); cargarCalendario(); });
+document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); cargarCalendario(); });
 document.getElementById('calCategoria').addEventListener('change',renderCalendario);
 document.getElementById('calEstado').addEventListener('change',renderCalendario);
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
 
-function imprimirListaDia(){
+async function imprimirListaDia(){
   // Por defecto, el día siguiente (la lista se deja en garita para el turno de las 6am)
   const manana=new Date(); manana.setDate(manana.getDate()+1);
   const defISO=manana.toISOString().slice(0,10);
   const fecha=prompt('Fecha a imprimir (AAAA-MM-DD):', defISO);
   if(!fecha) return;
   const f=fecha.trim().slice(0,10);
+  const claveMes=f.slice(0,7);
+  // Asegurar que el mes de esa fecha esté cargado en cache
+  if(!CAL_MESES[claveMes]){
+    try{
+      const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
+      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+    }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
+  }
   // Solo AGENDADA (citas confirmadas), ubicadas por fecha confirmada
-  const citas=(CAL_DATA||[]).filter(s=>{
+  const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
     if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
     const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada.slice(0,10) : '';
     return fc===f;
@@ -841,31 +858,49 @@ function imprimirListaDia(){
       <td>${esc(s.unidad_movil||'—')}</td>
       <td>${esc(s.personal_entrega||'—')}</td>
       <td>${esc(s.telefono||'—')}<br>${esc(s.correo||'')}</td>
+      <td class="chk"></td>
     </tr>`).join('');
+
+  // Logo institucional: resolver a URL absoluta desde el <img> del panel
+  let logoUrl='';
+  try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
 
   const win=window.open('','_blank');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Citas ${dd}/${mm}/${yy}</title>
   <style>
     @page{size:landscape;margin:12mm;}
     body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;}
-    h1{font-size:16px;margin:0;color:#0C447C;}
-    .sub{font-size:11px;color:#555;margin:2px 0 12px;}
+    .head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0C447C;padding-bottom:10px;margin-bottom:10px;}
+    .head img{width:60px;height:60px;object-fit:contain;}
+    .head h1{font-size:16px;margin:0;color:#0C447C;}
+    .head .org{font-size:12px;color:#333;font-weight:600;margin-top:2px;}
+    .head .org2{font-size:11px;color:#555;}
+    .sub{font-size:11px;color:#555;margin:0 0 12px;}
     table{border-collapse:collapse;width:100%;}
     th{background:#0C447C;color:#fff;padding:5px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;}
     td{border:1px solid #aaa;padding:4px 6px;vertical-align:top;font-size:10px;}
     tr:nth-child(even) td{background:#f4f7fa;}
+    th.chk,td.chk{width:46px;text-align:center;}
+    td.chk{height:26px;}
     .firma{margin-top:24px;font-size:11px;display:flex;gap:60px;}
     .firma div{border-top:1px solid #333;padding-top:4px;min-width:220px;text-align:center;}
     @media print{.noprint{display:none;}}
   </style></head><body>
-    <h1>CENTRO DE DISTRIBUCIÓN PANAMÁ — Agenda de citas para proveedores</h1>
+    <div class="head">
+      ${logoUrl?`<img src="${logoUrl}" alt="Logo CSS">`:''}
+      <div>
+        <h1>CENTRO DE DISTRIBUCIÓN PANAMÁ</h1>
+        <div class="org">Caja de Seguro Social · Dirección Nacional de Logística</div>
+        <div class="org2">Agenda de citas para proveedores</div>
+      </div>
+    </div>
     <div class="sub">Día: <b>${dd}/${mm}/${yy}</b> · Total: ${citas.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div>
     <table>
       <thead><tr>
         <th>Hora</th><th>Estado</th><th>Proveedor</th><th>Área</th><th>OC</th>
-        <th>Producto</th><th>Cantidad</th><th>Vence OC</th><th>Unidad móvil</th><th>Transporte</th><th>Contacto</th>
+        <th>Producto</th><th>Cantidad</th><th>Vence OC</th><th>Unidad móvil</th><th>Transporte</th><th>Contacto</th><th class="chk">Asistió</th>
       </tr></thead>
-      <tbody>${filas || '<tr><td colspan="11" style="text-align:center;color:#888;">Sin citas para este día.</td></tr>'}</tbody>
+      <tbody>${filas || '<tr><td colspan="12" style="text-align:center;color:#888;">Sin citas para este día.</td></tr>'}</tbody>
     </table>
     <div class="firma"><div>Entregado por (CEDIS)</div><div>Recibido por (Seguridad / Garita)</div></div>
     <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
