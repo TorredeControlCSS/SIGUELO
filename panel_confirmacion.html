@@ -260,8 +260,34 @@ function verDetalle(s){
     <table>
       <tr><td class="k">Lote</td><td class="k">Vence</td><td class="k">Cantidad</td><td class="k">Present.</td></tr>
       ${lotesHtml}
-    </table>`;
+    </table>
+    <div style="font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--azul-osc);">Existencias en línea por UE</div>
+    <div id="existenciasBox"><div style="color:#999;font-size:12.5px;">Consultando saldos...</div></div>`;
   abrirModal();
+  cargarExistencias(s.cod_abasto);
+}
+
+function cargarExistencias(cod){
+  const box=document.getElementById('existenciasBox');
+  if(!box) return;
+  loadJsonp('getExistenciasRenglon', '&cod='+encodeURIComponent(cod)).then(resp=>{
+    if(!resp || !resp.success){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudieron cargar las existencias.</div>'; return; }
+    const pts=resp.puntos||[];
+    if(!pts.length){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin saldos registrados para este renglón.</div>'; return; }
+    const filas=pts.map(p=>{
+      const esCedis=String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
+      const cls=p.saldo<=0?'color:var(--rojo);':'';
+      return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}><td>${esc(p.punto)}</td><td style="text-align:right;font-family:var(--mono);${cls}">${num(p.saldo)}</td><td style="color:#888;">${esc(p.um||'')}</td></tr>`;
+    }).join('');
+    box.innerHTML=`
+      <div class="ue-resumen" style="margin-bottom:8px;">
+        <div class="ue-res-item"><div class="lbl">Total nacional</div><div class="val">${num(resp.total_nacional)}</div></div>
+        <div class="ue-res-item"><div class="lbl">CEDIS</div><div class="val">${num(resp.total_cedis)}</div></div>
+        <div class="ue-res-item"><div class="lbl">UE</div><div class="val">${num(resp.total_ue)}</div></div>
+      </div>
+      <table class="ue-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Saldo</th><th>U.Emisión</th></tr></thead><tbody>${filas}</tbody></table>
+      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor saldo</div>`;
+  }).catch(()=>{ box.innerHTML='<div style="color:#999;font-size:12.5px;">Error consultando saldos.</div>'; });
 }
 
 function verUE(s){
