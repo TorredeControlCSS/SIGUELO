@@ -155,6 +155,17 @@
     "presentacion_comercial": "TAB, COM"
    },
    {
+    "cod_abasto": "101099901",
+    "cod_sap": "L02BX00001",
+    "desc": "ABIRATERONA 250mg, tableta, V.O.",
+    "categoria": "MEDICAMENTO",
+    "especialidad": "Terapia Endocrina: Antagonistas de hormonas y agentes relacionados, Otros",
+    "presentacion": "CAJA CON FRASCO x 120",
+    "u_caja": null,
+    "u_pallet": null,
+    "presentacion_comercial": "TAB, COM"
+   },
+   {
     "cod_abasto": "101085201",
     "cod_sap": "J05AB00002",
     "desc": "ACICLOVIR 400mg, cápsula o tableta, V.O.",
