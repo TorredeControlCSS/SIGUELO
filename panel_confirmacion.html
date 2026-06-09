@@ -125,6 +125,7 @@
     <div class="kpi kpi-click" data-filtro="AGENDADA"><div class="lbl">Agendadas (ya confirmadas)</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
     <div class="kpi kpi-click" data-filtro="RECEPCION"><div class="lbl">Cola recepción (urgente)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
     <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (≤3 días)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (por reprogramar)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
     <div class="kpi"><div class="lbl">Actualizado</div><div class="val" id="kpiHora" style="font-size:14px;">—</div></div>
   </div>
 
@@ -248,10 +249,12 @@ function actualizarKPIs(){
   const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
   const rec=SOLICITUDES.filter(s=>s.cola==='RECEPCION').length;
   const vence=SOLICITUDES.filter(s=>s.venc && s.venc.estado==='ROJO').length;
+  const dif=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA').length;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
   document.getElementById('kpiRecepcion').textContent=rec;
   document.getElementById('kpiVence').textContent=vence;
+  const kd=document.getElementById('kpiDiferidas'); if(kd) kd.textContent=dif;
   const now=new Date();
   document.getElementById('kpiHora').textContent=now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
 }
@@ -277,6 +280,7 @@ function getFiltradas(){
     if(filtroEstado==='AGENDADA' && estU!=='AGENDADA') return false;
     if(filtroEstado==='RECEPCION' && s.cola!=='RECEPCION') return false;
     if(filtroEstado==='VENCE' && !(s.venc && s.venc.estado==='ROJO')) return false;
+    if(filtroEstado==='DIFERIDA' && estU!=='DIFERIDA') return false;
     if(q){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
       if(blob.indexOf(q)<0) return false;
@@ -331,6 +335,7 @@ function render(){
         coberturaBadge = `<span class="badge gris">Sin dato de consumo</span>`;
       }
       badgesActivas = `
+        ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${vencBadge}
         <span class="badge ${colaBadge}">${colaLabel}</span>
         <span class="badge gris clic" data-ue="${idx}">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
