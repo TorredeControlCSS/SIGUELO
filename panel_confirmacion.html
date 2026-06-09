@@ -110,6 +110,9 @@
         <option value="RECEPCION">Solo recepción</option>
         <option value="REDISTRIBUCION">Solo redistribución</option>
       </select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--azul-osc);cursor:pointer;">
+        <input type="checkbox" id="verHistorico" style="cursor:pointer;"> Ver histórico
+      </label>
       <button class="btn" id="btnRefrescar">Refrescar</button>
     </div>
     <div id="tabLista"></div>
@@ -130,12 +133,12 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 let SOLICITUDES = [];
 
-function loadJsonp(action){
+function loadJsonp(action, extra){
   return new Promise((resolve,reject)=>{
     const cb='_cb_'+Date.now()+Math.floor(Math.random()*1000);
     window[cb]=(resp)=>{ delete window[cb]; const s=document.getElementById(cb); if(s)s.remove(); resolve(resp); };
     const s=document.createElement('script'); s.id=cb;
-    s.src=API_URL+'?action='+action+'&callback='+cb;
+    s.src=API_URL+'?action='+action+'&callback='+cb+(extra||'');
     s.onerror=()=>{ delete window[cb]; reject(new Error('Error de red')); };
     document.body.appendChild(s);
   });
@@ -147,7 +150,8 @@ function num(n){ return Number(n||0).toLocaleString('es-PA'); }
 async function cargar(){
   document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
   try{
-    const resp=await loadJsonp('getSolicitudesPriorizadas');
+    const hist = document.getElementById('verHistorico') && document.getElementById('verHistorico').checked;
+    const resp=await loadJsonp('getSolicitudesPriorizadas', hist ? '&historico=1' : '');
     if(!resp.success){ throw new Error(resp.error||'error'); }
     SOLICITUDES=resp.solicitudes||[];
     actualizarKPIs();
@@ -373,6 +377,7 @@ document.getElementById('modalX').addEventListener('click',cerrarModal);
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') cerrarModal(); });
 document.getElementById('buscar').addEventListener('input',render);
 document.getElementById('filtroCola').addEventListener('change',render);
+document.getElementById('verHistorico').addEventListener('change',cargar);
 document.getElementById('btnRefrescar').addEventListener('click',cargar);
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
