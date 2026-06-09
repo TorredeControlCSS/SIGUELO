@@ -69,6 +69,14 @@
   .modal-body td.v{font-family:var(--mono);}
   .ue-list{columns:2;font-size:12.5px;line-height:1.7;}
   .ue-list div{break-inside:avoid;}
+  .ue-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+  .ue-res-item{background:var(--fondo);border:1px solid var(--borde-suave);border-radius:3px;padding:8px 10px;text-align:center;}
+  .ue-res-item .lbl{font-size:11px;color:#666;}
+  .ue-res-item .val{font-size:20px;font-weight:700;font-family:var(--mono);margin-top:2px;}
+  .ue-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ue-tabla th{background:var(--azul-osc);color:#fff;padding:6px 8px;text-align:left;font-weight:600;position:sticky;top:0;}
+  .ue-tabla td{padding:5px 8px;border-bottom:1px solid #eee;}
+  .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
 </style>
 </head>
@@ -253,15 +261,33 @@ function verDetalle(s){
 
 function verUE(s){
   const lista=(s.ue_cero_lista||'').split(';').map(x=>x.trim()).filter(Boolean);
-  const items = lista.length ? lista.map(u=>`<div>• ${esc(u)}</div>`).join('') : '<div style="color:#999;">Sin UE en cero registradas</div>';
-  document.getElementById('modalTitulo').textContent='UE en cero — '+s.descripcion;
+  // Cada item puede venir como "NOMBRE (0.2m)" o solo "NOMBRE"
+  const filas = lista.map(u=>{
+    const m = u.match(/^(.*?)\s*\(([\d.]+)m\)\s*$/);
+    if(m){
+      const cob = parseFloat(m[2]);
+      const cls = cob < 1 ? 'rojo' : (cob < 3 ? 'ambar' : 'verde');
+      return `<tr><td>${esc(m[1].trim())}</td><td class="v" style="text-align:right;"><span class="badge ${cls}">${cob}m</span></td></tr>`;
+    }
+    return `<tr><td>${esc(u)}</td><td class="v" style="text-align:right;color:#999;">s/d</td></tr>`;
+  }).join('');
+  const tabla = lista.length
+    ? `<table class="ue-tabla"><thead><tr><th>Unidad Ejecutora</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>${filas}</tbody></table>`
+    : '<div style="color:#999;">Sin UE en escasez registradas</div>';
+
+  const cobCedis = s.cobertura_meses>=0
+    ? `<span class="badge ${s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde')}">${s.cobertura_meses} meses</span>`
+    : '<span style="color:#999;">sin dato</span>';
+
+  document.getElementById('modalTitulo').textContent='UE en escasez — '+s.descripcion;
   document.getElementById('modalBody').innerHTML=`
-    <div style="font-size:13px;margin-bottom:10px;">
-      <b>${s.ue_cero}</b> de <b>${s.ue_total}</b> unidades ejecutoras con saldo &lt; 10 unidades (${s.ue_pct}% de escasez).
-      ${s.cedis_saldo>0?`<br>En CEDIS hay <b>${num(s.cedis_saldo)}</b> unidades disponibles para redistribuir.`:''}
-      ${s.cobertura_meses>=0?`<br>Cobertura del CEDIS Panamá: <b>${s.cobertura_meses} meses</b> (consumo mensual de la red: ${num(s.consumo_mensual)}).`:''}
+    <div class="ue-resumen">
+      <div class="ue-res-item"><div class="lbl">UE en escasez</div><div class="val">${s.ue_cero} <span style="font-size:13px;color:#888;">/ ${s.ue_total}</span></div></div>
+      <div class="ue-res-item"><div class="lbl">% escasez</div><div class="val">${s.ue_pct}%</div></div>
+      <div class="ue-res-item"><div class="lbl">Cobertura CEDIS PMA</div><div class="val" style="font-size:16px;">${cobCedis}</div></div>
     </div>
-    <div class="ue-list">${items}</div>`;
+    <div style="font-size:11.5px;color:#777;margin:2px 0 12px;">Cobertura = saldo del punto ÷ su consumo mensual. Menos de 1 mes se considera escasez. "s/d" = sin dato de consumo (se evaluó por saldo).</div>
+    ${tabla}`;
   abrirModal();
 }
 
