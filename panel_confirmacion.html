@@ -455,18 +455,17 @@ function cargarExistencias(cod){
     if(!pts.length){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin saldos registrados para este renglón.</div>'; return; }
     // Tabla consolidada: UE | Inventario | Consumo/mes | Cobertura
     const filas=pts.map(p=>{
-      const esCedis=String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
+      const esCedis=p.es_cedis || String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
       const invCls=p.saldo<=0?'color:var(--rojo);':'';
       let cobTxt='<span style="color:#999;">s/d</span>';
-      if(esCedis){ cobTxt='<span style="color:#999;">—</span>'; }
-      else if(p.cobertura!=null){
+      if(p.cobertura!=null){
         const cob=Number(p.cobertura);
         const cls=cob<1?'rojo':(cob<3?'ambar':'verde');
         cobTxt=`<span class="badge ${cls}">${cob.toFixed(1)}m</span>`;
       }
-      const consTxt = esCedis ? '<span style="color:#999;">—</span>' : (p.consumo>0?num(p.consumo):'<span style="color:#999;">s/d</span>');
+      const consTxt = (p.consumo>0?num(p.consumo):'<span style="color:#999;">s/d</span>');
       return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}>
-        <td>${esc(p.punto_canon||p.punto)}</td>
+        <td>${esc(p.punto_canon||p.punto)}${esCedis?' <span style="font-size:10px;color:#1e5a9e;">(CEDIS)</span>':''}</td>
         <td style="text-align:right;font-family:var(--mono);${invCls}">${num(p.saldo)}</td>
         <td style="text-align:right;font-family:var(--mono);">${consTxt}</td>
         <td style="text-align:right;">${cobTxt}</td>
@@ -475,12 +474,13 @@ function cargarExistencias(cod){
     box.innerHTML=`
       <div class="ue-resumen" style="margin-bottom:8px;">
         <div class="ue-res-item"><div class="lbl">Inventario nacional</div><div class="val">${num(resp.total_nacional)}</div></div>
-        <div class="ue-res-item"><div class="lbl">CEDIS</div><div class="val">${num(resp.total_cedis)}</div></div>
-        <div class="ue-res-item"><div class="lbl">UE</div><div class="val">${num(resp.total_ue)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Inv. CEDIS</div><div class="val">${num(resp.total_cedis)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Inv. UE</div><div class="val">${num(resp.total_ue)}</div></div>
         <div class="ue-res-item"><div class="lbl">Consumo UE/mes</div><div class="val">${num(resp.total_consumo_ue||0)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Consumo CEDIS/mes</div><div class="val">${num(resp.total_consumo_cedis||0)}</div></div>
       </div>
       <table class="ue-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Consumo/mes</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>${filas}</tbody></table>
-      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor inventario · CEDIS no consume (reabastece)</div>`;
+      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor inventario · CEDIS = flujo de despacho del almacén central (mostrado aparte)</div>`;
   }).catch(()=>{ box.innerHTML='<div style="color:#999;font-size:12.5px;">Error consultando saldos.</div>'; });
 }
 
