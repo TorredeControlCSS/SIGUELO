@@ -389,7 +389,7 @@ function render(){
   cont.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>verUE(lista[+b.dataset.ue])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
-  cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>accionPendiente('Registrar entrega',lista[+b.dataset.ent])));
+  cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
 }
 
 function verDetalle(s){
@@ -631,6 +631,72 @@ function abrirDiferir(s){
       setTimeout(()=>{ cerrarModal(); cargar(); }, 1300);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
+    }
+  });
+}
+
+function abrirRegistrarEntrega(s){
+  const saldo = (s.saldo_pendiente!=null && Number(s.saldo_pendiente)>0) ? Number(s.saldo_pendiente) : Number(s.cant_unidades||0);
+  const hoy = new Date().toISOString().slice(0,10);
+  document.getElementById('modalTitulo').textContent='Registrar entrega — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Cantidad solicitada</td><td class="v">${num(s.cant_unidades)} und</td></tr>
+      <tr><td class="k">Saldo pendiente</td><td class="v" style="font-weight:bold;">${num(saldo)} und</td></tr>
+    </table>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 8px;">Registra la cantidad <b>efectivamente recibida</b>. El saldo se descuenta autom&aacute;ticamente; si llega a cero, la cita se cierra como ENTREGADA.</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="flex:1;min-width:140px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Cantidad recibida</label>
+        <input type="number" id="entCant" value="${saldo}" min="1" max="${saldo}" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;font-family:var(--mono);">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Fecha de entrega</label>
+        <input type="date" id="entFecha" value="${hoy}" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Nota (opcional)</label>
+      <input type="text" id="entNota" placeholder="Ej. entrega parcial, falt&oacute; un lote..." style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+    </div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--azul-osc);margin-bottom:6px;cursor:pointer;">
+      <input type="checkbox" id="entDiferirSaldo"> Diferir el saldo restante (segregaci&oacute;n de entrega)
+    </label>
+    <div id="entMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="entCancelar">Cancelar</button>
+      <button class="btn primary" id="entOk">Registrar entrega</button>
+    </div>`;
+  abrirModal();
+  document.getElementById('entCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('entOk').addEventListener('click',async()=>{
+    const cant=Number(document.getElementById('entCant').value);
+    const fecha=document.getElementById('entFecha').value;
+    const nota=document.getElementById('entNota').value;
+    const diferirSaldo=document.getElementById('entDiferirSaldo').checked;
+    const msg=document.getElementById('entMsg');
+    const btn=document.getElementById('entOk');
+    if(!(cant>0)){ msg.style.color='#b00020'; msg.textContent='La cantidad debe ser mayor a cero.'; return; }
+    if(cant>saldo){ msg.style.color='#b00020'; msg.textContent='La cantidad no puede exceder el saldo pendiente ('+num(saldo)+').'; return; }
+    btn.disabled=true; msg.style.color='#555'; msg.textContent='Registrando entrega...';
+    try{
+      const resp=await postGAS('registrarEntrega',{id_solicitud:s.id, cantidad_entregada:cant, fecha_entrega:fecha, nota:nota, usuario:'Panel SÍGUELO'});
+      if(!resp.success){ throw new Error(resp.error||'Error'); }
+      let txt=resp.message||'Entrega registrada.';
+      // Si quedó saldo y se pidió diferir, diferir el saldo restante (segregación)
+      if(diferirSaldo && Number(resp.saldo_pendiente)>0){
+        msg.textContent='Entrega registrada. Difiriendo el saldo...';
+        const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente), usuario:'Panel SÍGUELO'});
+        if(r2.success) txt+=' Saldo de '+num(resp.saldo_pendiente)+' diferido (segregación).';
+        else txt+=' (Aviso: no se pudo diferir el saldo: '+(r2.error||'')+')';
+      }
+      msg.style.color='#0a7a2f'; msg.textContent=txt;
+      setTimeout(()=>{ cerrarModal(); cargar(); }, 1400);
+    }catch(e){
+      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
     }
   });
 }
