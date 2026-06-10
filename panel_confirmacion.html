@@ -179,23 +179,6 @@
         <button class="btn" id="calNext">Mes siguiente ›</button>
         <button class="btn" id="calHoy">Hoy</button>
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
-        <select id="calCategoria">
-          <option value="">Todas las categorías</option>
-          <option value="Medicamentos">Medicamentos</option>
-          <option value="Médico Quirúrgico">Médico Quirúrgico</option>
-          <option value="Laboratorio">Laboratorio</option>
-          <option value="Odontología">Odontología</option>
-          <option value="Sustancias Controladas">Sustancias Controladas</option>
-        </select>
-        <select id="calEstado">
-          <option value="">Todos los estados</option>
-          <option value="PENDIENTE">Pendiente</option>
-          <option value="AGENDADA">Agendada</option>
-          <option value="ASISTIO">Asistió</option>
-          <option value="ENTREGADA">Entregada</option>
-          <option value="NO_ASISTIO">No asistió</option>
-          <option value="CANCELADA">Cancelada</option>
-        </select>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
           <span class="cal-chip" style="background:#fff;border:1px dashed #c97a00;"></span>Pendiente (fecha solicitada)
@@ -210,7 +193,6 @@
     <div id="tabReunion" class="tab-cal">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
         <div style="font-size:15px;font-weight:700;color:var(--azul-osc);">Citas diferidas — por retomar en reunión</div>
-        <button class="btn" id="reuRefrescar">Refrescar</button>
         <button class="btn primary" id="reuImprimir">🖨 Imprimir lista</button>
         <span id="reuResumen" style="font-size:12px;color:#555;margin-left:auto;"></span>
       </div>
@@ -429,17 +411,6 @@ function verDetalle(s){
   ).join('') : '<tr><td colspan="4" style="color:#999;">Sin lotes capturados</td></tr>';
   const sustento = s.link_sustento ? `<a href="${esc(s.link_sustento)}" target="_blank">Ver documento adjunto</a>` : '<span style="color:#999;">Sin documento</span>';
 
-  // Sección UE en escasez (unificada aquí, ya no es un modal aparte)
-  const ueLista=(s.ue_cero_lista||'').split(';').map(x=>x.trim()).filter(Boolean);
-  const ueFilas = ueLista.map(u=>{
-    const m=u.match(/^(.*?)\s*\(([\d.]+)m\)\s*$/);
-    if(m){ const cob=parseFloat(m[2]); const cls=cob<1?'rojo':(cob<3?'ambar':'verde');
-      return `<tr><td>${esc(m[1].trim())}</td><td class="v" style="text-align:right;"><span class="badge ${cls}">${cob}m</span></td></tr>`; }
-    return `<tr><td>${esc(u)}</td><td class="v" style="text-align:right;color:#999;">s/d</td></tr>`;
-  }).join('');
-  const ueTabla = ueLista.length
-    ? `<table class="ue-tabla"><thead><tr><th>Unidad Ejecutora en escasez</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>${ueFilas}</tbody></table>`
-    : '<div style="color:#999;font-size:12.5px;">Sin UE en escasez registradas</div>';
   const cobCedis = s.cobertura_meses>=0
     ? `<span class="badge ${s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde')}">${s.cobertura_meses} meses</span>`
     : '<span style="color:#999;">sin dato</span>';
@@ -463,16 +434,14 @@ function verDetalle(s){
       <tr><td class="k">Lote</td><td class="k">Vence</td><td class="k">Cantidad</td><td class="k">Present.</td></tr>
       ${lotesHtml}
     </table>
-    <div style="font-size:13px;font-weight:600;margin:16px 0 6px;color:var(--azul-osc);">Señal de demanda — UE en escasez</div>
+    <div style="font-size:13px;font-weight:600;margin:16px 0 6px;color:var(--azul-osc);">Señal de demanda y existencias por UE</div>
     <div class="ue-resumen" style="margin-bottom:8px;">
       <div class="ue-res-item"><div class="lbl">UE en escasez</div><div class="val">${s.ue_cero||0} <span style="font-size:13px;color:#888;">/ ${s.ue_total||0}</span></div></div>
       <div class="ue-res-item"><div class="lbl">% escasez</div><div class="val">${s.ue_pct||0}%</div></div>
       <div class="ue-res-item"><div class="lbl">Cobertura CEDIS PMA</div><div class="val" style="font-size:16px;">${cobCedis}</div></div>
     </div>
-    <div style="font-size:11.5px;color:#777;margin:2px 0 10px;">Cobertura = saldo del punto ÷ consumo mensual. Menos de 1 mes = escasez. "s/d" = sin dato de consumo.</div>
-    ${ueTabla}
-    <div style="font-size:13px;font-weight:600;margin:16px 0 6px;color:var(--azul-osc);">Existencias en línea por UE</div>
-    <div id="existenciasBox"><div style="color:#999;font-size:12.5px;">Consultando saldos...</div></div>`;
+    <div style="font-size:11.5px;color:#777;margin:2px 0 10px;">Cobertura = inventario ÷ consumo mensual (en meses). Menos de 1 mes = escasez. "s/d" = sin dato de consumo.</div>
+    <div id="existenciasBox"><div style="color:#999;font-size:12.5px;">Consultando inventario y consumos...</div></div>`;
   abrirModal();
   cargarExistencias(s.cod_abasto);
 }
@@ -484,19 +453,34 @@ function cargarExistencias(cod){
     if(!resp || !resp.success){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudieron cargar las existencias.</div>'; return; }
     const pts=resp.puntos||[];
     if(!pts.length){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin saldos registrados para este renglón.</div>'; return; }
+    // Tabla consolidada: UE | Inventario | Consumo/mes | Cobertura
     const filas=pts.map(p=>{
       const esCedis=String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
-      const cls=p.saldo<=0?'color:var(--rojo);':'';
-      return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}><td>${esc(p.punto)}</td><td style="text-align:right;font-family:var(--mono);${cls}">${num(p.saldo)}</td><td style="color:#888;">${esc(p.um||'')}</td></tr>`;
+      const invCls=p.saldo<=0?'color:var(--rojo);':'';
+      let cobTxt='<span style="color:#999;">s/d</span>';
+      if(esCedis){ cobTxt='<span style="color:#999;">—</span>'; }
+      else if(p.cobertura!=null){
+        const cob=Number(p.cobertura);
+        const cls=cob<1?'rojo':(cob<3?'ambar':'verde');
+        cobTxt=`<span class="badge ${cls}">${cob.toFixed(1)}m</span>`;
+      }
+      const consTxt = esCedis ? '<span style="color:#999;">—</span>' : (p.consumo>0?num(p.consumo):'<span style="color:#999;">s/d</span>');
+      return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}>
+        <td>${esc(p.punto)}</td>
+        <td style="text-align:right;font-family:var(--mono);${invCls}">${num(p.saldo)}</td>
+        <td style="text-align:right;font-family:var(--mono);">${consTxt}</td>
+        <td style="text-align:right;">${cobTxt}</td>
+      </tr>`;
     }).join('');
     box.innerHTML=`
       <div class="ue-resumen" style="margin-bottom:8px;">
-        <div class="ue-res-item"><div class="lbl">Total nacional</div><div class="val">${num(resp.total_nacional)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Inventario nacional</div><div class="val">${num(resp.total_nacional)}</div></div>
         <div class="ue-res-item"><div class="lbl">CEDIS</div><div class="val">${num(resp.total_cedis)}</div></div>
         <div class="ue-res-item"><div class="lbl">UE</div><div class="val">${num(resp.total_ue)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Consumo UE/mes</div><div class="val">${num(resp.total_consumo_ue||0)}</div></div>
       </div>
-      <table class="ue-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Saldo</th><th>U.Emisión</th></tr></thead><tbody>${filas}</tbody></table>
-      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor saldo</div>`;
+      <table class="ue-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Consumo/mes</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>${filas}</tbody></table>
+      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor inventario · CEDIS no consume (reabastece)</div>`;
   }).catch(()=>{ box.innerHTML='<div style="color:#999;font-size:12.5px;">Error consultando saldos.</div>'; });
 }
 
@@ -810,7 +794,7 @@ document.getElementById('btnHistorico').addEventListener('click',()=>{
   btn.classList.toggle('primary', verHistorico);
   cargar();
 });
-document.getElementById('btnRefrescar').addEventListener('click',cargar);
+document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='reunion') cargarReunion(); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
@@ -904,8 +888,11 @@ function calClase(s){
 
 function renderCalendario(){
   const grid=document.getElementById('calGrid');
-  const catSel=document.getElementById('calCategoria').value.toLowerCase();
-  const estSel=document.getElementById('calEstado').value.toUpperCase();
+  const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
+  const estSel=document.getElementById('filtroEstadoSel').value.toUpperCase();
+  const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
+  const fAgen=document.getElementById('filtroFechaAgen').value;
+  const fSolic=document.getElementById('filtroFechaSolic').value;
   const y=calMes.getFullYear(), m=calMes.getMonth();
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   document.getElementById('calTitulo').textContent=meses[m]+' '+y;
@@ -920,6 +907,9 @@ function renderCalendario(){
       if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return;
     }
     if(estSel && String(s.estado||'').toUpperCase()!==estSel) return;
+    if(q){ const blob=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); if(blob.indexOf(q)<0) return; }
+    if(fAgen && String(s.fecha_confirmada||'').slice(0,10)!==fAgen) return;
+    if(fSolic && String(s.fecha_solicitada||'').slice(0,10)!==fSolic) return;
     const f=calFechaDe(s); if(!f) return;
     const [yy,mm]=f.split('-').map(Number);
     if(yy===y && (mm-1)===m){ (porDia[f]=porDia[f]||[]).push(s); }
@@ -1052,8 +1042,6 @@ function verDiaCalendario(iso, citas){
 document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()-1); cargarCalendario(); });
 document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); cargarCalendario(); });
 document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); cargarCalendario(); });
-document.getElementById('calCategoria').addEventListener('change',renderCalendario);
-document.getElementById('calEstado').addEventListener('change',renderCalendario);
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
 
 async function imprimirListaDia(){
@@ -1271,7 +1259,6 @@ function imprimirReunion(){
   </body></html>`);
   win.document.close();
 }
-document.getElementById('reuRefrescar').addEventListener('click',cargarReunion);
 document.getElementById('reuImprimir').addEventListener('click',imprimirReunion);
 
 cargar();
