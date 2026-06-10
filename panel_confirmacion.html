@@ -466,7 +466,7 @@ function cargarExistencias(cod){
       }
       const consTxt = esCedis ? '<span style="color:#999;">—</span>' : (p.consumo>0?num(p.consumo):'<span style="color:#999;">s/d</span>');
       return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}>
-        <td>${esc(p.punto)}</td>
+        <td>${esc(p.punto_canon||p.punto)}</td>
         <td style="text-align:right;font-family:var(--mono);${invCls}">${num(p.saldo)}</td>
         <td style="text-align:right;font-family:var(--mono);">${consTxt}</td>
         <td style="text-align:right;">${cobTxt}</td>
