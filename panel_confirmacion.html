@@ -794,7 +794,7 @@ document.getElementById('btnHistorico').addEventListener('click',()=>{
   btn.classList.toggle('primary', verHistorico);
   cargar();
 });
-document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='reunion') cargarReunion(); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
+document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='reunion') cargarReunion(true); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
@@ -1147,13 +1147,17 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 
 // ===== PARA REUNIÓN: diferidas priorizadas =====
 let REU_DATA=null;
-async function cargarReunion(){
+let REU_TS=0;
+async function cargarReunion(forzar){
   const cont=document.getElementById('reuLista');
+  // Reutilizar datos si se cargaron hace menos de 2 min (evita recargar histórico en cada clic)
+  if(!forzar && REU_DATA && (Date.now()-REU_TS)<120000){ renderReunion(); return; }
   cont.innerHTML='<div class="estado-msg">Cargando diferidas...</div>';
   try{
     // Trae todo el histórico para no perder diferidas antiguas
     const resp=await loadJsonp('getSolicitudesPriorizadas','&historico=1');
     REU_DATA=(resp&&resp.solicitudes)?resp.solicitudes:[];
+    REU_TS=Date.now();
     renderReunion();
   }catch(e){
     cont.innerHTML='<div class="estado-msg">No se pudo cargar: '+esc(e.message)+'</div>';
