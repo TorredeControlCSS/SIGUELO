@@ -160,7 +160,14 @@
         <div class="campo full">
           <label>Empresa proveedora <span class="req">*</span></label>
           <select id="empresa"><option value="">— Seleccione su empresa —</option></select>
-          <span class="hint">Solo verá los renglones adjudicados a la empresa seleccionada.</span>
+          <span class="hint">Verá sus renglones adjudicados y los que ha entregado o solicitado anteriormente.</span>
+        </div>
+        <div class="campo full" id="boxDiferidas" style="display:none;">
+          <div style="border:1px solid #c97a00;background:#fff8ee;border-radius:4px;padding:10px 12px;">
+            <div style="font-weight:700;color:#8a5200;font-size:13px;margin-bottom:6px;">Citas diferidas pendientes de su empresa</div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">Estas solicitudes ya están registradas y serán reprogramadas. No vuelva a solicitar cita para estos renglones.</div>
+            <div id="listaDiferidas"></div>
+          </div>
         </div>
         <div class="campo">
           <label>Nombre del solicitante <span class="req">*</span></label>
@@ -617,12 +624,24 @@ document.getElementById('empresa').addEventListener('change', function(){
   if(!empresa){ selR.disabled=true; selR.innerHTML='<option value="">— Primero seleccione su empresa —</option>'; return; }
   const lista=MAESTRO.catalogo[empresa]||[];
   selR.disabled=false;
-  selR.innerHTML='<option value="">— Seleccione un renglón ('+lista.length+' adjudicados) —</option>';
-  lista.forEach((r,i)=>{
-    const o=document.createElement('option');
-    o.value=i; o.textContent=r.desc+'  ['+r.cod_abasto+' / '+r.cod_sap+']';
-    selR.appendChild(o);
-  });
+  const adj=lista.map((r,i)=>({r,i})).filter(x=>(x.r.origen||'adjudicado')==='adjudicado');
+  const his=lista.map((r,i)=>({r,i})).filter(x=>(x.r.origen||'adjudicado')==='historico');
+  selR.innerHTML='<option value="">— Seleccione un renglón ('+lista.length+' en total) —</option>';
+  function añadirGrupo(label, items){
+    if(!items.length) return;
+    const og=document.createElement('optgroup');
+    og.label=label+' ('+items.length+')';
+    items.forEach(x=>{
+      const o=document.createElement('option');
+      o.value=x.i; o.textContent=x.r.desc+'  ['+x.r.cod_abasto+(x.r.cod_sap?(' / '+x.r.cod_sap):'')+']';
+      og.appendChild(o);
+    });
+    selR.appendChild(og);
+  }
+  añadirGrupo('Adjudicados (contrato vigente)', adj);
+  añadirGrupo('Histórico (ha entregado/solicitado antes)', his);
+  // Mostrar las citas diferidas pendientes de esta empresa (ayuda-memoria)
+  cargarDiferidasProveedor(empresa);
 });
 
 document.getElementById('renglon').addEventListener('change', function(){
@@ -651,7 +670,32 @@ document.getElementById('renglon').addEventListener('change', function(){
   }
 });
 
-// ---- Lista de empaque por lote ----
+// ---- Citas diferidas pendientes del proveedor (ayuda-memoria, evita duplicados) ----
+function cargarDiferidasProveedor(empresa){
+  const box=document.getElementById('boxDiferidas');
+  const cont=document.getElementById('listaDiferidas');
+  if(!empresa){ box.style.display='none'; return; }
+  cont.innerHTML='<div style="font-size:12px;color:#999;">Consultando...</div>';
+  const cb='cbDif'+Date.now();
+  window[cb]=function(resp){
+    try{ delete window[cb]; }catch(e){}
+    const difs=(resp&&resp.success&&resp.diferidas)?resp.diferidas:[];
+    if(!difs.length){ box.style.display='none'; return; }
+    box.style.display='block';
+    cont.innerHTML=difs.map(d=>(
+      '<div style="border-top:1px solid #eecfa0;padding:6px 0;font-size:12.5px;">'+
+      '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
+      '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
+      (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
+      (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
+      '</div>'
+    )).join('');
+  };
+  const s=document.createElement('script');
+  s.src=API_URL+'?action=getDiferidasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
+  s.onerror=function(){ box.style.display='none'; };
+  document.body.appendChild(s);
+}
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
 function agregarLote(){
   lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',total_bultos:0,pallets:0,clasif:''});
