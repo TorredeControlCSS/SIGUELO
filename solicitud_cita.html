@@ -672,14 +672,21 @@ function cargarDiferidasProveedor(empresa){
     const difs=(resp&&resp.success&&resp.diferidas)?resp.diferidas:[];
     if(!difs.length){ box.style.display='none'; return; }
     box.style.display='block';
-    cont.innerHTML=difs.map(d=>(
-      '<div style="border-top:1px solid #eecfa0;padding:6px 0;font-size:12.5px;">'+
-      '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
-      '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
-      (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
-      (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
-      '</div>'
-    )).join('');
+    cont.innerHTML=difs.map(d=>{
+      const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
+      const detalles=[];
+      if(d.fecha_solicitada) detalles.push('Fecha solicitada: '+escAttr(d.fecha_solicitada));
+      if(d.cant_unidades) detalles.push(fmtNum(d.cant_unidades)+' und');
+      if(d.cant_bultos) detalles.push(fmtNum(d.cant_bultos)+' bultos');
+      if(d.cant_pallets) detalles.push(fmtNum(d.cant_pallets)+' pallets');
+      return '<div style="border-top:1px solid #eecfa0;padding:6px 0;font-size:12.5px;">'+
+        '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
+        '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
+        (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
+        (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
+        (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
+        '</div>';
+    }).join('');
   };
   const s=document.createElement('script');
   s.src=API_URL+'?action=getDiferidasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
@@ -762,6 +769,33 @@ function totales(){
   document.getElementById('totBultos').textContent=b.toLocaleString('es-PA');
   document.getElementById('totPallets').textContent=p.toLocaleString('es-PA',{maximumFractionDigits:2});
 }
+
+// ---- Modal de confirmación con QR ----
+function mostrarConfirmacion(idSol, req){
+  const modal=document.getElementById('modalConfirm');
+  document.getElementById('codConfirm').textContent=idSol||'—';
+  document.getElementById('correoConfirm').textContent=(req&&req.correo)||'—';
+  // Resumen del QR: código + OC + producto + fecha solicitada
+  const resumen='Cita: '+idSol+
+    '\nOC: '+((req&&req.oc)||'-')+
+    '\nProducto: '+((req&&req.descripcion)||'-')+
+    '\nAbasto: '+((req&&req.cod_abasto)||'-')+
+    '\nFecha solicitada: '+((req&&req.fecha_solicitada)||'-');
+  document.getElementById('resumenConfirm').innerHTML=
+    '<b>OC:</b> '+escAttr((req&&req.oc)||'-')+'<br>'+
+    '<b>Producto:</b> '+escAttr((req&&req.descripcion)||'-')+'<br>'+
+    '<b>Abasto:</b> '+escAttr((req&&req.cod_abasto)||'-')+'<br>'+
+    '<b>Fecha solicitada:</b> '+escAttr((req&&req.fecha_solicitada)||'-');
+  const cont=document.getElementById('qrConfirm');
+  cont.innerHTML='';
+  try{
+    if(window.QRCode){ new QRCode(cont,{text:resumen,width:150,height:150,correctLevel:QRCode.CorrectLevel.M}); }
+  }catch(e){ cont.innerHTML='<div style="font-size:11px;color:#999;">QR no disponible</div>'; }
+  modal.style.display='flex';
+}
+document.getElementById('btnCerrarConfirm').addEventListener('click',()=>{
+  document.getElementById('modalConfirm').style.display='none';
+});
 
 document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
 function enviarSolicitud(){
@@ -853,7 +887,7 @@ function enviarSolicitud(){
       btn.textContent='Subiendo documento...';
       return subirArchivo(archivo, idSol).then(up=>{
         if(up && up.success){
-          mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+') y documento adjunto. Su cita será confirmada el próximo viernes.');
+          mostrarConfirmacion(idSol, req);
           limpiarTodo();
         }else{
           mostrarAlerta('err','La solicitud ('+idSol+') quedó guardada, pero el documento no se pudo adjuntar tras varios intentos ('+((up&&up.error)||'error de red')+'). Su conexión puede estar lenta. Vuelva a presionar "Enviar solicitud" para reintentar solo el documento — no se duplicará la solicitud.');
@@ -861,7 +895,7 @@ function enviarSolicitud(){
         }
       });
     }else{
-      mostrarAlerta('ok','✓ Solicitud registrada ('+idSol+'). Su cita será confirmada el próximo viernes al correo indicado.');
+      mostrarConfirmacion(idSol, req);
       limpiarTodo();
     }
   })
@@ -960,5 +994,21 @@ function escAttr(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 
 init();
 </script>
+<div id="modalConfirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;max-width:440px;width:92%;border:1px solid #a8a8a8;box-shadow:0 8px 30px rgba(0,0,0,.3);">
+    <div style="background:#1e5a9e;color:#fff;padding:14px 18px;font-size:16px;font-weight:700;">Solicitud de cita recibida</div>
+    <div style="padding:20px 18px;text-align:center;">
+      <div style="color:#0a7a2f;font-size:14px;font-weight:600;margin-bottom:4px;">&#10004; Su solicitud fue registrada exitosamente</div>
+      <div style="font-size:12.5px;color:#666;margin-bottom:14px;">Conserve este comprobante. <b>No es una confirmación de cita</b>: su cita será confirmada el próximo viernes al correo indicado.</div>
+      <div id="qrConfirm" style="display:flex;justify-content:center;margin:0 auto 12px;"></div>
+      <div style="font-size:12px;color:#555;">Código de confirmación</div>
+      <div id="codConfirm" style="font-family:Consolas,monospace;font-size:15px;font-weight:700;color:#1e5a9e;letter-spacing:.5px;margin-bottom:10px;">—</div>
+      <div id="resumenConfirm" style="font-size:12px;color:#444;text-align:left;background:#f4f7fb;border:1px solid #d6e2f0;padding:8px 10px;margin-bottom:14px;"></div>
+      <div style="font-size:11.5px;color:#777;margin-bottom:14px;">Se ha enviado una copia de este comprobante al correo <b id="correoConfirm">—</b>.</div>
+      <button class="btn" id="btnCerrarConfirm" style="background:#1e5a9e;color:#fff;border:none;padding:9px 22px;cursor:pointer;">Entendido</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
