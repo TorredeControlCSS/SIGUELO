@@ -793,8 +793,12 @@ function mostrarConfirmacion(idSol, req){
   }catch(e){ cont.innerHTML='<div style="font-size:11px;color:#999;">QR no disponible</div>'; }
   modal.style.display='flex';
 }
-document.getElementById('btnCerrarConfirm').addEventListener('click',()=>{
-  document.getElementById('modalConfirm').style.display='none';
+document.addEventListener('DOMContentLoaded',()=>{
+  const bc=document.getElementById('btnCerrarConfirm');
+  if(bc) bc.addEventListener('click',()=>{
+    const mc=document.getElementById('modalConfirm');
+    if(mc) mc.style.display='none';
+  });
 });
 
 document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
