@@ -132,6 +132,7 @@
   <div class="tabs">
     <div class="tab activa" data-tab="lista">Lista priorizada</div>
     <div class="tab" data-tab="calendario">Calendario</div>
+    <div class="tab" data-tab="reunion">Para reunión</div>
   </div>
 
   <div class="panel-body">
@@ -200,6 +201,16 @@
       <div id="calGrid" class="cal-grid"></div>
       <div id="calResumen" class="cal-resumen"></div>
       <div class="estado-msg" id="calMsg" style="display:none;">Cargando historial...</div>
+    </div>
+    <div id="tabReunion" class="tab-cal">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:700;color:var(--azul-osc);">Citas diferidas — por retomar en reunión</div>
+        <button class="btn" id="reuRefrescar">Refrescar</button>
+        <button class="btn primary" id="reuImprimir">🖨 Imprimir lista</button>
+        <span id="reuResumen" style="font-size:12px;color:#555;margin-left:auto;"></span>
+      </div>
+      <div style="font-size:12px;color:#666;margin-bottom:10px;">Ordenadas por prioridad: antigüedad del diferido, luego vencimiento de OC, IPR y volumen. Agrupadas por área.</div>
+      <div id="reuLista"></div>
     </div>
   </div>
 </div>
@@ -598,37 +609,32 @@ const CAUSAS_NOTA = [
   'Segregación por capacidad de recepción',
   'Falta de espacio en bodega'
 ];
-function causasCheckboxesHtml(prefijo){
-  return CAUSAS_NOTA.map(function(c){return '<label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;color:#333;margin-bottom:5px;cursor:pointer;"><input type="checkbox" class="'+prefijo+'-causa" value="'+esc(c)+'" style="margin-top:2px;"> <span>'+esc(c)+'</span></label>';}).join('');
-}
-function causasSeleccionadas(prefijo){
-  return Array.from(document.querySelectorAll('.'+prefijo+'-causa:checked')).map(function(c){return c.value;});
-}
+function causasCheckboxesHtml(p){return CAUSAS_NOTA.map(function(c){return '<label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;color:#333;margin-bottom:5px;cursor:pointer;"><input type="checkbox" class="'+p+'-causa" value="'+esc(c)+'" style="margin-top:2px;"> <span>'+esc(c)+'</span></label>';}).join('');}
+function causasSeleccionadas(p){return Array.from(document.querySelectorAll('.'+p+'-causa:checked')).map(function(c){return c.value;});}
 
 async function generarNotaImprimible(id){
   try{
     const r=await loadJsonp('generarNotaDiferimiento','&id='+encodeURIComponent(id));
-    if(!r || !r.success){ alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
-    const causasArr=(r.causas||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
-    const filasCausas=CAUSAS_NOTA.map(function(c){var m=causasArr.some(function(x){return x===c;});return '<div style="margin:4px 0;font-size:12px;">'+(m?'\u2612':'\u2610')+' '+esc(c)+'</div>';}).join('');
-    const p=(r.nota_fecha||'').split('-'); const fechaFmt=(p[2]&&p[1]&&p[0])?(p[2]+'/'+p[1]+'/'+p[0]):r.nota_fecha;
-    let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
-    const volTxt = (Number(r.pallets)>0||Number(r.bultos)>0) ? (' ('+Number(r.bultos||0)+' bultos, '+Number(r.pallets||0)+' pallets)') : '';
-    const win=window.open('','_blank');
-    win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Nota '+esc(r.nota_num)+'</title><style>@page{size:portrait;margin:18mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;line-height:1.6;max-width:720px;margin:0 auto;}.head{text-align:center;margin-bottom:6px;}.head img{width:62px;height:62px;object-fit:contain;}.head .t{font-weight:bold;font-size:13px;margin:1px 0;}.meta{display:flex;justify-content:space-between;font-weight:bold;margin:16px 0 6px;font-size:13px;}table{border-collapse:collapse;width:100%;margin:12px 0;}th,td{border:1px solid #333;padding:6px 8px;font-size:12px;text-align:left;}th{background:#0C447C;color:#fff;}.firma{margin-top:50px;display:flex;justify-content:space-around;text-align:center;font-size:12px;}.firma div{border-top:1px solid #333;padding-top:4px;width:240px;}.cc{margin-top:30px;font-size:11px;color:#444;}@media print{.noprint{display:none;}}</style></head><body>'+
-      '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="CSS">':'')+'<div class="t">CAJA DE SEGURO SOCIAL</div><div class="t">DIRECCIÓN NACIONAL DE LOGÍSTICA</div><div class="t">DIRECCIÓN DE ABASTOS</div></div>'+
-      '<div class="meta"><span>Fecha: '+esc(fechaFmt)+'</span><span>'+esc(r.nota_num)+'</span></div>'+
+    if(!r||!r.success){ alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
+    const ca=(r.causas||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
+    const fc=CAUSAS_NOTA.map(function(c){var m=ca.some(function(x){return x===c;});return '<div style="margin:4px 0;font-size:12px;">'+(m?'\u2612':'\u2610')+' '+esc(c)+'</div>';}).join('');
+    const p=(r.nota_fecha||'').split('-'); const ff=(p[2]&&p[1]&&p[0])?(p[2]+'/'+p[1]+'/'+p[0]):r.nota_fecha;
+    let lu=''; try{ const lg=document.querySelector('.header .logo'); if(lg) lu=lg.src; }catch(e){}
+    const vt=(Number(r.pallets)>0||Number(r.bultos)>0)?(' ('+Number(r.bultos||0)+' bultos, '+Number(r.pallets||0)+' pallets)'):'';
+    const w=window.open('','_blank');
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Nota '+esc(r.nota_num)+'</title><style>@page{size:portrait;margin:18mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;line-height:1.6;max-width:720px;margin:0 auto;}.head{text-align:center;margin-bottom:6px;}.head img{width:62px;height:62px;object-fit:contain;}.head .t{font-weight:bold;font-size:13px;margin:1px 0;}.meta{display:flex;justify-content:space-between;font-weight:bold;margin:16px 0 6px;font-size:13px;}table{border-collapse:collapse;width:100%;margin:12px 0;}th,td{border:1px solid #333;padding:6px 8px;font-size:12px;text-align:left;}th{background:#0C447C;color:#fff;}.firma{margin-top:50px;display:flex;justify-content:space-around;text-align:center;font-size:12px;}.firma div{border-top:1px solid #333;padding-top:4px;width:240px;}.cc{margin-top:30px;font-size:11px;color:#444;}@media print{.noprint{display:none;}}</style></head><body>'+
+      '<div class="head">'+(lu?'<img src="'+lu+'">':'')+'<div class="t">CAJA DE SEGURO SOCIAL</div><div class="t">DIRECCIÓN NACIONAL DE LOGÍSTICA</div><div class="t">DIRECCIÓN DE ABASTOS</div></div>'+
+      '<div class="meta"><span>Fecha: '+esc(ff)+'</span><span>'+esc(r.nota_num)+'</span></div>'+
       '<p><b>Nombre de la Empresa:</b> '+esc(r.empresa)+'</p>'+
       '<p>Por medio de la presente, se comunica que la entrega / recepción de la mercancía generada por la Orden de compra: <b>'+esc(r.oc)+'</b>.</p>'+
-      '<table><thead><tr><th>N.º de Entrega</th><th>Código De Abasto</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody><tr><td>1</td><td>'+esc(r.cod_abasto)+'</td><td>'+esc(r.descripcion)+'</td><td>'+Number(r.cantidad||0).toLocaleString('es-PA')+volTxt+'</td></tr></tbody></table>'+
-      '<p><b>ha sido diferida y segmentada temporalmente debido a las siguientes causas:</b></p>'+filasCausas+
+      '<table><thead><tr><th>N.º de Entrega</th><th>Código De Abasto</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody><tr><td>1</td><td>'+esc(r.cod_abasto)+'</td><td>'+esc(r.descripcion)+'</td><td>'+Number(r.cantidad||0).toLocaleString('es-PA')+vt+'</td></tr></tbody></table>'+
+      '<p><b>ha sido diferida y segmentada temporalmente debido a las siguientes causas:</b></p>'+fc+
       '<p>Le indicamos que puede realizar su entrega una vez contemos con espacio disponible, lo cual será notificado por escrito.</p><p>Agradecemos su comprensión.</p>'+
       '<div class="firma"><div>Paola Moreno<br><b>Jefe Almacén</b></div><div>Ildemaro Vásquez<br><b>Torre de Control Logística</b></div></div>'+
       '<div class="cc">cc. Dirección Nacional de Logística<br>cp. Dirección de Abastos</div>'+
-      '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button>'+
-      '</body></html>');
-    win.document.close();
-  }catch(e){ alert('Error generando la nota: '+e.message); }
+      '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button></body></html>');
+    w.document.close();
+  }catch(e){ alert('Error: '+e.message); }
 }
 
 function abrirDiferir(s){
@@ -660,18 +666,18 @@ function abrirDiferir(s){
     <div id="difMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
       <button class="btn" id="difCancelar">Cancelar</button>
-      <button class="btn primary" id="difOk">Diferir y generar nota</button>
+      <button class="btn primary" id="difOk">Diferir y notificar</button>
     </div>`;
   abrirModal();
   document.getElementById('difCancelar').addEventListener('click',cerrarModal);
   document.getElementById('difOk').addEventListener('click',async()=>{
     const motivo=document.getElementById('difMotivo').value;
     const nota=document.getElementById('difNota').value;
-    const causas=causasSeleccionadas('dif');
     const msg=document.getElementById('difMsg');
     const btn=document.getElementById('difOk');
     btn.disabled=true; msg.style.color='#555'; msg.textContent='Difiriendo y enviando correo...';
     try{
+      const causas=causasSeleccionadas('dif');
       const resp=await postGAS('diferirCita',{id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       let txt=resp.message+'.';
@@ -727,9 +733,7 @@ function abrirRegistrarEntrega(s){
     </div>`;
   abrirModal();
   document.getElementById('entCancelar').addEventListener('click',cerrarModal);
-  document.getElementById('entDiferirSaldo').addEventListener('change',e=>{
-    document.getElementById('entCausasBox').style.display = e.target.checked ? 'block' : 'none';
-  });
+  document.getElementById('entDiferirSaldo').addEventListener('change',function(e){ document.getElementById('entCausasBox').style.display = e.target.checked ? 'block' : 'none'; });
   document.getElementById('entOk').addEventListener('click',async()=>{
     const cant=Number(document.getElementById('entCant').value);
     const fecha=document.getElementById('entFecha').value;
@@ -744,17 +748,14 @@ function abrirRegistrarEntrega(s){
       const resp=await postGAS('registrarEntrega',{id_solicitud:s.id, cantidad_entregada:cant, fecha_entrega:fecha, nota:nota, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       let txt=resp.message||'Entrega registrada.';
-      if(Number(resp.saldo_pendiente)>0 && Number(resp.pallets_saldo)>=0){
-        txt+=' (Saldo: '+num(resp.saldo_pendiente)+' und ≈ '+num(resp.pallets_saldo)+' pallets).';
-      }
+      if(Number(resp.saldo_pendiente)>0 && resp.pallets_saldo!=null){ txt+=' (Saldo: '+num(resp.saldo_pendiente)+' und \u2248 '+num(resp.pallets_saldo)+' pallets).'; }
       // Si quedó saldo y se pidió diferir, diferir el saldo restante (segregación) + nota
       if(diferirSaldo && Number(resp.saldo_pendiente)>0){
         msg.textContent='Entrega registrada. Difiriendo el saldo y generando nota...';
         const causas=causasSeleccionadas('ent');
         const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'});
         if(r2.success){
-          txt+=' Saldo diferido (segregación).';
-          if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
+          txt+=' Saldo diferido (segregación).'; if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
           msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
           setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
           return;
@@ -1102,8 +1103,120 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
   document.querySelector('.filtros').style.display = tab==='lista'?'flex':'none';
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
+  document.getElementById('tabReunion').style.display = tab==='reunion'?'block':'none';
   if(tab==='calendario') cargarCalendario();
+  if(tab==='reunion') cargarReunion();
 }));
+
+// ===== PARA REUNIÓN: diferidas priorizadas =====
+let REU_DATA=null;
+async function cargarReunion(){
+  const cont=document.getElementById('reuLista');
+  cont.innerHTML='<div class="estado-msg">Cargando diferidas...</div>';
+  try{
+    // Trae todo el histórico para no perder diferidas antiguas
+    const resp=await loadJsonp('getSolicitudesPriorizadas','&historico=1');
+    REU_DATA=(resp&&resp.solicitudes)?resp.solicitudes:[];
+    renderReunion();
+  }catch(e){
+    cont.innerHTML='<div class="estado-msg">No se pudo cargar: '+esc(e.message)+'</div>';
+  }
+}
+function reuFechaDif(s){
+  // Fecha desde la que está diferida: nota_fecha si existe, si no fecha_ult_cambio
+  const f=(s.nota_fecha&&s.nota_fecha.length>=10)?s.nota_fecha:(s.fecha_ult_cambio||'');
+  return f?f.slice(0,10):'';
+}
+function renderReunion(){
+  const cont=document.getElementById('reuLista');
+  const difs=(REU_DATA||[]).filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA');
+  if(!difs.length){ cont.innerHTML='<div class="estado-msg">No hay citas diferidas pendientes.</div>'; document.getElementById('reuResumen').textContent=''; return; }
+  // Prioridad: 1) antigüedad (fecha dif más vieja primero), 2) vence OC antes, 3) IPR desc, 4) pallets desc
+  const hoy=new Date().toISOString().slice(0,10);
+  difs.sort((a,b)=>{
+    const fa=reuFechaDif(a)||hoy, fb=reuFechaDif(b)||hoy;
+    if(fa!==fb) return fa<fb?-1:1; // más antigua primero
+    const va=(a.venc&&a.venc.fecha)?a.venc.fecha:'9999', vb=(b.venc&&b.venc.fecha)?b.venc.fecha:'9999';
+    if(va!==vb) return va<vb?-1:1; // vence antes primero
+    if((b.ipr||0)!==(a.ipr||0)) return (b.ipr||0)-(a.ipr||0); // IPR desc
+    return (b.cant_pallets||0)-(a.cant_pallets||0); // pallets desc
+  });
+  // Agrupar por área
+  const ORDEN=['Medicamentos','Médico Quirúrgico','Laboratorio','Odontología','Sustancias Controladas'];
+  const grupos={};
+  difs.forEach(s=>{ const c=String(s.categoria||'Sin categoría').trim()||'Sin categoría'; (grupos[c]=grupos[c]||[]).push(s); });
+  const cats=Object.keys(grupos).sort((a,b)=>{const ia=ORDEN.indexOf(a),ib=ORDEN.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
+  function diasDif(s){ const f=reuFechaDif(s); if(!f) return ''; const d=Math.floor((new Date(hoy)-new Date(f))/86400000); return d>=0?d:''; }
+  let html='';
+  cats.forEach(cat=>{
+    const items=grupos[cat];
+    const pallets=items.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
+    html+=`<div style="background:#1e5a9e;color:#fff;font-size:13px;font-weight:700;padding:6px 12px;border-radius:3px;margin:14px 0 8px;">${esc(cat)} · ${items.length} cita(s) · ${num(pallets)} pallets</div>`;
+    html+=items.map((s,i)=>{
+      const dd=diasDif(s);
+      const idx=(REU_DATA||[]).indexOf(s);
+      const vencTxt=(s.venc&&s.venc.etiqueta)?s.venc.etiqueta:'—';
+      const vcls=(s.venc&&s.venc.estado==='ROJO')?'#b00020':(s.venc&&s.venc.estado==='AMBAR')?'#c97a00':'#0a7a2f';
+      return `<div style="border:1px solid var(--borde-suave);border-left:4px solid #c97a00;border-radius:0 4px 4px 0;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <div style="font-weight:600;font-size:13px;">${esc(s.empresa)} — ${esc(s.descripcion)}</div>
+          <div style="font-size:11px;color:#888;white-space:nowrap;">IPR ${s.ipr}</div>
+        </div>
+        <div style="font-size:11.5px;color:#666;font-family:var(--mono);margin:3px 0;">OC ${esc(s.oc)} · Abasto ${esc(s.cod_abasto)} · ${num(s.cant_unidades)} und · ${num(s.cant_pallets)} pallets</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0;">
+          ${dd!==''?`<span class="badge ambar">Diferida hace ${dd} día(s)</span>`:''}
+          ${s.motivo?`<span class="badge gris">${esc(s.motivo)}</span>`:''}
+          <span class="badge" style="background:${vcls};color:#fff;">Vence OC: ${esc(vencTxt)}</span>
+          ${s.saldo_pendiente>0?`<span class="badge gris">Saldo: ${num(s.saldo_pendiente)}</span>`:''}
+          ${s.nota_num?`<span class="badge gris">${esc(s.nota_num)}</span>`:''}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="btn primary" data-reu-conf="${idx}">Confirmar cita</button>
+          <button class="btn" data-reu-nota="${idx}">Generar nota</button>
+          <button class="btn" data-reu-det="${idx}">Ver detalle</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+  cont.innerHTML=html;
+  const totPallets=difs.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
+  document.getElementById('reuResumen').textContent=difs.length+' diferida(s) · '+num(totPallets)+' pallets en total';
+  cont.querySelectorAll('[data-reu-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(REU_DATA[+b.dataset.reuConf])));
+  cont.querySelectorAll('[data-reu-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(REU_DATA[+b.dataset.reuNota].id)));
+  cont.querySelectorAll('[data-reu-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(REU_DATA[+b.dataset.reuDet])));
+}
+function imprimirReunion(){
+  const difs=(REU_DATA||[]).filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA');
+  if(!difs.length){ alert('No hay diferidas para imprimir.'); return; }
+  const hoy=new Date().toISOString().slice(0,10);
+  difs.sort((a,b)=>{const fa=reuFechaDif(a)||hoy,fb=reuFechaDif(b)||hoy;return fa<fb?-1:(fa>fb?1:(b.ipr||0)-(a.ipr||0));});
+  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+  const filas=difs.map(s=>{
+    const f=reuFechaDif(s); const dd=f?Math.floor((new Date(hoy)-new Date(f))/86400000):'';
+    return `<tr>
+      <td>${esc(s.empresa)}</td><td>${esc(s.categoria||'—')}</td><td>${esc(s.oc)}</td>
+      <td>${esc(s.descripcion)}</td><td style="text-align:right;">${num(s.cant_unidades)} und<br>${num(s.cant_pallets)} pallets</td>
+      <td>${esc(s.motivo||'—')}</td><td>${dd!==''?dd+' días':'—'}</td>
+      <td>${esc(s.venc&&s.venc.fecha?s.venc.fecha:'—')}</td><td>${esc(s.nota_num||'—')}</td></tr>`;
+  }).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Diferidas para reunión</title>
+  <style>@page{size:landscape;margin:12mm;}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;}
+  .head{display:flex;align-items:center;gap:12px;border-bottom:3px solid #0C447C;padding-bottom:8px;margin-bottom:10px;}
+  .head img{width:54px;height:54px;object-fit:contain;}.head h1{font-size:15px;margin:0;color:#0C447C;}
+  table{border-collapse:collapse;width:100%;}th{background:#0C447C;color:#fff;padding:5px;font-size:10px;text-align:left;}
+  td{border:1px solid #aaa;padding:4px 6px;font-size:10px;vertical-align:top;}tr:nth-child(even) td{background:#f4f7fa;}</style>
+  </head><body>
+  <div class="head">${logoUrl?`<img src="${logoUrl}">`:''}<div><h1>Citas diferidas — Reunión semanal</h1>
+  <div style="font-size:11px;color:#555;">Caja de Seguro Social · Dirección Nacional de Logística · ${difs.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div></div></div>
+  <table><thead><tr><th>Proveedor</th><th>Área</th><th>OC</th><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Antigüedad</th><th>Vence OC</th><th>Nota</th></tr></thead>
+  <tbody>${filas}</tbody></table>
+  <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
+  </body></html>`);
+  win.document.close();
+}
+document.getElementById('reuRefrescar').addEventListener('click',cargarReunion);
+document.getElementById('reuImprimir').addEventListener('click',imprimirReunion);
 
 cargar();
 </script>
