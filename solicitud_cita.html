@@ -118,8 +118,6 @@
   .cd-disp{background:#eaf5ea;} .cd-disp .cd-num,.cd-disp .cd-estado{color:#2E7D32;}
   .cd-medio{background:#fdf4e3;} .cd-medio .cd-num,.cd-medio .cd-estado{color:#854F0B;}
   .cd-lleno{background:#fcecec;} .cd-lleno .cd-num,.cd-lleno .cd-estado{color:#A32D2D;}
-  .cd-sugerido{border:2px solid #2E7D32;position:relative;}
-  .cd-sugerido::after{content:'sugerido';position:absolute;top:-8px;right:-4px;background:#2E7D32;color:#fff;font-size:8.5px;padding:1px 5px;border-radius:7px;}
   .cal-sugerencia{margin-top:10px;font-size:12.5px;color:#444;}
   .lote-resumen{margin-top:8px;padding:8px 12px;background:#f4f4f4;border:1px solid var(--borde-suave);font-size:12.5px;display:flex;gap:20px;flex-wrap:wrap;}
   .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
@@ -572,19 +570,14 @@ function renderCalendario(carga){
   }
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const semana=['dom','lun','mar','mié','jue','vie','sáb'];
-  // encontrar el día con menos carga (sugerido)
-  let minN=Infinity, minKey=null;
   const info=dias.map(fec=>{
     const key=fec.toISOString().slice(0,10);
-    const n=carga[key]||0;
-    if(n<minN){ minN=n; minKey=key; }
-    return {fec,key,n};
+    return {fec,key,n:carga[key]||0};
   });
   cont.innerHTML=info.map(it=>{
     const [cls,txt]=clasifCarga(it.n);
-    const sugerido = (it.key===minKey && minN<8) ? ' cd-sugerido' : '';
     const etiqueta=semana[it.fec.getDay()]+' '+it.fec.getDate()+' '+meses[it.fec.getMonth()];
-    return `<div class="cal-dia ${cls}${sugerido}" data-fecha="${it.key}" title="Clic para elegir este día">
+    return `<div class="cal-dia ${cls}" data-fecha="${it.key}" title="Clic para elegir este día">
       <div class="cd-fecha">${etiqueta}</div>
       <div class="cd-num">${it.n}</div>
       <div class="cd-estado">${txt}</div>
@@ -598,12 +591,7 @@ function renderCalendario(carga){
       inp.value=f; inp.dispatchEvent(new Event('change'));
     });
   });
-  if(minKey && minN<8){
-    const fs=info.find(x=>x.key===minKey).fec;
-    sug.innerHTML='Sugerencia: el <b>'+semana[fs.getDay()]+' '+fs.getDate()+' '+meses[fs.getMonth()]+'</b> tiene más espacio disponible. Puede elegir cualquier día.';
-  } else {
-    sug.textContent='Todos los días próximos tienen alta demanda. Considere coordinar con el equipo.';
-  }
+  if(sug) sug.innerHTML='El ciclo de citas es semanal: se solicita de una semana hacia la siguiente. El número indica las solicitudes ya pedidas por día.';
   wrap.style.display='block';
 }
 
@@ -625,7 +613,8 @@ document.getElementById('empresa').addEventListener('change', function(){
   const lista=MAESTRO.catalogo[empresa]||[];
   selR.disabled=false;
   const adj=lista.map((r,i)=>({r,i})).filter(x=>(x.r.origen||'adjudicado')==='adjudicado');
-  const his=lista.map((r,i)=>({r,i})).filter(x=>(x.r.origen||'adjudicado')==='historico');
+  const his=lista.map((r,i)=>({r,i})).filter(x=>x.r.origen==='historico');
+  const sin=lista.map((r,i)=>({r,i})).filter(x=>x.r.origen==='historico_sin_match');
   selR.innerHTML='<option value="">— Seleccione un renglón ('+lista.length+' en total) —</option>';
   function añadirGrupo(label, items){
     if(!items.length) return;
@@ -633,13 +622,15 @@ document.getElementById('empresa').addEventListener('change', function(){
     og.label=label+' ('+items.length+')';
     items.forEach(x=>{
       const o=document.createElement('option');
-      o.value=x.i; o.textContent=x.r.desc+'  ['+x.r.cod_abasto+(x.r.cod_sap?(' / '+x.r.cod_sap):'')+']';
+      const sap=x.r.cod_sap?(' / '+x.r.cod_sap):'';
+      o.value=x.i; o.textContent=x.r.desc+'  ['+x.r.cod_abasto+sap+']';
       og.appendChild(o);
     });
     selR.appendChild(og);
   }
   añadirGrupo('Adjudicados (contrato vigente)', adj);
   añadirGrupo('Histórico (ha entregado/solicitado antes)', his);
+  añadirGrupo('Histórico sin código confirmado (verificar)', sin);
   // Mostrar las citas diferidas pendientes de esta empresa (ayuda-memoria)
   cargarDiferidasProveedor(empresa);
 });
