@@ -361,6 +361,11 @@ function render(){
       acciones = `<button class="btn primary" data-conf="${idx}">Reprogramar (confirmar)</button>
                   <button class="btn" data-dif="${idx}">Diferir</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
+    } else if(estadoU==='DIFERIDA'){
+      acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+                  <button class="btn" data-nota="${idx}">Generar nota</button>
+                  <button class="btn" data-ent="${idx}">Registrar entrega</button>
+                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-dif="${idx}">Diferir</button>
@@ -390,6 +395,7 @@ function render(){
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
+  cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
 }
 
 function verDetalle(s){
@@ -586,6 +592,45 @@ function abrirAsistencia(s){
   document.getElementById('asisNo').addEventListener('click',()=>enviar(false));
 }
 
+const CAUSAS_NOTA = [
+  'Falta de espacio disponible en el área de almacenamiento y proceso de inventario en el CDPA',
+  'Priorización de otras entregas',
+  'Segregación por capacidad de recepción',
+  'Falta de espacio en bodega'
+];
+function causasCheckboxesHtml(prefijo){
+  return CAUSAS_NOTA.map(function(c){return '<label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;color:#333;margin-bottom:5px;cursor:pointer;"><input type="checkbox" class="'+prefijo+'-causa" value="'+esc(c)+'" style="margin-top:2px;"> <span>'+esc(c)+'</span></label>';}).join('');
+}
+function causasSeleccionadas(prefijo){
+  return Array.from(document.querySelectorAll('.'+prefijo+'-causa:checked')).map(function(c){return c.value;});
+}
+
+async function generarNotaImprimible(id){
+  try{
+    const r=await loadJsonp('generarNotaDiferimiento','&id='+encodeURIComponent(id));
+    if(!r || !r.success){ alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
+    const causasArr=(r.causas||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
+    const filasCausas=CAUSAS_NOTA.map(function(c){var m=causasArr.some(function(x){return x===c;});return '<div style="margin:4px 0;font-size:12px;">'+(m?'\u2612':'\u2610')+' '+esc(c)+'</div>';}).join('');
+    const p=(r.nota_fecha||'').split('-'); const fechaFmt=(p[2]&&p[1]&&p[0])?(p[2]+'/'+p[1]+'/'+p[0]):r.nota_fecha;
+    let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+    const volTxt = (Number(r.pallets)>0||Number(r.bultos)>0) ? (' ('+Number(r.bultos||0)+' bultos, '+Number(r.pallets||0)+' pallets)') : '';
+    const win=window.open('','_blank');
+    win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Nota '+esc(r.nota_num)+'</title><style>@page{size:portrait;margin:18mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;line-height:1.6;max-width:720px;margin:0 auto;}.head{text-align:center;margin-bottom:6px;}.head img{width:62px;height:62px;object-fit:contain;}.head .t{font-weight:bold;font-size:13px;margin:1px 0;}.meta{display:flex;justify-content:space-between;font-weight:bold;margin:16px 0 6px;font-size:13px;}table{border-collapse:collapse;width:100%;margin:12px 0;}th,td{border:1px solid #333;padding:6px 8px;font-size:12px;text-align:left;}th{background:#0C447C;color:#fff;}.firma{margin-top:50px;display:flex;justify-content:space-around;text-align:center;font-size:12px;}.firma div{border-top:1px solid #333;padding-top:4px;width:240px;}.cc{margin-top:30px;font-size:11px;color:#444;}@media print{.noprint{display:none;}}</style></head><body>'+
+      '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="CSS">':'')+'<div class="t">CAJA DE SEGURO SOCIAL</div><div class="t">DIRECCIÓN NACIONAL DE LOGÍSTICA</div><div class="t">DIRECCIÓN DE ABASTOS</div></div>'+
+      '<div class="meta"><span>Fecha: '+esc(fechaFmt)+'</span><span>'+esc(r.nota_num)+'</span></div>'+
+      '<p><b>Nombre de la Empresa:</b> '+esc(r.empresa)+'</p>'+
+      '<p>Por medio de la presente, se comunica que la entrega / recepción de la mercancía generada por la Orden de compra: <b>'+esc(r.oc)+'</b>.</p>'+
+      '<table><thead><tr><th>N.º de Entrega</th><th>Código De Abasto</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody><tr><td>1</td><td>'+esc(r.cod_abasto)+'</td><td>'+esc(r.descripcion)+'</td><td>'+Number(r.cantidad||0).toLocaleString('es-PA')+volTxt+'</td></tr></tbody></table>'+
+      '<p><b>ha sido diferida y segmentada temporalmente debido a las siguientes causas:</b></p>'+filasCausas+
+      '<p>Le indicamos que puede realizar su entrega una vez contemos con espacio disponible, lo cual será notificado por escrito.</p><p>Agradecemos su comprensión.</p>'+
+      '<div class="firma"><div>Paola Moreno<br><b>Jefe Almacén</b></div><div>Ildemaro Vásquez<br><b>Torre de Control Logística</b></div></div>'+
+      '<div class="cc">cc. Dirección Nacional de Logística<br>cp. Dirección de Abastos</div>'+
+      '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button>'+
+      '</body></html>');
+    win.document.close();
+  }catch(e){ alert('Error generando la nota: '+e.message); }
+}
+
 function abrirDiferir(s){
   document.getElementById('modalTitulo').textContent='Diferir cita — '+s.empresa;
   document.getElementById('modalBody').innerHTML=`
@@ -605,30 +650,36 @@ function abrirDiferir(s){
       </select>
     </div>
     <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:6px;">Causas para la Nota (marca las que apliquen)</label>
+      ${causasCheckboxesHtml('dif')}
+    </div>
+    <div style="margin-bottom:10px;">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Nota interna (opcional)</label>
       <input type="text" id="difNota" placeholder="Ej. dividir en 2 entregas, esperar cupo..." style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
     </div>
     <div id="difMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
       <button class="btn" id="difCancelar">Cancelar</button>
-      <button class="btn primary" id="difOk">Diferir y notificar</button>
+      <button class="btn primary" id="difOk">Diferir y generar nota</button>
     </div>`;
   abrirModal();
   document.getElementById('difCancelar').addEventListener('click',cerrarModal);
   document.getElementById('difOk').addEventListener('click',async()=>{
     const motivo=document.getElementById('difMotivo').value;
     const nota=document.getElementById('difNota').value;
+    const causas=causasSeleccionadas('dif');
     const msg=document.getElementById('difMsg');
     const btn=document.getElementById('difOk');
     btn.disabled=true; msg.style.color='#555'; msg.textContent='Difiriendo y enviando correo...';
     try{
-      const resp=await postGAS('diferirCita',{id:s.id, motivo:motivo, nota:nota, usuario:'Panel SÍGUELO'});
+      const resp=await postGAS('diferirCita',{id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       let txt=resp.message+'.';
+      if(resp.nota_num) txt+=' Nota '+resp.nota_num+'.';
       if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
       msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
-      msg.textContent=txt;
-      setTimeout(()=>{ cerrarModal(); cargar(); }, 1300);
+      msg.textContent=txt+' Abriendo nota...';
+      setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
     }
@@ -665,6 +716,10 @@ function abrirRegistrarEntrega(s){
     <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--azul-osc);margin-bottom:6px;cursor:pointer;">
       <input type="checkbox" id="entDiferirSaldo"> Diferir el saldo restante (segregaci&oacute;n de entrega)
     </label>
+    <div id="entCausasBox" style="display:none;margin:4px 0 8px;padding:8px;background:#f6f6f6;border:1px solid #ddd;border-radius:3px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:6px;">Causas para la Nota de diferimiento</label>
+      ${causasCheckboxesHtml('ent')}
+    </div>
     <div id="entMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
       <button class="btn" id="entCancelar">Cancelar</button>
@@ -672,6 +727,9 @@ function abrirRegistrarEntrega(s){
     </div>`;
   abrirModal();
   document.getElementById('entCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('entDiferirSaldo').addEventListener('change',e=>{
+    document.getElementById('entCausasBox').style.display = e.target.checked ? 'block' : 'none';
+  });
   document.getElementById('entOk').addEventListener('click',async()=>{
     const cant=Number(document.getElementById('entCant').value);
     const fecha=document.getElementById('entFecha').value;
@@ -686,12 +744,21 @@ function abrirRegistrarEntrega(s){
       const resp=await postGAS('registrarEntrega',{id_solicitud:s.id, cantidad_entregada:cant, fecha_entrega:fecha, nota:nota, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       let txt=resp.message||'Entrega registrada.';
-      // Si quedó saldo y se pidió diferir, diferir el saldo restante (segregación)
+      if(Number(resp.saldo_pendiente)>0 && Number(resp.pallets_saldo)>=0){
+        txt+=' (Saldo: '+num(resp.saldo_pendiente)+' und ≈ '+num(resp.pallets_saldo)+' pallets).';
+      }
+      // Si quedó saldo y se pidió diferir, diferir el saldo restante (segregación) + nota
       if(diferirSaldo && Number(resp.saldo_pendiente)>0){
-        msg.textContent='Entrega registrada. Difiriendo el saldo...';
-        const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente), usuario:'Panel SÍGUELO'});
-        if(r2.success) txt+=' Saldo de '+num(resp.saldo_pendiente)+' diferido (segregación).';
-        else txt+=' (Aviso: no se pudo diferir el saldo: '+(r2.error||'')+')';
+        msg.textContent='Entrega registrada. Difiriendo el saldo y generando nota...';
+        const causas=causasSeleccionadas('ent');
+        const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'});
+        if(r2.success){
+          txt+=' Saldo diferido (segregación).';
+          if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
+          msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
+          setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
+          return;
+        } else { txt+=' (Aviso: no se pudo diferir el saldo: '+(r2.error||'')+')'; }
       }
       msg.style.color='#0a7a2f'; msg.textContent=txt;
       setTimeout(()=>{ cerrarModal(); cargar(); }, 1400);
