@@ -309,7 +309,8 @@ function render(){
     // Color del estado para la línea de fecha
     const estCol = estadoU==='ENTREGADA'||estadoU==='ENTREGADO'||estadoU==='ASISTIO' ? '#0a7a2f'
                  : estadoU==='NO_ASISTIO'||estadoU==='CANCELADA' ? '#b00020'
-                 : estadoU==='AGENDADA' ? '#1e5a9e' : 'var(--ambar)';
+                 : estadoU==='AGENDADA' ? '#1e5a9e'
+                 : estadoU==='REPROGRAMADA' ? '#5a4ba8' : 'var(--ambar)';
 
     // Las alarmas (vencimiento, cola, cobertura, UE en cero) aplican a citas por confirmar/agendar.
     // ASISTIO/NO_ASISTIO ya avanzaron: muestran un sello de su estado, no alarmas de priorización.
@@ -342,6 +343,7 @@ function render(){
       }
       badgesActivas = `
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
+        ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${vencBadge}
         <span class="badge ${colaBadge}">${colaLabel}</span>
         <span class="badge gris clic" data-det="${idx}" title="Ver detalle y señal de demanda">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
@@ -372,9 +374,14 @@ function render(){
                   <button class="btn" data-nota="${idx}">Generar nota</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
+    } else if(estadoU==='REPROGRAMADA'){
+      acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+                  <button class="btn" data-dif="${idx}">Diferir con nota</button>
+                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
-                  <button class="btn" data-dif="${idx}">Diferir</button>
+                  <button class="btn" data-repro="${idx}">Reprogramar</button>
+                  <button class="btn" data-dif="${idx}">Diferir con nota</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
     }
 
@@ -399,6 +406,7 @@ function render(){
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
+  cont.querySelectorAll('[data-repro]').forEach(b=>b.addEventListener('click',()=>abrirReprogramar(lista[+b.dataset.repro])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
   cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
 }
@@ -682,6 +690,57 @@ function abrirDiferir(s){
       setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
+    }
+  });
+}
+
+function abrirReprogramar(s){
+  document.getElementById('modalTitulo').textContent='Reprogramar cita — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Área</td><td class="v">${esc(s.categoria||'—')}</td></tr>
+    </table>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 10px;background:#eef4fb;border:1px solid #d6e2f0;padding:9px 11px;border-radius:3px;">
+      Reprogramaci&oacute;n simple: se notifica al proveedor que su cita se tomar&aacute; en cuenta para el pr&oacute;ximo per&iacute;odo. <b>No genera nota formal</b> (use "Diferir con nota" solo cuando la OC est&eacute; por vencer y deba eximir al proveedor de penalizaci&oacute;n).
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Motivo</label>
+      <select id="reproMotivo" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+        <option value="Reprogramada para el próximo período">Reprogramada para el próximo período</option>
+        <option value="Alta demanda en la fecha solicitada">Alta demanda en la fecha solicitada</option>
+        <option value="Priorización de otras entregas">Priorización de otras entregas</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Nota interna (opcional)</label>
+      <input type="text" id="reproNota" placeholder="Ej. coordinar para la semana siguiente..." style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+    </div>
+    <div id="reproMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="reproCancelar">Cancelar</button>
+      <button class="btn primary" id="reproOk">Reprogramar y notificar</button>
+    </div>`;
+  abrirModal();
+  document.getElementById('reproCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('reproOk').addEventListener('click',async()=>{
+    const motivo=document.getElementById('reproMotivo').value;
+    const nota=document.getElementById('reproNota').value;
+    const msg=document.getElementById('reproMsg');
+    const btn=document.getElementById('reproOk');
+    btn.disabled=true; msg.style.color='#555'; msg.textContent='Reprogramando y enviando correo...';
+    try{
+      const resp=await postGAS('reprogramarCita',{id:s.id, motivo:motivo, nota:nota, usuario:'Panel SÍGUELO'});
+      if(!resp.success){ throw new Error(resp.error||'Error'); }
+      let txt=resp.message+'.';
+      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
+      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
+      msg.textContent=txt;
+      setTimeout(()=>{ cerrarModal(); cargar(); }, 1100);
+    }catch(e){
+      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo reprogramar: '+e.message;
     }
   });
 }
