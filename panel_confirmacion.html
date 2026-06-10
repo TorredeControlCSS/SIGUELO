@@ -179,6 +179,7 @@
         <button class="btn" id="calNext">Mes siguiente ›</button>
         <button class="btn" id="calHoy">Hoy</button>
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
+        <button class="btn" id="calImprimirCob">🖨 Imprimir cobertura (farmacia)</button>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
           <span class="cal-chip" style="background:#fff;border:1px dashed #c97a00;"></span>Pendiente (fecha solicitada)
@@ -1102,6 +1103,7 @@ document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMont
 document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); cargarCalendario(); });
 document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); cargarCalendario(); });
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
+document.getElementById('calImprimirCob').addEventListener('click',imprimirCoberturaDia);
 
 async function imprimirListaDia(){
   // Por defecto, el día siguiente (la lista se deja en garita para el turno de las 6am)
@@ -1188,6 +1190,111 @@ async function imprimirListaDia(){
     <div class="firma"><div>Entregado por (CEDIS)</div><div>Recibido por (Seguridad / Garita)</div></div>
     <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
   </body></html>`);
+  win.document.close();
+}
+
+// ===== IMPRIMIBLE PARA FARMACIA: coberturas e inventarios por cita del día =====
+async function imprimirCoberturaDia(){
+  const manana=new Date(); manana.setDate(manana.getDate()+1);
+  const defISO=manana.toISOString().slice(0,10);
+  const fecha=prompt('Fecha a imprimir (AAAA-MM-DD):', defISO);
+  if(!fecha) return;
+  const f=fecha.trim().slice(0,10);
+  const claveMes=f.slice(0,7);
+  if(!CAL_MESES[claveMes]){
+    try{
+      const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
+      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+    }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
+  }
+  const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
+    if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
+    const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada.slice(0,10) : '';
+    return fc===f;
+  });
+  citas.sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) || String(a.empresa||'').localeCompare(String(b.empresa||'')));
+  if(!citas.length){ alert('No hay citas AGENDADAS para ese día.'); return; }
+
+  // Abrir ventana y mostrar progreso (consultar existencias por cada cita puede tardar)
+  const [yy,mm,dd]=f.split('-');
+  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+  const win=window.open('','_blank');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Coberturas '+dd+'/'+mm+'/'+yy+'</title></head><body style="font-family:Arial;padding:20px;color:#333;">Generando reporte de coberturas… consultando inventarios de '+citas.length+' producto(s). No cierre esta ventana.</body></html>');
+  win.document.close();
+
+  // Consultar existencias de cada renglón (secuencial para no saturar la red lenta)
+  const secciones=[];
+  for(const s of citas){
+    let resp=null;
+    try{ resp=await loadJsonp('getExistenciasRenglon','&cod='+encodeURIComponent(s.cod_abasto)); }catch(e){ resp=null; }
+    const pts=(resp && resp.success && resp.puntos)?resp.puntos:[];
+    // Orden: escasez primero (cobertura<1 o saldo 0), luego por inventario asc
+    pts.sort((a,b)=>{
+      const ea=(a.cobertura!=null&&a.cobertura<1)||a.saldo<=0?0:1;
+      const eb=(b.cobertura!=null&&b.cobertura<1)||b.saldo<=0?0:1;
+      if(ea!==eb) return ea-eb;
+      return (a.saldo||0)-(b.saldo||0);
+    });
+    const filasUE=pts.map(p=>{
+      const esCedis=p.es_cedis||String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
+      const inv=Number(p.saldo||0);
+      const cob=p.cobertura;
+      let cobTxt='s/d', cobBg='';
+      if(cob!=null){ cobTxt=Number(cob).toFixed(1)+'m'; cobBg = cob<1?'background:#fde2e2;':(cob<3?'background:#fff3d6;':'background:#e3f5e8;'); }
+      const cero = inv<=0 ? 'font-weight:bold;color:#b00020;' : '';
+      return '<tr'+(esCedis?' style="background:#eef4fb;font-weight:bold;"':'')+'>'+
+        '<td>'+esc(p.punto_canon||p.punto)+(esCedis?' (CEDIS)':'')+'</td>'+
+        '<td style="text-align:right;'+cero+'">'+num(inv)+'</td>'+
+        '<td style="text-align:right;">'+(p.consumo>0?num(p.consumo):'s/d')+'</td>'+
+        '<td style="text-align:right;'+cobBg+'">'+cobTxt+'</td></tr>';
+    }).join('');
+    const enCero=pts.filter(p=>Number(p.saldo||0)<=0).length;
+    secciones.push(
+      '<div class="cita">'+
+        '<div class="ct">'+esc(s.empresa)+' — '+esc(s.descripcion)+'</div>'+
+        '<div class="cm">OC '+esc(s.oc)+' · Abasto '+esc(s.cod_abasto)+' · Hora '+esc(s.hora_confirmada||'—')+
+          ' · Inv. nacional '+num(resp&&resp.total_nacional||0)+' · CEDIS '+num(resp&&resp.total_cedis||0)+
+          ' · UE en cero: '+enCero+' de '+pts.length+'</div>'+
+        '<table><thead><tr><th>Unidad Ejecutora</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Consumo/mes</th><th style="text-align:right;">Cobertura</th></tr></thead>'+
+        '<tbody>'+(filasUE||'<tr><td colspan="4" style="text-align:center;color:#888;">Sin saldos registrados.</td></tr>')+'</tbody></table>'+
+      '</div>'
+    );
+  }
+
+  win.document.open();
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Coberturas '+dd+'/'+mm+'/'+yy+'</title>'+
+  '<style>'+
+    '@page{size:portrait;margin:11mm;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;}'+
+    '.head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0C447C;padding-bottom:10px;margin-bottom:10px;}'+
+    '.head img{width:56px;height:56px;object-fit:contain;}'+
+    '.head h1{font-size:15px;margin:0;color:#0C447C;}'+
+    '.head .org{font-size:11px;color:#333;font-weight:600;margin-top:2px;}'+
+    '.head .org2{font-size:10.5px;color:#555;}'+
+    '.sub{font-size:11px;color:#555;margin:0 0 12px;}'+
+    '.cita{margin-bottom:16px;page-break-inside:avoid;}'+
+    '.ct{font-size:12px;font-weight:bold;color:#0C447C;border-left:4px solid #0C447C;padding-left:6px;}'+
+    '.cm{font-size:10px;color:#555;margin:3px 0 5px 10px;}'+
+    'table{border-collapse:collapse;width:100%;}'+
+    'th{background:#0C447C;color:#fff;padding:4px 6px;font-size:9.5px;text-align:left;border:1px solid #0C447C;}'+
+    'td{border:1px solid #bbb;padding:3px 6px;font-size:9.5px;}'+
+    '.leyenda{font-size:9.5px;color:#666;margin:2px 0 14px;}'+
+    '.leyenda span{display:inline-block;padding:1px 6px;margin-right:6px;border:1px solid #ccc;}'+
+    '@media print{.noprint{display:none;}}'+
+  '</style></head><body>'+
+    '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
+      '<div><h1>COBERTURAS E INVENTARIOS POR UNIDAD EJECUTORA</h1>'+
+        '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística</div>'+
+        '<div class="org2">Revisión farmacéutica — productos que ingresan el día</div></div></div>'+
+    '<div class="sub">Día: <b>'+dd+'/'+mm+'/'+yy+'</b> · '+citas.length+' producto(s) agendado(s) · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    '<div class="leyenda">Cobertura = inventario ÷ consumo mensual. '+
+      '<span style="background:#fde2e2;">&lt; 1 mes (escasez)</span>'+
+      '<span style="background:#fff3d6;">1 a 3 meses</span>'+
+      '<span style="background:#e3f5e8;">&gt; 3 meses</span>'+
+      '<span style="background:#eef4fb;">CEDIS</span> · Inventario en <b style="color:#b00020;">rojo</b> = UE en cero.</div>'+
+    secciones.join('')+
+    '<button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
+  '</body></html>');
   win.document.close();
 }
 
