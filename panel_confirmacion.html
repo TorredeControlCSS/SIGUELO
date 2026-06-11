@@ -43,6 +43,13 @@
   .rango-dias{display:flex;gap:4px;align-items:center;}
   .rango-dias input{width:52px;font-family:var(--mono);text-align:center;}
   .rango-dias span{font-size:12px;color:#777;}
+  .rango-fecha{display:flex;gap:5px;align-items:center;}
+  .rango-fecha span{font-size:12px;color:#777;}
+  .atajos-fila{align-items:center;gap:6px;}
+  .atajos-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.4px;margin-right:2px;}
+  .btn.chip{font-size:11.5px;padding:4px 10px;background:#eef4fb;border-color:#b8d0ea;color:var(--azul);}
+  .btn.chip:hover{background:#dce8f6;}
+  .btn.chip.activo{background:var(--azul);color:#fff;border-color:var(--azul-osc);}
   .buscar-barra{background:#fff;border:1px solid var(--borde);padding:9px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
   .buscar-barra input[type=text]{flex:1;min-width:180px;padding:6px 9px;border:1px solid var(--borde);font-size:12.5px;font-family:inherit;}
   .cita{border:1px solid var(--borde-suave);border-left:5px solid #ccc;border-radius:0 4px 4px 0;margin-bottom:10px;display:flex;overflow:hidden;}
@@ -243,26 +250,33 @@
         </div>
         <div class="filtros-fila">
           <div class="filtro-campo">
-            <span class="et">OC vence en (rango de días)</span>
-            <div class="rango-dias">
-              <input type="number" id="filtroVencMin" placeholder="mín" step="1">
+            <span class="et">Fecha agendada (rango)</span>
+            <div class="rango-fecha">
+              <input type="date" id="filtroAgenDesde" title="Agendada desde">
               <span>a</span>
-              <input type="number" id="filtroVencMax" placeholder="máx" step="1">
-              <span>días</span>
+              <input type="date" id="filtroAgenHasta" title="Agendada hasta">
             </div>
           </div>
           <div class="filtro-campo">
-            <span class="et">Fecha agendada</span>
-            <input type="date" id="filtroFechaAgen">
-          </div>
-          <div class="filtro-campo">
-            <span class="et">Fecha solicitada</span>
-            <input type="date" id="filtroFechaSolic">
+            <span class="et">Fecha solicitada (rango)</span>
+            <div class="rango-fecha">
+              <input type="date" id="filtroSolicDesde" title="Solicitada desde">
+              <span>a</span>
+              <input type="date" id="filtroSolicHasta" title="Solicitada hasta">
+            </div>
           </div>
           <div class="filtro-campo" style="margin-left:auto;justify-content:flex-end;">
             <span class="et">&nbsp;</span>
             <button class="btn" id="btnLimpiar" style="display:none;">✕ Limpiar filtros</button>
           </div>
+        </div>
+        <div class="filtros-fila atajos-fila">
+          <span class="atajos-lbl">Atajos:</span>
+          <button class="btn chip" data-atajo="semana" data-base="agen">Esta semana (agendada)</button>
+          <button class="btn chip" data-atajo="proxima" data-base="agen">Semana próxima (agendada)</button>
+          <button class="btn chip" data-atajo="semana" data-base="solic">Esta semana (solicitada)</button>
+          <button class="btn chip" data-atajo="proxima" data-base="solic">Semana próxima (solicitada)</button>
+          <button class="btn chip" data-atajo="mes" data-base="agen">Este mes (agendada)</button>
         </div>
       </div>
       <div class="buscar-barra">
@@ -374,13 +388,12 @@ function getFiltradas(){
   const cola=document.getElementById('filtroCola').value;
   const estSel=document.getElementById('filtroEstadoSel').value;
   const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
-  const fAgen=document.getElementById('filtroFechaAgen').value;
-  const fSolic=document.getElementById('filtroFechaSolic').value;
   const iprMin=document.getElementById('filtroIprMin').value;
-  const vMinRaw=document.getElementById('filtroVencMin').value;
-  const vMaxRaw=document.getElementById('filtroVencMax').value;
-  const vMin=vMinRaw===''?null:Number(vMinRaw);
-  const vMax=vMaxRaw===''?null:Number(vMaxRaw);
+  // Rangos de fecha de cita (desde-hasta). Vacíos = sin filtro.
+  const agenD=document.getElementById('filtroAgenDesde').value;
+  const agenH=document.getElementById('filtroAgenHasta').value;
+  const solicD=document.getElementById('filtroSolicDesde').value;
+  const solicH=document.getElementById('filtroSolicHasta').value;
   return SOLICITUDES.filter(s=>{
     const estU=String(s.estado||'').toUpperCase();
     if(cola && s.cola!==cola) return false;
@@ -393,17 +406,20 @@ function getFiltradas(){
     }
     // Filtro IPR mínimo
     if(iprMin && Number(s.ipr||0) < Number(iprMin)) return false;
-    // Filtro rango de días hasta vencimiento de OC (s.venc.dias; negativo = ya vencida)
-    if(vMin!==null || vMax!==null){
-      const d = (s.venc && s.venc.dias!=null) ? Number(s.venc.dias) : null;
-      if(d===null) return false; // sin fecha de vencimiento: no entra al filtrar por días
-      if(vMin!==null && d < vMin) return false;
-      if(vMax!==null && d > vMax) return false;
+    // Filtro rango de fecha AGENDADA (fecha_confirmada)
+    if(agenD || agenH){
+      const fc=String(s.fecha_confirmada||'').slice(0,10);
+      if(!fc) return false;
+      if(agenD && fc<agenD) return false;
+      if(agenH && fc>agenH) return false;
     }
-    // Filtro por fecha de cita agendada/confirmada
-    if(fAgen){ const fc=String(s.fecha_confirmada||'').slice(0,10); if(fc!==fAgen) return false; }
-    // Filtro por fecha de cita solicitada
-    if(fSolic){ const fs=String(s.fecha_solicitada||'').slice(0,10); if(fs!==fSolic) return false; }
+    // Filtro rango de fecha SOLICITADA (fecha_solicitada)
+    if(solicD || solicH){
+      const fs=String(s.fecha_solicitada||'').slice(0,10);
+      if(!fs) return false;
+      if(solicD && fs<solicD) return false;
+      if(solicH && fs>solicH) return false;
+    }
     // Filtro por tarjeta KPI
     if(filtroEstado==='PENDIENTE' && estU!=='PENDIENTE') return false;
     if(filtroEstado==='AGENDADA' && estU!=='AGENDADA') return false;
@@ -1077,11 +1093,11 @@ document.getElementById('buscar').addEventListener('input',()=>{
 document.getElementById('filtroCola').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroEstadoSel').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroCategoria').addEventListener('change',aplicarFiltros);
-document.getElementById('filtroFechaAgen').addEventListener('change',aplicarFiltros);
-document.getElementById('filtroFechaSolic').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroAgenDesde').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroAgenHasta').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroSolicDesde').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroSolicHasta').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroIprMin').addEventListener('change',aplicarFiltros);
-document.getElementById('filtroVencMin').addEventListener('input',aplicarFiltros);
-document.getElementById('filtroVencMax').addEventListener('input',aplicarFiltros);
 let verHistorico=false;
 document.getElementById('btnHistorico').addEventListener('click',()=>{
   verHistorico=!verHistorico;
@@ -1095,16 +1111,66 @@ document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar();
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
+// ===== Atajos de rango: esta semana / semana próxima / este mes =====
+function isoLocal_(dt){
+  // YYYY-MM-DD en hora local (evita el corrimiento de toISOString por UTC)
+  const y=dt.getFullYear(), m=String(dt.getMonth()+1).padStart(2,'0'), d=String(dt.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
+function rangoAtajo_(tipo){
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  if(tipo==='mes'){
+    const ini=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    const fin=new Date(hoy.getFullYear(),hoy.getMonth()+1,0);
+    return {desde:isoLocal_(ini), hasta:isoLocal_(fin)};
+  }
+  // semana: lunes a domingo
+  const lun=new Date(hoy); const dow=(lun.getDay()+6)%7; lun.setDate(lun.getDate()-dow);
+  if(tipo==='proxima'){ lun.setDate(lun.getDate()+7); }
+  const dom=new Date(lun); dom.setDate(dom.getDate()+6);
+  return {desde:isoLocal_(lun), hasta:isoLocal_(dom)};
+}
+document.querySelectorAll('.btn.chip[data-atajo]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const tipo=btn.dataset.atajo;      // semana | proxima | mes
+    const base=btn.dataset.base;       // agen | solic
+    const r=rangoAtajo_(tipo);
+    // Limpiar el otro rango para no mezclar criterios (un atajo a la vez).
+    document.getElementById('filtroAgenDesde').value='';
+    document.getElementById('filtroAgenHasta').value='';
+    document.getElementById('filtroSolicDesde').value='';
+    document.getElementById('filtroSolicHasta').value='';
+    if(base==='agen'){
+      document.getElementById('filtroAgenDesde').value=r.desde;
+      document.getElementById('filtroAgenHasta').value=r.hasta;
+    } else {
+      document.getElementById('filtroSolicDesde').value=r.desde;
+      document.getElementById('filtroSolicHasta').value=r.hasta;
+    }
+    // Marcar el chip activo (solo uno)
+    document.querySelectorAll('.btn.chip').forEach(c=>c.classList.remove('activo'));
+    btn.classList.add('activo');
+    // Si estamos en el calendario, navegar al mes del inicio del rango para que se vea.
+    if(TAB_ACTIVA==='calendario'){
+      const [yy,mm]=r.desde.split('-').map(Number);
+      calMes=new Date(yy,mm-1,1);
+      cargarCalendario();
+    } else {
+      aplicarFiltros();
+    }
+  });
+});
+
 function hayFiltroActivo(){
   return !!(filtroEstado || document.getElementById('buscar').value.trim()
     || document.getElementById('filtroCola').value
     || document.getElementById('filtroEstadoSel').value
     || document.getElementById('filtroCategoria').value
     || document.getElementById('filtroIprMin').value
-    || document.getElementById('filtroVencMin').value
-    || document.getElementById('filtroVencMax').value
-    || document.getElementById('filtroFechaAgen').value
-    || document.getElementById('filtroFechaSolic').value);
+    || document.getElementById('filtroAgenDesde').value
+    || document.getElementById('filtroAgenHasta').value
+    || document.getElementById('filtroSolicDesde').value
+    || document.getElementById('filtroSolicHasta').value);
 }
 function actualizarBotonLimpiar(){
   document.getElementById('btnLimpiar').style.display = hayFiltroActivo() ? '' : 'none';
@@ -1116,10 +1182,11 @@ function limpiarFiltros(){
   document.getElementById('filtroEstadoSel').value='';
   document.getElementById('filtroCategoria').value='';
   document.getElementById('filtroIprMin').value='';
-  document.getElementById('filtroVencMin').value='';
-  document.getElementById('filtroVencMax').value='';
-  document.getElementById('filtroFechaAgen').value='';
-  document.getElementById('filtroFechaSolic').value='';
+  document.getElementById('filtroAgenDesde').value='';
+  document.getElementById('filtroAgenHasta').value='';
+  document.getElementById('filtroSolicDesde').value='';
+  document.getElementById('filtroSolicHasta').value='';
+  document.querySelectorAll('.btn.chip').forEach(c=>c.classList.remove('activo'));
   document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));
   aplicarFiltros();
 }
@@ -1194,8 +1261,10 @@ function renderCalendario(){
   const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
   const estSel=document.getElementById('filtroEstadoSel').value.toUpperCase();
   const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
-  const fAgen=document.getElementById('filtroFechaAgen').value;
-  const fSolic=document.getElementById('filtroFechaSolic').value;
+  const agenD=document.getElementById('filtroAgenDesde').value;
+  const agenH=document.getElementById('filtroAgenHasta').value;
+  const solicD=document.getElementById('filtroSolicDesde').value;
+  const solicH=document.getElementById('filtroSolicHasta').value;
   const y=calMes.getFullYear(), m=calMes.getMonth();
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   document.getElementById('calTitulo').textContent=meses[m]+' '+y;
@@ -1211,8 +1280,8 @@ function renderCalendario(){
     }
     if(estSel && String(s.estado||'').toUpperCase()!==estSel) return;
     if(q){ const blob=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); if(blob.indexOf(q)<0) return; }
-    if(fAgen && String(s.fecha_confirmada||'').slice(0,10)!==fAgen) return;
-    if(fSolic && String(s.fecha_solicitada||'').slice(0,10)!==fSolic) return;
+    if(agenD || agenH){ const fc=String(s.fecha_confirmada||'').slice(0,10); if(!fc) return; if(agenD && fc<agenD) return; if(agenH && fc>agenH) return; }
+    if(solicD || solicH){ const fs=String(s.fecha_solicitada||'').slice(0,10); if(!fs) return; if(solicD && fs<solicD) return; if(solicH && fs>solicH) return; }
     const f=calFechaDe(s); if(!f) return;
     const [yy,mm]=f.split('-').map(Number);
     if(yy===y && (mm-1)===m){ (porDia[f]=porDia[f]||[]).push(s); }
