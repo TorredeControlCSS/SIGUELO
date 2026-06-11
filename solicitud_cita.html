@@ -776,21 +776,39 @@ function mostrarConfirmacion(idSol, req){
   document.getElementById('codConfirm').textContent=idSol||'—';
   document.getElementById('correoConfirm').textContent=(req&&req.correo)||'—';
   // Resumen del QR: código + OC + producto + fecha solicitada
-  const resumen='Cita: '+idSol+
-    '\nOC: '+((req&&req.oc)||'-')+
-    '\nProducto: '+((req&&req.descripcion)||'-')+
-    '\nAbasto: '+((req&&req.cod_abasto)||'-')+
-    '\nFecha solicitada: '+((req&&req.fecha_solicitada)||'-');
+  // URL del comprobante en GitHub (los datos viajan en la URL; la página los muestra)
+  const baseComp='https://torredecontrolcss.github.io/SIGUELO/comprobante.html';
+  const qp=new URLSearchParams({
+    cod:idSol||'',
+    oc:(req&&req.oc)||'',
+    prod:(req&&req.descripcion)||'',
+    abasto:(req&&req.cod_abasto)||'',
+    fecha:(req&&req.fecha_solicitada)||'',
+    emp:(req&&req.empresa)||'',
+    und:(req&&req.cant_unidades)||'',
+    pallets:(req&&req.cant_pallets)||''
+  });
+  const urlComprobante=baseComp+'?'+qp.toString();
   document.getElementById('resumenConfirm').innerHTML=
     '<b>OC:</b> '+escAttr((req&&req.oc)||'-')+'<br>'+
     '<b>Producto:</b> '+escAttr((req&&req.descripcion)||'-')+'<br>'+
     '<b>Abasto:</b> '+escAttr((req&&req.cod_abasto)||'-')+'<br>'+
     '<b>Fecha solicitada:</b> '+escAttr((req&&req.fecha_solicitada)||'-');
   const cont=document.getElementById('qrConfirm');
-  cont.innerHTML='';
-  try{
-    if(window.QRCode){ new QRCode(cont,{text:resumen,width:150,height:150,correctLevel:QRCode.CorrectLevel.M}); }
-  }catch(e){ cont.innerHTML='<div style="font-size:11px;color:#999;">QR no disponible</div>'; }
+  cont.innerHTML='<div style="font-size:11px;color:#999;">Generando código QR...</div>';
+  // QR como imagen (mismo servicio usado en el correo). Más resistente que la librería JS.
+  const qrSrc='https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='+encodeURIComponent(urlComprobante);
+  const img=new Image();
+  img.width=150; img.height=150; img.alt='Código QR de la cita';
+  img.style.cssText='border:1px solid #ccc;background:#fff;';
+  img.onload=function(){ cont.innerHTML=''; cont.appendChild(img); };
+  img.onerror=function(){
+    try{
+      if(window.QRCode){ cont.innerHTML=''; new QRCode(cont,{text:urlComprobante,width:150,height:150,correctLevel:QRCode.CorrectLevel.M}); return; }
+    }catch(e){}
+    cont.innerHTML='<div style="font-size:11px;color:#999;">El código QR no pudo cargarse. Conserve el código de confirmación de abajo.</div>';
+  };
+  img.src=qrSrc;
   modal.style.display='flex';
 }
 document.addEventListener('DOMContentLoaded',()=>{
@@ -799,9 +817,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     const mc=document.getElementById('modalConfirm');
     if(mc) mc.style.display='none';
   });
+  const be=document.getElementById('btnEnviar');
+  if(be) be.addEventListener('click', enviarSolicitud);
 });
-
-document.getElementById('btnEnviar').addEventListener('click', enviarSolicitud);
 function enviarSolicitud(){
   ocultarAlerta();
 
