@@ -32,9 +32,19 @@
   .tab{padding:9px 18px;border-radius:3px 3px 0 0;font-size:13px;cursor:pointer;background:var(--fondo);color:#555;border:1px solid var(--borde-suave);border-bottom:none;}
   .tab.activa{background:var(--azul-osc);color:#fff;font-weight:600;}
   .panel-body{background:#fff;border:1px solid var(--borde-suave);border-top:none;border-radius:0 0 4px 4px;padding:14px;min-height:300px;}
-  .filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
-  .filtros input,.filtros select{padding:6px 8px;border:1px solid var(--borde);font-size:13px;font-family:inherit;}
-  .filtros input{flex:1;min-width:160px;}
+  .filtros{margin-bottom:12px;}
+  .filtros-grupo{background:#fff;border:1px solid var(--borde);padding:10px;}
+  .filtros-fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .filtros-fila+.filtros-fila{border-top:1px solid #eee;padding-top:8px;margin-top:8px;}
+  .filtro-campo{display:flex;flex-direction:column;gap:2px;}
+  .filtro-campo .et{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.4px;}
+  .filtros select,.filtros input[type=date],.filtros input[type=number]{padding:5px 8px;border:1px solid var(--borde);font-size:12.5px;font-family:inherit;background:#fff;}
+  .filtros select{min-width:120px;}
+  .rango-dias{display:flex;gap:4px;align-items:center;}
+  .rango-dias input{width:52px;font-family:var(--mono);text-align:center;}
+  .rango-dias span{font-size:12px;color:#777;}
+  .buscar-barra{background:#fff;border:1px solid var(--borde);padding:9px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+  .buscar-barra input[type=text]{flex:1;min-width:180px;padding:6px 9px;border:1px solid var(--borde);font-size:12.5px;font-family:inherit;}
   .cita{border:1px solid var(--borde-suave);border-left:5px solid #ccc;border-radius:0 4px 4px 0;margin-bottom:10px;display:flex;overflow:hidden;}
   .cita.cerrada{border-left-color:#9e9e9e;background:#fafafa;}
   .cita.cerrada .cita-nombre{color:#555;}
@@ -168,45 +178,84 @@
   <div class="tabs">
     <div class="tab activa" data-tab="lista">Lista priorizada</div>
     <div class="tab" data-tab="calendario">Calendario</div>
-    <div class="tab" data-tab="reunion">Para reunión</div>
   </div>
 
   <div class="panel-body">
     <div class="filtros">
-      <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
-      <select id="filtroEstadoSel">
-        <option value="">Todos los estados</option>
-        <option value="PENDIENTE">Pendiente</option>
-        <option value="AGENDADA">Agendada</option>
-        <option value="DIFERIDA">Diferida</option>
-        <option value="ASISTIO">Asistió</option>
-        <option value="NO_ASISTIO">No asistió</option>
-        <option value="ENTREGADA">Entregada</option>
-        <option value="CANCELADA">Cancelada</option>
-      </select>
-      <select id="filtroCategoria">
-        <option value="">Todas las categorías</option>
-        <option value="Medicamentos">Medicamentos</option>
-        <option value="Médico Quirúrgico">Médico Quirúrgico</option>
-        <option value="Laboratorio">Laboratorio</option>
-        <option value="Odontología">Odontología</option>
-        <option value="Sustancias Controladas">Sustancias Controladas</option>
-      </select>
-      <select id="filtroCola">
-        <option value="">Todas las colas</option>
-        <option value="RECEPCION">Solo recepción</option>
-        <option value="REDISTRIBUCION">Solo redistribución</option>
-      </select>
-      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#555;">Agendada:
-        <input type="date" id="filtroFechaAgen" style="padding:5px;border:1px solid #a8a8a8;border-radius:2px;">
-      </label>
-      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#555;">Solicitada:
-        <input type="date" id="filtroFechaSolic" style="padding:5px;border:1px solid #a8a8a8;border-radius:2px;">
-      </label>
-      <button class="btn" id="btnHistorico">Ver histórico</button>
-      <button class="btn" id="btnLimpiar" style="display:none;">✕ Quitar filtros</button>
-      <button class="btn" id="btnRefrescar">Refrescar</button>
-      <button class="btn primary" id="btnExcel">⬇ Excel</button>
+      <div class="filtros-grupo">
+        <div class="filtros-fila">
+          <div class="filtro-campo">
+            <span class="et">Estado</span>
+            <select id="filtroEstadoSel">
+              <option value="">Todos</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="AGENDADA">Agendada</option>
+              <option value="DIFERIDA">Diferida</option>
+              <option value="ASISTIO">Asistió</option>
+              <option value="NO_ASISTIO">No asistió</option>
+              <option value="ENTREGADA">Entregada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </div>
+          <div class="filtro-campo">
+            <span class="et">Categoría</span>
+            <select id="filtroCategoria">
+              <option value="">Todas</option>
+              <option value="Medicamentos">Medicamentos</option>
+              <option value="Médico Quirúrgico">Médico Quirúrgico</option>
+              <option value="Laboratorio">Laboratorio</option>
+              <option value="Odontología">Odontología</option>
+              <option value="Sustancias Controladas">Sustancias Controladas</option>
+            </select>
+          </div>
+          <div class="filtro-campo">
+            <span class="et">Cola</span>
+            <select id="filtroCola">
+              <option value="">Todas</option>
+              <option value="RECEPCION">Solo recepción</option>
+              <option value="REDISTRIBUCION">Solo redistribución</option>
+            </select>
+          </div>
+          <div class="filtro-campo">
+            <span class="et">IPR mínimo</span>
+            <select id="filtroIprMin">
+              <option value="">Cualquiera</option>
+              <option value="75">75+ (crítico)</option>
+              <option value="50">50+ (atención)</option>
+              <option value="25">25+</option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-fila">
+          <div class="filtro-campo">
+            <span class="et">OC vence en (rango de días)</span>
+            <div class="rango-dias">
+              <input type="number" id="filtroVencMin" placeholder="mín" step="1">
+              <span>a</span>
+              <input type="number" id="filtroVencMax" placeholder="máx" step="1">
+              <span>días</span>
+            </div>
+          </div>
+          <div class="filtro-campo">
+            <span class="et">Fecha agendada</span>
+            <input type="date" id="filtroFechaAgen">
+          </div>
+          <div class="filtro-campo">
+            <span class="et">Fecha solicitada</span>
+            <input type="date" id="filtroFechaSolic">
+          </div>
+          <div class="filtro-campo" style="margin-left:auto;justify-content:flex-end;">
+            <span class="et">&nbsp;</span>
+            <button class="btn" id="btnLimpiar" style="display:none;">✕ Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
+      <div class="buscar-barra">
+        <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
+        <button class="btn" id="btnHistorico">Ver histórico</button>
+        <button class="btn" id="btnRefrescar">Refrescar</button>
+        <button class="btn primary" id="btnExcel">⬇ Excel</button>
+      </div>
     </div>
     <div id="tabLista"></div>
     <div id="tabCalendario" class="tab-cal">
@@ -227,15 +276,6 @@
       <div id="calGrid" class="cal-grid"></div>
       <div id="calResumen" class="cal-resumen"></div>
       <div class="estado-msg" id="calMsg" style="display:none;">Cargando historial...</div>
-    </div>
-    <div id="tabReunion" class="tab-cal">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="font-size:15px;font-weight:700;color:var(--azul-osc);">Citas diferidas — por retomar en reunión</div>
-        <button class="btn primary" id="reuImprimir">🖨 Imprimir lista</button>
-        <span id="reuResumen" style="font-size:12px;color:#555;margin-left:auto;"></span>
-      </div>
-      <div style="font-size:12px;color:#666;margin-bottom:10px;">Ordenadas por prioridad: antigüedad del diferido, luego vencimiento de OC, IPR y volumen. Agrupadas por área.</div>
-      <div id="reuLista"></div>
     </div>
   </div>
 </div>
@@ -294,10 +334,14 @@ async function cargar(){
 }
 
 function actualizarKPIs(){
+  // Estados cerrados/avanzados que NO deben contar en los KPIs operativos.
+  const CERRADOS=['ENTREGADA','ENTREGADO','CANCELADA','ASISTIO','NO_ASISTIO'];
+  const esActiva=s=>CERRADOS.indexOf(String(s.estado||'').toUpperCase())<0;
   const pend=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='PENDIENTE').length;
   const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
-  const rec=SOLICITUDES.filter(s=>s.cola==='RECEPCION').length;
-  const vence=SOLICITUDES.filter(s=>s.venc && s.venc.estado==='ROJO').length;
+  // Cola recepcion y OC por vencer: solo entre citas ACTIVAS (no recibidas/cerradas).
+  const rec=SOLICITUDES.filter(s=>esActiva(s) && s.cola==='RECEPCION').length;
+  const vence=SOLICITUDES.filter(s=>esActiva(s) && s.venc && s.venc.estado==='ROJO').length;
   const dif=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA').length;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
@@ -317,6 +361,11 @@ function getFiltradas(){
   const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
   const fAgen=document.getElementById('filtroFechaAgen').value;
   const fSolic=document.getElementById('filtroFechaSolic').value;
+  const iprMin=document.getElementById('filtroIprMin').value;
+  const vMinRaw=document.getElementById('filtroVencMin').value;
+  const vMaxRaw=document.getElementById('filtroVencMax').value;
+  const vMin=vMinRaw===''?null:Number(vMinRaw);
+  const vMax=vMaxRaw===''?null:Number(vMaxRaw);
   return SOLICITUDES.filter(s=>{
     const estU=String(s.estado||'').toUpperCase();
     if(cola && s.cola!==cola) return false;
@@ -326,6 +375,15 @@ function getFiltradas(){
     if(catSel){
       const c=String(s.categoria||'').toLowerCase();
       if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return false;
+    }
+    // Filtro IPR mínimo
+    if(iprMin && Number(s.ipr||0) < Number(iprMin)) return false;
+    // Filtro rango de días hasta vencimiento de OC (s.venc.dias; negativo = ya vencida)
+    if(vMin!==null || vMax!==null){
+      const d = (s.venc && s.venc.dias!=null) ? Number(s.venc.dias) : null;
+      if(d===null) return false; // sin fecha de vencimiento: no entra al filtrar por días
+      if(vMin!==null && d < vMin) return false;
+      if(vMax!==null && d > vMax) return false;
     }
     // Filtro por fecha de cita agendada/confirmada
     if(fAgen){ const fc=String(s.fecha_confirmada||'').slice(0,10); if(fc!==fAgen) return false; }
@@ -990,7 +1048,6 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id=
 function aplicarFiltros(){
   if(TAB_ACTIVA==='lista') render();
   else if(TAB_ACTIVA==='calendario'){ if(typeof renderCalendario==='function') renderCalendario(); }
-  else if(TAB_ACTIVA==='reunion'){ if(typeof renderReunion==='function') renderReunion(); }
   actualizarBotonLimpiar && actualizarBotonLimpiar();
 }
 document.getElementById('buscar').addEventListener('input',()=>{
@@ -1007,6 +1064,9 @@ document.getElementById('filtroEstadoSel').addEventListener('change',aplicarFilt
 document.getElementById('filtroCategoria').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroFechaAgen').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroFechaSolic').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroIprMin').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroVencMin').addEventListener('input',aplicarFiltros);
+document.getElementById('filtroVencMax').addEventListener('input',aplicarFiltros);
 let verHistorico=false;
 document.getElementById('btnHistorico').addEventListener('click',()=>{
   verHistorico=!verHistorico;
@@ -1016,7 +1076,7 @@ document.getElementById('btnHistorico').addEventListener('click',()=>{
   document.getElementById('buscar').value=''; // limpiar para no arrastrar la busqueda entre modos
   cargar();
 });
-document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='reunion') cargarReunion(true); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
+document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
@@ -1025,6 +1085,9 @@ function hayFiltroActivo(){
     || document.getElementById('filtroCola').value
     || document.getElementById('filtroEstadoSel').value
     || document.getElementById('filtroCategoria').value
+    || document.getElementById('filtroIprMin').value
+    || document.getElementById('filtroVencMin').value
+    || document.getElementById('filtroVencMax').value
     || document.getElementById('filtroFechaAgen').value
     || document.getElementById('filtroFechaSolic').value);
 }
@@ -1037,6 +1100,9 @@ function limpiarFiltros(){
   document.getElementById('filtroCola').value='';
   document.getElementById('filtroEstadoSel').value='';
   document.getElementById('filtroCategoria').value='';
+  document.getElementById('filtroIprMin').value='';
+  document.getElementById('filtroVencMin').value='';
+  document.getElementById('filtroVencMax').value='';
   document.getElementById('filtroFechaAgen').value='';
   document.getElementById('filtroFechaSolic').value='';
   document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));
@@ -1466,132 +1532,11 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   const tab=t.dataset.tab;
   TAB_ACTIVA=tab;
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
-  document.querySelector('.filtros').style.display = 'flex'; // permanente en las 3 vistas
+  document.querySelector('.filtros').style.display = 'block'; // permanente en ambas vistas
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
-  document.getElementById('tabReunion').style.display = tab==='reunion'?'block':'none';
   if(tab==='calendario') cargarCalendario();
-  if(tab==='reunion') cargarReunion();
 }));
 
-// ===== PARA REUNIÓN: diferidas priorizadas =====
-let REU_DATA=null;
-let REU_TS=0;
-async function cargarReunion(forzar){
-  const cont=document.getElementById('reuLista');
-  // Reutilizar datos si se cargaron hace menos de 2 min (evita recargar histórico en cada clic)
-  if(!forzar && REU_DATA && (Date.now()-REU_TS)<120000){ renderReunion(); return; }
-  cont.innerHTML='<div class="estado-msg">Cargando diferidas...</div>';
-  try{
-    // Trae todo el histórico para no perder diferidas antiguas
-    const resp=await loadJsonp('getSolicitudesPriorizadas','&historico=1');
-    REU_DATA=(resp&&resp.solicitudes)?resp.solicitudes:[];
-    REU_TS=Date.now();
-    renderReunion();
-  }catch(e){
-    cont.innerHTML='<div class="estado-msg">No se pudo cargar: '+esc(e.message)+'</div>';
-  }
-}
-function reuFechaDif(s){
-  // Fecha desde la que está diferida: nota_fecha si existe, si no fecha_ult_cambio
-  const f=(s.nota_fecha&&s.nota_fecha.length>=10)?s.nota_fecha:(s.fecha_ult_cambio||'');
-  return f?f.slice(0,10):'';
-}
-function renderReunion(){
-  const cont=document.getElementById('reuLista');
-  const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
-  const catSel=(document.getElementById('filtroCategoria').value||'').toLowerCase();
-  const fSolic=document.getElementById('filtroFechaSolic').value;
-  let difs=(REU_DATA||[]).filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA');
-  // Filtros permanentes aplican también aquí
-  if(catSel) difs=difs.filter(s=>{ const c=String(s.categoria||'').toLowerCase(); return c.indexOf(catSel)>=0||catSel.indexOf(c)>=0; });
-  if(fSolic) difs=difs.filter(s=>String(s.fecha_solicitada||'').slice(0,10)===fSolic);
-  if(q) difs=difs.filter(s=>((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase().indexOf(q)>=0);
-  if(!difs.length){ cont.innerHTML='<div class="estado-msg">No hay citas diferidas que coincidan.</div>'; document.getElementById('reuResumen').textContent=''; return; }
-  // Prioridad: 1) antigüedad (fecha dif más vieja primero), 2) vence OC antes, 3) IPR desc, 4) pallets desc
-  const hoy=new Date().toISOString().slice(0,10);
-  difs.sort((a,b)=>{
-    const fa=reuFechaDif(a)||hoy, fb=reuFechaDif(b)||hoy;
-    if(fa!==fb) return fa<fb?-1:1; // más antigua primero
-    const va=(a.venc&&a.venc.fecha)?a.venc.fecha:'9999', vb=(b.venc&&b.venc.fecha)?b.venc.fecha:'9999';
-    if(va!==vb) return va<vb?-1:1; // vence antes primero
-    if((b.ipr||0)!==(a.ipr||0)) return (b.ipr||0)-(a.ipr||0); // IPR desc
-    return (b.cant_pallets||0)-(a.cant_pallets||0); // pallets desc
-  });
-  // Agrupar por área
-  const ORDEN=['Medicamentos','Médico Quirúrgico','Laboratorio','Odontología','Sustancias Controladas'];
-  const grupos={};
-  difs.forEach(s=>{ const c=String(s.categoria||'Sin categoría').trim()||'Sin categoría'; (grupos[c]=grupos[c]||[]).push(s); });
-  const cats=Object.keys(grupos).sort((a,b)=>{const ia=ORDEN.indexOf(a),ib=ORDEN.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);});
-  function diasDif(s){ const f=reuFechaDif(s); if(!f) return ''; const d=Math.floor((new Date(hoy)-new Date(f))/86400000); return d>=0?d:''; }
-  let html='';
-  cats.forEach(cat=>{
-    const items=grupos[cat];
-    const pallets=items.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
-    html+=`<div style="background:#1e5a9e;color:#fff;font-size:13px;font-weight:700;padding:6px 12px;border-radius:3px;margin:14px 0 8px;">${esc(cat)} · ${items.length} cita(s) · ${num(pallets)} pallets</div>`;
-    html+=items.map((s,i)=>{
-      const dd=diasDif(s);
-      const idx=(REU_DATA||[]).indexOf(s);
-      const vencTxt=((s.venc&&s.venc.etiqueta)?s.venc.etiqueta:'—')+((s.venc&&s.venc.fecha)?(' ('+s.venc.fecha+')'):'');
-      const vcls=(s.venc&&s.venc.estado==='ROJO')?'#b00020':(s.venc&&s.venc.estado==='AMBAR')?'#c97a00':'#0a7a2f';
-      return `<div style="border:1px solid var(--borde-suave);border-left:4px solid #c97a00;border-radius:0 4px 4px 0;padding:10px 12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;gap:10px;">
-          <div style="font-weight:600;font-size:13px;">${esc(s.empresa)} — ${esc(s.descripcion)}</div>
-          <div style="font-size:11px;color:#888;white-space:nowrap;">IPR ${s.ipr}</div>
-        </div>
-        <div style="font-size:11.5px;color:#666;font-family:var(--mono);margin:3px 0;">OC ${esc(s.oc)} · Abasto ${esc(s.cod_abasto)} · ${num(s.cant_unidades)} und · ${num(s.cant_pallets)} pallets</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0;">
-          ${dd!==''?`<span class="badge ambar">Diferida hace ${dd} día(s)</span>`:''}
-          ${s.motivo?`<span class="badge gris">${esc(s.motivo)}</span>`:''}
-          <span class="badge" style="background:${vcls};color:#fff;">Vence OC: ${esc(vencTxt)}</span>
-          ${s.saldo_pendiente>0?`<span class="badge gris">Saldo: ${num(s.saldo_pendiente)}</span>`:''}
-          ${s.nota_num?`<span class="badge gris">${esc(s.nota_num)}</span>`:''}
-        </div>
-        <div style="display:flex;gap:6px;margin-top:6px;">
-          <button class="btn primary" data-reu-conf="${idx}">Confirmar cita</button>
-          <button class="btn" data-reu-nota="${idx}">Generar nota</button>
-          <button class="btn" data-reu-det="${idx}">Ver detalle</button>
-        </div>
-      </div>`;
-    }).join('');
-  });
-  cont.innerHTML=html;
-  const totPallets=difs.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
-  document.getElementById('reuResumen').textContent=difs.length+' diferida(s) · '+num(totPallets)+' pallets en total';
-  cont.querySelectorAll('[data-reu-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(REU_DATA[+b.dataset.reuConf])));
-  cont.querySelectorAll('[data-reu-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(REU_DATA[+b.dataset.reuNota].id)));
-  cont.querySelectorAll('[data-reu-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(REU_DATA[+b.dataset.reuDet])));
-}
-function imprimirReunion(){
-  const difs=(REU_DATA||[]).filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA');
-  if(!difs.length){ alert('No hay diferidas para imprimir.'); return; }
-  const hoy=new Date().toISOString().slice(0,10);
-  difs.sort((a,b)=>{const fa=reuFechaDif(a)||hoy,fb=reuFechaDif(b)||hoy;return fa<fb?-1:(fa>fb?1:(b.ipr||0)-(a.ipr||0));});
-  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
-  const filas=difs.map(s=>{
-    const f=reuFechaDif(s); const dd=f?Math.floor((new Date(hoy)-new Date(f))/86400000):'';
-    return `<tr>
-      <td>${esc(s.empresa)}</td><td>${esc(s.categoria||'—')}</td><td>${esc(s.oc)}</td>
-      <td>${esc(s.descripcion)}</td><td style="text-align:right;">${num(s.cant_unidades)} und<br>${num(s.cant_pallets)} pallets</td>
-      <td>${esc(s.motivo||'—')}</td><td>${dd!==''?dd+' días':'—'}</td>
-      <td>${esc(s.venc&&s.venc.fecha?s.venc.fecha:'—')}</td><td>${esc(s.nota_num||'—')}</td></tr>`;
-  }).join('');
-  const win=window.open('','_blank');
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Diferidas para reunión</title>
-  <style>@page{size:landscape;margin:12mm;}body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;}
-  .head{display:flex;align-items:center;gap:12px;border-bottom:3px solid #0C447C;padding-bottom:8px;margin-bottom:10px;}
-  .head img{width:54px;height:54px;object-fit:contain;}.head h1{font-size:15px;margin:0;color:#0C447C;}
-  table{border-collapse:collapse;width:100%;}th{background:#0C447C;color:#fff;padding:5px;font-size:10px;text-align:left;}
-  td{border:1px solid #aaa;padding:4px 6px;font-size:10px;vertical-align:top;}tr:nth-child(even) td{background:#f4f7fa;}</style>
-  </head><body>
-  <div class="head">${logoUrl?`<img src="${logoUrl}">`:''}<div><h1>Citas diferidas — Reunión semanal</h1>
-  <div style="font-size:11px;color:#555;">Caja de Seguro Social · Dirección Nacional de Logística · ${difs.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div></div></div>
-  <table><thead><tr><th>Proveedor</th><th>Área</th><th>OC</th><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Antigüedad</th><th>Vence OC</th><th>Nota</th></tr></thead>
-  <tbody>${filas}</tbody></table>
-  <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
-  </body></html>`);
-  win.document.close();
-}
-document.getElementById('reuImprimir').addEventListener('click',imprimirReunion);
 
 cargar();
 </script>
