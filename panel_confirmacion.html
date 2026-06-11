@@ -56,6 +56,32 @@
   .badge.gris{background:var(--gris-bg);color:#5F5E5A;}
   .badge.ambar{background:var(--ambar-bg);color:var(--ambar);}
   .badge.clic{cursor:pointer;text-decoration:underline dotted;}
+  /* Semaforo por IPR (borde izquierdo y caja IPR) */
+  .cita.ipr-rojo{border-left-color:var(--rojo);}
+  .cita.ipr-ambar{border-left-color:var(--ambar);}
+  .cita.ipr-verde{border-left-color:var(--verde);}
+  .ipr-box.ipr-rojo{background:var(--rojo-bg);} .ipr-box.ipr-rojo .n,.ipr-box.ipr-rojo .lbl,.ipr-box.ipr-rojo .cola{color:var(--rojo);}
+  .ipr-box.ipr-ambar{background:var(--ambar-bg);} .ipr-box.ipr-ambar .n,.ipr-box.ipr-ambar .lbl,.ipr-box.ipr-ambar .cola{color:var(--ambar);}
+  .ipr-box.ipr-verde{background:var(--verde-bg);} .ipr-box.ipr-verde .n,.ipr-box.ipr-verde .lbl,.ipr-box.ipr-verde .cola{color:var(--verde);}
+  .ipr-box .cola{font-size:10px;margin-top:1px;}
+  /* Franja "Senal de demanda" clicable */
+  .senal{margin-top:8px;border:1px solid var(--borde-suave);background:#fafafa;cursor:pointer;}
+  .senal:hover{background:#f3f3f3;border-color:var(--borde);}
+  .senal-head{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;border-bottom:1px solid #eee;}
+  .senal-head .ttl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;}
+  .senal-head .det{font-size:11px;color:var(--azul);font-weight:600;}
+  .senal-cols{display:flex;}
+  .senal-col{flex:1;padding:7px 10px;}
+  .senal-col+.senal-col{border-left:1px solid #eee;}
+  .senal-col .cap{font-size:10px;color:#888;margin-bottom:2px;}
+  .senal-col .dato{display:flex;align-items:baseline;gap:6px;}
+  .senal-col .num{font-family:var(--mono);font-size:16px;font-weight:700;}
+  .senal-col .desc{font-size:11px;}
+  .senal-col.rojo .num,.senal-col.rojo .desc{color:var(--rojo);}
+  .senal-col.ambar .num,.senal-col.ambar .desc{color:var(--ambar);}
+  .senal-col.verde .num,.senal-col.verde .desc{color:var(--verde);}
+  .senal-col.gris .num,.senal-col.gris .desc{color:#5F5E5A;}
+  .senal-nota{padding:4px 10px;border-top:1px solid #eee;font-size:11px;color:#666;}
   .acciones{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
   .btn{padding:5px 12px;font-size:12px;border:1px solid var(--borde);background:#fff;cursor:pointer;font-family:inherit;border-radius:3px;}
   .btn:hover{background:var(--fondo);}
@@ -331,7 +357,10 @@ function render(){
   cont.innerHTML=bannerHist+lista.map((s,idx)=>{
     const estadoU=String(s.estado||'').toUpperCase();
     const CERRADA=['ENTREGADA','ENTREGADO','CANCELADA'].indexOf(estadoU)>=0;
-    const cls=CERRADA?'cerrada':(s.cola==='RECEPCION'?'recepcion':'redistribucion');
+    // Semaforo por IPR (umbral acordado): >=75 rojo, 50-74 ambar, <50 verde.
+    const iprVal=Number(s.ipr||0);
+    const iprNivel = iprVal>=75?'rojo':(iprVal>=50?'ambar':'verde');
+    const cls = CERRADA ? 'cerrada' : ('ipr-'+iprNivel);
     const colaLabel=s.cola==='RECEPCION'?'Recepción urgente':'Redistribución';
     const colaBadge=s.cola==='RECEPCION'?'rojo':'verde';
 
@@ -355,32 +384,55 @@ function render(){
         ? `<span class="badge gris">Saldo pendiente: ${num(s.saldo_pendiente)}</span>` : '';
       badgesActivas = sello + saldoTxt;
     } else {
+      // Vencimiento OC: INFORMATIVO (dias + fecha), no manda el color del semaforo.
       let vencBadge='';
       if(s.venc && s.venc.estado){
-        const vcls = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'verde');
+        const vcls = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'gris');
         const vfecha = s.venc.fecha ? (' ('+esc(s.venc.fecha)+')') : '';
-        vencBadge = `<span class="badge ${vcls}">⏱ ${esc(s.venc.etiqueta)}${vfecha}</span>`;
+        vencBadge = `<span class="badge ${vcls}">OC ${esc(s.venc.etiqueta)}${vfecha}</span>`;
       }
-      const statusCedis = s.status_cedis ? `<span class="badge ${s.cola==='RECEPCION'?'rojo':'verde'}">CEDIS: ${esc(s.status_cedis)}</span>` : '';
-      const cedisNota = (s.cola==='REDISTRIBUCION' && s.cedis_saldo>0) ? `<span class="badge gris">Hay stock en CEDIS (${num(s.cedis_saldo)}), mal repartido</span>` : '';
-      let coberturaBadge='';
+      // Columna RED: UE en cero (escasez aguas abajo).
+      const uePct = Number(s.ue_pct||0);
+      const ueNivel = uePct>=40?'rojo':(uePct>=20?'ambar':'verde');
+      const colRed = `
+        <div class="senal-col ${ueNivel}">
+          <div class="cap">LA RED (aguas abajo)</div>
+          <div class="dato"><span class="num">${s.ue_cero||0}/${s.ue_total||0}</span><span class="desc">UE en cero (${uePct}%)</span></div>
+        </div>`;
+      // Columna CEDIS: TU cobertura (saldo CEDIS PMA / consumo mensual).
+      let colCedis;
       if(s.cobertura_meses>=0){
-        const c2 = s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde');
-        coberturaBadge = `<span class="badge ${c2}">Cobertura CEDIS: ${s.cobertura_meses} meses</span>`;
+        const cobNivel = s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde');
+        colCedis = `
+        <div class="senal-col ${cobNivel}">
+          <div class="cap">YO — CEDIS PANAMÁ</div>
+          <div class="dato"><span class="num">${s.cobertura_meses}</span><span class="desc">meses de cobertura</span></div>
+        </div>`;
       } else {
-        coberturaBadge = `<span class="badge gris">Sin dato de consumo</span>`;
+        colCedis = `
+        <div class="senal-col gris">
+          <div class="cap">YO — CEDIS PANAMÁ</div>
+          <div class="dato"><span class="num">s/d</span><span class="desc">sin dato de consumo</span></div>
+        </div>`;
       }
-      badgesActivas = `
+      // Nota de redistribucion: hay stock en CEDIS pero mal repartido.
+      const notaRedist = (s.cola==='REDISTRIBUCION' && s.cedis_saldo>0)
+        ? `<div class="senal-nota">Hay stock en CEDIS (${num(s.cedis_saldo)}) — mal repartido, considerar redistribución</div>` : '';
+      // Franja "Senal de demanda" (clicable -> abre el detalle completo).
+      const senal = `
+        <div class="senal clic-senal" data-det="${idx}" title="Ver existencias y consumos por punto">
+          <div class="senal-head"><span class="ttl">Señal de demanda</span><span class="det">Ver detalle ›</span></div>
+          <div class="senal-cols">${colRed}${colCedis}</div>
+          ${notaRedist}
+        </div>`;
+      // Badges secundarios (no son la señal): estado de diferida/reprogramada, vencimiento, banderas.
+      const badgesSec = `
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${vencBadge}
-        <span class="badge ${colaBadge}">${colaLabel}</span>
-        <span class="badge gris clic" data-det="${idx}" title="Ver detalle y señal de demanda">UE en cero: ${s.ue_cero}/${s.ue_total} (${s.ue_pct}%)</span>
-        ${coberturaBadge}
-        ${statusCedis}
-        ${cedisNota}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}`;
+      badgesActivas = senal + (badgesSec.trim() ? `<div class="badges">${badgesSec}</div>` : '');
     }
 
     // Botones según el estado del ciclo.
@@ -389,8 +441,7 @@ function render(){
       acciones = `<button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='AGENDADA'){
       acciones = `<button class="btn primary" data-asis="${idx}">Marcar asistencia</button>
-                  <button class="btn" data-ent="${idx}">Registrar entrega</button>
-                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+                  <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
     } else if(estadoU==='ASISTIO'){
       acciones = `<button class="btn primary" data-ent="${idx}">Registrar entrega</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
@@ -401,17 +452,14 @@ function render(){
     } else if(estadoU==='DIFERIDA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-nota="${idx}">Generar nota</button>
-                  <button class="btn" data-ent="${idx}">Registrar entrega</button>
-                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+                  <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
     } else if(estadoU==='REPROGRAMADA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
-                  <button class="btn" data-dif="${idx}">Diferir con nota</button>
-                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+                  <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-repro="${idx}">Reprogramar</button>
-                  <button class="btn" data-dif="${idx}">Diferir con nota</button>
-                  <button class="btn" data-det="${idx}">Ver detalle</button>`;
+                  <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
     }
 
     const fechaMostrar = s.fecha_confirmada ? ('Fecha confirmada: '+esc(s.fecha_confirmada)) : ('Fecha solicitada: '+esc(s.fecha_solicitada||'—'));
