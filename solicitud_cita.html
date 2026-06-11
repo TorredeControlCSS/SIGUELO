@@ -141,6 +141,12 @@
     </div>
   </header>
 
+  <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:12px 16px;text-align:center;border-bottom:3px solid #ffe600;">
+    <div style="font-size:12.5px;font-weight:600;letter-spacing:.3px;opacity:.95;" id="cicloTimerLbl">EL CICLO SEMANAL DE SOLICITUD DE CITAS CIERRA EN</div>
+    <div id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:700;margin-top:3px;letter-spacing:1px;">—</div>
+    <div style="font-size:11px;opacity:.9;margin-top:2px;" id="cicloTimerSub">Cierre: miércoles · Confirmación: viernes · Citas: lunes a viernes siguientes</div>
+  </div>
+
   <div class="aviso">
     <p style="margin-bottom:8px;">Todos los proveedores deberán coordinar previamente mediante una solicitud de cita las entregas de sus pedidos.</p>
     <ul>
@@ -235,6 +241,11 @@
           <div class="ficha-cobertura" id="fichaCobertura">
             <div class="cob-titulo">Señal de demanda &mdash; cobertura actual</div>
             <div class="cob-cajas">
+              <div class="cob-caja" id="cobIprCaja">
+                <div class="lbl">Índice de Priorización (IPR)</div>
+                <div class="val" id="cobIprVal">—</div>
+                <div class="sub" id="cobIprSub"></div>
+              </div>
               <div class="cob-caja">
                 <div class="lbl">Cobertura CEDIS Panamá</div>
                 <div class="val" id="cobCedisVal">—</div>
@@ -429,12 +440,34 @@ function normCod_(c){ return String(c==null?'':c).replace(/\.0+$/,'').trim(); }
 // Clase de color por meses de cobertura
 function clsCobertura_(m){ return m<1 ? 'rojo' : (m<3 ? 'ambar' : 'verde'); }
 
+// Calcula el IPR (0-100) con la misma fórmula del backend, usando la señal del renglón.
+function calcularIPR_(sig){
+  if(!sig) return null;
+  const pct = sig.pct||0;
+  const ueCero = sig.ue_cero||0;
+  const cobertura = (sig.cobertura_meses!=null) ? sig.cobertura_meses : -1;
+  let compUE = pct + Math.min(10, Math.log(1+ueCero)*3);
+  compUE = Math.min(100, compUE);
+  let compCedis = -1;
+  if(cobertura>=0){
+    if(cobertura<1) compCedis=100;
+    else if(cobertura<2) compCedis=80;
+    else if(cobertura<3) compCedis=60;
+    else if(cobertura<6) compCedis=30;
+    else compCedis=10;
+  }
+  return (compCedis>=0) ? Math.round(0.5*compUE+0.5*compCedis) : Math.round(compUE);
+}
+function clsIPR_(ipr){ return ipr>=70 ? 'rojo' : (ipr>=40 ? 'ambar' : 'verde'); }
+
 // Pinta la cobertura en la ficha al seleccionar renglón
 function pintarCobertura(cod){
   const wrap=document.getElementById('fichaCobertura');
   const sig=SENAL_UE[normCod_(cod)];
   if(!sig){
     // Sin dato calculado para este renglón
+    document.getElementById('cobIprVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
+    document.getElementById('cobIprSub').textContent='';
     document.getElementById('cobCedisVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
     document.getElementById('cobCedisSub').textContent='';
     document.getElementById('cobNacVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
@@ -442,6 +475,15 @@ function pintarCobertura(cod){
     document.getElementById('cobNacionalCaja').classList.remove('clic');
     wrap.classList.add('activa');
     return;
+  }
+  // IPR
+  const ipr=calcularIPR_(sig);
+  if(ipr!=null){
+    document.getElementById('cobIprVal').innerHTML = ipr+' <span class="cob-pill '+clsIPR_(ipr)+'">'+(ipr>=70?'alto':(ipr>=40?'medio':'bajo'))+'</span>';
+    document.getElementById('cobIprSub').textContent = 'Mayor IPR = mayor prioridad de recepción';
+  }else{
+    document.getElementById('cobIprVal').innerHTML='<span class="cob-pill gris">sin dato</span>';
+    document.getElementById('cobIprSub').textContent='';
   }
   // CEDIS Panamá
   const cm = sig.cobertura_meses;
@@ -1052,6 +1094,47 @@ function val(id){ return document.getElementById(id).value.trim(); }
 function mostrarAlerta(tipo,msg){ const a=document.getElementById('alerta'); a.className='alerta '+tipo; a.textContent=msg; a.scrollIntoView({behavior:'smooth',block:'center'}); }
 function ocultarAlerta(){ document.getElementById('alerta').className='alerta'; }
 function escAttr(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ===== Temporizador en vivo del cierre del ciclo (miércoles) =====
+function proximoCierre(){
+  // Cierre: próximo miércoles a las 17:00 (5:00 p.m.). Si ya pasó el de esta semana, toma el siguiente.
+  const HORA_CIERRE=17;
+  const ahora=new Date();
+  const cierre=new Date(ahora);
+  const dow=ahora.getDay(); // 0=dom .. 3=mié
+  let dias=(3-dow+7)%7; // días hasta el próximo miércoles
+  cierre.setDate(ahora.getDate()+dias);
+  cierre.setHours(HORA_CIERRE,0,0,0);
+  if(cierre.getTime()<=ahora.getTime()){ cierre.setDate(cierre.getDate()+7); } // ya pasó hoy: siguiente miércoles
+  return cierre;
+}
+function tickCiclo(){
+  const reloj=document.getElementById('cicloTimerReloj');
+  const lbl=document.getElementById('cicloTimerLbl');
+  const cont=document.getElementById('cicloTimer');
+  if(!reloj) return;
+  const ahora=new Date();
+  const cierre=proximoCierre();
+  let ms=cierre.getTime()-ahora.getTime();
+  if(ms<0) ms=0;
+  const seg=Math.floor(ms/1000);
+  const d=Math.floor(seg/86400);
+  const h=Math.floor((seg%86400)/3600);
+  const m=Math.floor((seg%3600)/60);
+  const s=seg%60;
+  const z=n=>String(n).padStart(2,'0');
+  reloj.textContent=(d>0?d+'d ':'')+z(h)+':'+z(m)+':'+z(s);
+  // Si quedan menos de 12 horas, poner el aviso en alerta (amarillo/rojo)
+  if(d===0 && h<12){
+    cont.style.background='linear-gradient(135deg,#8a1f1f,#b00020)';
+    lbl.textContent='¡ÚLTIMAS HORAS! EL CICLO DE SOLICITUD DE CITAS CIERRA EN';
+  }else{
+    cont.style.background='linear-gradient(135deg,#0C447C,#1e5a9e)';
+    lbl.textContent='EL CICLO SEMANAL DE SOLICITUD DE CITAS CIERRA EN';
+  }
+}
+tickCiclo();
+setInterval(tickCiclo,1000);
 
 init();
 </script>
