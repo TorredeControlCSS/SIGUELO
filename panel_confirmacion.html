@@ -213,6 +213,8 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 let SOLICITUDES = [];
+let HIST_INFO = null;        // meta de la ultima busqueda historica (modo, mes, truncado)
+let HIST_DEBOUNCE = null;    // timer para no consultar en cada tecla
 let CAL_MESES={};           // cache del calendario por mes: { 'YYYY-MM': [citas] }
 
 function loadJsonp(action, extra){
@@ -233,9 +235,20 @@ async function cargar(){
   CAL_MESES={}; // invalidar cache del calendario para que refleje cambios
   document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
   try{
-    const resp=await loadJsonp('getSolicitudesPriorizadas', verHistorico ? '&historico=1' : '');
-    if(!resp.success){ throw new Error(resp.error||'error'); }
-    SOLICITUDES=resp.solicitudes||[];
+    let resp;
+    if(verHistorico){
+      // Historico: el backend filtra server-side. Sin busqueda = mes anterior.
+      const q=document.getElementById('buscar').value.trim();
+      resp=await loadJsonp('buscarHistorico', '&q='+encodeURIComponent(q));
+      if(!resp.success){ throw new Error(resp.error||'error'); }
+      SOLICITUDES=resp.solicitudes||[];
+      HIST_INFO=resp; // guardar meta (modo, mes, truncado) para el aviso
+    } else {
+      resp=await loadJsonp('getSolicitudesPriorizadas','');
+      if(!resp.success){ throw new Error(resp.error||'error'); }
+      SOLICITUDES=resp.solicitudes||[];
+      HIST_INFO=null;
+    }
     actualizarKPIs();
     render();
   }catch(e){
@@ -287,7 +300,7 @@ function getFiltradas(){
     if(filtroEstado==='RECEPCION' && s.cola!=='RECEPCION') return false;
     if(filtroEstado==='VENCE' && !(s.venc && s.venc.estado==='ROJO')) return false;
     if(filtroEstado==='DIFERIDA' && estU!=='DIFERIDA') return false;
-    if(q){
+    if(q && !verHistorico){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
       if(blob.indexOf(q)<0) return false;
     }
@@ -299,8 +312,23 @@ function render(){
   actualizarBotonLimpiar();
   const cont=document.getElementById('tabLista');
   const lista=getFiltradas();
-  if(lista.length===0){ cont.innerHTML='<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
-  cont.innerHTML=lista.map((s,idx)=>{
+  // Aviso en modo historico: que se esta viendo y como buscar mas atras.
+  let bannerHist='';
+  if(verHistorico && HIST_INFO){
+    const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    let txt;
+    if(HIST_INFO.modo==='mes'){
+      let nombreMes=HIST_INFO.mes||'';
+      const m=/^(\d{4})-(\d{2})$/.exec(HIST_INFO.mes||'');
+      if(m) nombreMes=meses[parseInt(m[2],10)-1]+' '+m[1];
+      txt='Histórico — mostrando '+nombreMes+' (mes anterior). Para ir más atrás, escribe una empresa, OC, código o producto en el buscador.';
+    } else {
+      txt='Histórico — resultados de búsqueda en todo el archivo'+(HIST_INFO.truncado?' (mostrando los primeros '+HIST_INFO.limite+', refina la búsqueda)':'')+'.';
+    }
+    bannerHist='<div style="background:#fff8e1;border:1px solid #e0c97a;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#6b5400;">'+esc(txt)+'</div>';
+  }
+  if(lista.length===0){ cont.innerHTML=bannerHist+'<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
+  cont.innerHTML=bannerHist+lista.map((s,idx)=>{
     const estadoU=String(s.estado||'').toUpperCase();
     const CERRADA=['ENTREGADA','ENTREGADO','CANCELADA'].indexOf(estadoU)>=0;
     const cls=CERRADA?'cerrada':(s.cola==='RECEPCION'?'recepcion':'redistribucion');
@@ -840,7 +868,15 @@ function aplicarFiltros(){
   else if(TAB_ACTIVA==='reunion'){ if(typeof renderReunion==='function') renderReunion(); }
   actualizarBotonLimpiar && actualizarBotonLimpiar();
 }
-document.getElementById('buscar').addEventListener('input',aplicarFiltros);
+document.getElementById('buscar').addEventListener('input',()=>{
+  if(verHistorico){
+    // En historico, la busqueda la resuelve el backend (debounce para no saturar).
+    clearTimeout(HIST_DEBOUNCE);
+    HIST_DEBOUNCE=setTimeout(cargar, 400);
+  } else {
+    aplicarFiltros();
+  }
+});
 document.getElementById('filtroCola').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroEstadoSel').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroCategoria').addEventListener('change',aplicarFiltros);
@@ -852,6 +888,7 @@ document.getElementById('btnHistorico').addEventListener('click',()=>{
   const btn=document.getElementById('btnHistorico');
   btn.textContent=verHistorico?'Ocultar histórico':'Ver histórico';
   btn.classList.toggle('primary', verHistorico);
+  document.getElementById('buscar').value=''; // limpiar para no arrastrar la busqueda entre modos
   cargar();
 });
 document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='reunion') cargarReunion(true); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
