@@ -35,20 +35,31 @@
   .filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
   .filtros input,.filtros select{padding:6px 8px;border:1px solid var(--borde);font-size:13px;font-family:inherit;}
   .filtros input{flex:1;min-width:160px;}
-  .cita{border:1px solid var(--borde-suave);border-left:5px solid #ccc;border-radius:0 4px 4px 0;padding:12px 14px;margin-bottom:10px;}
-  .cita.recepcion{border-left-color:var(--rojo);}
-  .cita.redistribucion{border-left-color:var(--verde);}
+  .cita{border:1px solid var(--borde-suave);border-left:5px solid #ccc;border-radius:0 4px 4px 0;margin-bottom:10px;display:flex;overflow:hidden;}
   .cita.cerrada{border-left-color:#9e9e9e;background:#fafafa;}
   .cita.cerrada .cita-nombre{color:#555;}
+  .cita-cuerpo{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .cita-info{padding:10px 14px 8px;}
   .cita-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
   .cita-nombre{font-size:14px;font-weight:600;}
-  .cita-meta{font-size:12px;color:#666;font-family:var(--mono);margin-top:2px;}
-  .cita-fecha{font-size:12.5px;color:var(--ambar);font-weight:600;margin-top:4px;}
-  .ipr-box{text-align:center;border-radius:4px;padding:4px 12px;min-width:54px;}
-  .ipr-box.recepcion{background:var(--rojo-bg);} .ipr-box.recepcion .n{color:var(--rojo);}
-  .ipr-box.redistribucion{background:var(--verde-bg);} .ipr-box.redistribucion .n{color:var(--verde);}
-  .ipr-box .lbl{font-size:10px;}
-  .ipr-box .n{font-size:22px;font-weight:700;font-family:var(--mono);}
+  /* Linea tecnica como tabla */
+  .cita-cols{display:flex;margin-top:5px;font-family:var(--mono);font-size:12px;color:#444;border-top:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0;}
+  .cita-cols .c{padding:4px 8px;border-right:1px solid #f0f0f0;}
+  .cita-cols .c:last-child{border-right:none;}
+  .cita-cols .c.oc{flex:2;padding-left:0;}
+  .cita-cols .c.ren{flex:2;}
+  .cita-cols .c.qty{flex:1;text-align:right;}
+  .cita-fecha{font-size:12.5px;color:var(--ambar);font-weight:600;margin-top:5px;}
+  /* Caja IPR lateral, a toda la altura */
+  .ipr-box{width:84px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-left:1px solid #eee;}
+  .ipr-box.ipr-rojo{background:var(--rojo-bg);border-left-color:#f0d0d6;} .ipr-box.ipr-rojo .n,.ipr-box.ipr-rojo .lbl,.ipr-box.ipr-rojo .cola{color:var(--rojo);}
+  .ipr-box.ipr-ambar{background:var(--ambar-bg);border-left-color:#f0dcb0;} .ipr-box.ipr-ambar .n,.ipr-box.ipr-ambar .lbl,.ipr-box.ipr-ambar .cola{color:var(--ambar);}
+  .ipr-box.ipr-verde{background:var(--verde-bg);border-left-color:#c5e0c8;} .ipr-box.ipr-verde .n,.ipr-box.ipr-verde .lbl,.ipr-box.ipr-verde .cola{color:var(--verde);}
+  .ipr-box.cerrada{background:#f0f0f0;} .ipr-box.cerrada .n{color:#888;}
+  .ipr-box .lbl{font-size:10px;letter-spacing:.5px;}
+  .ipr-box .n{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1.1;}
+  .ipr-box .cola{font-size:10px;margin-top:1px;}
+  .ipr-box .porque{font-size:10px;color:var(--azul);text-decoration:underline;margin-top:6px;}
   .badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
   .badge{font-size:11px;padding:2px 8px;border-radius:3px;}
   .badge.rojo{background:var(--rojo-bg);color:var(--rojo);}
@@ -65,7 +76,7 @@
   .ipr-box.ipr-verde{background:var(--verde-bg);} .ipr-box.ipr-verde .n,.ipr-box.ipr-verde .lbl,.ipr-box.ipr-verde .cola{color:var(--verde);}
   .ipr-box .cola{font-size:10px;margin-top:1px;}
   /* Franja "Senal de demanda" clicable */
-  .senal{margin-top:8px;border:1px solid var(--borde-suave);background:#fafafa;cursor:pointer;}
+  .senal{margin:0 14px 9px;border:1px solid var(--borde-suave);background:#fafafa;cursor:pointer;}
   .senal:hover{background:#f3f3f3;border-color:var(--borde);}
   .senal-head{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;border-bottom:1px solid #eee;}
   .senal-head .ttl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;}
@@ -82,7 +93,7 @@
   .senal-col.verde .num,.senal-col.verde .desc{color:var(--verde);}
   .senal-col.gris .num,.senal-col.gris .desc{color:#5F5E5A;}
   .senal-nota{padding:4px 10px;border-top:1px solid #eee;font-size:11px;color:#666;}
-  .acciones{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .acciones{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;background:#f4f4f4;border-top:1px solid #eee;margin-top:auto;}
   .btn{padding:5px 12px;font-size:12px;border:1px solid var(--borde);background:#fff;cursor:pointer;font-family:inherit;border-radius:3px;}
   .btn:hover{background:var(--fondo);}
   .btn.primary{background:var(--azul);color:#fff;border-color:var(--azul-osc);}
@@ -384,13 +395,6 @@ function render(){
         ? `<span class="badge gris">Saldo pendiente: ${num(s.saldo_pendiente)}</span>` : '';
       badgesActivas = sello + saldoTxt;
     } else {
-      // Vencimiento OC: INFORMATIVO (dias + fecha), no manda el color del semaforo.
-      let vencBadge='';
-      if(s.venc && s.venc.estado){
-        const vcls = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'gris');
-        const vfecha = s.venc.fecha ? (' ('+esc(s.venc.fecha)+')') : '';
-        vencBadge = `<span class="badge ${vcls}">OC ${esc(s.venc.etiqueta)}${vfecha}</span>`;
-      }
       // Columna RED: UE en cero (escasez aguas abajo).
       const uePct = Number(s.ue_pct||0);
       const ueNivel = uePct>=40?'rojo':(uePct>=20?'ambar':'verde');
@@ -415,6 +419,23 @@ function render(){
           <div class="dato"><span class="num">s/d</span><span class="desc">sin dato de consumo</span></div>
         </div>`;
       }
+      // Columna VENCIMIENTO: informativa (no manda el semaforo). Color propio segun urgencia.
+      let colVenc;
+      if(s.venc && s.venc.etiqueta){
+        const vNivel = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'gris');
+        colVenc = `
+        <div class="senal-col ${vNivel}">
+          <div class="cap">VENCIMIENTO OC</div>
+          <div class="dato"><span class="num" style="font-size:13px;">${esc(s.venc.etiqueta)}</span></div>
+          ${s.venc.fecha?`<div style="font-size:10px;color:#999;">${esc(s.venc.fecha)}</div>`:''}
+        </div>`;
+      } else {
+        colVenc = `
+        <div class="senal-col gris">
+          <div class="cap">VENCIMIENTO OC</div>
+          <div class="dato"><span class="num" style="font-size:13px;">s/d</span></div>
+        </div>`;
+      }
       // Nota de redistribucion: hay stock en CEDIS pero mal repartido.
       const notaRedist = (s.cola==='REDISTRIBUCION' && s.cedis_saldo>0)
         ? `<div class="senal-nota">Hay stock en CEDIS (${num(s.cedis_saldo)}) — mal repartido, considerar redistribución</div>` : '';
@@ -422,17 +443,16 @@ function render(){
       const senal = `
         <div class="senal clic-senal" data-det="${idx}" title="Ver existencias y consumos por punto">
           <div class="senal-head"><span class="ttl">Señal de demanda</span><span class="det">Ver detalle ›</span></div>
-          <div class="senal-cols">${colRed}${colCedis}</div>
+          <div class="senal-cols">${colRed}${colCedis}${colVenc}</div>
           ${notaRedist}
         </div>`;
-      // Badges secundarios (no son la señal): estado de diferida/reprogramada, vencimiento, banderas.
+      // Badges secundarios: estado de diferida/reprogramada y banderas (controlado, fecha corta).
       const badgesSec = `
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
-        ${vencBadge}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}`;
-      badgesActivas = senal + (badgesSec.trim() ? `<div class="badges">${badgesSec}</div>` : '');
+      badgesActivas = senal + (badgesSec.trim() ? `<div class="badges" style="padding:0 14px 8px;">${badgesSec}</div>` : '');
     }
 
     // Botones según el estado del ciclo.
@@ -463,29 +483,86 @@ function render(){
     }
 
     const fechaMostrar = s.fecha_confirmada ? ('Fecha confirmada: '+esc(s.fecha_confirmada)) : ('Fecha solicitada: '+esc(s.fecha_solicitada||'—'));
+    const colaTxt = CERRADA ? '' : (s.cola==='RECEPCION'?'Recepción':'Redistrib.');
     return `
     <div class="cita ${cls}">
-      <div class="cita-top">
-        <div>
+      <div class="cita-cuerpo">
+        <div class="cita-info">
           <div class="cita-nombre">${esc(s.empresa)} — ${esc(s.descripcion)}</div>
-          <div class="cita-meta">OC ${esc(s.oc)} · Abasto ${esc(s.cod_abasto)} · ${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</div>
+          <div class="cita-cols">
+            <div class="c oc">OC ${esc(s.oc)}</div>
+            <div class="c ren">Renglón ${esc(s.cod_abasto)}</div>
+            <div class="c qty">${num(s.cant_unidades)} und</div>
+            <div class="c qty">${num(s.cant_bultos)} bultos</div>
+            <div class="c qty">${num(s.cant_pallets)} pallets</div>
+          </div>
           <div class="cita-fecha" style="color:${estCol};">${fechaMostrar} · Estado: ${esc(s.estado)}</div>
         </div>
-        <div class="ipr-box ${cls}"><div class="lbl">IPR</div><div class="n">${s.ipr}</div></div>
+        ${badgesActivas}
+        <div class="acciones">${acciones}</div>
       </div>
-      <div class="badges">${badgesActivas}</div>
-      <div class="acciones">${acciones}</div>
+      <div class="ipr-box ${cls}" ${CERRADA?'':`data-ipr="${idx}"`}>
+        <div class="lbl">IPR</div>
+        <div class="n">${s.ipr}</div>
+        ${colaTxt?`<div class="cola">${colaTxt}</div>`:''}
+        ${CERRADA?'':'<div class="porque">¿por qué?</div>'}
+      </div>
     </div>`;
   }).join('');
 
   // listeners
   cont.querySelectorAll('[data-asis]').forEach(b=>b.addEventListener('click',()=>abrirAsistencia(lista[+b.dataset.asis])));
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
+  cont.querySelectorAll('[data-ipr]').forEach(b=>b.addEventListener('click',()=>explicarIPR(lista[+b.dataset.ipr])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-repro]').forEach(b=>b.addEventListener('click',()=>abrirReprogramar(lista[+b.dataset.repro])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
   cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
+}
+
+function explicarIPR(s){
+  const ipr=Number(s.ipr||0);
+  const compUE=(s.ipr_comp_ue!=null)?Number(s.ipr_comp_ue):null;
+  const compCedis=(s.ipr_comp_cedis!=null)?Number(s.ipr_comp_cedis):null;
+  const tieneCob = compCedis!=null && compCedis>=0;
+  const nivel = ipr>=75?'rojo':(ipr>=50?'ambar':'verde');
+  const nivelTxt = ipr>=75?'Crítico — recibir con prioridad':(ipr>=50?'Atención — recibir pronto':'Normal — sin urgencia');
+  const colaTxt = s.cola==='RECEPCION'?'RECEPCIÓN (urge recibir: la red está mal y tu cobertura es baja)':'REDISTRIBUCIÓN (hay producto en CEDIS, está mal repartido)';
+
+  const fmtCob = (s.cobertura_meses>=0)? (s.cobertura_meses+' meses') : 'sin dato de consumo';
+  const cedisFila = tieneCob
+    ? `<tr><td class="k">Componente CEDIS (tu cobertura)</td><td class="v">${compCedis} / 100 <span style="color:#888;">(cobertura: ${fmtCob})</span></td></tr>`
+    : `<tr><td class="k">Componente CEDIS (tu cobertura)</td><td class="v" style="color:#888;">No aplica — ${fmtCob}</td></tr>`;
+
+  const formula = tieneCob
+    ? `IPR = 50% × ${compUE} (red) + 50% × ${compCedis} (CEDIS) = <b>${ipr}</b>`
+    : `IPR = ${compUE!=null?compUE:ipr} (solo señal de la red; sin dato de consumo no se pondera la cobertura) = <b>${ipr}</b>`;
+
+  document.getElementById('modalTitulo').textContent='Cómo se calcula este IPR ('+ipr+')';
+  document.getElementById('modalBody').innerHTML=`
+    <div style="background:${nivel==='rojo'?'var(--rojo-bg)':(nivel==='ambar'?'var(--ambar-bg)':'var(--verde-bg)')};border:1px solid ${nivel==='rojo'?'#e8b5bd':(nivel==='ambar'?'#e0c08a':'#c5e0c8')};padding:10px 12px;margin-bottom:12px;">
+      <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:${nivel==='rojo'?'var(--rojo)':(nivel==='ambar'?'var(--ambar)':'var(--verde)')};line-height:1;">IPR ${ipr}</div>
+      <div style="font-size:12.5px;color:${nivel==='rojo'?'var(--rojo)':(nivel==='ambar'?'var(--ambar)':'var(--verde)')};margin-top:3px;font-weight:600;">${nivelTxt}</div>
+    </div>
+    <p style="font-size:12.5px;color:#444;margin:0 0 10px;">El IPR (Índice de Priorización de Recepción) mide qué tan urgente es <b>recibir</b> este renglón. Combina dos señales:</p>
+    <table>
+      <tr><td class="k">Componente RED (escasez)</td><td class="v">${compUE!=null?compUE:'—'} / 100 <span style="color:#888;">(${s.ue_cero||0}/${s.ue_total||0} UE en cero, ${s.ue_pct||0}%)</span></td></tr>
+      ${cedisFila}
+    </table>
+    <div style="background:#f4f6f8;border:1px solid #d8e0ea;padding:8px 10px;margin:12px 0;font-size:12.5px;color:#1e5a9e;">
+      ${formula}
+    </div>
+    <table>
+      <tr><td class="k">Cola asignada</td><td class="v">${colaTxt}</td></tr>
+    </table>
+    <div style="font-size:11.5px;color:#777;margin-top:12px;line-height:1.5;">
+      <b>Cómo se forma cada componente:</b><br>
+      · <b>Red:</b> parte del % de UE en cero, con un pequeño ajuste por el número absoluto de UE afectadas.<br>
+      · <b>CEDIS:</b> según tus meses de cobertura — menos de 1 mes = 100, 1-2 = 80, 2-3 = 60, 3-6 = 30, 6+ = 10. Menos cobertura = más urgente recibir.<br>
+      · Si no hay dato de consumo, el IPR usa solo la señal de la red.
+    </div>`;
+  abrirModal();
 }
 
 function verDetalle(s){
