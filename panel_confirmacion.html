@@ -147,6 +147,21 @@
   .cal-ev.ok{background:#0a7a2f;}
   .cal-ev.no{background:#b00020;}
   .cal-mas{font-size:10px;color:var(--azul);cursor:pointer;}
+  /* Celda compacta: total citas + barra de estados + desglose + pallets */
+  .cal-dia.clic{cursor:pointer;}
+  .cal-dia.clic:hover{background:#f4f8fc;}
+  .cal-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+  .cal-total{font-family:var(--mono);font-size:11px;font-weight:700;background:#eef4fb;color:var(--azul);padding:1px 7px;border-radius:8px;}
+  .cal-barra{display:flex;gap:2px;height:5px;margin-bottom:5px;}
+  .cal-barra > span{display:block;}
+  .cal-barra .b-conf{background:#1e5a9e;}
+  .cal-barra .b-ok{background:#0a7a2f;}
+  .cal-barra .b-pend{background:#c97a00;}
+  .cal-barra .b-no{background:#b00020;}
+  .cal-desg{font-size:9.5px;color:#555;line-height:1.45;}
+  .cal-desg .pt{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle;}
+  .cal-pallets{font-size:9.5px;color:#777;margin-top:4px;font-family:var(--mono);}
+  .cal-pallets b{color:#444;}
   .cal-resumen{margin-top:14px;max-width:420px;}
   .cal-res-titulo{font-size:13px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;}
   .cal-res-tabla{border-collapse:collapse;width:100%;font-size:12px;}
@@ -1219,14 +1234,36 @@ function renderCalendario(){
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const evs=porDia[iso]||[];
     const esHoy = iso===hoyISO ? ' hoy':'';
-    let evHtml='';
-    const max=3;
-    evs.slice(0,max).forEach((s,i)=>{
+    if(!evs.length){
+      html+=`<div class="cal-dia${esHoy}"><span class="dnum">${d}</span></div>`;
+      continue;
+    }
+    // Conteo por estado del día
+    let cConf=0,cOk=0,cPend=0,cNo=0,pallets=0;
+    evs.forEach(s=>{
       const cl=calClase(s);
-      evHtml+=`<button class="cal-ev ${cl}" data-cal-ev="${iso}|${i}" title="${esc(s.empresa)} — ${esc(s.descripcion)}">${esc(s.empresa)}</button>`;
+      if(cl==='conf') cConf++; else if(cl==='ok') cOk++; else if(cl==='no') cNo++; else cPend++;
+      pallets+=Number(s.cant_pallets||0);
     });
-    if(evs.length>max){ evHtml+=`<span class="cal-mas" data-cal-dia="${iso}">+${evs.length-max} más</span>`; }
-    html+=`<div class="cal-dia${esHoy}">${evs.length?`<span class="dnum" data-cal-dia="${iso}" style="cursor:pointer;">${d}</span>`:`<span class="dnum">${d}</span>`}${evHtml}</div>`;
+    const tot=evs.length;
+    // Barra de color proporcional (solo segmentos con valor)
+    const seg=[];
+    if(cConf) seg.push(`<span class="b-conf" style="flex:${cConf}"></span>`);
+    if(cOk)   seg.push(`<span class="b-ok" style="flex:${cOk}"></span>`);
+    if(cPend) seg.push(`<span class="b-pend" style="flex:${cPend}"></span>`);
+    if(cNo)   seg.push(`<span class="b-no" style="flex:${cNo}"></span>`);
+    // Desglose por conteo (solo los que tienen valor)
+    const desg=[];
+    if(cConf) desg.push(`<div><span class="pt" style="background:#1e5a9e"></span>${cConf} confirmada${cConf>1?'s':''}</div>`);
+    if(cOk)   desg.push(`<div><span class="pt" style="background:#0a7a2f"></span>${cOk} entregada${cOk>1?'s':''}</div>`);
+    if(cPend) desg.push(`<div><span class="pt" style="background:#c97a00"></span>${cPend} pendiente${cPend>1?'s':''}</div>`);
+    if(cNo)   desg.push(`<div><span class="pt" style="background:#b00020"></span>${cNo} no asistió/canc.</div>`);
+    html+=`<div class="cal-dia clic${esHoy}" data-cal-dia="${iso}">
+      <div class="cal-cab"><span class="dnum">${d}</span><span class="cal-total">${tot} cita${tot>1?'s':''}</span></div>
+      <div class="cal-barra">${seg.join('')}</div>
+      <div class="cal-desg">${desg.join('')}</div>
+      ${pallets>0?`<div class="cal-pallets"><b>${num(pallets)}</b> pallets</div>`:''}
+    </div>`;
   }
   // Relleno final
   const celdas=inicioDow+diasMes;
@@ -1236,9 +1273,6 @@ function renderCalendario(){
   grid.innerHTML=html;
   // Guardar índice para los clics
   grid._porDia=porDia;
-  grid.querySelectorAll('[data-cal-ev]').forEach(b=>b.addEventListener('click',()=>{
-    const [iso,i]=b.dataset.calEv.split('|'); verDetalle(porDia[iso][+i]);
-  }));
   grid.querySelectorAll('[data-cal-dia]').forEach(b=>b.addEventListener('click',()=>{
     const iso=b.dataset.calDia; const citasDia=porDia[iso]||[];
     verDiaCalendario(iso, citasDia);
