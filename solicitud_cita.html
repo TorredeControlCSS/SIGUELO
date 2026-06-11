@@ -141,10 +141,10 @@
     </div>
   </header>
 
-  <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:12px 16px;text-align:center;border-bottom:3px solid #ffe600;">
-    <div style="font-size:12.5px;font-weight:600;letter-spacing:.3px;opacity:.95;" id="cicloTimerLbl">EL CICLO SEMANAL DE SOLICITUD DE CITAS CIERRA EN</div>
-    <div id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:700;margin-top:3px;letter-spacing:1px;">—</div>
-    <div style="font-size:11px;opacity:.9;margin-top:2px;" id="cicloTimerSub">Cierre: miércoles · Confirmación: viernes · Citas: lunes a viernes siguientes</div>
+  <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:10px 20px;border-bottom:3px solid #ffe600;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:160px;font-size:12.5px;font-weight:600;letter-spacing:.3px;opacity:.95;line-height:1.3;" id="cicloTimerLbl">El ciclo semanal de solicitud de citas cierra en</div>
+    <div id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:30px;font-weight:700;letter-spacing:1px;white-space:nowrap;text-align:center;">—</div>
+    <div style="flex:1;min-width:160px;font-size:10.5px;opacity:.9;text-align:right;line-height:1.4;" id="cicloTimerSub">Cierre: miércoles · Confirmación: viernes<br>Citas: lunes a viernes siguientes</div>
   </div>
 
   <div class="aviso">
@@ -500,6 +500,7 @@ function pintarCobertura(cod){
   document.getElementById('cobNacionalCaja').classList.add('clic');
   document.getElementById('cobNacionalCaja')._sig = sig;
   document.getElementById('cobNacionalCaja')._desc = (renglonActual && renglonActual.desc) || '';
+  document.getElementById('cobNacionalCaja')._cod = (renglonActual && renglonActual.cod_abasto) || cod;
   wrap.classList.add('activa');
 }
 
@@ -513,20 +514,62 @@ function abrirCoberturaNacional(sig, desc){
       return '<tr><td>'+escAttr(m[1].trim())+'</td><td style="text-align:right;"><span class="cob-pill '+c+'">'+cob+'m</span></td></tr>'; }
     return '<tr><td>'+escAttr(u)+'</td><td style="text-align:right;color:#999;">s/d</td></tr>';
   }).join('');
-  const tabla = lista.length
-    ? '<table class="pv-tabla"><thead><tr><th>Unidad Ejecutora</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'
+  const tablaEscasez = lista.length
+    ? '<table class="pv-tabla"><thead><tr><th>Unidad Ejecutora en escasez</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'
     : '<div style="color:#999;">No hay UE en escasez registradas para este renglón.</div>';
   document.getElementById('pvBody').innerHTML =
     '<div class="pv-res">'+
       '<div class="pv-res-item"><div class="l">UE en escasez</div><div class="v">'+sig.ue_cero+' / '+sig.ue_total+'</div></div>'+
       '<div class="pv-res-item"><div class="l">% escasez</div><div class="v">'+sig.pct+'%</div></div>'+
     '</div>'+
-    tabla+
+    '<div style="font-size:12px;font-weight:700;color:var(--azul-osc);margin:4px 0 6px;">Unidades en escasez (cobertura &lt; 1 mes)</div>'+
+    tablaEscasez+
+    '<div style="font-size:12px;font-weight:700;color:var(--azul-osc);margin:16px 0 6px;">Inventario por punto (mayor a menor)</div>'+
+    '<div id="pvInventario"><div style="color:#999;font-size:12.5px;">Consultando inventario en línea...</div></div>'+
     '<div class="pv-nota">Cobertura = saldo del punto ÷ su consumo mensual. Menos de 1 mes se considera escasez. "s/d" = sin dato de consumo.</div>';
   document.getElementById('pvOverlay').classList.add('activo');
+  // Cargar inventario rankeado por punto vía getExistenciasRenglon
+  cargarInventarioRankeado(sig.cod_abasto || (renglonActual && renglonActual.cod_abasto));
+}
+
+function cargarInventarioRankeado(cod){
+  const box=document.getElementById('pvInventario');
+  if(!box) return;
+  if(!cod){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin código para consultar.</div>'; return; }
+  const cb='cbInv'+Date.now();
+  window[cb]=function(resp){
+    try{ delete window[cb]; }catch(e){}
+    if(!resp || !resp.success || !resp.puntos || !resp.puntos.length){
+      box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin inventario en línea para este renglón.</div>'; return;
+    }
+    const pts=resp.puntos.slice().sort((a,b)=>(b.saldo||0)-(a.saldo||0));
+    const fmt=n=>(Number(n)||0).toLocaleString('es-PA');
+    const filas=pts.map(p=>{
+      const esCedis=p.es_cedis||String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
+      const inv=Number(p.saldo||0);
+      const invCol=inv<=0?'color:#b00020;font-weight:700;':'';
+      let cob='<span style="color:#999;">s/d</span>';
+      if(p.cobertura!=null){ const c=Number(p.cobertura); cob='<span class="cob-pill '+clsCobertura_(c)+'">'+c.toFixed(1)+'m</span>'; }
+      return '<tr'+(esCedis?' style="background:#eef4fb;font-weight:600;"':'')+'>'+
+        '<td>'+escAttr(p.punto_canon||p.punto)+(esCedis?' (CEDIS)':'')+'</td>'+
+        '<td style="text-align:right;font-family:var(--mono);'+invCol+'">'+fmt(inv)+'</td>'+
+        '<td style="text-align:right;">'+cob+'</td></tr>';
+    }).join('');
+    box.innerHTML=
+      '<div class="pv-res" style="margin-bottom:6px;">'+
+        '<div class="pv-res-item"><div class="l">Inv. nacional</div><div class="v">'+fmt(resp.total_nacional)+'</div></div>'+
+        '<div class="pv-res-item"><div class="l">CEDIS</div><div class="v">'+fmt(resp.total_cedis)+'</div></div>'+
+        '<div class="pv-res-item"><div class="l">UE</div><div class="v">'+fmt(resp.total_ue)+'</div></div>'+
+      '</div>'+
+      '<table class="pv-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>';
+  };
+  const s=document.createElement('script');
+  s.src=API_URL+'?action=getExistenciasRenglon&cod='+encodeURIComponent(cod)+'&callback='+cb;
+  s.onerror=function(){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudo consultar el inventario.</div>'; };
+  document.body.appendChild(s);
 }
 document.getElementById('cobNacionalCaja').addEventListener('click',function(){
-  if(this._sig) abrirCoberturaNacional(this._sig, this._desc);
+  if(this._sig){ this._sig.cod_abasto = this._sig.cod_abasto || this._cod; abrirCoberturaNacional(this._sig, this._desc); }
 });
 document.getElementById('pvX').addEventListener('click',()=>document.getElementById('pvOverlay').classList.remove('activo'));
 document.getElementById('pvOverlay').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('activo'); });
@@ -1127,10 +1170,10 @@ function tickCiclo(){
   // Si quedan menos de 12 horas, poner el aviso en alerta (amarillo/rojo)
   if(d===0 && h<12){
     cont.style.background='linear-gradient(135deg,#8a1f1f,#b00020)';
-    lbl.textContent='¡ÚLTIMAS HORAS! EL CICLO DE SOLICITUD DE CITAS CIERRA EN';
+    lbl.innerHTML='<b>¡Últimas horas!</b> El ciclo de solicitud de citas cierra en';
   }else{
     cont.style.background='linear-gradient(135deg,#0C447C,#1e5a9e)';
-    lbl.textContent='EL CICLO SEMANAL DE SOLICITUD DE CITAS CIERRA EN';
+    lbl.textContent='El ciclo semanal de solicitud de citas cierra en';
   }
 }
 tickCiclo();
