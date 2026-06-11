@@ -507,24 +507,12 @@ function pintarCobertura(cod){
 // Modal simplificado de cobertura nacional por UE
 function abrirCoberturaNacional(sig, desc){
   document.getElementById('pvTitulo').textContent='Cobertura nacional — '+(desc||'renglón');
-  const lista=(sig.ue_cero_lista||'').split(';').map(x=>x.trim()).filter(Boolean);
-  const filas=lista.map(u=>{
-    const m=u.match(/^(.*?)\s*\(([\d.]+)m\)\s*$/);
-    if(m){ const cob=parseFloat(m[2]); const c=clsCobertura_(cob);
-      return '<tr><td>'+escAttr(m[1].trim())+'</td><td style="text-align:right;"><span class="cob-pill '+c+'">'+cob+'m</span></td></tr>'; }
-    return '<tr><td>'+escAttr(u)+'</td><td style="text-align:right;color:#999;">s/d</td></tr>';
-  }).join('');
-  const tablaEscasez = lista.length
-    ? '<table class="pv-tabla"><thead><tr><th>Unidad Ejecutora en escasez</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'
-    : '<div style="color:#999;">No hay UE en escasez registradas para este renglón.</div>';
   document.getElementById('pvBody').innerHTML =
     '<div class="pv-res">'+
       '<div class="pv-res-item"><div class="l">UE en escasez</div><div class="v">'+sig.ue_cero+' / '+sig.ue_total+'</div></div>'+
       '<div class="pv-res-item"><div class="l">% escasez</div><div class="v">'+sig.pct+'%</div></div>'+
     '</div>'+
-    '<div style="font-size:12px;font-weight:700;color:var(--azul-osc);margin:4px 0 6px;">Unidades en escasez (cobertura &lt; 1 mes)</div>'+
-    tablaEscasez+
-    '<div style="font-size:12px;font-weight:700;color:var(--azul-osc);margin:16px 0 6px;">Inventario por punto (mayor a menor)</div>'+
+    '<div style="font-size:12px;font-weight:700;color:var(--azul-osc);margin:8px 0 6px;">Inventario por punto (mayor a menor)</div>'+
     '<div id="pvInventario"><div style="color:#999;font-size:12.5px;">Consultando inventario en línea...</div></div>'+
     '<div class="pv-nota">Cobertura = saldo del punto ÷ su consumo mensual. Menos de 1 mes se considera escasez. "s/d" = sin dato de consumo.</div>';
   document.getElementById('pvOverlay').classList.add('activo');
