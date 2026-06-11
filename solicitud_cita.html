@@ -114,6 +114,12 @@
   .cal-dia:hover{transform:translateY(-2px);}
   .cal-dia .cd-fecha{font-size:11px;font-weight:600;color:#333;}
   .cal-dia .cd-num{font-size:20px;font-weight:700;font-family:var(--mono);margin:3px 0;}
+  .cal-dia .cd-doble{font-family:var(--mono);margin:3px 0;font-size:18px;font-weight:700;}
+  .cal-dia .cd-doble .cd-sol{color:#c97a00;}
+  .cal-dia .cd-doble .cd-agen{color:#0a7a2f;}
+  .cal-dia .cd-doble .cd-sep{color:#bbb;font-weight:400;margin:0 2px;}
+  .cal-dia.cd-fuera{opacity:.5;background:#f4f4f4;border-style:dashed;}
+  .cal-dia.cd-fuera:hover{transform:none;}
   .cal-dia .cd-estado{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
   .cd-disp{background:#eaf5ea;} .cd-disp .cd-num,.cd-disp .cd-estado{color:#2E7D32;}
   .cd-medio{background:#fdf4e3;} .cd-medio .cd-num,.cd-medio .cd-estado{color:#854F0B;}
@@ -290,7 +296,7 @@
     <div class="seccion-titulo"><span class="num">4</span> Detalles Logísticos de la Entrega</div>
     <div class="seccion-cuerpo">
       <div id="calCarga" class="cal-carga" style="display:none;">
-        <div class="cal-titulo">Carga de citas de las próximas dos semanas <span class="cal-hint">(solicitudes ya pedidas por día)</span></div>
+        <div class="cal-titulo">Carga de citas — próximas dos semanas <span class="cal-hint">(<span style="color:#c97a00;font-weight:700;">solicitadas</span> / <span style="color:#0a7a2f;font-weight:700;">agendadas</span> por día)</span></div>
         <div id="calDias" class="cal-dias"></div>
         <div id="calSugerencia" class="cal-sugerencia"></div>
       </div>
@@ -539,7 +545,7 @@ function cargarCalendarioCarga(){
   // Lectura vía JSONP (GET con callback) para evitar problemas de CORS
   const cb='_calCB_'+Date.now();
   window[cb]=function(resp){
-    try{ if(resp && resp.success){ renderCalendario(resp.carga||{}); } }
+    try{ if(resp && resp.success){ renderCalendario(resp.carga||{}, resp.detalle||{}); } }
     finally{ delete window[cb]; const s=document.getElementById('jsonpCal'); if(s) s.remove(); }
   };
   const s=document.createElement('script');
@@ -555,11 +561,34 @@ function clasifCarga(n){
   return ['cd-disp','Disponible'];
 }
 
-function renderCalendario(carga){
+// Calcula el rango de fechas VÁLIDO según el ciclo semanal:
+// - El ciclo cierra el miércoles; se confirma el viernes; las citas son de lunes en adelante.
+// - Si hoy es lun-mié: ventana = la próxima semana (lun a vie).
+// - Si hoy es jue-dom (ya cerró): ventana = la semana subsiguiente (lun a vie).
+function ventanaCiclo(){
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dow=hoy.getDay(); // 0=dom .. 3=mié .. 6=sáb
+  // lunes de la semana actual
+  const lunesActual=new Date(hoy);
+  const difLun=(dow===0?-6:1-dow);
+  lunesActual.setDate(hoy.getDate()+difLun);
+  // si hoy es lun-mié (dow 1..3) la ventana es la PRÓXIMA semana; si jue-dom, la SUBSIGUIENTE
+  const cerrado = (dow===0 || dow>=4); // jue,vie,sab,dom = ya cerró el ciclo de esta semana
+  const lunesVentana=new Date(lunesActual);
+  lunesVentana.setDate(lunesActual.getDate()+(cerrado?14:7));
+  const viernesVentana=new Date(lunesVentana);
+  viernesVentana.setDate(lunesVentana.getDate()+4);
+  const k=d=>d.toISOString().slice(0,10);
+  return { desde:k(lunesVentana), hasta:k(viernesVentana), cerrado };
+}
+
+function renderCalendario(carga, detalle){
+  detalle=detalle||{};
   const cont=document.getElementById('calDias');
   const wrap=document.getElementById('calCarga');
   const sug=document.getElementById('calSugerencia');
   if(!cont) return;
+  const vent=ventanaCiclo();
   // Construir los próximos 10 días hábiles (lun-vie), saltando fines de semana
   const dias=[]; const hoy=new Date(); let d=new Date(hoy);
   while(dias.length<10){
@@ -571,26 +600,36 @@ function renderCalendario(carga){
   const semana=['dom','lun','mar','mié','jue','vie','sáb'];
   const info=dias.map(fec=>{
     const key=fec.toISOString().slice(0,10);
-    return {fec,key,n:carga[key]||0};
+    const det=detalle[key]||{solicitadas:0,agendadas:0};
+    const enVentana=(key>=vent.desde && key<=vent.hasta);
+    return {fec,key,sol:det.solicitadas||0,agen:det.agendadas||0,enVentana};
   });
   cont.innerHTML=info.map(it=>{
-    const [cls,txt]=clasifCarga(it.n);
+    const total=it.sol+it.agen;
+    const [cls,txt]=clasifCarga(total);
     const etiqueta=semana[it.fec.getDay()]+' '+it.fec.getDate()+' '+meses[it.fec.getMonth()];
-    return `<div class="cal-dia ${cls}" data-fecha="${it.key}" title="Clic para elegir este día">
+    const fueraVent = it.enVentana ? '' : ' cd-fuera';
+    const title = it.enVentana ? 'Clic para elegir este día' : 'Fuera del período de citas vigente (el ciclo cierra el miércoles para la semana siguiente)';
+    return `<div class="cal-dia ${cls}${fueraVent}" data-fecha="${it.key}" data-ventana="${it.enVentana?1:0}" title="${title}">
       <div class="cd-fecha">${etiqueta}</div>
-      <div class="cd-num">${it.n}</div>
-      <div class="cd-estado">${txt}</div>
+      <div class="cd-doble"><span class="cd-sol" title="Solicitadas">${it.sol}</span><span class="cd-sep">/</span><span class="cd-agen" title="Agendadas (concedidas)">${it.agen}</span></div>
+      <div class="cd-estado">${it.enVentana?txt:'Fuera de ciclo'}</div>
     </div>`;
   }).join('');
-  // clic en un día -> setear la fecha de entrega
+  // clic en un día -> setear la fecha; advertir si está fuera de la ventana
   cont.querySelectorAll('.cal-dia').forEach(el=>{
     el.addEventListener('click',()=>{
       const f=el.dataset.fecha;
+      const dentro=el.dataset.ventana==='1';
+      if(!dentro){
+        const ok=confirm('Atención: el '+f+' está FUERA del período de citas vigente.\n\nEl ciclo cierra cada miércoles y se confirman citas de la semana siguiente (lunes a viernes). Las solicitudes fuera de este período pueden no ser atendidas en el período actual.\n\n¿Desea continuar con esta fecha de todos modos?');
+        if(!ok) return;
+      }
       const inp=document.getElementById('fechaSolic');
       inp.value=f; inp.dispatchEvent(new Event('change'));
     });
   });
-  if(sug) sug.innerHTML='El ciclo de citas es semanal: se solicita de una semana hacia la siguiente. El número indica las solicitudes ya pedidas por día.';
+  if(sug) sug.innerHTML='Cada bloque muestra <b>solicitadas / agendadas</b>. Período vigente para pedir: <b>'+vent.desde+'</b> al <b>'+vent.hasta+'</b> (lun-vie). El ciclo cierra los miércoles; se confirma los viernes.';
   wrap.style.display='block';
 }
 
