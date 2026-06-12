@@ -34,6 +34,13 @@
   .panel-body{background:#fff;border:1px solid var(--borde-suave);border-top:none;border-radius:0 0 4px 4px;padding:14px;min-height:300px;}
   .filtros{margin-bottom:12px;}
   .filtros-grupo{background:#fff;border:1px solid var(--borde);padding:10px;}
+  .grupo-cab{font-size:12px;font-weight:700;color:var(--azul);margin-bottom:6px;}
+  .grupo-hint{font-weight:400;color:#999;font-size:11px;text-transform:none;letter-spacing:0;}
+  .filtros-activos{background:#fff8e1;border:1px solid #e0c97a;padding:7px 10px;margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .filtros-activos .fa-lbl{font-size:11px;color:#6b5400;text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+  .fa-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #ccc;padding:2px 4px 2px 8px;font-size:11px;color:#444;border-radius:2px;}
+  .fa-chip .x{cursor:pointer;color:#b00020;font-weight:700;padding:0 4px;border-radius:2px;}
+  .fa-chip .x:hover{background:#fce9ec;}
   .filtros-fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
   .filtros-fila+.filtros-fila{border-top:1px solid #eee;padding-top:8px;margin-top:8px;}
   .filtro-campo{display:flex;flex-direction:column;gap:2px;}
@@ -67,6 +74,18 @@
   .cita-cols .c.ren{flex:2;}
   .cita-cols .c.qty{flex:1;text-align:right;}
   .cita-fecha{font-size:12.5px;color:var(--ambar);font-weight:600;margin-top:5px;}
+  .fechas-cita{display:flex;align-items:stretch;gap:0;margin-top:6px;flex-wrap:wrap;}
+  .fcaja{padding:5px 10px;border:1px solid #cfe0f2;}
+  .fcaja.sol{background:#eef4fb;}
+  .fcaja.age{background:#e8f3e9;border-color:#c5e0c8;border-left:none;}
+  .fcaja.age.vacia{background:#f4f4f4;border-color:#e0e0e0;}
+  .fcaja .fcap{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.3px;}
+  .fcaja .fval{font-family:var(--mono);font-weight:700;font-size:12.5px;}
+  .fcaja.sol .fval{color:#1e5a9e;}
+  .fcaja.age .fval{color:#0a7a2f;}
+  .fcaja.age.vacia .fval{color:#999;font-weight:400;font-style:italic;}
+  .fdif{display:flex;align-items:center;padding:0 10px;font-size:11px;color:#854F0B;background:#fafafa;border:1px solid #eee;border-left:none;}
+  .festado{display:flex;align-items:center;padding:0 12px;font-size:12px;font-weight:600;margin-left:6px;}
   /* Caja IPR lateral, a toda la altura */
   .ipr-box{width:84px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-left:1px solid #eee;}
   .ipr-box.ipr-rojo{background:var(--rojo-bg);border-left-color:#f0d0d6;} .ipr-box.ipr-rojo .n,.ipr-box.ipr-rojo .lbl,.ipr-box.ipr-rojo .cola{color:var(--rojo);}
@@ -205,6 +224,7 @@
   <div class="panel-body">
     <div class="filtros">
       <div class="filtros-grupo">
+        <div class="grupo-cab">① Qué citas <span class="grupo-hint">— estos filtros se combinan entre sí</span></div>
         <div class="filtros-fila">
           <div class="filtro-campo">
             <span class="et">Estado</span>
@@ -237,6 +257,7 @@
             </select>
           </div>
         </div>
+        <div class="grupo-cab" style="margin-top:10px;">② Cuándo <span class="grupo-hint">— por fecha solicitada o agendada</span></div>
         <div class="filtros-fila">
           <div class="filtro-campo">
             <span class="et">Fecha agendada (rango · o un solo día)</span>
@@ -271,6 +292,7 @@
           <button class="btn chip" data-atajo="mes">Este mes</button>
         </div>
       </div>
+      <div id="filtrosActivos" class="filtros-activos" style="display:none;"></div>
       <div class="buscar-barra">
         <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
         <button class="btn" id="btnLimpiar">✕ Limpiar filtros</button>
@@ -567,7 +589,29 @@ function render(){
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
     }
 
-    const fechaMostrar = s.fecha_confirmada ? ('Fecha confirmada: '+esc(s.fecha_confirmada)) : ('Fecha solicitada: '+esc(s.fecha_solicitada||'—'));
+    // Dos fechas lado a lado: solicitada (proveedor) y agendada/confirmada. Conserva trazabilidad.
+    const fSol = s.fecha_solicitada ? String(s.fecha_solicitada).slice(0,10) : '';
+    const fAge = s.fecha_confirmada ? String(s.fecha_confirmada).slice(0,10) : '';
+    let difTxt='';
+    if(fSol && fAge){
+      const d1=new Date(fSol+'T00:00:00'), d2=new Date(fAge+'T00:00:00');
+      const dd=Math.round((d2-d1)/86400000);
+      if(dd===0) difTxt='mismo día';
+      else difTxt=(dd>0?'+':'')+dd+' día'+(Math.abs(dd)!==1?'s':'');
+    }
+    const cajaFechas = `
+      <div class="fechas-cita">
+        <div class="fcaja sol">
+          <div class="fcap">Solicitada por proveedor</div>
+          <div class="fval">${fSol?esc(fSol):'—'}</div>
+        </div>
+        <div class="fcaja age${fAge?'':' vacia'}">
+          <div class="fcap">Agendada / confirmada</div>
+          <div class="fval">${fAge?esc(fAge):'sin agendar'}</div>
+        </div>
+        ${difTxt?`<div class="fdif">↔ ${difTxt}</div>`:''}
+        <div class="festado" style="color:${estCol};">${esc(s.estado)}</div>
+      </div>`;
     const colaTxt = CERRADA ? '' : (s.cola==='RECEPCION'?'Recepción':'Redistrib.');
     return `
     <div class="cita ${cls}">
@@ -581,7 +625,7 @@ function render(){
             <div class="c qty">${num(s.cant_bultos)} bultos</div>
             <div class="c qty">${num(s.cant_pallets)} pallets</div>
           </div>
-          <div class="cita-fecha" style="color:${estCol};">${fechaMostrar} · Estado: ${esc(s.estado)}</div>
+          ${cajaFechas}
         </div>
         ${badgesActivas}
         <div class="acciones">${acciones}</div>
@@ -1180,6 +1224,51 @@ function actualizarBotonLimpiar(){
   const b=document.getElementById('btnLimpiar');
   if(!b) return;
   b.classList.toggle('primary', hayFiltroActivo());
+  renderFiltrosActivos();
+}
+
+// Construye la línea de chips que muestra qué filtros están aplicados ahora mismo.
+function renderFiltrosActivos(){
+  const cont=document.getElementById('filtrosActivos');
+  if(!cont) return;
+  const chips=[];
+  const add=(etiqueta,limpiar)=>chips.push({etiqueta,limpiar});
+
+  // Estado por tarjeta KPI
+  const kpiNom={PENDIENTE:'Pendientes',AGENDADA:'Agendadas',URGENTE:'IPR ≥75',VENCE:'OC por vencer',DIFERIDA:'Diferidas'};
+  if(filtroEstado) add('Vista: '+(kpiNom[filtroEstado]||filtroEstado),()=>{filtroEstado='';document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));});
+
+  const estSel=document.getElementById('filtroEstadoSel');
+  if(estSel.value){ const t=estSel.options[estSel.selectedIndex].text; add('Estado: '+t,()=>estSel.value=''); }
+  const catSel=document.getElementById('filtroCategoria');
+  if(catSel.value){ const t=catSel.options[catSel.selectedIndex].text; add('Categoría: '+t,()=>catSel.value=''); }
+  const iprMin=document.getElementById('filtroIprMin');
+  if(iprMin.value){ const t=iprMin.options[iprMin.selectedIndex].text; add('IPR: '+t,()=>iprMin.value=''); }
+
+  const aD=document.getElementById('filtroAgenDesde'), aH=document.getElementById('filtroAgenHasta');
+  if(aD.value||aH.value){ add('Agendada: '+(aD.value||aH.value)+(aH.value&&aH.value!==aD.value?(' a '+aH.value):''),()=>{aD.value='';aH.value='';desmarcarAtajos_();}); }
+  const sD=document.getElementById('filtroSolicDesde'), sH=document.getElementById('filtroSolicHasta');
+  if(sD.value||sH.value){ add('Solicitada: '+(sD.value||sH.value)+(sH.value&&sH.value!==sD.value?(' a '+sH.value):''),()=>{sD.value='';sH.value='';desmarcarAtajos_();}); }
+
+  const buscar=document.getElementById('buscar');
+  if(buscar.value.trim()) add('Busca: "'+buscar.value.trim()+'"',()=>buscar.value='');
+
+  if(!chips.length){ cont.style.display='none'; cont.innerHTML=''; return; }
+  cont.style.display='flex';
+  cont.innerHTML='<span class="fa-lbl">Filtrando por:</span>'+
+    chips.map((c,i)=>`<span class="fa-chip">${esc(c.etiqueta)}<span class="x" data-fa="${i}">✕</span></span>`).join('');
+  // Guardar las funciones de limpieza para los listeners
+  cont._limpiezas=chips.map(c=>c.limpiar);
+  cont.querySelectorAll('.x[data-fa]').forEach(x=>{
+    x.addEventListener('click',()=>{
+      const fn=cont._limpiezas[+x.dataset.fa];
+      if(fn) fn();
+      aplicarFiltros();
+    });
+  });
+}
+function desmarcarAtajos_(){
+  document.querySelectorAll('.btn.chip[data-atajo]').forEach(c=>c.classList.remove('activo'));
 }
 function limpiarFiltros(){
   filtroEstado='';
