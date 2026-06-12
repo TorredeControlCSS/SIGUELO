@@ -234,7 +234,7 @@
     <div class="kpi kpi-click" data-filtro="PENDIENTE"><div class="lbl">Pendientes por confirmar</div><div class="val" id="kpiTotal">—</div></div>
     <div class="kpi kpi-click" data-filtro="AGENDADA"><div class="lbl">Agendadas (ya confirmadas)</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
     <div class="kpi kpi-click" data-filtro="URGENTE"><div class="lbl">Recepción urgente (IPR ≥75)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (≤3 días)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (sin agendar)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
     <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (por reprogramar)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
   </div>
 
@@ -535,11 +535,16 @@ function actualizarKPIs(){
   // Estados cerrados/avanzados que NO deben contar en los KPIs operativos.
   const CERRADOS=['ENTREGADA','ENTREGADO','CANCELADA','ASISTIO','NO_ASISTIO'];
   const esActiva=s=>CERRADOS.indexOf(String(s.estado||'').toUpperCase())<0;
+  // "Por vencer" solo aplica a citas que AÚN NO se han agendado: si ya está
+  // agendada o asistió, la OC ya no corre riesgo operativo (la cita ya avanzó).
+  const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
+  const esSinAgendar=s=>SIN_AGENDAR.indexOf(String(s.estado||'').toUpperCase())>=0;
   const pend=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='PENDIENTE').length;
   const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
   // Recepción urgente: citas ACTIVAS con IPR crítico (>=75).
   const rec=SOLICITUDES.filter(s=>esActiva(s) && Number(s.ipr||0)>=75).length;
-  const vence=SOLICITUDES.filter(s=>esActiva(s) && s.venc && s.venc.estado==='ROJO').length;
+  // OC por vencer: solo citas sin agendar con OC en rojo (vence pronto o vencida).
+  const vence=SOLICITUDES.filter(s=>esSinAgendar(s) && s.venc && s.venc.estado==='ROJO').length;
   const dif=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA').length;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
@@ -604,7 +609,11 @@ function getFiltradas(){
     if(filtroEstado==='PENDIENTE' && estU!=='PENDIENTE') return false;
     if(filtroEstado==='AGENDADA' && estU!=='AGENDADA') return false;
     if(filtroEstado==='URGENTE' && Number(s.ipr||0)<75) return false;
-    if(filtroEstado==='VENCE' && !(s.venc && s.venc.estado==='ROJO')) return false;
+    if(filtroEstado==='VENCE'){
+      const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
+      if(SIN_AGENDAR.indexOf(estU)<0) return false;
+      if(!(s.venc && s.venc.estado==='ROJO')) return false;
+    }
     if(filtroEstado==='DIFERIDA' && estU!=='DIFERIDA') return false;
     if(q && !verHistorico){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
