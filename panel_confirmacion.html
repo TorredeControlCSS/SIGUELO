@@ -199,6 +199,7 @@
   .cal-res-tot td{font-weight:700;background:#eef4fb;}
   .cal-res-prom{font-size:11.5px;color:#555;margin-top:6px;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -216,6 +217,23 @@
     <div class="kpi kpi-click" data-filtro="URGENTE"><div class="lbl">Recepción urgente (IPR ≥75)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
     <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (≤3 días)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
     <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (por reprogramar)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
+  </div>
+
+  <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
+    <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
+      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas agendadas y pallets por día</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
+          <button class="btn" id="cargaSemPrev" style="padding:2px 8px;font-size:12px;">‹</button>
+          <span id="cargaSemRango" style="font-size:11.5px;color:#555;font-family:var(--mono);min-width:150px;text-align:center;">—</span>
+          <button class="btn" id="cargaSemNext" style="padding:2px 8px;font-size:12px;">›</button>
+        </span>
+        <span id="cargaSemToggle" style="font-size:12px;color:var(--azul);">▼ ocultar</span>
+      </div>
+    </div>
+    <div id="cargaSemanalBody" style="padding:12px 14px;height:200px;">
+      <canvas id="cargaSemanalChart"></canvas>
+    </div>
   </div>
 
   <div class="tabs">
@@ -355,6 +373,91 @@ function loadJsonp(action, extra){
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
+
+// ====== Gráfico de carga semanal (citas agendadas + pallets por día) ======
+let cargaSemanalChart = null;
+let cargaSemRef = new Date();          // fecha de referencia de la semana mostrada
+let cargaSemLista = [];                // última lista filtrada recibida
+let cargaSemColapsado = false;
+
+function cargaSemLunes_(ref){
+  const d = new Date(ref); d.setHours(12,0,0,0);
+  const dow = d.getDay();               // 0=dom..6=sab
+  const diff = dow===0 ? -6 : (1-dow);  // retroceder al lunes
+  d.setDate(d.getDate()+diff); d.setHours(12,0,0,0);
+  return d;
+}
+function fechaISOloc_(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function actualizarCargaSemanal(lista){
+  if(Array.isArray(lista)) cargaSemLista = lista;
+  if(cargaSemColapsado) return;
+  const canvas = document.getElementById('cargaSemanalChart');
+  if(!canvas || typeof Chart==='undefined') return;
+
+  // Construir los 7 días (lunes a domingo) de la semana de referencia.
+  const lunes = cargaSemLunes_(cargaSemRef);
+  const dias = [];
+  for(let i=0;i<7;i++){ const d=new Date(lunes); d.setDate(lunes.getDate()+i); dias.push(fechaISOloc_(d)); }
+
+  // Rótulo de rango (lunes a domingo).
+  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
+  const fmt = d => d.toLocaleDateString('es-PA',{day:'2-digit',month:'short'});
+  const rangoEl = document.getElementById('cargaSemRango');
+  if(rangoEl) rangoEl.textContent = fmt(lunes)+' – '+fmt(dom);
+
+  // Agrupar por día de AGENDA (fecha_confirmada). Cuenta citas y suma pallets.
+  const agrup = {};
+  dias.forEach(f=>agrup[f]={citas:0,pallets:0});
+  (cargaSemLista||[]).forEach(s=>{
+    const f = String(s.fecha_confirmada||'').slice(0,10);
+    if(agrup[f]){ agrup[f].citas+=1; agrup[f].pallets+=Number(s.cant_pallets||0); }
+  });
+
+  const nombresDia = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const labels = dias.map((f,i)=>{ const d=new Date(f+'T12:00:00'); return nombresDia[i]+' '+String(d.getDate()).padStart(2,'0'); });
+  const datCitas = dias.map(f=>agrup[f].citas);
+  const datPallets = dias.map(f=>agrup[f].pallets);
+
+  if(cargaSemanalChart) cargaSemanalChart.destroy();
+  cargaSemanalChart = new Chart(canvas.getContext('2d'),{
+    data:{
+      labels,
+      datasets:[
+        { type:'bar', label:'Citas agendadas', data:datCitas,
+          backgroundColor:'rgba(30,90,158,0.75)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 },
+        { type:'line', label:'Pallets', data:datPallets,
+          borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ font:{size:11}, boxWidth:14 } },
+        tooltip:{ titleFont:{family:'Consolas,monospace'}, bodyFont:{family:'Consolas,monospace'} }
+      },
+      scales:{
+        x:{ ticks:{ font:{size:11} }, grid:{ display:false } },
+        y:{ type:'linear', position:'left', beginAtZero:true,
+            title:{ display:true, text:'Citas', font:{size:11} },
+            ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
+        y1:{ type:'linear', position:'right', beginAtZero:true,
+             title:{ display:true, text:'Pallets', font:{size:11} },
+             ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } }
+      }
+    }
+  });
+}
+
+function cargaSemIrA_(deltaSemanas){
+  cargaSemRef = new Date(cargaSemRef);
+  cargaSemRef.setDate(cargaSemRef.getDate()+deltaSemanas*7);
+  actualizarCargaSemanal();
+}
+
 
 async function cargar(){
   CAL_MESES={}; // invalidar cache del calendario para que refleje cambios
@@ -665,6 +768,9 @@ function render(){
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
   cont.querySelectorAll('[data-parcial]').forEach(b=>b.addEventListener('click',()=>abrirRecibirParcial(lista[+b.dataset.parcial])));
   cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
+
+  // Gráfico de carga semanal reacciona a los mismos filtros (lista ya filtrada).
+  if(typeof actualizarCargaSemanal==='function') actualizarCargaSemanal(lista);
 }
 
 function explicarIPR(s){
@@ -1257,6 +1363,21 @@ document.getElementById('btnHistorico').addEventListener('click',()=>{
   cargar();
 });
 document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
+
+// Navegación y toggle del gráfico de carga semanal
+(function(){
+  const prev=document.getElementById('cargaSemPrev'), next=document.getElementById('cargaSemNext');
+  if(prev) prev.addEventListener('click',(e)=>{ e.stopPropagation(); cargaSemIrA_(-1); });
+  if(next) next.addEventListener('click',(e)=>{ e.stopPropagation(); cargaSemIrA_(1); });
+  const head=document.getElementById('cargaSemanalHead'), body=document.getElementById('cargaSemanalBody'), tog=document.getElementById('cargaSemToggle');
+  if(head) head.addEventListener('click',(e)=>{
+    if(e.target.id==='cargaSemPrev'||e.target.id==='cargaSemNext') return;
+    cargaSemColapsado=!cargaSemColapsado;
+    if(body) body.style.display=cargaSemColapsado?'none':'block';
+    if(tog) tog.textContent=cargaSemColapsado?'► mostrar':'▼ ocultar';
+    if(!cargaSemColapsado) actualizarCargaSemanal();
+  });
+})();
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
