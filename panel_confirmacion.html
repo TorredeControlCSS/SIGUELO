@@ -103,6 +103,7 @@
   .badge.gris{background:var(--gris-bg);color:#5F5E5A;}
   .badge.ambar{background:var(--ambar-bg);color:var(--ambar);}
   .badge.frio{background:#e3f2fb;color:#0b5a8a;border:1px solid #b8ddf0;font-weight:600;}
+  .badge.rescatada{background:#efe9f7;color:#5a3d8a;border:1px solid #cbb8e8;font-weight:600;}
   .badge.clic{cursor:pointer;text-decoration:underline dotted;}
   /* Semaforo por IPR (borde izquierdo y caja IPR) */
   .cita.ipr-rojo{border-left-color:var(--rojo);}
@@ -235,6 +236,7 @@
               <option value="AGENDADA">Agendada</option>
               <option value="DIFERIDA">Diferida</option>
               <option value="CERRADAS">Cerradas (entregadas/asistió/canc.)</option>
+              <option value="__RESCATADAS__">⮌ Rescatadas del ciclo anterior</option>
             </select>
           </div>
           <div class="filtro-campo">
@@ -352,7 +354,7 @@ function loadJsonp(action, extra){
 }
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function num(n){ return Number(n||0).toLocaleString('es-PA'); }
+function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
 
 async function cargar(){
   CAL_MESES={}; // invalidar cache del calendario para que refleje cambios
@@ -412,10 +414,13 @@ function getFiltradas(){
   const solicH=document.getElementById('filtroSolicHasta').value;
   return SOLICITUDES.filter(s=>{
     const estU=String(s.estado||'').toUpperCase();
-    // Filtro por dropdown de estado (CERRADAS agrupa los estados finales)
+    // Filtro por dropdown de estado (CERRADAS agrupa los estados finales;
+    // __RESCATADAS__ es transversal: marca es_rescatada, no un estado real)
     if(estSel){
       const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
-      if(estSel==='CERRADAS'){
+      if(estSel==='__RESCATADAS__'){
+        if(!s.es_rescatada) return false;
+      } else if(estSel==='CERRADAS'){
         if(CERRADAS_GRUPO.indexOf(estU)<0) return false;
       } else if(estU!==estSel) return false;
     }
@@ -563,6 +568,7 @@ function render(){
       const badgesSec = `
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
+        ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}`;
