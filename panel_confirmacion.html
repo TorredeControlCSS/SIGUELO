@@ -586,6 +586,7 @@ function render(){
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='DIFERIDA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+                  <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-nota="${idx}">Generar nota</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
     } else if(estadoU==='REPROGRAMADA'){
