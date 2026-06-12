@@ -223,6 +223,11 @@
     <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
       <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas agendadas y pallets por día</div>
       <div style="display:flex;align-items:center;gap:10px;">
+        <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
+          <option value="ambas">Solicitadas y agendadas</option>
+          <option value="solicitada">Solo solicitadas</option>
+          <option value="agendada">Solo agendadas</option>
+        </select>
         <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
           <button class="btn" id="cargaSemPrev" style="padding:2px 8px;font-size:12px;">‹</button>
           <span id="cargaSemRango" style="font-size:11.5px;color:#555;font-family:var(--mono);min-width:150px;text-align:center;">—</span>
@@ -397,6 +402,9 @@ function actualizarCargaSemanal(lista){
   const canvas = document.getElementById('cargaSemanalChart');
   if(!canvas || typeof Chart==='undefined') return;
 
+  const modoSel = document.getElementById('cargaSemModo');
+  const modo = modoSel ? modoSel.value : 'ambas';
+
   // Construir los 7 días (lunes a domingo) de la semana de referencia.
   const lunes = cargaSemLunes_(cargaSemRef);
   const dias = [];
@@ -408,30 +416,44 @@ function actualizarCargaSemanal(lista){
   const rangoEl = document.getElementById('cargaSemRango');
   if(rangoEl) rangoEl.textContent = fmt(lunes)+' – '+fmt(dom);
 
-  // Agrupar por día de AGENDA (fecha_confirmada). Cuenta citas y suma pallets.
+  // Agrupar por día: citas solicitadas (fecha_solicitada), agendadas (fecha_confirmada),
+  // y pallets agendados (los pallets cuentan cuando hay agenda real).
   const agrup = {};
-  dias.forEach(f=>agrup[f]={citas:0,pallets:0});
+  dias.forEach(f=>agrup[f]={solic:0,agend:0,pallets:0});
   (cargaSemLista||[]).forEach(s=>{
-    const f = String(s.fecha_confirmada||'').slice(0,10);
-    if(agrup[f]){ agrup[f].citas+=1; agrup[f].pallets+=Number(s.cant_pallets||0); }
+    const fSol = String(s.fecha_solicitada||'').slice(0,10);
+    const fAge = String(s.fecha_confirmada||'').slice(0,10);
+    if(agrup[fSol]) agrup[fSol].solic+=1;
+    if(agrup[fAge]){ agrup[fAge].agend+=1; agrup[fAge].pallets+=Number(s.cant_pallets||0); }
   });
 
   const nombresDia = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const labels = dias.map((f,i)=>{ const d=new Date(f+'T12:00:00'); return nombresDia[i]+' '+String(d.getDate()).padStart(2,'0'); });
-  const datCitas = dias.map(f=>agrup[f].citas);
+  const datSolic = dias.map(f=>agrup[f].solic);
+  const datAgend = dias.map(f=>agrup[f].agend);
   const datPallets = dias.map(f=>agrup[f].pallets);
+
+  // Datasets según el modo.
+  const ds = [];
+  if(modo==='ambas' || modo==='solicitada'){
+    ds.push({ type:'bar', label:'Solicitadas', data:datSolic,
+      backgroundColor:'rgba(120,170,220,0.65)', borderColor:'#5a8fc0', borderWidth:1, yAxisID:'y', order:3 });
+  }
+  if(modo==='ambas' || modo==='agendada'){
+    ds.push({ type:'bar', label:'Agendadas', data:datAgend,
+      backgroundColor:'rgba(30,90,158,0.8)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 });
+  }
+  // Pallets: siempre que haya algo de agenda visible (modo ambas o agendada).
+  if(modo==='ambas' || modo==='agendada'){
+    ds.push({ type:'line', label:'Pallets (agendados)', data:datPallets,
+      borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
+  }
+
+  const mostrarY1 = (modo==='ambas' || modo==='agendada');
 
   if(cargaSemanalChart) cargaSemanalChart.destroy();
   cargaSemanalChart = new Chart(canvas.getContext('2d'),{
-    data:{
-      labels,
-      datasets:[
-        { type:'bar', label:'Citas agendadas', data:datCitas,
-          backgroundColor:'rgba(30,90,158,0.75)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 },
-        { type:'line', label:'Pallets', data:datPallets,
-          borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 }
-      ]
-    },
+    data:{ labels, datasets:ds },
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
@@ -444,7 +466,7 @@ function actualizarCargaSemanal(lista){
         y:{ type:'linear', position:'left', beginAtZero:true,
             title:{ display:true, text:'Citas', font:{size:11} },
             ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
-        y1:{ type:'linear', position:'right', beginAtZero:true,
+        y1:{ type:'linear', position:'right', beginAtZero:true, display:mostrarY1,
              title:{ display:true, text:'Pallets', font:{size:11} },
              ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } }
       }
@@ -1369,6 +1391,8 @@ document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar();
   const prev=document.getElementById('cargaSemPrev'), next=document.getElementById('cargaSemNext');
   if(prev) prev.addEventListener('click',(e)=>{ e.stopPropagation(); cargaSemIrA_(-1); });
   if(next) next.addEventListener('click',(e)=>{ e.stopPropagation(); cargaSemIrA_(1); });
+  const modoSel=document.getElementById('cargaSemModo');
+  if(modoSel) modoSel.addEventListener('change',(e)=>{ e.stopPropagation(); actualizarCargaSemanal(); });
   const head=document.getElementById('cargaSemanalHead'), body=document.getElementById('cargaSemanalBody'), tog=document.getElementById('cargaSemToggle');
   if(head) head.addEventListener('click',(e)=>{
     if(e.target.id==='cargaSemPrev'||e.target.id==='cargaSemNext') return;
