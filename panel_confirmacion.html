@@ -575,6 +575,7 @@ function render(){
       acciones = `<button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='AGENDADA'){
       acciones = `<button class="btn primary" data-asis="${idx}">Marcar asistencia</button>
+                  <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
     } else if(estadoU==='ASISTIO'){
       acciones = `<button class="btn primary" data-ent="${idx}">Registrar entrega</button>
@@ -592,6 +593,7 @@ function render(){
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+                  <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-repro="${idx}">Reprogramar</button>
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
     }
@@ -654,6 +656,7 @@ function render(){
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-repro]').forEach(b=>b.addEventListener('click',()=>abrirReprogramar(lista[+b.dataset.repro])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
+  cont.querySelectorAll('[data-parcial]').forEach(b=>b.addEventListener('click',()=>abrirRecibirParcial(lista[+b.dataset.parcial])));
   cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
 }
 
@@ -927,6 +930,99 @@ async function generarNotaImprimible(id){
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button></body></html>');
     w.document.close();
   }catch(e){ alert('Error: '+e.message); }
+}
+
+function abrirRecibirParcial(s){
+  const total = Number(s.cant_unidades||s.cant_solicitada||0);
+  document.getElementById('modalTitulo').textContent='Recibir parcial — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Renglón</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Cantidad total</td><td class="v"><b>${num(total)}</b> und</td></tr>
+    </table>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 10px;background:#eef4fb;border:1px solid #d6e2f0;padding:9px 11px;border-radius:3px;">
+      Confirma la cita por lo que vas a <b>recibir</b> ahora. El resto se <b>difiere</b> con su propia nota y queda como remanente para el pr&oacute;ximo ciclo.
+    </div>
+    <div style="display:flex;gap:0;margin-bottom:12px;font-family:var(--mono);">
+      <div style="flex:1;padding:7px 10px;background:var(--gris-bg);border:1px solid var(--borde-suave);">
+        <div style="font-size:10px;color:#777;font-family:inherit;">TOTAL</div>
+        <div style="font-size:17px;font-weight:700;color:#444;" id="parcTotal">${num(total)}</div>
+      </div>
+      <div style="flex:1;padding:7px 10px;background:var(--verde-bg);border:1px solid #c5e0c8;border-left:none;">
+        <div style="font-size:10px;color:#777;font-family:inherit;">RECIBO AHORA</div>
+        <div style="font-size:17px;font-weight:700;color:var(--verde);" id="parcRecibe">0</div>
+      </div>
+      <div style="flex:1;padding:7px 10px;background:var(--ambar-bg);border:1px solid #e0c08a;border-left:none;">
+        <div style="font-size:10px;color:#777;font-family:inherit;">SE DIFIERE</div>
+        <div style="font-size:17px;font-weight:700;color:var(--ambar);" id="parcDifiere">${num(total)}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Cantidad a recibir en esta cita</label>
+      <input type="number" id="parcCant" min="1" max="${total}" step="1" placeholder="Ej. 60"
+             style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;font-family:var(--mono);">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div style="flex:1;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Fecha de la cita (lo que se recibe)</label>
+        <input type="date" id="parcFecha" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+      </div>
+      <div style="width:110px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Hora</label>
+        <input type="time" id="parcHora" value="08:00" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:6px;">Causas del diferimiento del remanente (para la Nota)</label>
+      ${causasCheckboxesHtml('parc')}
+    </div>
+    <div id="parcMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="parcCancelar">Cancelar</button>
+      <button class="btn primary" id="parcOk" disabled>Confirmar y diferir resto</button>
+    </div>`;
+  abrirModal();
+
+  const inp=document.getElementById('parcCant');
+  const okBtn=document.getElementById('parcOk');
+  const recibeEl=document.getElementById('parcRecibe');
+  const difiereEl=document.getElementById('parcDifiere');
+  function recalc(){
+    let v=Number(inp.value||0);
+    if(v<0) v=0;
+    if(v>total) v=total;
+    const rem=total-v;
+    recibeEl.textContent=num(v);
+    difiereEl.textContent=num(rem);
+    // Botón habilitado solo si recibe algo y queda algo por diferir (parcial real)
+    okBtn.disabled = !(v>0 && rem>0);
+    okBtn.textContent = (v>0 && rem===0) ? 'Recibes todo (usa Confirmar cita)' : 'Confirmar '+num(v)+' + diferir '+num(rem);
+  }
+  inp.addEventListener('input',recalc);
+  document.getElementById('parcCancelar').addEventListener('click',cerrarModal);
+  okBtn.addEventListener('click',async()=>{
+    const v=Number(inp.value||0);
+    const fecha=document.getElementById('parcFecha').value;
+    const hora=document.getElementById('parcHora').value||'08:00';
+    const msg=document.getElementById('parcMsg');
+    if(!(v>0 && v<total)){ msg.style.color='#b00020'; msg.textContent='La cantidad a recibir debe ser mayor que 0 y menor que el total.'; return; }
+    if(!fecha){ msg.style.color='#b00020'; msg.textContent='Indica la fecha de la cita para lo que se recibe.'; return; }
+    okBtn.disabled=true; msg.style.color='#555'; msg.textContent='Confirmando recepción y difiriendo el resto...';
+    try{
+      const causas=causasSeleccionadas('parc');
+      const resp=await postGAS('recibirParcial',{id:s.id, cant_recibir:v, fecha_confirmada:fecha, hora_confirmada:hora, causas:causas, usuario:'Panel SÍGUELO'});
+      if(!resp.success){ throw new Error(resp.error||'Error'); }
+      let txt=resp.message;
+      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió)';
+      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
+      msg.textContent=txt+' Abriendo nota del remanente...';
+      setTimeout(async()=>{ cerrarModal(); if(resp.id_remanente){ await generarNotaImprimible(resp.id_remanente); } cargar(); }, 1200);
+    }catch(e){
+      okBtn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo procesar: '+e.message;
+    }
+  });
 }
 
 function abrirDiferir(s){
