@@ -159,11 +159,29 @@
   .ue-tabla td{padding:5px 8px;border-bottom:1px solid #eee;}
   .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
+  .tab-kanban{display:none;}
+  .kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start;}
+  .kanban-col{background:var(--gris-bg);border:1px solid var(--borde-suave);border-radius:3px;display:flex;flex-direction:column;min-height:120px;}
+  .kanban-col-head{padding:8px 10px;font-size:12.5px;font-weight:700;color:#fff;border-radius:3px 3px 0 0;display:flex;justify-content:space-between;align-items:center;}
+  .kanban-col-head .cnt{font-family:var(--mono);background:rgba(255,255,255,.25);padding:0 7px;border-radius:8px;font-size:11px;}
+  .kanban-col-body{padding:8px;display:flex;flex-direction:column;gap:6px;max-height:560px;overflow-y:auto;}
+  .kanban-card{background:#fff;border:1px solid var(--borde-suave);border-left-width:3px;border-radius:2px;padding:7px 9px;cursor:pointer;transition:box-shadow .12s;}
+  .kanban-card:hover{box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  .kanban-card .kc-emp{font-size:12.5px;font-weight:600;color:#222;line-height:1.25;}
+  .kanban-card .kc-desc{font-size:11px;color:#666;margin:2px 0;line-height:1.25;}
+  .kanban-card .kc-meta{font-size:10.5px;color:#888;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .kanban-card .kc-ipr{font-weight:700;font-family:var(--mono);padding:0 5px;border-radius:3px;}
+  .kanban-card .kc-badges{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;}
+  .kanban-empty{font-size:11.5px;color:#999;padding:10px;text-align:center;}
   .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .cal-titulo{font-size:16px;font-weight:700;color:var(--azul-osc);min-width:180px;text-align:center;text-transform:capitalize;}
   .cal-leyenda{font-size:11px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
   .cal-chip{display:inline-block;width:11px;height:11px;border-radius:2px;margin-left:8px;vertical-align:middle;}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--borde-suave);border:1px solid var(--borde-suave);}
+  .cal-layout{display:flex;gap:16px;align-items:flex-start;}
+  .cal-layout > .cal-grid{flex:1;min-width:0;}
+  .cal-layout > .cal-resumen{flex:0 0 320px;position:sticky;top:10px;margin-top:0;}
+  @media(max-width:1100px){ .cal-layout{flex-direction:column;} .cal-layout > .cal-resumen{flex:1 1 auto;width:100%;max-width:480px;position:static;} }
   .cal-dow{background:var(--azul);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;}
   .cal-dia{background:#fff;min-height:96px;padding:4px 5px;font-size:11px;vertical-align:top;overflow:hidden;}
   .cal-dia.otro{background:#f6f6f6;color:#bbb;}
@@ -190,7 +208,7 @@
   .cal-desg .pt{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:middle;}
   .cal-pallets{font-size:9.5px;color:#777;margin-top:4px;font-family:var(--mono);}
   .cal-pallets b{color:#444;}
-  .cal-resumen{margin-top:14px;max-width:420px;}
+  .cal-resumen{margin-top:0;max-width:420px;}
   .cal-res-titulo{font-size:13px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;}
   .cal-res-tabla{border-collapse:collapse;width:100%;font-size:12px;}
   .cal-res-tabla th{background:var(--azul);color:#fff;padding:5px 10px;text-align:left;font-size:11px;}
@@ -244,6 +262,7 @@
   <div class="tabs">
     <div class="tab activa" data-tab="lista">Lista priorizada</div>
     <div class="tab" data-tab="calendario">Calendario</div>
+    <div class="tab" data-tab="kanban">Kanban</div>
   </div>
 
   <div class="panel-body">
@@ -344,9 +363,14 @@
           <span class="cal-chip" style="background:#b00020;"></span>No asistió/Cancelada
         </span>
       </div>
-      <div id="calGrid" class="cal-grid"></div>
-      <div id="calResumen" class="cal-resumen"></div>
+      <div class="cal-layout">
+        <div id="calGrid" class="cal-grid"></div>
+        <div id="calResumen" class="cal-resumen"></div>
+      </div>
       <div class="estado-msg" id="calMsg" style="display:none;">Cargando historial...</div>
+    </div>
+    <div id="tabKanban" class="tab-kanban">
+      <div class="kanban-board" id="kanbanBoard"></div>
     </div>
   </div>
 </div>
@@ -527,6 +551,7 @@ function actualizarKPIs(){
 
 let filtroEstado=''; // filtro por tarjeta KPI: '' | 'PENDIENTE' | 'AGENDADA' | 'URGENTE' | 'VENCE' | 'DIFERIDA'
 let TAB_ACTIVA='lista';
+let KANBAN_LISTA=[];
 function getFiltradas(){
   const q=document.getElementById('buscar').value.toLowerCase().trim();
   const estSel=document.getElementById('filtroEstadoSel').value;
@@ -793,6 +818,79 @@ function render(){
 
   // Gráfico de carga semanal reacciona a los mismos filtros (lista ya filtrada).
   if(typeof actualizarCargaSemanal==='function') actualizarCargaSemanal(lista);
+}
+
+// ====== Kanban por estado (Pendientes / Agendadas / Asistió / Diferidas) ======
+function renderKanban(){
+  const board=document.getElementById('kanbanBoard');
+  if(!board) return;
+  const lista=getFiltradas();
+
+  // Columnas por estado puro. Cada una agrupa los estados equivalentes.
+  const COLS=[
+    {key:'PEND', titulo:'Pendientes', color:'#9a5b00', estados:['PENDIENTE','SOLICITADA','REPROGRAMADA']},
+    {key:'AGEN', titulo:'Agendadas', color:'#1e5a9e', estados:['AGENDADA']},
+    {key:'ASIS', titulo:'Asistió', color:'#0a7a2f', estados:['ASISTIO','PARCIAL']},
+    {key:'DIFE', titulo:'Diferidas', color:'#854F0B', estados:['DIFERIDA','NO_ASISTIO']}
+  ];
+
+  // Repartir citas en columnas.
+  const buckets={PEND:[],AGEN:[],ASIS:[],DIFE:[]};
+  lista.forEach(s=>{
+    const e=String(s.estado||'').toUpperCase().trim();
+    const col=COLS.find(c=>c.estados.indexOf(e)>=0);
+    if(col) buckets[col.key].push(s);
+  });
+  // Ordenar cada columna por IPR descendente (lo urgente arriba).
+  Object.keys(buckets).forEach(k=>buckets[k].sort((a,b)=>Number(b.ipr||0)-Number(a.ipr||0)));
+
+  // Guardar la lista para que los clics resuelvan la cita correcta.
+  KANBAN_LISTA=lista;
+
+  const cardKanban=(s)=>{
+    const idx=KANBAN_LISTA.indexOf(s);
+    const ipr=Number(s.ipr||0);
+    const iprBg=ipr>=75?'#fcecec':(ipr>=50?'#fdf4e3':'#e1f5ee');
+    const iprCol=ipr>=75?'#A32D2D':(ipr>=50?'#854F0B':'#0F6E56');
+    const borde=ipr>=75?'#A32D2D':(ipr>=50?'#c97a00':'#0F6E56');
+    const fAge=String(s.fecha_confirmada||'').slice(0,10);
+    const fSol=String(s.fecha_solicitada||'').slice(0,10);
+    const fechaTxt = fAge ? ('Agendada '+fAge) : (fSol?('Solic. '+fSol):'sin fecha');
+    const badges=[];
+    if(s.es_rescatada) badges.push('<span class="badge rescatada" style="font-size:9px;">⮌ Rescatada</span>');
+    if(s.es_frio) badges.push('<span class="badge frio" style="font-size:9px;">❄ Frío</span>');
+    const venc = s.venc && s.venc.etiqueta ? s.venc.etiqueta : '';
+    return `<div class="kanban-card" data-kan="${idx}" style="border-left-color:${borde};">
+      <div class="kc-emp">${esc(s.empresa)}</div>
+      <div class="kc-desc">${esc(s.descripcion)}</div>
+      <div class="kc-meta">
+        <span>OC ${esc(s.oc)}</span>
+        <span class="kc-ipr" style="background:${iprBg};color:${iprCol};">IPR ${s.ipr}</span>
+      </div>
+      <div class="kc-meta" style="margin-top:3px;">
+        <span>${esc(fechaTxt)}</span>
+        <span>${num(s.cant_pallets)} pallets</span>
+      </div>
+      ${venc?`<div class="kc-meta" style="margin-top:2px;"><span style="color:#A32D2D;">${esc(venc)}</span></div>`:''}
+      ${badges.length?`<div class="kc-badges">${badges.join('')}</div>`:''}
+    </div>`;
+  };
+
+  board.innerHTML=COLS.map(c=>{
+    const items=buckets[c.key];
+    const cards = items.length ? items.map(cardKanban).join('') : '<div class="kanban-empty">Sin citas</div>';
+    return `<div class="kanban-col">
+      <div class="kanban-col-head" style="background:${c.color};">
+        <span>${c.titulo}</span><span class="cnt">${items.length}</span>
+      </div>
+      <div class="kanban-col-body">${cards}</div>
+    </div>`;
+  }).join('');
+
+  // Clic en tarjeta -> abre el detalle de la cita.
+  board.querySelectorAll('[data-kan]').forEach(el=>{
+    el.addEventListener('click',()=>{ const s=KANBAN_LISTA[+el.dataset.kan]; if(s) verDetalle(s); });
+  });
 }
 
 function explicarIPR(s){
@@ -1357,6 +1455,7 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id=
 function aplicarFiltros(){
   if(TAB_ACTIVA==='lista') render();
   else if(TAB_ACTIVA==='calendario'){ if(typeof renderCalendario==='function') renderCalendario(); }
+  else if(TAB_ACTIVA==='kanban'){ if(typeof renderKanban==='function') renderKanban(); }
   actualizarBotonLimpiar && actualizarBotonLimpiar();
 }
 document.getElementById('buscar').addEventListener('input',()=>{
@@ -1635,7 +1734,13 @@ function renderCalendario(){
         if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return;
       }
     }
-    if(estSel && String(s.estado||'').toUpperCase()!==estSel) return;
+    if(estSel){
+      const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
+      const eU=String(s.estado||'').toUpperCase();
+      if(estSel==='__RESCATADAS__'){ if(!s.es_rescatada) return; }
+      else if(estSel==='CERRADAS'){ if(CERRADAS_GRUPO.indexOf(eU)<0) return; }
+      else if(eU!==estSel) return;
+    }
     if(q){ const blob=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); if(blob.indexOf(q)<0) return; }
     if(agenD || agenH){ const fc=String(s.fecha_confirmada||'').slice(0,10); if(!fc) return; const d0=agenD||agenH,d1=agenH||agenD; if(fc<d0||fc>d1) return; }
     if(solicD || solicH){ const fs=String(s.fecha_solicitada||'').slice(0,10); if(!fs) return; const d0=solicD||solicH,d1=solicH||solicD; if(fs<d0||fs>d1) return; }
@@ -1761,27 +1866,49 @@ function verDiaCalendario(iso, citas){
     document.getElementById('modalBody').innerHTML='<div style="color:#999;">Sin citas este día.</div>';
     abrirModal(); return;
   }
-  // Agrupar por categoría (cada equipo ve su área en las reuniones)
-  const ORDEN=['Medicamentos','Médico Quirúrgico','Laboratorio','Odontología','Sustancias Controladas'];
-  const grupos={};
-  citas.forEach(s=>{ const c=String(s.categoria||'Sin categoría').trim()||'Sin categoría'; (grupos[c]=grupos[c]||[]).push(s); });
-  const claves=Object.keys(grupos).sort((a,b)=>{
-    const ia=ORDEN.indexOf(a), ib=ORDEN.indexOf(b);
+  // Orden de estados (lo vivo primero, lo cerrado al final).
+  const ORDEN_EST=['PENDIENTE','SOLICITADA','REPROGRAMADA','AGENDADA','ASISTIO','DIFERIDA','NO_ASISTIO','PARCIAL','ENTREGADA','ENTREGADO','CANCELADA'];
+  const ETIQ_EST={PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',REPROGRAMADA:'Reprogramadas',AGENDADA:'Agendadas',ASISTIO:'Asistió',DIFERIDA:'Diferidas',NO_ASISTIO:'No asistió',PARCIAL:'Parciales',ENTREGADA:'Entregadas',ENTREGADO:'Entregadas',CANCELADA:'Canceladas'};
+  const COL_EST={PENDIENTE:'#9a5b00',SOLICITADA:'#9a5b00',REPROGRAMADA:'#9a5b00',AGENDADA:'#1e5a9e',ASISTIO:'#0a7a2f',DIFERIDA:'#854F0B',NO_ASISTIO:'#b00020',PARCIAL:'#0a7a2f',ENTREGADA:'#555',ENTREGADO:'#555',CANCELADA:'#999'};
+  // Orden de áreas (dentro de cada estado).
+  const ORDEN_CAT=['Medicamentos','Médico Quirúrgico','Laboratorio','Odontología','Sustancias Controladas'];
+
+  // Agrupar: estado -> área -> citas
+  const porEstado={};
+  citas.forEach(s=>{
+    const e=String(s.estado||'').toUpperCase().trim()||'OTRO';
+    const c=String(s.categoria||'Sin categoría').trim()||'Sin categoría';
+    (porEstado[e]=porEstado[e]||{});
+    (porEstado[e][c]=porEstado[e][c]||[]).push(s);
+  });
+  const estadosOrdenados=Object.keys(porEstado).sort((a,b)=>{
+    const ia=ORDEN_EST.indexOf(a), ib=ORDEN_EST.indexOf(b);
     return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
   });
+
   const cardCita=s=>{
-    const cl=calClase(s);
-    const color=cl==='ok'?'#0a7a2f':cl==='no'?'#b00020':cl==='conf'?'#1e5a9e':'#9a5b00';
-    return `<div style="border-left:4px solid ${color};padding:6px 10px;margin-bottom:6px;background:#fafafa;">
+    return `<div style="border-left:3px solid #c8c8c8;padding:5px 10px;margin-bottom:5px;background:#fafafa;">
       <div style="font-weight:600;font-size:13px;">${esc(s.empresa)}</div>
       <div style="font-size:12px;color:#555;">${esc(s.descripcion)}</div>
-      <div style="font-size:11px;color:#777;font-family:var(--mono);">OC ${esc(s.oc)} · ${esc(s.estado)}</div>
+      <div style="font-size:11px;color:#777;font-family:var(--mono);">OC ${esc(s.oc)} · Renglón ${esc(s.cod_abasto)} · ${num(s.cant_pallets)} pallets</div>
     </div>`;
   };
-  let html=`<div style="font-size:12px;color:#666;margin-bottom:10px;">${citas.length} cita(s) · agrupadas por área</div>`;
-  claves.forEach(cat=>{
-    html+=`<div style="background:#1e5a9e;color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:3px;margin:10px 0 6px;">${esc(cat)} · ${grupos[cat].length}</div>`;
-    html+=grupos[cat].map(cardCita).join('');
+
+  let html=`<div style="font-size:12px;color:#666;margin-bottom:10px;">${citas.length} cita(s) · agrupadas por estado y área</div>`;
+  estadosOrdenados.forEach(est=>{
+    const totEst=Object.values(porEstado[est]).reduce((a,arr)=>a+arr.length,0);
+    const col=COL_EST[est]||'#555';
+    const etiq=ETIQ_EST[est]||est;
+    html+=`<div style="background:${col};color:#fff;font-size:13px;font-weight:700;padding:6px 10px;border-radius:3px;margin:12px 0 6px;">${esc(etiq)} · ${totEst}</div>`;
+    // Áreas dentro del estado
+    const cats=Object.keys(porEstado[est]).sort((a,b)=>{
+      const ia=ORDEN_CAT.indexOf(a), ib=ORDEN_CAT.indexOf(b);
+      return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
+    });
+    cats.forEach(cat=>{
+      html+=`<div style="font-size:11px;font-weight:600;color:${col};margin:6px 0 3px;padding-left:2px;">${esc(cat)} · ${porEstado[est][cat].length}</div>`;
+      html+=porEstado[est][cat].map(cardCita).join('');
+    });
   });
   document.getElementById('modalBody').innerHTML=html;
   abrirModal();
@@ -1992,9 +2119,11 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   const tab=t.dataset.tab;
   TAB_ACTIVA=tab;
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
-  document.querySelector('.filtros').style.display = 'block'; // permanente en ambas vistas
+  document.querySelector('.filtros').style.display = 'block'; // permanente en todas las vistas
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
+  document.getElementById('tabKanban').style.display = tab==='kanban'?'block':'none';
   if(tab==='calendario') cargarCalendario();
+  if(tab==='kanban') renderKanban();
 }));
 
 
