@@ -160,19 +160,20 @@
   .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
   .tab-kanban{display:none;}
-  .kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start;}
+  .kanban-board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:start;}
   .kanban-col{background:var(--gris-bg);border:1px solid var(--borde-suave);border-radius:3px;display:flex;flex-direction:column;min-height:120px;}
-  .kanban-col-head{padding:8px 10px;font-size:12.5px;font-weight:700;color:#fff;border-radius:3px 3px 0 0;display:flex;justify-content:space-between;align-items:center;}
+  .kanban-col-head{padding:8px 10px;font-size:12px;font-weight:700;color:#fff;border-radius:3px 3px 0 0;display:flex;justify-content:space-between;align-items:center;}
   .kanban-col-head .cnt{font-family:var(--mono);background:rgba(255,255,255,.25);padding:0 7px;border-radius:8px;font-size:11px;}
-  .kanban-col-body{padding:8px;display:flex;flex-direction:column;gap:6px;max-height:560px;overflow-y:auto;}
-  .kanban-card{background:#fff;border:1px solid var(--borde-suave);border-left-width:3px;border-radius:2px;padding:7px 9px;cursor:pointer;transition:box-shadow .12s;}
+  .kanban-col-body{padding:7px;display:flex;flex-direction:column;gap:6px;max-height:560px;overflow-y:auto;}
+  .kanban-card{background:#fff;border:1px solid var(--borde-suave);border-left-width:3px;border-radius:2px;padding:7px 8px;cursor:pointer;transition:box-shadow .12s;}
   .kanban-card:hover{box-shadow:0 1px 4px rgba(0,0,0,.12);}
-  .kanban-card .kc-emp{font-size:12.5px;font-weight:600;color:#222;line-height:1.25;}
-  .kanban-card .kc-desc{font-size:11px;color:#666;margin:2px 0;line-height:1.25;}
-  .kanban-card .kc-meta{font-size:10.5px;color:#888;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .kanban-card .kc-emp{font-size:12px;font-weight:600;color:#222;line-height:1.25;}
+  .kanban-card .kc-desc{font-size:10.5px;color:#666;margin:2px 0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .kanban-card .kc-meta{font-size:10px;color:#888;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;gap:6px;}
   .kanban-card .kc-ipr{font-weight:700;font-family:var(--mono);padding:0 5px;border-radius:3px;}
   .kanban-card .kc-badges{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;}
-  .kanban-empty{font-size:11.5px;color:#999;padding:10px;text-align:center;}
+  .kanban-empty{font-size:11px;color:#999;padding:10px;text-align:center;}
+  @media(max-width:1000px){ .kanban-board{grid-template-columns:repeat(2,1fr);} }
   .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .cal-titulo{font-size:16px;font-weight:700;color:var(--azul-osc);min-width:180px;text-align:center;text-transform:capitalize;}
   .cal-leyenda{font-size:11px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
@@ -180,8 +181,8 @@
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--borde-suave);border:1px solid var(--borde-suave);}
   .cal-layout{display:flex;gap:16px;align-items:flex-start;}
   .cal-layout > .cal-grid{flex:1;min-width:0;}
-  .cal-layout > .cal-resumen{flex:0 0 320px;position:sticky;top:10px;margin-top:0;}
-  @media(max-width:1100px){ .cal-layout{flex-direction:column;} .cal-layout > .cal-resumen{flex:1 1 auto;width:100%;max-width:480px;position:static;} }
+  .cal-layout > .cal-resumen{flex:0 0 320px;position:sticky;top:10px;margin-top:30px;}
+  @media(max-width:1100px){ .cal-layout{flex-direction:column;} .cal-layout > .cal-resumen{flex:1 1 auto;width:100%;max-width:480px;position:static;margin-top:14px;} }
   .cal-dow{background:var(--azul);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;}
   .cal-dia{background:#fff;min-height:96px;padding:4px 5px;font-size:11px;vertical-align:top;overflow:hidden;}
   .cal-dia.otro{background:#f6f6f6;color:#bbb;}
@@ -827,15 +828,17 @@ function renderKanban(){
   const lista=getFiltradas();
 
   // Columnas por estado puro. Cada una agrupa los estados equivalentes.
+  // Columnas en orden del flujo real: Pendiente -> Agendada -> (Diferida) -> Asistió -> Cerrada.
   const COLS=[
-    {key:'PEND', titulo:'Pendientes', color:'#9a5b00', estados:['PENDIENTE','SOLICITADA','REPROGRAMADA']},
+    {key:'PEND', titulo:'Pendientes', color:'#854F0B', estados:['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA']},
     {key:'AGEN', titulo:'Agendadas', color:'#1e5a9e', estados:['AGENDADA']},
-    {key:'ASIS', titulo:'Asistió', color:'#0a7a2f', estados:['ASISTIO','PARCIAL']},
-    {key:'DIFE', titulo:'Diferidas', color:'#854F0B', estados:['DIFERIDA','NO_ASISTIO']}
+    {key:'DIFE', titulo:'Diferidas', color:'#993C1D', estados:['DIFERIDA','DIFERIDA_HISTORICA']},
+    {key:'ASIS', titulo:'Asistió', color:'#0F6E56', estados:['ASISTIO','PARCIAL']},
+    {key:'CERR', titulo:'Cerradas', color:'#5F5E5A', estados:['ENTREGADA','ENTREGADO','NO_ASISTIO','CANCELADA','CADUCADA_NO_ASISTIO','CADUCADA_SIN_CIERRE']}
   ];
 
-  // Repartir citas en columnas.
-  const buckets={PEND:[],AGEN:[],ASIS:[],DIFE:[]};
+  // Repartir cada cita en UNA sola columna según su estado (excluyentes).
+  const buckets={PEND:[],AGEN:[],DIFE:[],ASIS:[],CERR:[]};
   lista.forEach(s=>{
     const e=String(s.estado||'').toUpperCase().trim();
     const col=COLS.find(c=>c.estados.indexOf(e)>=0);
@@ -860,7 +863,7 @@ function renderKanban(){
     if(s.es_rescatada) badges.push('<span class="badge rescatada" style="font-size:9px;">⮌ Rescatada</span>');
     if(s.es_frio) badges.push('<span class="badge frio" style="font-size:9px;">❄ Frío</span>');
     const venc = s.venc && s.venc.etiqueta ? s.venc.etiqueta : '';
-    return `<div class="kanban-card" data-kan="${idx}" style="border-left-color:${borde};">
+    return `<div class="kanban-card" data-kan="${idx}" title="${esc(s.empresa)} — ${esc(s.descripcion)}" style="border-left-color:${borde};">
       <div class="kc-emp">${esc(s.empresa)}</div>
       <div class="kc-desc">${esc(s.descripcion)}</div>
       <div class="kc-meta">
