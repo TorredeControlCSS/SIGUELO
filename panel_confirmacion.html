@@ -701,11 +701,23 @@ function render(){
       let colVenc;
       if(s.venc && s.venc.etiqueta){
         const vNivel = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'gris');
+        let fechaHtml='';
+        if(s.venc.ajustada){
+          // Fecha original tachada + fecha ajustada + motivo (cae sábado/domingo/feriado).
+          fechaHtml=`
+            <div style="font-size:10px;color:#999;">
+              <span style="text-decoration:line-through;">${esc(s.venc.fecha_original)}</span>
+              → <span style="color:#1e5a9e;font-weight:600;">${esc(s.venc.fecha)}</span>
+            </div>
+            <div style="font-size:9.5px;color:#854F0B;">se corre: ${esc(s.venc.motivo_ajuste)}</div>`;
+        } else if(s.venc.fecha){
+          fechaHtml=`<div style="font-size:10px;color:#999;">${esc(s.venc.fecha)}</div>`;
+        }
         colVenc = `
         <div class="senal-col ${vNivel}">
           <div class="cap">VENCIMIENTO OC</div>
           <div class="dato"><span class="num" style="font-size:13px;">${esc(s.venc.etiqueta)}</span></div>
-          ${s.venc.fecha?`<div style="font-size:10px;color:#999;">${esc(s.venc.fecha)}</div>`:''}
+          ${fechaHtml}
         </div>`;
       } else {
         colVenc = `
@@ -968,7 +980,7 @@ function verDetalle(s){
       <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
       <tr><td class="k">Fecha solicitada</td><td class="v">${esc(s.fecha_solicitada||'—')}</td></tr>
       ${s.fecha_confirmada?`<tr><td class="k">Fecha confirmada</td><td class="v">${esc(s.fecha_confirmada)}</td></tr>`:''}
-      ${(s.venc&&s.venc.fecha)?`<tr><td class="k">Vencimiento OC</td><td class="v">${esc(s.venc.fecha)} ${s.venc.etiqueta?('· '+esc(s.venc.etiqueta)):''}</td></tr>`:''}
+      ${(s.venc&&s.venc.fecha)?`<tr><td class="k">Vencimiento OC</td><td class="v">${s.venc.ajustada?`<span style="text-decoration:line-through;color:#999;">${esc(s.venc.fecha_original)}</span> → <strong>${esc(s.venc.fecha)}</strong> <span style="font-size:11px;color:#854F0B;">(se corre: ${esc(s.venc.motivo_ajuste)})</span>`:esc(s.venc.fecha)} ${s.venc.etiqueta?('· '+esc(s.venc.etiqueta)):''}</td></tr>`:''}
       <tr><td class="k">Cantidades</td><td class="v">${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</td></tr>
       <tr><td class="k">Ambiente / Modalidad</td><td class="v">${esc(s.tipo_ambiente||'—')} · ${esc(s.modalidad||'—')}</td></tr>
       <tr><td class="k">Saldo pendiente</td><td class="v">${num(s.saldo_pendiente)}</td></tr>
