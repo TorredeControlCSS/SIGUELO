@@ -6,59 +6,58 @@
 <meta name="theme-color" content="#0C447C">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-<title>SÍGUELO · Agenda de citas</title>
+<title>SÍGUELO · Agenda de citas — CEDIS Panamá</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
     --azul:#1e5a9e; --azul-osc:#0C447C; --fondo:#ececec; --borde:#a8a8a8;
     --rojo:#A32D2D; --verde:#0F6E56; --ambar:#854F0B;
-    --mono:'Consolas','Courier New',monospace;
-    --card:#ffffff;
+    --mono:'Consolas','Courier New',monospace; --card:#fff;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--fondo);color:#222;font-size:15px;padding-bottom:30px;}
+  body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--fondo);color:#222;font-size:15px;padding-bottom:70px;line-height:1.5;}
 
-  /* Header institucional */
-  .top{background:var(--azul-osc);color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.18);}
-  .top img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:6px;padding:2px;}
-  .top h1{font-size:16px;margin:0;font-weight:700;line-height:1.15;}
-  .top .sub{font-size:11px;opacity:.85;margin-top:2px;}
-  .top .upd{margin-left:auto;font-size:10px;opacity:.8;text-align:right;line-height:1.3;}
+  /* Header institucional — logo limpio sin recuadro, como el panel */
+  .header{background:var(--azul-osc);color:#fff;padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;display:flex;align-items:center;gap:13px;position:sticky;top:0;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+  .header .logo{width:46px;height:46px;flex-shrink:0;object-fit:contain;}
+  .header h1{font-size:17px;margin:0;font-weight:700;line-height:1.2;}
+  .header .sub{font-size:11.5px;opacity:.85;margin-top:2px;}
+  .header .upd{margin-left:auto;font-size:10px;opacity:.8;text-align:right;line-height:1.35;white-space:nowrap;}
 
-  /* Selector de vista */
-  .vistas{display:flex;background:#fff;border-bottom:1px solid var(--borde);position:sticky;top:64px;z-index:20;}
-  .vista-btn{flex:1;padding:13px 8px;text-align:center;font-size:14px;font-weight:600;color:#777;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-family:inherit;}
-  .vista-btn.activa{color:var(--azul-osc);border-bottom-color:var(--azul);}
+  .wrap{padding:12px;}
 
-  /* KPIs resumen */
-  .kpis{display:flex;gap:8px;padding:12px;overflow-x:auto;}
-  .kpi{flex:0 0 auto;background:var(--card);border:1px solid var(--borde);border-radius:6px;padding:9px 14px;min-width:88px;text-align:center;}
-  .kpi .n{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--azul-osc);}
-  .kpi .l{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
+  /* Métricas con íconos */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px;}
+  .metric{background:var(--card);border:1px solid var(--borde);border-radius:7px;padding:9px 11px;display:flex;align-items:center;gap:9px;}
+  .metric .ic{font-size:19px;line-height:1;opacity:.9;}
+  .metric .v{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--azul-osc);line-height:1;}
+  .metric .l{font-size:9.5px;color:#777;text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
 
-  /* Filtro de área (chips) */
-  .chips{display:flex;gap:7px;padding:0 12px 10px;overflow-x:auto;flex-wrap:nowrap;}
+  /* Gráfico */
+  .chart-card{background:var(--card);border:1px solid var(--borde);border-radius:8px;padding:13px 14px 8px;margin-bottom:14px;}
+  .chart-card h2{font-size:13px;color:var(--azul-osc);margin:0 0 8px;font-weight:700;}
+  .chart-box{position:relative;height:180px;}
+
+  /* Chips de área */
+  .chips{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
   .chip{flex:0 0 auto;padding:7px 13px;border-radius:16px;border:1px solid #c6d3e2;background:#eef4fb;color:var(--azul);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .chip.activa{background:var(--azul);color:#fff;border-color:var(--azul);}
 
-  /* Buscador */
-  .buscar-wrap{padding:0 12px 10px;}
-  .buscar-wrap input{width:100%;padding:11px 13px;border:1px solid var(--borde);border-radius:6px;font-size:15px;font-family:inherit;background:#fff;}
+  .buscar{width:100%;padding:11px 13px;border:1px solid var(--borde);border-radius:7px;font-size:15px;font-family:inherit;background:#fff;margin-bottom:14px;}
 
-  /* Grupos (día o área) */
-  .grupo{margin:0 12px 14px;}
-  .grupo-cab{display:flex;align-items:center;gap:8px;background:var(--azul-osc);color:#fff;padding:9px 13px;border-radius:6px 6px 0 0;font-weight:700;font-size:14px;position:sticky;top:106px;z-index:10;}
-  .grupo-cab .cuenta{margin-left:auto;font-family:var(--mono);font-size:13px;background:rgba(255,255,255,.18);padding:2px 9px;border-radius:10px;}
+  /* Grupos por día */
+  .grupo{margin-bottom:14px;}
+  .grupo-cab{display:flex;align-items:center;gap:8px;background:var(--azul-osc);color:#fff;padding:9px 13px;border-radius:7px 7px 0 0;font-weight:700;font-size:14px;}
+  .grupo-cab .cuenta{margin-left:auto;font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.18);padding:2px 9px;border-radius:10px;}
 
-  /* Tarjeta de cita */
   .cita{background:var(--card);border:1px solid var(--borde);border-top:none;padding:11px 13px;}
-  .cita:last-child{border-radius:0 0 6px 6px;}
-  .cita + .cita{border-top:1px solid #e2e2e2;}
-  .cita-top{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
+  .cita:last-child{border-radius:0 0 7px 7px;}
+  .cita + .cita{border-top:1px solid #e8e8e8;}
+  .cita-top{display:flex;align-items:baseline;gap:9px;}
   .cita-hora{font-family:var(--mono);font-weight:700;color:var(--azul-osc);font-size:15px;}
   .cita-emp{font-weight:700;font-size:14px;flex:1;}
-  .cita-prod{font-size:13px;color:#333;margin:2px 0 6px;line-height:1.35;}
-  .cita-meta{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:12px;color:#555;}
-  .cita-meta .m{display:flex;align-items:center;gap:4px;}
+  .cita-prod{font-size:13px;color:#333;margin:3px 0 6px;}
+  .cita-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#555;}
   .cita-meta .mono{font-family:var(--mono);}
   .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.3px;}
   .pill-cat{background:#eef2f6;color:#3a4a5a;border:1px solid #c8d2dc;}
@@ -68,20 +67,18 @@
 
   .vacio{text-align:center;color:#888;padding:40px 20px;font-size:14px;}
   .cargando{text-align:center;color:var(--azul);padding:40px 20px;font-size:14px;}
-  .spin{display:inline-block;width:22px;height:22px;border:3px solid #cfe0f0;border-top-color:var(--azul);border-radius:50%;animation:g 0.8s linear infinite;vertical-align:middle;margin-right:8px;}
+  .spin{display:inline-block;width:22px;height:22px;border:3px solid #cfe0f0;border-top-color:var(--azul);border-radius:50%;animation:g .8s linear infinite;vertical-align:middle;margin-right:8px;}
   @keyframes g{to{transform:rotate(360deg);}}
 
   .barra-inf{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--borde);display:flex;padding:8px 12px calc(env(safe-area-inset-bottom) + 8px);gap:10px;z-index:25;}
-  .barra-inf button{flex:1;padding:11px;border:1px solid var(--azul);background:#fff;color:var(--azul);font-weight:600;border-radius:6px;font-size:14px;font-family:inherit;cursor:pointer;}
+  .barra-inf button{flex:1;padding:11px;border:1px solid var(--azul);background:#fff;color:var(--azul);font-weight:600;border-radius:7px;font-size:14px;font-family:inherit;cursor:pointer;}
   .barra-inf button.prim{background:var(--azul);color:#fff;}
-
-  .leyenda{font-size:11px;color:#777;padding:2px 14px 14px;text-align:center;}
 </style>
 </head>
 <body>
 
-<div class="top">
-  <img src="./icons/icon-192.png" alt="CSS" onerror="this.style.display='none'">
+<div class="header">
+  <img class="logo" src="./icons/icon-192.png" alt="Logo CSS Panamá" onerror="this.style.display='none'">
   <div>
     <h1>Agenda de citas — CEDIS Panamá</h1>
     <div class="sub">Torre de Control · Dirección Nacional de Logística</div>
@@ -89,24 +86,19 @@
   <div class="upd" id="updInfo">—</div>
 </div>
 
-<div class="vistas">
-  <button class="vista-btn activa" data-vista="dia">📅 Por día</button>
-  <button class="vista-btn" data-vista="area">🏷️ Por área</button>
+<div class="wrap">
+  <div class="metrics" id="metrics"></div>
+
+  <div class="chart-card">
+    <h2>📊 Carga semanal: citas y pallets por día</h2>
+    <div class="chart-box"><canvas id="cargaChart"></canvas></div>
+  </div>
+
+  <div class="chips" id="chipsArea"></div>
+  <input type="text" class="buscar" id="buscar" placeholder="Buscar empresa, OC, producto…" autocomplete="off">
+
+  <div id="contenido"><div class="cargando"><span class="spin"></span>Cargando agenda…</div></div>
 </div>
-
-<div class="kpis" id="kpis"></div>
-
-<div class="chips" id="chipsArea"></div>
-
-<div class="buscar-wrap">
-  <input type="text" id="buscar" placeholder="Buscar empresa, OC, producto…" autocomplete="off">
-</div>
-
-<div id="contenido">
-  <div class="cargando"><span class="spin"></span>Cargando agenda…</div>
-</div>
-
-<div class="leyenda">Solo se muestran las citas <b>agendadas</b> (confirmadas). Consulta de solo lectura.</div>
 
 <div class="barra-inf">
   <button id="btnInstalar" style="display:none;">⬇ Instalar app</button>
@@ -115,205 +107,154 @@
 
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
-
-let CITAS=[];           // solo AGENDADA
-let VISTA='dia';        // 'dia' | 'area'
-let AREA_SEL='';        // filtro de categoría
-let CARGADO=false;
+let CITAS=[], AREA_SEL='', CARGADO=false, chart=null;
 
 function loadJsonp(action, extra){
   return new Promise((resolve,reject)=>{
     const cb='_cb_'+Date.now()+Math.floor(Math.random()*1000);
-    window[cb]=(resp)=>{ delete window[cb]; const s=document.getElementById(cb); if(s)s.remove(); resolve(resp); };
+    window[cb]=(r)=>{ delete window[cb]; const s=document.getElementById(cb); if(s)s.remove(); resolve(r); };
     const s=document.createElement('script'); s.id=cb;
     s.src=API_URL+'?action='+action+'&callback='+cb+(extra||'');
     s.onerror=()=>{ delete window[cb]; reject(new Error('Error de red')); };
     document.body.appendChild(s);
-    setTimeout(()=>{ if(window[cb]){ delete window[cb]; const x=document.getElementById(cb); if(x)x.remove(); reject(new Error('Tiempo agotado')); } }, 25000);
+    setTimeout(()=>{ if(window[cb]){ delete window[cb]; const x=document.getElementById(cb); if(x)x.remove(); reject(new Error('Tiempo agotado')); } },25000);
   });
 }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
+function catNombre(c){ return String(c||'').toUpperCase().replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U').replace(/Ì/g,'I').replace(/MEDICAMENTOS/,'MEDICAMENTO').replace(/LABORATORIOS/,'LABORATORIO').trim()||'SIN CATEGORÍA'; }
+function catCorta(c){ const x=catNombre(c); const m={'MEDICAMENTO':'MEDICAMENTO','MEDICO QUIRURGICO':'MQ','LABORATORIO':'LAB','ODONTOLOGIA':'ODONTO','SUSTANCIAS CONTROLADAS':'S.CONTROL.','RADIOLOGIA':'RADIO','CLINICA DE HERIDAS':'HERIDAS'}; return m[x]||x; }
+function infoSeg(s){ const m=String(s&&s.motivo||''); let mm=m.match(/Recepci[oó]n parcial:\s*([\d.,]+)\s+de\s+([\d.,]+)/i); if(mm) return '✂ Parcial: '+num(mm[1])+' de '+num(mm[2]); if(/Remanente diferido/i.test(m)) return '✂ Remanente'; return ''; }
 
-function catCorta(cat){
-  const c=String(cat||'').toUpperCase()
-    .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U').replace(/Ì/g,'I')
-    .replace(/MEDICAMENTOS/,'MEDICAMENTO').replace(/LABORATORIOS/,'LABORATORIO').trim();
-  const map={'MEDICAMENTO':'MEDICAMENTO','MEDICO QUIRURGICO':'MQ','LABORATORIO':'LAB','ODONTOLOGIA':'ODONTO','SUSTANCIAS CONTROLADAS':'S.CONTROL.','RADIOLOGIA':'RADIO','CLINICA DE HERIDAS':'HERIDAS'};
-  return map[c]||c;
-}
-function catNombre(cat){
-  const c=String(cat||'').toUpperCase()
-    .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U').replace(/Ì/g,'I')
-    .replace(/MEDICAMENTOS/,'MEDICAMENTO').replace(/LABORATORIOS/,'LABORATORIO').trim();
-  return c||'SIN CATEGORÍA';
-}
-function infoSegregacion(s){
-  const m=String(s&&s.motivo||'');
-  let mm=m.match(/Recepci[oó]n parcial:\s*([\d.,]+)\s+de\s+([\d.,]+)/i);
-  if(mm) return '✂ Parcial: '+num(mm[1])+' de '+num(mm[2]);
-  if(/Remanente diferido/i.test(m)) return '✂ Remanente de cita partida';
-  return '';
-}
-function esFrio(s){ return !!s.es_frio; }
-
-// Día de la semana legible
-const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 function fechaLegible(iso){
-  if(!iso || iso.length<10) return 'Sin fecha';
+  if(!iso||iso.length<10) return 'Sin fecha';
   const [y,m,d]=iso.slice(0,10).split('-').map(Number);
-  const dt=new Date(y,m-1,d);
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dt=new Date(y,m-1,d), hoy=new Date(); hoy.setHours(0,0,0,0);
   const man=new Date(hoy); man.setDate(man.getDate()+1);
-  const isoHoy=hoy.toISOString().slice(0,10), isoMan=man.toISOString().slice(0,10);
-  let prefijo='';
-  if(iso.slice(0,10)===isoHoy) prefijo='HOY · ';
-  else if(iso.slice(0,10)===isoMan) prefijo='MAÑANA · ';
-  return prefijo+DIAS[dt.getDay()].charAt(0).toUpperCase()+DIAS[dt.getDay()].slice(1)+' '+d+' '+MESES[m-1];
+  let pre=''; const i=iso.slice(0,10);
+  if(i===hoy.toISOString().slice(0,10)) pre='HOY · ';
+  else if(i===man.toISOString().slice(0,10)) pre='MAÑANA · ';
+  return pre+DIAS[dt.getDay()]+' '+d+' '+MES[m-1];
 }
+function isoLocal(dt){ const x=new Date(dt); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
 
 async function cargar(){
   const cont=document.getElementById('contenido');
   cont.innerHTML='<div class="cargando"><span class="spin"></span>Cargando agenda…</div>';
   try{
     const resp=await loadJsonp('getSolicitudesPriorizadas','');
-    const todas=(resp && resp.solicitudes) ? resp.solicitudes : [];
-    // Solo AGENDADA (lo confirmado que el equipo debe recibir)
+    const todas=(resp&&resp.solicitudes)?resp.solicitudes:[];
     CITAS=todas.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA');
     CARGADO=true;
     document.getElementById('updInfo').innerHTML='Actualizado<br>'+new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
-    construirChips();
-    render();
+    construirChips(); renderMetricas(); renderChart(); render();
   }catch(e){
     cont.innerHTML='<div class="vacio">No se pudo cargar la agenda.<br>Revisa tu conexión y toca <b>Actualizar</b>.<br><br><small>'+esc(e.message)+'</small></div>';
   }
 }
 
 function construirChips(){
-  const cats={};
-  CITAS.forEach(s=>{ const c=catNombre(s.categoria); cats[c]=(cats[c]||0)+1; });
-  const wrap=document.getElementById('chipsArea');
+  const cats={}; CITAS.forEach(s=>{ const c=catNombre(s.categoria); cats[c]=(cats[c]||0)+1; });
   let html='<span class="chip'+(AREA_SEL===''?' activa':'')+'" data-area="">Todas ('+CITAS.length+')</span>';
-  Object.keys(cats).sort().forEach(c=>{
-    html+='<span class="chip'+(AREA_SEL===c?' activa':'')+'" data-area="'+esc(c)+'">'+esc(c)+' ('+cats[c]+')</span>';
-  });
-  wrap.innerHTML=html;
-  wrap.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
-    AREA_SEL=ch.dataset.area; construirChips(); render();
-  }));
+  Object.keys(cats).sort().forEach(c=>{ html+='<span class="chip'+(AREA_SEL===c?' activa':'')+'" data-area="'+esc(c)+'">'+esc(c)+' ('+cats[c]+')</span>'; });
+  const wrap=document.getElementById('chipsArea'); wrap.innerHTML=html;
+  wrap.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{ AREA_SEL=ch.dataset.area; construirChips(); renderMetricas(); renderChart(); render(); }));
 }
 
-function getFiltradas(){
+function filtradas(){
   const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
   return CITAS.filter(s=>{
     if(AREA_SEL && catNombre(s.categoria)!==AREA_SEL) return false;
-    if(q){
-      const blob=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase();
-      if(blob.indexOf(q)<0) return false;
-    }
+    if(q){ const b=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); if(b.indexOf(q)<0) return false; }
     return true;
   });
 }
 
-function tarjetaCita(s){
-  const cat=catCorta(s.categoria);
-  const frio=esFrio(s);
-  const seg=infoSegregacion(s);
-  let badges='';
-  if(cat) badges+='<span class="pill pill-cat">'+esc(cat)+'</span>';
-  if(frio) badges+='<span class="pill pill-frio">❄ Frío</span>';
-  if(seg) badges+='<span class="pill pill-seg">'+esc(seg)+'</span>';
-  const venc=(s.venc && s.venc.fecha) ? s.venc.fecha : '';
-  return '<div class="cita">'+
-    '<div class="cita-top"><span class="cita-hora">'+esc(s.hora_confirmada||'—')+'</span>'+
-      '<span class="cita-emp">'+esc(s.empresa||'')+'</span></div>'+
+function renderMetricas(){
+  const lista=AREA_SEL?CITAS.filter(s=>catNombre(s.categoria)===AREA_SEL):CITAS;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const man=new Date(hoy); man.setDate(man.getDate()+1);
+  const lun=new Date(hoy); lun.setDate(lun.getDate()-((lun.getDay()+6)%7));
+  const dom=new Date(lun); dom.setDate(dom.getDate()+6);
+  const iH=isoLocal(hoy), iM=isoLocal(man), iL=isoLocal(lun), iD=isoLocal(dom);
+  let cHoy=0,cMan=0,cSem=0,pSem=0,frio=0;
+  const prov=new Set();
+  lista.forEach(s=>{
+    const f=(s.fecha_confirmada||'').slice(0,10);
+    if(f===iH)cHoy++; if(f===iM)cMan++;
+    if(f>=iL&&f<=iD){cSem++; pSem+=Number(s.cant_pallets||0);}
+    if(s.es_frio)frio++; if(s.empresa)prov.add(s.empresa);
+  });
+  const m=[
+    ['📅',cHoy,'Hoy'],['📆',cMan,'Mañana'],['🗓️',cSem,'Esta semana'],
+    ['📦',num(pSem),'Pallets semana'],['🏢',prov.size,'Proveedores'],
+    ['❄️',frio,'Cadena frío'],['📋',lista.length,'Total agendadas']
+  ];
+  document.getElementById('metrics').innerHTML=m.map(x=>'<div class="metric"><span class="ic">'+x[0]+'</span><div><div class="v">'+x[1]+'</div><div class="l">'+x[2]+'</div></div></div>').join('');
+}
+
+function renderChart(){
+  const lista=AREA_SEL?CITAS.filter(s=>catNombre(s.categoria)===AREA_SEL):CITAS;
+  // Semana actual lun-dom
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const lun=new Date(hoy); lun.setDate(lun.getDate()-((lun.getDay()+6)%7));
+  const dias=[], labels=[], citasArr=[], palletsArr=[];
+  for(let i=0;i<7;i++){ const d=new Date(lun); d.setDate(d.getDate()+i); dias.push(isoLocal(d)); labels.push(DIAS[d.getDay()].slice(0,3)+' '+d.getDate()); citasArr.push(0); palletsArr.push(0); }
+  lista.forEach(s=>{ const f=(s.fecha_confirmada||'').slice(0,10); const ix=dias.indexOf(f); if(ix>=0){ citasArr[ix]++; palletsArr[ix]+=Number(s.cant_pallets||0); } });
+  const ctx=document.getElementById('cargaChart').getContext('2d');
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{
+    data:{ labels:labels, datasets:[
+      { type:'bar', label:'Citas', data:citasArr, backgroundColor:'#1e5a9e', yAxisID:'y', borderRadius:3 },
+      { type:'line', label:'Pallets', data:palletsArr, borderColor:'#A32D2D', backgroundColor:'#A32D2D', yAxisID:'y1', tension:.3, pointRadius:3 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ boxWidth:12, font:{size:11} } } },
+      scales:{
+        y:{ position:'left', beginAtZero:true, ticks:{ precision:0, font:{size:10} }, title:{display:true,text:'Citas',font:{size:10}} },
+        y1:{ position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, ticks:{ precision:0, font:{size:10} }, title:{display:true,text:'Pallets',font:{size:10}} },
+        x:{ ticks:{ font:{size:10} } }
+      }
+    }
+  });
+}
+
+function tarjeta(s){
+  let b=''; const cat=catCorta(s.categoria);
+  if(cat) b+='<span class="pill pill-cat">'+esc(cat)+'</span>';
+  if(s.es_frio) b+='<span class="pill pill-frio">❄ Frío</span>';
+  const sg=infoSeg(s); if(sg) b+='<span class="pill pill-seg">'+esc(sg)+'</span>';
+  const v=(s.venc&&s.venc.fecha)?s.venc.fecha:'';
+  return '<div class="cita"><div class="cita-top"><span class="cita-hora">'+esc(s.hora_confirmada||'—')+'</span><span class="cita-emp">'+esc(s.empresa||'')+'</span></div>'+
     '<div class="cita-prod">'+esc(s.descripcion||'')+'</div>'+
-    '<div class="cita-meta">'+
-      '<span class="m">OC <span class="mono">'+esc(s.oc||'—')+'</span></span>'+
-      '<span class="m mono">'+num(s.cant_unidades)+' und</span>'+
-      '<span class="m mono">'+num(s.cant_bultos)+' bultos</span>'+
-      '<span class="m mono">'+num(s.cant_pallets)+' pallets</span>'+
-      (s.unidad_movil?'<span class="m">🚛 '+esc(s.unidad_movil)+'</span>':'')+
-      (venc?'<span class="m">Vence '+esc(venc)+'</span>':'')+
-    '</div>'+
-    (badges?'<div class="badges-row">'+badges+'</div>':'')+
-  '</div>';
+    '<div class="cita-meta"><span>OC <span class="mono">'+esc(s.oc||'—')+'</span></span>'+
+    '<span class="mono">'+num(s.cant_unidades)+' und</span><span class="mono">'+num(s.cant_bultos)+' bultos</span><span class="mono">'+num(s.cant_pallets)+' pallets</span>'+
+    (s.unidad_movil?'<span>🚛 '+esc(s.unidad_movil)+'</span>':'')+(v?'<span>Vence '+esc(v)+'</span>':'')+'</div>'+
+    (b?'<div class="badges-row">'+b+'</div>':'')+'</div>';
 }
 
 function render(){
   const cont=document.getElementById('contenido');
-  document.querySelectorAll('.vista-btn').forEach(b=>b.classList.toggle('activa', b.dataset.vista===VISTA));
-  // Chips de área solo tienen sentido visible en ambas vistas (filtran). Las dejamos siempre.
-  const lista=getFiltradas();
-  renderKpis(lista);
+  const lista=filtradas();
   if(!lista.length){ cont.innerHTML='<div class="vacio">No hay citas agendadas'+(AREA_SEL?' en '+esc(AREA_SEL):'')+'.</div>'; return; }
-
+  const porDia={}; lista.forEach(s=>{ const f=(s.fecha_confirmada||'').slice(0,10)||'sin'; (porDia[f]=porDia[f]||[]).push(s); });
   let html='';
-  if(VISTA==='dia'){
-    // Agrupar por fecha_confirmada
-    const porDia={};
-    lista.forEach(s=>{ const f=(s.fecha_confirmada||'').slice(0,10)||'sin'; (porDia[f]=porDia[f]||[]).push(s); });
-    const fechas=Object.keys(porDia).sort();
-    fechas.forEach(f=>{
-      const arr=porDia[f].sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')));
-      const pallets=arr.reduce((t,s)=>t+Number(s.cant_pallets||0),0);
-      html+='<div class="grupo"><div class="grupo-cab">'+esc(fechaLegible(f))+
-        '<span class="cuenta">'+arr.length+' cita'+(arr.length>1?'s':'')+' · '+num(pallets)+' pallets</span></div>'+
-        arr.map(tarjetaCita).join('')+'</div>';
-    });
-  } else {
-    // Agrupar por área (categoría)
-    const porArea={};
-    lista.forEach(s=>{ const c=catNombre(s.categoria); (porArea[c]=porArea[c]||[]).push(s); });
-    const areas=Object.keys(porArea).sort();
-    areas.forEach(c=>{
-      const arr=porArea[c].sort((a,b)=>String(a.fecha_confirmada||'').localeCompare(String(b.fecha_confirmada||'')) || String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')));
-      const pallets=arr.reduce((t,s)=>t+Number(s.cant_pallets||0),0);
-      html+='<div class="grupo"><div class="grupo-cab">'+esc(c)+
-        '<span class="cuenta">'+arr.length+' cita'+(arr.length>1?'s':'')+' · '+num(pallets)+' pallets</span></div>'+
-        arr.map(tarjetaCita).join('')+'</div>';
-    });
-  }
+  Object.keys(porDia).sort().forEach(f=>{
+    const arr=porDia[f].sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')));
+    const pal=arr.reduce((t,s)=>t+Number(s.cant_pallets||0),0);
+    html+='<div class="grupo"><div class="grupo-cab">'+esc(fechaLegible(f))+'<span class="cuenta">'+arr.length+' cita'+(arr.length>1?'s':'')+' · '+num(pal)+' pallets</span></div>'+arr.map(tarjeta).join('')+'</div>';
+  });
   cont.innerHTML=html;
 }
 
-function renderKpis(lista){
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const man=new Date(hoy); man.setDate(man.getDate()+1);
-  const isoHoy=hoy.toISOString().slice(0,10), isoMan=man.toISOString().slice(0,10);
-  const lun=new Date(hoy); lun.setDate(lun.getDate()-((lun.getDay()+6)%7));
-  const dom=new Date(lun); dom.setDate(dom.getDate()+6);
-  const isoLun=lun.toISOString().slice(0,10), isoDom=dom.toISOString().slice(0,10);
-  let cHoy=0,cMan=0,cSem=0,pSem=0;
-  lista.forEach(s=>{
-    const f=(s.fecha_confirmada||'').slice(0,10);
-    if(f===isoHoy) cHoy++;
-    if(f===isoMan) cMan++;
-    if(f>=isoLun && f<=isoDom){ cSem++; pSem+=Number(s.cant_pallets||0); }
-  });
-  document.getElementById('kpis').innerHTML=
-    '<div class="kpi"><div class="n">'+cHoy+'</div><div class="l">Hoy</div></div>'+
-    '<div class="kpi"><div class="n">'+cMan+'</div><div class="l">Mañana</div></div>'+
-    '<div class="kpi"><div class="n">'+cSem+'</div><div class="l">Esta semana</div></div>'+
-    '<div class="kpi"><div class="n">'+num(pSem)+'</div><div class="l">Pallets semana</div></div>'+
-    '<div class="kpi"><div class="n">'+lista.length+'</div><div class="l">Total agendadas</div></div>';
-}
+document.getElementById('buscar').addEventListener('input',()=>{ if(CARGADO) render(); });
+document.getElementById('btnRefrescar').addEventListener('click',cargar);
 
-// Eventos
-document.querySelectorAll('.vista-btn').forEach(b=>b.addEventListener('click',()=>{ VISTA=b.dataset.vista; render(); window.scrollTo(0,0); }));
-document.getElementById('buscar').addEventListener('input', ()=>{ if(CARGADO) render(); });
-document.getElementById('btnRefrescar').addEventListener('click', cargar);
-
-// PWA: instalar
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; const b=document.getElementById('btnInstalar'); if(b) b.style.display='block'; });
-document.getElementById('btnInstalar').addEventListener('click', async ()=>{
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null;
-  document.getElementById('btnInstalar').style.display='none';
-});
-// Service worker
+let dp=null;
+window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); dp=e; const b=document.getElementById('btnInstalar'); if(b) b.style.display='block'; });
+document.getElementById('btnInstalar').addEventListener('click',async()=>{ if(!dp)return; dp.prompt(); await dp.userChoice; dp=null; document.getElementById('btnInstalar').style.display='none'; });
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
 
 cargar();
