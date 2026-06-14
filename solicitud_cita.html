@@ -172,9 +172,12 @@
           <span class="hint">Verá sus renglones adjudicados y los que ha entregado o solicitado anteriormente.</span>
         </div>
         <div class="campo full" id="boxDiferidas" style="display:none;">
-          <div style="border:1px solid #c97a00;background:#fff8ee;border-radius:4px;padding:10px 12px;">
-            <div style="font-weight:700;color:#8a5200;font-size:13px;margin-bottom:6px;">Citas diferidas pendientes de su empresa</div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">Estas solicitudes ya están registradas y serán reprogramadas. No vuelva a solicitar cita para estos renglones.</div>
+          <div style="border:1px solid #1e5a9e;background:#f4f8fc;border-radius:4px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas con CEDIS Panamá</div>
+              <button type="button" id="btnExcelTraz" style="font-size:11px;padding:5px 10px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;">⬇ Descargar Excel</button>
+            </div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">Trazabilidad de sus solicitudes: agendadas, diferidas, reprogramadas y demás. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones.</div>
             <div id="listaDiferidas"></div>
           </div>
         </div>
@@ -772,28 +775,49 @@ document.getElementById('renglon').addEventListener('change', function(){
   }
 });
 
-// ---- Citas diferidas pendientes del proveedor (ayuda-memoria, evita duplicados) ----
+// ---- Trazabilidad de citas del proveedor (todos los estados) ----
+let _empresaTraz='';
 function cargarDiferidasProveedor(empresa){
   const box=document.getElementById('boxDiferidas');
   const cont=document.getElementById('listaDiferidas');
+  _empresaTraz=empresa||'';
   if(!empresa){ box.style.display='none'; return; }
   cont.innerHTML='<div style="font-size:12px;color:#999;">Consultando...</div>';
-  const cb='cbDif'+Date.now();
+  const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
-    const difs=(resp&&resp.success&&resp.diferidas)?resp.diferidas:[];
-    if(!difs.length){ box.style.display='none'; return; }
+    const citas=(resp&&resp.success&&resp.citas)?resp.citas:[];
+    if(!citas.length){ box.style.display='none'; return; }
     box.style.display='block';
-    cont.innerHTML=difs.map(d=>{
-      const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
+    const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
+    const estiloEstado=e=>{
+      e=String(e||'').toUpperCase();
+      if(e==='AGENDADA') return ['#d6e4f0','#0C447C','Agendada'];
+      if(e==='DIFERIDA') return ['#fde9d3','#8a5200','Diferida'];
+      if(e==='REPROGRAMADA') return ['#fff2cc','#7a5c00','Reprogramada'];
+      if(e==='CANCELADA') return ['#f4cccc','#8a2020','Cancelada'];
+      if(e==='ASISTIO') return ['#d9ead3','#2d5a1e','Asistió'];
+      if(e==='NO_ASISTIO') return ['#f4cccc','#8a2020','No asistió'];
+      if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
+      return ['#eee','#555',e];
+    };
+    cont.innerHTML=citas.map(d=>{
+      const st=estiloEstado(d.estado);
       const detalles=[];
-      if(d.fecha_solicitada) detalles.push('Fecha solicitada: '+escAttr(d.fecha_solicitada));
       if(d.cant_unidades) detalles.push(fmtNum(d.cant_unidades)+' und');
       if(d.cant_bultos) detalles.push(fmtNum(d.cant_bultos)+' bultos');
       if(d.cant_pallets) detalles.push(fmtNum(d.cant_pallets)+' pallets');
-      return '<div style="border-top:1px solid #eecfa0;padding:6px 0;font-size:12.5px;">'+
+      let cita='';
+      if(String(d.estado||'').toUpperCase()==='AGENDADA' && d.fecha_confirmada){
+        cita='<span style="color:#0C447C;font-weight:600;">Cita: '+escAttr(d.fecha_confirmada)+(d.hora_confirmada?' '+escAttr(d.hora_confirmada):'')+'</span>';
+      } else if(d.fecha_solicitada){
+        cita='<span style="color:#666;">Solicitada: '+escAttr(d.fecha_solicitada)+'</span>';
+      }
+      return '<div style="border-top:1px solid #dce6f0;padding:7px 0;font-size:12.5px;">'+
+        '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:3px;background:'+st[0]+';color:'+st[1]+';">'+st[2]+'</span> '+
         '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
         '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
+        (cita?'<br>'+cita:'')+
         (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
         (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
         (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
@@ -801,10 +825,27 @@ function cargarDiferidasProveedor(empresa){
     }).join('');
   };
   const s=document.createElement('script');
-  s.src=API_URL+'?action=getDiferidasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
+  s.src=API_URL+'?action=getCitasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
   s.onerror=function(){ box.style.display='none'; };
   document.body.appendChild(s);
 }
+
+// Botón: descargar Excel de trazabilidad del proveedor
+document.getElementById('btnExcelTraz').addEventListener('click',function(){
+  if(!_empresaTraz){ alert('Seleccione su empresa primero.'); return; }
+  const btn=this; const t0=btn.textContent; btn.textContent='Generando...'; btn.disabled=true;
+  const cb='cbXlsTraz'+Date.now();
+  window[cb]=function(resp){
+    try{ delete window[cb]; }catch(e){}
+    btn.textContent=t0; btn.disabled=false;
+    if(resp&&resp.success&&resp.url){ window.open(resp.url,'_blank'); }
+    else{ alert('No se pudo generar el Excel: '+((resp&&resp.error)||'')); }
+  };
+  const s=document.createElement('script');
+  s.src=API_URL+'?action=generarExcelProveedor&empresa='+encodeURIComponent(_empresaTraz)+'&callback='+cb;
+  s.onerror=function(){ btn.textContent=t0; btn.disabled=false; alert('Error de red al generar el Excel.'); };
+  document.body.appendChild(s);
+});
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
 function agregarLote(){
   lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',total_bultos:0,pallets:0,clasif:''});
