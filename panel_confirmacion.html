@@ -1199,7 +1199,7 @@ function causasSeleccionadas(p){return Array.from(document.querySelectorAll('.'+
 
 async function generarNotaImprimible(id){
   try{
-    const r=await loadJsonp('generarNotaDiferimiento','&id='+encodeURIComponent(id));
+    const r=await loadJsonp('generarNotaDiferimiento','&id='+encodeURIComponent(id)+'&asignar=1');
     if(!r||!r.success){ alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
     const ca=(r.causas||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
     const fc=CAUSAS_NOTA.map(function(c){var m=ca.some(function(x){return x===c;});return '<div style="margin:4px 0;font-size:12px;">'+(m?'\u2612':'\u2610')+' '+esc(c)+'</div>';}).join('');
