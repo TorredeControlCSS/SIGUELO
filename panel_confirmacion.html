@@ -190,7 +190,7 @@
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--borde-suave);border:1px solid var(--borde-suave);}
   .cal-layout{display:flex;gap:16px;align-items:flex-start;}
   .cal-layout > .cal-grid{flex:1;min-width:0;}
-  .cal-layout > .cal-resumen{flex:0 0 320px;position:sticky;top:10px;margin-top:30px;}
+  .cal-layout > .cal-resumen{flex:0 0 320px;position:sticky;top:10px;margin-top:0;}
   @media(max-width:1100px){ .cal-layout{flex-direction:column;} .cal-layout > .cal-resumen{flex:1 1 auto;width:100%;max-width:480px;position:static;margin-top:14px;} }
   .cal-dow{background:var(--azul);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;}
   .cal-dia{background:#fff;min-height:96px;padding:4px 5px;font-size:11px;vertical-align:top;overflow:hidden;}
@@ -220,7 +220,9 @@
   .cal-pallets{font-size:9.5px;color:#777;margin-top:4px;font-family:var(--mono);}
   .cal-pallets b{color:#444;}
   .cal-resumen{margin-top:0;max-width:420px;}
-  .cal-res-titulo{font-size:13px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;}
+  .cal-res-titulo{font-size:13px;font-weight:700;color:var(--azul-osc);margin:0 0 6px;padding-top:14px;border-top:1px solid #e2e2e2;}
+  .cal-res-bloque:first-child .cal-res-titulo{padding-top:0;border-top:none;}
+  .cal-res-bloque{margin-bottom:4px;}
   .cal-res-tabla{border-collapse:collapse;width:100%;font-size:12px;}
   .cal-res-tabla th{background:var(--azul);color:#fff;padding:5px 10px;text-align:left;font-size:11px;}
   .cal-res-tabla td{border:1px solid var(--borde-suave);padding:4px 10px;font-family:var(--mono);}
@@ -229,7 +231,6 @@
   .cal-res-prom{font-size:11.5px;color:#555;margin-top:6px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -237,7 +238,7 @@
     <img class="logo" src="icons/icon-192.png" alt="Logo CSS Panamá">
     <div>
       <h1>Panel de Confirmación de Citas — CEDIS Panamá</h1>
-      <div class="sub">Dirección Nacional de Logística · Análisis por Índice de Priorización de Recepción (IPR) · <span id="subActualizado" style="opacity:.85;"></span></div>
+      <div class="sub">Dirección Nacional de Logística · prioriza por Índice de Priorización de Recepción (IPR) · <span id="subActualizado" style="opacity:.85;"></span></div>
     </div>
   </div>
 
@@ -1892,10 +1893,10 @@ function renderCalendario(){
 
   let resHtml='';
   resHtml+='<div id="calResDia"></div>'; // se llena al hacer clic en un día
-  resHtml+=tablaResumen('Semana actual ('+isoDe(lunActual).slice(5)+' al '+isoDe(domActual).slice(5)+')', citasEnRango(lunActual,domActual));
-  resHtml+=tablaResumen('Semana siguiente ('+isoDe(lunSig).slice(5)+' al '+isoDe(domSig).slice(5)+')', citasEnRango(lunSig,domSig));
-  resHtml+=tablaResumen('Resumen del mes — '+meses[m]+' '+y, citasMes,
-    'Promedio por día con citas: <b>'+promCitasDia.toFixed(1)+'</b> citas · <b>'+promPalletsDia.toFixed(1)+'</b> pallets · '+diasConCita+' día(s) con citas');
+  resHtml+='<div class="cal-res-bloque">'+tablaResumen('Semana actual ('+isoDe(lunActual).slice(5)+' al '+isoDe(domActual).slice(5)+')', citasEnRango(lunActual,domActual))+'</div>';
+  resHtml+='<div class="cal-res-bloque">'+tablaResumen('Semana siguiente ('+isoDe(lunSig).slice(5)+' al '+isoDe(domSig).slice(5)+')', citasEnRango(lunSig,domSig))+'</div>';
+  resHtml+='<div class="cal-res-bloque">'+tablaResumen('Resumen del mes — '+meses[m]+' '+y, citasMes,
+    'Promedio por día con citas: <b>'+promCitasDia.toFixed(1)+'</b> citas · <b>'+promPalletsDia.toFixed(1)+'</b> pallets · '+diasConCita+' día(s) con citas')+'</div>';
   const resCont=document.getElementById('calResumen');
   if(resCont) resCont.innerHTML=resHtml;
   // Exponer para el resumen por día
@@ -2052,43 +2053,29 @@ async function imprimirListaDia(){
   win.document.close();
 }
 
-// Excel del día: mismo contenido que el PDF de "Imprimir día", en .xlsx.
+// Excel del día: generado por el BACKEND con formato idéntico al PDF (azules, logo, firmas).
 async function excelListaDia(){
   const manana=new Date(); manana.setDate(manana.getDate()+1);
   const defISO=manana.toISOString().slice(0,10);
   const fecha=prompt('Fecha a exportar a Excel (AAAA-MM-DD):', defISO);
   if(!fecha) return;
   const f=fecha.trim().slice(0,10);
-  const claveMes=f.slice(0,7);
-  if(!CAL_MESES[claveMes]){
-    try{
-      const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
-      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
-    }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(f)){ alert('Fecha inválida. Usa AAAA-MM-DD.'); return; }
+  const btn=document.getElementById('calExcel');
+  const txt0=btn?btn.textContent:'';
+  if(btn){ btn.textContent='Generando…'; btn.disabled=true; }
+  try{
+    const resp=await loadJsonp('generarExcelDia','&fecha='+encodeURIComponent(f));
+    if(resp && resp.success && resp.url){
+      window.open(resp.url,'_blank'); // descarga el .xlsx con formato
+    } else {
+      alert('No se pudo generar el Excel: '+((resp&&resp.error)||'error desconocido'));
+    }
+  }catch(e){
+    alert('Error al generar el Excel: '+e.message);
+  }finally{
+    if(btn){ btn.textContent=txt0; btn.disabled=false; }
   }
-  const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
-    if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
-    const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada.slice(0,10) : '';
-    return fc===f;
-  });
-  citas.sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) || String(a.empresa||'').localeCompare(String(b.empresa||'')));
-  if(!citas.length){ alert('Sin citas agendadas para ese día.'); return; }
-
-  // Encabezados idénticos al PDF.
-  const aoa=[
-    ['Hora','Estado','Proveedor','Área','OC','Producto','Unidades','Bultos','Pallets','Vence OC','Unidad móvil','Transporte','Teléfono','Correo','Asistió'],
-    ...citas.map(s=>[
-      s.hora_confirmada||'', s.estado||'', s.empresa||'', s.categoria||'', s.oc||'',
-      s.descripcion||'', Number(s.cant_unidades||0), Number(s.cant_bultos||0), Number(s.cant_pallets||0),
-      (s.venc&&s.venc.fecha?s.venc.fecha:''), s.unidad_movil||'', s.personal_entrega||'',
-      s.telefono||'', s.correo||'', ''
-    ])
-  ];
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:8},{wch:10},{wch:26},{wch:16},{wch:13},{wch:40},{wch:10},{wch:8},{wch:8},{wch:12},{wch:16},{wch:18},{wch:13},{wch:24},{wch:8}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Citas '+f);
-  XLSX.writeFile(wb, 'Citas_'+f+'.xlsx');
 }
 
 // ===== IMPRIMIBLE PARA FARMACIA: coberturas e inventarios por cita del día =====
