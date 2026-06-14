@@ -104,6 +104,7 @@
   .badge.ambar{background:var(--ambar-bg);color:var(--ambar);}
   .badge.frio{background:#e3f2fb;color:#0b5a8a;border:1px solid #b8ddf0;font-weight:600;}
   .badge.rescatada{background:#efe9f7;color:#5a3d8a;border:1px solid #cbb8e8;font-weight:600;}
+  .badge.segregada{background:#fff3cd;color:#7a5c00;border:1px solid #f0e0a8;font-weight:600;}
   .badge.clic{cursor:pointer;text-decoration:underline dotted;}
   /* Semaforo por IPR (borde izquierdo y caja IPR) */
   .cita.ipr-rojo{border-left-color:var(--rojo);}
@@ -403,6 +404,20 @@ function loadJsonp(action, extra){
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
+// Detecta si una cita es parte de una segregación (recepción parcial / remanente)
+// leyendo su MOTIVO, y devuelve el texto del badge con la cantidad original.
+// "la memoria es mala": el panel recuerda que esta cita salió de una cantidad mayor.
+function infoSegregacion(s){
+  const m = String(s && s.motivo || '');
+  // "Recepción parcial: 1014 de 2475 (resto diferido)"
+  let mm = m.match(/Recepci[oó]n parcial:\s*([\d.,]+)\s+de\s+([\d.,]+)/i);
+  if(mm) return {es:true, texto:'✂ Parcial: '+num(mm[1])+' de '+num(mm[2])+' original'};
+  // "Remanente diferido de cita XXX (se recibieron 1014 de 2475)"
+  mm = m.match(/Remanente diferido.*?se recibieron\s*([\d.,]+)\s+de\s+([\d.,]+)/i);
+  if(mm) return {es:true, texto:'✂ Remanente: '+num(Number(String(mm[2]).replace(/[.,]/g,''))-Number(String(mm[1]).replace(/[.,]/g,'')))+' de '+num(mm[2])+' original'};
+  if(/Remanente diferido/i.test(m)) return {es:true, texto:'✂ Remanente de cita partida'};
+  return {es:false, texto:''};
+}
 
 // ====== Gráfico de carga semanal (citas agendadas + pallets por día) ======
 let cargaSemanalChart = null;
@@ -741,6 +756,7 @@ function render(){
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
+        ${(()=>{const sg=infoSegregacion(s);return sg.es?`<span class="badge segregada">${sg.texto}</span>`:'';})()}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
         ${s.tiene_fecha_corta==='SI'?'<span class="badge ambar">Fecha corta</span>':''}`;
@@ -882,6 +898,7 @@ function renderKanban(){
     const fechaTxt = fAge ? ('Agendada '+fAge) : (fSol?('Solic. '+fSol):'sin fecha');
     const badges=[];
     if(s.es_rescatada) badges.push('<span class="badge rescatada" style="font-size:9px;">⮌ Rescatada</span>');
+    { const sg=infoSegregacion(s); if(sg.es) badges.push('<span class="badge segregada" style="font-size:9px;">'+sg.texto+'</span>'); }
     if(s.es_frio) badges.push('<span class="badge frio" style="font-size:9px;">❄ Frío</span>');
     const venc = s.venc && s.venc.etiqueta ? s.venc.etiqueta : '';
     return `<div class="kanban-card" data-kan="${idx}" title="${esc(s.empresa)} — ${esc(s.descripcion)}" style="border-left-color:${borde};">
@@ -982,6 +999,7 @@ function verDetalle(s){
       ${s.fecha_confirmada?`<tr><td class="k">Fecha confirmada</td><td class="v">${esc(s.fecha_confirmada)}</td></tr>`:''}
       ${(s.venc&&s.venc.fecha)?`<tr><td class="k">Vencimiento OC</td><td class="v">${s.venc.ajustada?`<span style="text-decoration:line-through;color:#999;">${esc(s.venc.fecha_original)}</span> → <strong>${esc(s.venc.fecha)}</strong> <span style="font-size:11px;color:#854F0B;">(se corre: ${esc(s.venc.motivo_ajuste)})</span>`:esc(s.venc.fecha)} ${s.venc.etiqueta?('· '+esc(s.venc.etiqueta)):''}</td></tr>`:''}
       <tr><td class="k">Cantidades</td><td class="v">${num(s.cant_unidades)} und · ${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</td></tr>
+      ${(()=>{const sg=infoSegregacion(s);return sg.es?`<tr><td class="k">Segregación</td><td class="v" style="color:#7a5c00;font-weight:600;">${esc(sg.texto)} — esta cita es parte de una cantidad mayor que se dividió</td></tr>`:'';})()}
       <tr><td class="k">Ambiente / Modalidad</td><td class="v">${esc(s.tipo_ambiente||'—')} · ${esc(s.modalidad||'—')}</td></tr>
       <tr><td class="k">Saldo pendiente</td><td class="v">${num(s.saldo_pendiente)}</td></tr>
       <tr><td class="k">Documento sustento</td><td class="v">${sustento}</td></tr>
