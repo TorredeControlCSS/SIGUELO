@@ -34,6 +34,13 @@
   .panel-body{background:#fff;border:1px solid var(--borde-suave);border-top:none;border-radius:0 0 4px 4px;padding:14px;min-height:300px;}
   .filtros{margin-bottom:12px;}
   .filtros-grupo{background:#fff;border:1px solid var(--borde);padding:10px;}
+  /* Nueva línea única de filtros: todo en una fila, con wrap solo si la pantalla es muy angosta. */
+  .filtros-linea{background:#fff;border:1px solid var(--borde);padding:10px 12px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
+  .filtros-linea .filtro-campo{display:flex;flex-direction:column;gap:3px;}
+  .filtros-linea .filtro-campo .et{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+  .filtros-linea select{min-width:110px;}
+  /* La categoría es el filtro protagonista (se usa por áreas en la reunión): resaltar. */
+  .filtros-linea .filtro-cat select{min-width:170px;border:2px solid var(--azul);font-weight:600;color:var(--azul-osc);}
   .grupo-cab{font-size:12px;font-weight:700;color:var(--azul);margin-bottom:6px;}
   .grupo-hint{font-weight:400;color:#999;font-size:11px;text-transform:none;letter-spacing:0;}
   .filtros-activos{background:#fff8e1;border:1px solid #e0c97a;padding:7px 10px;margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
@@ -105,6 +112,7 @@
   .badge.frio{background:#e3f2fb;color:#0b5a8a;border:1px solid #b8ddf0;font-weight:600;}
   .badge.rescatada{background:#efe9f7;color:#5a3d8a;border:1px solid #cbb8e8;font-weight:600;}
   .badge.segregada{background:#fff3cd;color:#7a5c00;border:1px solid #f0e0a8;font-weight:600;}
+  .badge.categoria{background:#eef2f6;color:#3a4a5a;border:1px solid #c8d2dc;font-weight:600;letter-spacing:.3px;}
   .badge.clic{cursor:pointer;text-decoration:underline dotted;}
   /* Semaforo por IPR (borde izquierdo y caja IPR) */
   .cita.ipr-rojo{border-left-color:var(--rojo);}
@@ -175,7 +183,7 @@
   .kanban-card .kc-badges{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;}
   .kanban-empty{font-size:11px;color:#999;padding:10px;text-align:center;}
   @media(max-width:1000px){ .kanban-board{grid-template-columns:repeat(2,1fr);} }
-  .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;width:100%;}
   .cal-titulo{font-size:16px;font-weight:700;color:var(--azul-osc);min-width:180px;text-align:center;text-transform:capitalize;}
   .cal-leyenda{font-size:11px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
   .cal-chip{display:inline-block;width:11px;height:11px;border-radius:2px;margin-left:8px;vertical-align:middle;}
@@ -188,6 +196,7 @@
   .cal-dia{background:#fff;min-height:96px;padding:4px 5px;font-size:11px;vertical-align:top;overflow:hidden;}
   .cal-dia.otro{background:#f6f6f6;color:#bbb;}
   .cal-dia.hoy{box-shadow:inset 0 0 0 2px var(--azul);}
+  .cal-dia.dia-sel{box-shadow:inset 0 0 0 3px #0F6E56;background:#f0f8f4;}
   .cal-dia .dnum{font-weight:700;color:#444;font-size:12px;display:block;margin-bottom:2px;}
   .cal-ev{display:block;width:100%;box-sizing:border-box;font-size:10px;line-height:1.3;padding:1px 4px;margin-bottom:2px;border-radius:2px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border:none;text-align:left;}
   .cal-ev.conf{background:#1e5a9e;}
@@ -220,6 +229,7 @@
   .cal-res-prom{font-size:11.5px;color:#555;margin-top:6px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -269,82 +279,63 @@
 
   <div class="panel-body">
     <div class="filtros">
-      <div class="filtros-grupo">
-        <div class="grupo-cab">① Qué citas <span class="grupo-hint">— estos filtros se combinan entre sí</span></div>
-        <div class="filtros-fila">
-          <div class="filtro-campo">
-            <span class="et">Estado</span>
-            <select id="filtroEstadoSel">
-              <option value="">Todos</option>
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="AGENDADA">Agendada</option>
-              <option value="DIFERIDA">Diferida</option>
-              <option value="CERRADAS">Cerradas (entregadas/asistió/canc.)</option>
-              <option value="__RESCATADAS__">⮌ Rescatadas del ciclo anterior</option>
-            </select>
-          </div>
-          <div class="filtro-campo">
-            <span class="et">Categoría</span>
-            <select id="filtroCategoria">
-              <option value="">Todas</option>
-              <option value="__FRIO__">❄ Frío (cadena de frío ≤8°)</option>
-              <option value="Medicamentos">Medicamentos</option>
-              <option value="Médico Quirúrgico">Médico Quirúrgico</option>
-              <option value="Laboratorio">Laboratorio</option>
-              <option value="Odontología">Odontología</option>
-              <option value="Sustancias Controladas">Sustancias Controladas</option>
-            </select>
-          </div>
-          <div class="filtro-campo">
-            <span class="et">IPR mínimo</span>
-            <select id="filtroIprMin">
-              <option value="">Cualquiera</option>
-              <option value="75">75+ (crítico)</option>
-              <option value="50">50+ (atención)</option>
-              <option value="25">25+</option>
-            </select>
+      <div class="filtros-linea">
+        <div class="filtro-campo">
+          <span class="et">Estado</span>
+          <select id="filtroEstadoSel">
+            <option value="">Todos</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="AGENDADA">Agendada</option>
+            <option value="DIFERIDA">Diferida</option>
+            <option value="CERRADAS">Cerradas</option>
+            <option value="__RESCATADAS__">⮌ Rescatadas</option>
+          </select>
+        </div>
+        <div class="filtro-campo filtro-cat">
+          <span class="et">Categoría</span>
+          <select id="filtroCategoria">
+            <option value="">Todas</option>
+            <option value="__FRIO__">❄ Frío</option>
+            <option value="MEDICAMENTO">Medicamento</option>
+            <option value="MEDICO QUIRURGICO">Médico Quirúrgico</option>
+            <option value="LABORATORIO">Laboratorio</option>
+            <option value="ODONTOLOGIA">Odontología</option>
+            <option value="SUSTANCIAS CONTROLADAS">Sustancias Controladas</option>
+          </select>
+        </div>
+        <div class="filtro-campo">
+          <span class="et">IPR</span>
+          <select id="filtroIprMin">
+            <option value="">Cualquiera</option>
+            <option value="r75">Urgente (≥75)</option>
+            <option value="r50">Medio (50–74)</option>
+            <option value="r0">Bajo (&lt;50)</option>
+          </select>
+        </div>
+        <div class="filtro-campo">
+          <span class="et">Fecha agendada</span>
+          <div class="rango-fecha">
+            <input type="date" id="filtroAgenDesde" title="Agendada desde">
+            <span>a</span>
+            <input type="date" id="filtroAgenHasta" title="Agendada hasta">
           </div>
         </div>
-        <div class="grupo-cab" style="margin-top:10px;">② Cuándo <span class="grupo-hint">— por fecha solicitada o agendada</span></div>
-        <div class="filtros-fila">
-          <div class="filtro-campo">
-            <span class="et">Fecha agendada (rango · o un solo día)</span>
-            <div class="rango-fecha">
-              <input type="date" id="filtroAgenDesde" title="Agendada desde">
-              <span>a</span>
-              <input type="date" id="filtroAgenHasta" title="Agendada hasta">
-            </div>
+        <div class="filtro-campo">
+          <span class="et">Fecha solicitada</span>
+          <div class="rango-fecha">
+            <input type="date" id="filtroSolicDesde" title="Solicitada desde">
+            <span>a</span>
+            <input type="date" id="filtroSolicHasta" title="Solicitada hasta">
           </div>
-          <div class="filtro-campo">
-            <span class="et">Fecha solicitada (rango · o un solo día)</span>
-            <div class="rango-fecha">
-              <input type="date" id="filtroSolicDesde" title="Solicitada desde">
-              <span>a</span>
-              <input type="date" id="filtroSolicHasta" title="Solicitada hasta">
-            </div>
-          </div>
-          <div class="filtro-campo" style="margin-left:auto;justify-content:flex-end;">
-            <span class="et">&nbsp;</span>
-            <span style="font-size:11px;color:#999;">Tip: una sola fecha = ese día</span>
-          </div>
-        </div>
-        <div class="filtros-fila atajos-fila">
-          <span class="atajos-lbl">Ver rápido:</span>
-          <div class="atajo-base">
-            <button class="btn chip base-btn activo" data-base="agen">Por agendada</button>
-            <button class="btn chip base-btn" data-base="solic">Por solicitada</button>
-          </div>
-          <span style="color:#ccc;">|</span>
-          <button class="btn chip" data-atajo="semana">Esta semana</button>
-          <button class="btn chip" data-atajo="proxima">Semana próxima</button>
-          <button class="btn chip" data-atajo="mes">Este mes</button>
         </div>
       </div>
       <div id="filtrosActivos" class="filtros-activos" style="display:none;"></div>
       <div class="buscar-barra">
         <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
-        <button class="btn" id="btnLimpiar">✕ Limpiar filtros</button>
-        <button class="btn" id="btnHistorico">Ver histórico</button>
+        <button class="btn chip" data-atajo="semana">Esta semana</button>
+        <button class="btn chip" data-atajo="proxima">Próxima</button>
+        <button class="btn chip" data-atajo="mes">Este mes</button>
+        <button class="btn" id="btnLimpiar">✕ Limpiar</button>
         <button class="btn" id="btnRefrescar">Refrescar</button>
         <button class="btn primary" id="btnExcel">⬇ Excel</button>
       </div>
@@ -356,8 +347,10 @@
         <div class="cal-titulo" id="calTitulo">—</div>
         <button class="btn" id="calNext">Mes siguiente ›</button>
         <button class="btn" id="calHoy">Hoy</button>
+        <span style="flex:1 1 auto;"></span>
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
-        <button class="btn" id="calImprimirCob">🖨 Imprimir cobertura (farmacia)</button>
+        <button class="btn" id="calExcel">⬇ Excel del día</button>
+        <button class="btn" id="calImprimirCob">🖨 Imprimir cobertura</button>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
           <span class="cal-chip" style="background:#fff;border:1px dashed #c97a00;"></span>Pendiente (fecha solicitada)
@@ -404,6 +397,31 @@ function loadJsonp(action, extra){
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
+// Nombre corto de categoría para el badge distintivo en cada renglón.
+function catCorta(cat){
+  const c=String(cat||'').toUpperCase()
+    .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U').replace(/Ì/g,'I')
+    .replace(/MEDICAMENTOS/,'MEDICAMENTO').replace(/LABORATORIOS/,'LABORATORIO').trim();
+  const map={
+    'MEDICAMENTO':'MEDICAMENTO',
+    'MEDICO QUIRURGICO':'MQ',
+    'LABORATORIO':'LAB',
+    'ODONTOLOGIA':'ODONTO',
+    'SUSTANCIAS CONTROLADAS':'S.CONTROL.',
+    'RADIOLOGIA':'RADIO',
+    'CLINICA DE HERIDAS':'HERIDAS'
+  };
+  return map[c]||c;
+}
+// Coincidencia de categoría robusta (tildes, mayúsculas, plural). catSel es el value del select.
+function coincideCategoria(s, catSel){
+  if(!catSel) return true;
+  if(catSel==='__FRIO__' || catSel==='__frio__') return !!s.es_frio;
+  const norm=(x)=>String(x||'').toUpperCase()
+    .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U').replace(/Ì/g,'I')
+    .replace(/MEDICAMENTOS/,'MEDICAMENTO').replace(/LABORATORIOS/,'LABORATORIO').trim();
+  return norm(s.categoria)===norm(catSel);
+}
 // Detecta si una cita es parte de una segregación (recepción parcial / remanente)
 // leyendo su MOTIVO, y devuelve el texto del badge con la cantidad original.
 // "la memoria es mala": el panel recuerda que esta cita salió de una cantidad mayor.
@@ -576,7 +594,7 @@ let KANBAN_LISTA=[];
 function getFiltradas(){
   const q=document.getElementById('buscar').value.toLowerCase().trim();
   const estSel=document.getElementById('filtroEstadoSel').value;
-  const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
+  const catSelRaw=document.getElementById('filtroCategoria').value;
   const iprMin=document.getElementById('filtroIprMin').value;
   // Rangos de fecha de cita (desde-hasta). Vacíos = sin filtro.
   const agenD=document.getElementById('filtroAgenDesde').value;
@@ -595,17 +613,15 @@ function getFiltradas(){
         if(CERRADAS_GRUPO.indexOf(estU)<0) return false;
       } else if(estU!==estSel) return false;
     }
-    // Filtro por dropdown de categoría. "__FRIO__" es transversal (es_frio), no una categoría real.
-    if(catSel){
-      if(catSel==='__frio__'){
-        if(!s.es_frio) return false;
-      } else {
-        const c=String(s.categoria||'').toLowerCase();
-        if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return false;
-      }
+    // Filtro por dropdown de categoría (robusto: tildes/mayúsculas/plural; __FRIO__ transversal).
+    if(!coincideCategoria(s, catSelRaw)) return false;
+    // Filtro IPR por rangos: r75=Urgente(≥75), r50=Medio(50-74), r0=Bajo(<50)
+    if(iprMin){
+      const ipr=Number(s.ipr||0);
+      if(iprMin==='r75' && ipr<75) return false;
+      if(iprMin==='r50' && (ipr<50 || ipr>=75)) return false;
+      if(iprMin==='r0' && ipr>=50) return false;
     }
-    // Filtro IPR mínimo
-    if(iprMin && Number(s.ipr||0) < Number(iprMin)) return false;
     // Filtro rango de fecha AGENDADA. Si solo se llena un extremo, se asume ese mismo día.
     if(agenD || agenH){
       const fc=String(s.fecha_confirmada||'').slice(0,10);
@@ -693,7 +709,7 @@ function render(){
       const ueNivel = uePct>=40?'rojo':(uePct>=20?'ambar':'verde');
       const colRed = `
         <div class="senal-col ${ueNivel}">
-          <div class="cap">LA RED (aguas abajo)</div>
+          <div class="cap">Red de Unidades Ejecutoras</div>
           <div class="dato"><span class="num">${s.ue_cero||0}/${s.ue_total||0}</span><span class="desc">UE en cero (${uePct}%)</span></div>
         </div>`;
       // Columna CEDIS: TU cobertura (saldo CEDIS PMA / consumo mensual).
@@ -702,13 +718,13 @@ function render(){
         const cobNivel = s.cobertura_meses<2?'rojo':(s.cobertura_meses<3?'ambar':'verde');
         colCedis = `
         <div class="senal-col ${cobNivel}">
-          <div class="cap">YO — CEDIS PANAMÁ</div>
+          <div class="cap">Cobertura CEDIS Panamá</div>
           <div class="dato"><span class="num">${s.cobertura_meses}</span><span class="desc">meses de cobertura</span></div>
         </div>`;
       } else {
         colCedis = `
         <div class="senal-col gris">
-          <div class="cap">YO — CEDIS PANAMÁ</div>
+          <div class="cap">Cobertura CEDIS Panamá</div>
           <div class="dato"><span class="num">s/d</span><span class="desc">sin dato de consumo</span></div>
         </div>`;
       }
@@ -756,6 +772,7 @@ function render(){
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
+        ${s.categoria?`<span class="badge categoria">${esc(catCorta(s.categoria))}</span>`:''}
         ${(()=>{const sg=infoSegregacion(s);return sg.es?`<span class="badge segregada">${sg.texto}</span>`:'';})()}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
         ${s.es_controlado==='SI'?'<span class="badge rojo">Controlado</span>':''}
@@ -898,6 +915,7 @@ function renderKanban(){
     const fechaTxt = fAge ? ('Agendada '+fAge) : (fSol?('Solic. '+fSol):'sin fecha');
     const badges=[];
     if(s.es_rescatada) badges.push('<span class="badge rescatada" style="font-size:9px;">⮌ Rescatada</span>');
+    if(s.categoria) badges.push('<span class="badge categoria" style="font-size:9px;">'+catCorta(s.categoria)+'</span>');
     { const sg=infoSegregacion(s); if(sg.es) badges.push('<span class="badge segregada" style="font-size:9px;">'+sg.texto+'</span>'); }
     if(s.es_frio) badges.push('<span class="badge frio" style="font-size:9px;">❄ Frío</span>');
     const venc = s.venc && s.venc.etiqueta ? s.venc.etiqueta : '';
@@ -1517,14 +1535,16 @@ document.getElementById('filtroSolicDesde').addEventListener('change',aplicarFil
 document.getElementById('filtroSolicHasta').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroIprMin').addEventListener('change',aplicarFiltros);
 let verHistorico=false;
-document.getElementById('btnHistorico').addEventListener('click',()=>{
-  verHistorico=!verHistorico;
-  const btn=document.getElementById('btnHistorico');
-  btn.textContent=verHistorico?'Ocultar histórico':'Ver histórico';
-  btn.classList.toggle('primary', verHistorico);
-  document.getElementById('buscar').value=''; // limpiar para no arrastrar la busqueda entre modos
-  cargar();
-});
+(function(){
+  const bh=document.getElementById('btnHistorico');
+  if(bh) bh.addEventListener('click',()=>{
+    verHistorico=!verHistorico;
+    bh.textContent=verHistorico?'Ocultar histórico':'Ver histórico';
+    bh.classList.toggle('primary', verHistorico);
+    document.getElementById('buscar').value='';
+    cargar();
+  });
+})();
 document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar(); if(TAB_ACTIVA==='calendario') cargarCalendario(); });
 
 // Navegación y toggle del gráfico de carga semanal
@@ -1565,16 +1585,7 @@ function rangoAtajo_(tipo){
   const dom=new Date(lun); dom.setDate(dom.getDate()+6);
   return {desde:isoLocal_(lun), hasta:isoLocal_(dom)};
 }
-// Toggle de base (Por agendada / Por solicitada): solo cambia cuál se usa.
-let atajoBase='agen';
-document.querySelectorAll('.btn.chip.base-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    atajoBase=btn.dataset.base;
-    document.querySelectorAll('.btn.chip.base-btn').forEach(b=>b.classList.remove('activo'));
-    btn.classList.add('activo');
-  });
-});
-// Botones de periodo: aplican el rango sobre la base seleccionada.
+// Botones de periodo (Esta semana / Próxima / Este mes): aplican sobre fecha AGENDADA.
 document.querySelectorAll('.btn.chip[data-atajo]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const tipo=btn.dataset.atajo;      // semana | proxima | mes
@@ -1584,14 +1595,9 @@ document.querySelectorAll('.btn.chip[data-atajo]').forEach(btn=>{
     document.getElementById('filtroAgenHasta').value='';
     document.getElementById('filtroSolicDesde').value='';
     document.getElementById('filtroSolicHasta').value='';
-    if(atajoBase==='agen'){
-      document.getElementById('filtroAgenDesde').value=r.desde;
-      document.getElementById('filtroAgenHasta').value=r.hasta;
-    } else {
-      document.getElementById('filtroSolicDesde').value=r.desde;
-      document.getElementById('filtroSolicHasta').value=r.hasta;
-    }
-    // Marcar el periodo activo (sin tocar el toggle de base).
+    document.getElementById('filtroAgenDesde').value=r.desde;
+    document.getElementById('filtroAgenHasta').value=r.hasta;
+    // Marcar el periodo activo.
     document.querySelectorAll('.btn.chip[data-atajo]').forEach(c=>c.classList.remove('activo'));
     btn.classList.add('activo');
     // Si estamos en el calendario, navegar al mes del inicio del rango.
@@ -1677,10 +1683,6 @@ function limpiarFiltros(){
   document.getElementById('filtroSolicDesde').value='';
   document.getElementById('filtroSolicHasta').value='';
   document.querySelectorAll('.btn.chip').forEach(c=>c.classList.remove('activo'));
-  // Restaurar el toggle de base a "Por agendada" por defecto
-  atajoBase='agen';
-  const baseDefault=document.querySelector('.btn.chip.base-btn[data-base="agen"]');
-  if(baseDefault) baseDefault.classList.add('activo');
   document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));
   aplicarFiltros();
 }
@@ -1752,7 +1754,7 @@ function calClase(s){
 
 function renderCalendario(){
   const grid=document.getElementById('calGrid');
-  const catSel=document.getElementById('filtroCategoria').value.toLowerCase();
+  const catSelRaw=document.getElementById('filtroCategoria').value;
   const estSel=document.getElementById('filtroEstadoSel').value.toUpperCase();
   const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
   const agenD=document.getElementById('filtroAgenDesde').value;
@@ -1768,14 +1770,7 @@ function renderCalendario(){
   // Indexar citas por día del mes visible
   const porDia={};
   datosMes.forEach(s=>{
-    if(catSel){
-      if(catSel==='__frio__'){
-        if(!s.es_frio) return;
-      } else {
-        const c=String(s.categoria||'').toLowerCase();
-        if(c.indexOf(catSel)<0 && catSel.indexOf(c)<0) return;
-      }
-    }
+    if(!coincideCategoria(s, catSelRaw)) return;
     if(estSel){
       const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
       const eU=String(s.estado||'').toUpperCase();
@@ -1848,13 +1843,19 @@ function renderCalendario(){
   grid._porDia=porDia;
   grid.querySelectorAll('[data-cal-dia]').forEach(b=>b.addEventListener('click',()=>{
     const iso=b.dataset.calDia; const citasDia=porDia[iso]||[];
-    verDiaCalendario(iso, citasDia);
-    // Resumen acotado al día elegido
+    // Etapa 1: marcar el día seleccionado (verde), sin abrir el modal todavía.
+    grid.querySelectorAll('.cal-dia').forEach(c=>c.classList.remove('dia-sel'));
+    b.classList.add('dia-sel');
+    // Resumen acotado al día elegido + botón para abrir el detalle (etapa 2).
     const cont=document.getElementById('calResDia');
     if(cont && window._calTablaResumen){
       const [yy,mm,dd]=iso.split('-');
-      cont.innerHTML='<div style="border:2px solid #1e5a9e;border-radius:4px;padding:8px;margin-bottom:10px;">'+
-        window._calTablaResumen('Día seleccionado: '+dd+'/'+mm+'/'+yy, citasDia)+'</div>';
+      cont.innerHTML='<div style="border:2px solid #0F6E56;border-radius:4px;padding:8px;margin-bottom:10px;">'+
+        window._calTablaResumen('Día seleccionado: '+dd+'/'+mm+'/'+yy, citasDia)+
+        (citasDia.length?'<button class="btn primary" id="btnVerDetalleDia" style="margin-top:8px;width:100%;">Ver detalle del día ('+citasDia.length+' cita'+(citasDia.length>1?'s':'')+')</button>':'')+
+        '</div>';
+      const btnVer=document.getElementById('btnVerDetalleDia');
+      if(btnVer) btnVer.addEventListener('click',()=>verDiaCalendario(iso, citasDia));
     }
   }));
 
@@ -1960,6 +1961,7 @@ document.getElementById('calPrev').addEventListener('click',()=>{ calMes.setMont
 document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMonth(calMes.getMonth()+1); cargarCalendario(); });
 document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); cargarCalendario(); });
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
+document.getElementById('calExcel').addEventListener('click',excelListaDia);
 document.getElementById('calImprimirCob').addEventListener('click',imprimirCoberturaDia);
 
 async function imprimirListaDia(){
@@ -2048,6 +2050,45 @@ async function imprimirListaDia(){
     <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
   </body></html>`);
   win.document.close();
+}
+
+// Excel del día: mismo contenido que el PDF de "Imprimir día", en .xlsx.
+async function excelListaDia(){
+  const manana=new Date(); manana.setDate(manana.getDate()+1);
+  const defISO=manana.toISOString().slice(0,10);
+  const fecha=prompt('Fecha a exportar a Excel (AAAA-MM-DD):', defISO);
+  if(!fecha) return;
+  const f=fecha.trim().slice(0,10);
+  const claveMes=f.slice(0,7);
+  if(!CAL_MESES[claveMes]){
+    try{
+      const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
+      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+    }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
+  }
+  const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
+    if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
+    const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10) ? s.fecha_confirmada.slice(0,10) : '';
+    return fc===f;
+  });
+  citas.sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) || String(a.empresa||'').localeCompare(String(b.empresa||'')));
+  if(!citas.length){ alert('Sin citas agendadas para ese día.'); return; }
+
+  // Encabezados idénticos al PDF.
+  const aoa=[
+    ['Hora','Estado','Proveedor','Área','OC','Producto','Unidades','Bultos','Pallets','Vence OC','Unidad móvil','Transporte','Teléfono','Correo','Asistió'],
+    ...citas.map(s=>[
+      s.hora_confirmada||'', s.estado||'', s.empresa||'', s.categoria||'', s.oc||'',
+      s.descripcion||'', Number(s.cant_unidades||0), Number(s.cant_bultos||0), Number(s.cant_pallets||0),
+      (s.venc&&s.venc.fecha?s.venc.fecha:''), s.unidad_movil||'', s.personal_entrega||'',
+      s.telefono||'', s.correo||'', ''
+    ])
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:8},{wch:10},{wch:26},{wch:16},{wch:13},{wch:40},{wch:10},{wch:8},{wch:8},{wch:12},{wch:16},{wch:18},{wch:13},{wch:24},{wch:8}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Citas '+f);
+  XLSX.writeFile(wb, 'Citas_'+f+'.xlsx');
 }
 
 // ===== IMPRIMIBLE PARA FARMACIA: coberturas e inventarios por cita del día =====
