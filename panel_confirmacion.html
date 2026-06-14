@@ -20,7 +20,7 @@
   .header .logo{width:48px;height:48px;flex-shrink:0;object-fit:contain;}
   .header h1{margin:0;font-size:18px;font-weight:600;}
   .header .sub{font-size:12.5px;color:#B5D4F4;margin-top:3px;}
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px;background:#fff;border:1px solid var(--borde-suave);border-top:none;}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:14px;background:#fff;border:1px solid var(--borde-suave);border-top:none;}
   .kpi{background:var(--fondo);border:1px solid var(--borde-suave);border-radius:3px;padding:10px 12px;}
   .kpi-click{cursor:pointer;transition:background .15s,border-color .15s;}
   .kpi-click:hover{background:var(--azul-claro,#e8f0f8);}
@@ -246,8 +246,9 @@
     <div class="kpi kpi-click" data-filtro="PENDIENTE"><div class="lbl">Pendientes por confirmar</div><div class="val" id="kpiTotal">—</div></div>
     <div class="kpi kpi-click" data-filtro="AGENDADA"><div class="lbl">Agendadas (ya confirmadas)</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
     <div class="kpi kpi-click" data-filtro="URGENTE"><div class="lbl">Recepción urgente (IPR ≥75)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer (sin agendar)</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (por reprogramar)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer <span style="font-size:10px;color:#888;">(sin agendar · ≤3 días o vencida)</span></div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (con nota)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
+    <div class="kpi kpi-click" data-filtro="REPROGRAMADA"><div class="lbl">Reprogramadas (a la cola)</div><div class="val" id="kpiReprogramadas" style="color:var(--ambar,#c97a00);">—</div></div>
   </div>
 
   <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
@@ -351,7 +352,9 @@
         <span style="flex:1 1 auto;"></span>
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
         <button class="btn" id="calExcel">⬇ Excel del día</button>
-        <button class="btn" id="calImprimirCob">🖨 Imprimir cobertura</button>
+        <button class="btn" id="calImprimirSemana">🗓 Imprimir semana</button>
+        <button class="btn" id="calImprimirCobResumen">🖨 Cobertura resumida</button>
+        <button class="btn" id="calImprimirCob">🖨 Cobertura detallada</button>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
           <span class="cal-chip" style="background:#fff;border:1px dashed #c97a00;"></span>Pendiente (fecha solicitada)
@@ -580,11 +583,13 @@ function actualizarKPIs(){
   // OC por vencer: solo citas sin agendar con OC en rojo (vence pronto o vencida).
   const vence=SOLICITUDES.filter(s=>esSinAgendar(s) && s.venc && s.venc.estado==='ROJO').length;
   const dif=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA').length;
+  const reprog=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='REPROGRAMADA').length;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
   document.getElementById('kpiRecepcion').textContent=rec;
   document.getElementById('kpiVence').textContent=vence;
   const kd=document.getElementById('kpiDiferidas'); if(kd) kd.textContent=dif;
+  const kr=document.getElementById('kpiReprogramadas'); if(kr) kr.textContent=reprog;
   const now=new Date();
   const sa=document.getElementById('subActualizado'); if(sa) sa.textContent='Actualizado '+now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
 }
@@ -647,6 +652,7 @@ function getFiltradas(){
       if(!(s.venc && s.venc.estado==='ROJO')) return false;
     }
     if(filtroEstado==='DIFERIDA' && estU!=='DIFERIDA') return false;
+    if(filtroEstado==='REPROGRAMADA' && estU!=='REPROGRAMADA') return false;
     if(q && !verHistorico){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
       if(blob.indexOf(q)<0) return false;
@@ -1963,6 +1969,8 @@ document.getElementById('calNext').addEventListener('click',()=>{ calMes.setMont
 document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date(); calMes.setDate(1); cargarCalendario(); });
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
 document.getElementById('calExcel').addEventListener('click',excelListaDia);
+document.getElementById('calImprimirSemana').addEventListener('click',imprimirSemana);
+document.getElementById('calImprimirCobResumen').addEventListener('click',imprimirCoberturaResumen);
 document.getElementById('calImprimirCob').addEventListener('click',imprimirCoberturaDia);
 
 async function imprimirListaDia(){
@@ -1997,6 +2005,7 @@ async function imprimirListaDia(){
       <td>${esc(s.empresa||'')}</td>
       <td>${esc(s.categoria||'—')}</td>
       <td>${esc(s.oc||'')}</td>
+      <td style="font-family:Consolas,monospace;">${esc(s.cod_abasto||'—')}</td>
       <td>${esc(s.descripcion||'')}</td>
       <td style="text-align:right;">${num(s.cant_unidades)} und<br>${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</td>
       <td>${esc(s.venc&&s.venc.fecha?s.venc.fecha:'—')}</td>
@@ -2042,10 +2051,10 @@ async function imprimirListaDia(){
     <div class="sub">Día: <b>${dd}/${mm}/${yy}</b> · Total: ${citas.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div>
     <table>
       <thead><tr>
-        <th>Hora</th><th>Estado</th><th>Proveedor</th><th>Área</th><th>OC</th>
+        <th>Hora</th><th>Estado</th><th>Proveedor</th><th>Área</th><th>OC</th><th>Abasto</th>
         <th>Producto</th><th>Cantidad</th><th>Vence OC</th><th>Unidad móvil</th><th>Transporte</th><th>Contacto</th><th class="chk">Asistió</th>
       </tr></thead>
-      <tbody>${filas || '<tr><td colspan="12" style="text-align:center;color:#888;">Sin citas para este día.</td></tr>'}</tbody>
+      <tbody>${filas || '<tr><td colspan="13" style="text-align:center;color:#888;">Sin citas para este día.</td></tr>'}</tbody>
     </table>
     <div class="firma"><div>Entregado por (CEDIS)</div><div>Recibido por (Seguridad / Garita)</div></div>
     <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>
@@ -2076,6 +2085,162 @@ async function excelListaDia(){
   }finally{
     if(btn){ btn.textContent=txt0; btn.disabled=false; }
   }
+}
+
+// ===== COBERTURA RESUMIDA: una línea por cita, usando la señal de demanda (instantáneo) =====
+async function imprimirCoberturaResumen(){
+  const manana=new Date(); manana.setDate(manana.getDate()+1);
+  const defISO=manana.toISOString().slice(0,10);
+  const fecha=prompt('Fecha a imprimir (AAAA-MM-DD):', defISO);
+  if(!fecha) return;
+  const f=fecha.trim().slice(0,10);
+  const claveMes=f.slice(0,7);
+  if(!CAL_MESES[claveMes]){
+    try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes); CAL_MESES[claveMes]=(resp && resp.solicitudes)?resp.solicitudes:[]; }
+    catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
+  }
+  const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
+    if(String(s.estado||'').toUpperCase()!=='AGENDADA') return false;
+    const fc=(s.fecha_confirmada && s.fecha_confirmada.length>=10)?s.fecha_confirmada.slice(0,10):'';
+    return fc===f;
+  });
+  citas.sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) || String(a.empresa||'').localeCompare(String(b.empresa||'')));
+  if(!citas.length){ alert('No hay citas AGENDADAS para ese día.'); return; }
+
+  const [yy,mm,dd]=f.split('-');
+  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+
+  const filas=citas.map(s=>{
+    const cob = (s.cobertura_meses!=null && s.cobertura_meses>=0) ? Number(s.cobertura_meses).toFixed(1)+'m' : 's/d';
+    let cobBg=''; if(s.cobertura_meses!=null && s.cobertura_meses>=0){ cobBg = s.cobertura_meses<1?'background:#fde2e2;':(s.cobertura_meses<3?'background:#fff3d6;':'background:#e3f5e8;'); }
+    const ueCero = Number(s.ue_cero||0), ueTot = Number(s.ue_total||0);
+    const ueBg = ueCero>0 ? 'color:#b00020;font-weight:bold;' : '';
+    return '<tr>'+
+      '<td>'+esc(s.hora_confirmada||'—')+'</td>'+
+      '<td>'+esc(s.empresa||'')+'</td>'+
+      '<td style="font-family:Consolas,monospace;">'+esc(s.cod_abasto||'')+'</td>'+
+      '<td>'+esc(s.descripcion||'')+'</td>'+
+      '<td style="text-align:right;font-family:Consolas;">'+num(s.cant_unidades)+' und<br>'+num(s.cant_pallets)+' pallets</td>'+
+      '<td style="text-align:right;'+ueBg+'">'+ueCero+' / '+ueTot+'</td>'+
+      '<td style="text-align:right;font-family:Consolas;">'+num(s.cedis_saldo)+'</td>'+
+      '<td style="text-align:right;'+cobBg+'">'+cob+'</td></tr>';
+  }).join('');
+
+  const win=window.open('','_blank');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Cobertura resumida '+dd+'/'+mm+'/'+yy+'</title><style>'+
+    '@page{size:landscape;margin:11mm;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;}'+
+    '.head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0C447C;padding-bottom:10px;margin-bottom:10px;}'+
+    '.head img{width:56px;height:56px;object-fit:contain;}'+
+    '.head h1{font-size:15px;margin:0;color:#0C447C;}'+
+    '.head .org{font-size:11px;color:#333;font-weight:600;margin-top:2px;}'+
+    '.head .org2{font-size:10.5px;color:#555;}'+
+    '.sub{font-size:11px;color:#555;margin:0 0 8px;}'+
+    '.leyenda{font-size:9.5px;color:#666;margin:2px 0 12px;}'+
+    '.leyenda span{display:inline-block;padding:1px 6px;margin-right:6px;border:1px solid #ccc;}'+
+    'table{border-collapse:collapse;width:100%;}'+
+    'th{background:#0C447C;color:#fff;padding:5px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;}'+
+    'td{border:1px solid #aaa;padding:4px 6px;vertical-align:top;font-size:10px;}'+
+    'tr:nth-child(even) td{background:#f4f7fa;}'+
+    '@media print{.noprint{display:none;}}'+
+  '</style></head><body>'+
+    '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
+      '<div><h1>COBERTURA RESUMIDA — PRODUCTOS DEL DÍA</h1>'+
+      '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística</div>'+
+      '<div class="org2">Revisión rápida de coberturas — Torre de Control</div></div></div>'+
+    '<div class="sub">Día: <b>'+dd+'/'+mm+'/'+yy+'</b> · '+citas.length+' producto(s) agendado(s) · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    '<div class="leyenda">Cobertura CEDIS = inventario ÷ consumo mensual. '+
+      '<span style="background:#fde2e2;">&lt; 1 mes (escasez)</span>'+
+      '<span style="background:#fff3d6;">1 a 3 meses</span>'+
+      '<span style="background:#e3f5e8;">&gt; 3 meses</span>'+
+      ' · UE en cero en rojo.</div>'+
+    '<table><thead><tr>'+
+      '<th>Hora</th><th>Proveedor</th><th>Abasto</th><th>Producto</th><th style="text-align:right;">Volumetría</th>'+
+      '<th style="text-align:right;">UE en cero</th><th style="text-align:right;">Inv. CEDIS PMA</th><th style="text-align:right;">Cobertura CEDIS</th>'+
+    '</tr></thead><tbody>'+filas+'</tbody></table>'+
+    '<button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
+  '</body></html>');
+  win.document.close();
+}
+
+// ===== IMPRIMIR SEMANA: vista calendario lun-dom con citas, volumetría y cobertura =====
+async function imprimirSemana(){
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const refStr=prompt('Semana de qué fecha (AAAA-MM-DD)? Se imprime lunes a domingo:', hoy.toISOString().slice(0,10));
+  if(!refStr) return;
+  const ref=new Date(refStr.trim().slice(0,10)+'T00:00:00');
+  if(isNaN(ref)){ alert('Fecha inválida.'); return; }
+  // Lunes de esa semana
+  const lun=new Date(ref); lun.setDate(lun.getDate()-((lun.getDay()+6)%7));
+  const dias=[]; for(let i=0;i<7;i++){ const d=new Date(lun); d.setDate(d.getDate()+i); dias.push(d); }
+  const isoDe=d=>{ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); };
+  // Cargar los meses que toca la semana
+  const meses=[...new Set(dias.map(d=>isoDe(d).slice(0,7)))];
+  for(const cm of meses){
+    if(!CAL_MESES[cm]){
+      try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+cm); CAL_MESES[cm]=(resp && resp.solicitudes)?resp.solicitudes:[]; }
+      catch(e){ alert('No se pudo cargar el mes '+cm+': '+e.message); return; }
+    }
+  }
+  const todas=[]; meses.forEach(cm=>{ (CAL_MESES[cm]||[]).forEach(s=>todas.push(s)); });
+  const agendadas=todas.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA');
+
+  const DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+
+  const bloques=dias.map((d,ix)=>{
+    const iso=isoDe(d);
+    const citasDia=agendadas.filter(s=>(s.fecha_confirmada||'').slice(0,10)===iso)
+      .sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')));
+    const pallets=citasDia.reduce((t,s)=>t+Number(s.cant_pallets||0),0);
+    const filas=citasDia.map(s=>{
+      const cob=(s.cobertura_meses!=null && s.cobertura_meses>=0)?Number(s.cobertura_meses).toFixed(1)+'m':'s/d';
+      let cobBg=''; if(s.cobertura_meses!=null && s.cobertura_meses>=0){ cobBg=s.cobertura_meses<1?'background:#fde2e2;':(s.cobertura_meses<3?'background:#fff3d6;':'background:#e3f5e8;'); }
+      const ueCero=Number(s.ue_cero||0);
+      return '<tr>'+
+        '<td style="font-family:Consolas;">'+esc(s.hora_confirmada||'—')+'</td>'+
+        '<td>'+esc(s.empresa||'')+'<div style="color:#666;font-size:8.5px;">'+esc(s.descripcion||'')+'</div></td>'+
+        '<td style="text-align:right;font-family:Consolas;white-space:nowrap;">'+num(s.cant_pallets)+' pal<br>'+num(s.cant_bultos)+' blt</td>'+
+        '<td style="text-align:right;'+(ueCero>0?'color:#b00020;font-weight:bold;':'')+'">'+ueCero+'</td>'+
+        '<td style="text-align:right;'+cobBg+'">'+cob+'</td></tr>';
+    }).join('');
+    return '<div class="dia">'+
+      '<div class="dt">'+DIAS[ix]+' '+d.getDate()+' '+MES[d.getMonth()]+
+        '<span class="cuenta">'+citasDia.length+' cita(s) · '+num(pallets)+' pallets</span></div>'+
+      (citasDia.length?
+        '<table><thead><tr><th>Hora</th><th>Proveedor / producto</th><th style="text-align:right;">Vol.</th><th style="text-align:right;">UE=0</th><th style="text-align:right;">Cob.</th></tr></thead><tbody>'+filas+'</tbody></table>'
+        :'<div class="vacio">Sin citas agendadas.</div>')+
+    '</div>';
+  }).join('');
+
+  const win=window.open('','_blank');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Semana '+isoDe(lun)+'</title><style>'+
+    '@page{size:landscape;margin:9mm;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;}'+
+    '.head{display:flex;align-items:center;gap:12px;border-bottom:3px solid #0C447C;padding-bottom:8px;margin-bottom:8px;}'+
+    '.head img{width:50px;height:50px;object-fit:contain;}'+
+    '.head h1{font-size:14px;margin:0;color:#0C447C;}'+
+    '.head .org{font-size:10px;color:#333;font-weight:600;}'+
+    '.sub{font-size:10px;color:#555;margin:0 0 8px;}'+
+    '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}'+
+    '.dia{border:1px solid #bbb;border-radius:3px;page-break-inside:avoid;}'+
+    '.dt{background:#0C447C;color:#fff;padding:4px 7px;font-size:11px;font-weight:bold;display:flex;align-items:center;}'+
+    '.dt .cuenta{margin-left:auto;font-size:9px;font-weight:normal;opacity:.9;}'+
+    'table{border-collapse:collapse;width:100%;}'+
+    'th{background:#e8f0f8;color:#0C447C;padding:3px 5px;font-size:8.5px;text-align:left;border:1px solid #cdd;}'+
+    'td{border:1px solid #ddd;padding:2px 5px;font-size:8.5px;vertical-align:top;}'+
+    '.vacio{padding:6px;color:#999;font-size:9px;text-align:center;}'+
+    '@media print{.noprint{display:none;}}'+
+  '</style></head><body>'+
+    '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
+      '<div><h1>CARGA SEMANAL DE CITAS — CEDIS PANAMÁ</h1>'+
+      '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística · Torre de Control</div></div></div>'+
+    '<div class="sub">Semana: <b>'+isoDe(lun)+'</b> al <b>'+isoDe(dias[6])+'</b> · '+agendadas.filter(s=>{const i=(s.fecha_confirmada||'').slice(0,10); return i>=isoDe(lun)&&i<=isoDe(dias[6]);}).length+' cita(s) agendada(s) · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    '<div class="grid">'+bloques+'</div>'+
+    '<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
+  '</body></html>');
+  win.document.close();
 }
 
 // ===== IMPRIMIBLE PARA FARMACIA: coberturas e inventarios por cita del día =====
