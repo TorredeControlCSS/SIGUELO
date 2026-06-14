@@ -189,7 +189,7 @@
 
   <!-- Gráfico semanal -->
   <div class="chart-card">
-    <h2><span class="h2ic" id="icChart"></span> Carga semanal: citas y pallets por día</h2>
+    <h2><span class="h2ic" id="icChart"></span> Carga semanal: citas y pallets por día <span id="chartPeriodo" style="font-weight:400;font-size:11px;color:#667;margin-left:auto;"></span></h2>
     <div class="chart-box"><canvas id="cargaChart"></canvas></div>
   </div>
 
@@ -283,10 +283,10 @@ const ICN={
   unidades:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg>',
   frio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1M2 12h20"/></svg>',
   med:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a4.95 4.95 0 0 1-7-7l7-7a4.95 4.95 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg>',
-  mq:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l6 6L9 21H3v-6z"/><path d="M13 5l6 6"/></svg>',
+  mq:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4L8.5 15.5"/><path d="M4 20l4.5-4.5 2.5 2.5"/><path d="M20 4c-1.5 3-4 5.5-7 7l2.5 2.5c2.5-1.5 5-4 4.5-9.5z"/></svg>',
   lab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.6 17a2 2 0 0 0 1.8 3h11.2a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M8 2h8M7.5 14h9"/></svg>',
-  odo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5c-2-2-5-2-6 0-1.2 2.4 0 6 .8 9 .5 1.8.7 4 1.7 4s1.2-2 1.5-3.5c.2-1 .6-1.5 1-1.5s.8.5 1 1.5c.3 1.5.5 3.5 1.5 3.5s1.2-2.2 1.7-4c.8-3 2-6.6.8-9-1-2-4-2-6 0z"/></svg>',
-  sus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a1.94 1.94 0 0 1-1.66-2.95L11 14M13.7 3a1.94 1.94 0 0 1 1.66 2.95L13 10"/><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>',
+  odo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5C10.5 4 8 3.7 6.5 4.8 5 5.9 4.6 8 5.2 11c.4 2 .7 4.5 1.3 6.5.3 1 .7 2.5 1.5 2.5.9 0 1.2-1.5 1.5-3 .2-1.2.5-2 1-2s.8.8 1 2c.3 1.5.6 3 1.5 3 .8 0 1.2-1.5 1.5-2.5.6-2 .9-4.5 1.3-6.5.6-3 .2-5.1-1.3-6.2C16 3.7 13.5 4 12 5.5z"/></svg>',
+  sus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3h-9L3 7.5v9L7.5 21h9l4.5-4.5v-9z"/><path d="M12 8v5"/><path d="M12 16.5v.01"/></svg>',
   chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="13" y="7" width="3" height="10"/></svg>'
 };
 
@@ -390,11 +390,29 @@ function citasBaseArea(){
 }
 
 /* ===== Gráfico semanal ===== */
-function renderChart(lista){
+// Citas de la semana laboral (Lun–Sáb) del día seleccionado: área + búsqueda, sin filtro de un solo día
+function citasSemana(){
+  const base=document.getElementById('fechaDia').value;
+  const ref=new Date(base+'T12:00:00');
+  const lun=new Date(ref); const dw=ref.getDay(); lun.setDate(ref.getDate()+(dw===0?-6:1-dw));
+  const sab=new Date(lun); sab.setDate(lun.getDate()+5);
+  const iL=isoLocal(lun), iS=isoLocal(sab);
+  const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
+  const pasaBusqueda=(s)=>{ if(!q) return true; const b=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); return b.indexOf(q)>=0; };
+  return CITAS.filter(s=>{
+    if(AREA_SEL && catNombre(s.categoria)!==AREA_SEL) return false;
+    if(!pasaBusqueda(s)) return false;
+    const f=(s.fecha_confirmada||'').slice(0,10);
+    return f>=iL && f<=iS;
+  });
+}
+
+function renderChart(){
   const modo=document.getElementById('modo').value;
   let labels=[], citasArr=[], palletsArr=[];
 
   if(modo==='rango'){
+    const lista=citasPeriodo();
     const fechas=[...new Set(lista.map(s=>(s.fecha_confirmada||'').slice(0,10)).filter(Boolean))].sort();
     fechas.forEach(f=>{
       const arr=lista.filter(s=>(s.fecha_confirmada||'').slice(0,10)===f);
@@ -404,20 +422,42 @@ function renderChart(lista){
       palletsArr.push(arr.reduce((t,s)=>t+Number(s.cant_pallets||0),0));
     });
   } else {
+    // Modo Día: el gráfico muestra SIEMPRE la semana laboral completa (Lun–Sáb)
+    // del día seleccionado, no solo el día. Así nunca aparece una sola columna.
+    const lista=citasSemana();
     const base=document.getElementById('fechaDia').value;
     const ref=new Date(base+'T12:00:00');
     const lun=new Date(ref); const dw=ref.getDay(); lun.setDate(ref.getDate()+(dw===0?-6:1-dw));
     const dias=[];
-    // Semana laboral: Lunes a Sábado (no se trabaja domingo)
     for(let i=0;i<6;i++){ const d=new Date(lun); d.setDate(lun.getDate()+i); dias.push(isoLocal(d)); labels.push(DIAS[d.getDay()].slice(0,3)+' '+d.getDate()); citasArr.push(0); palletsArr.push(0); }
     lista.forEach(s=>{ const f=(s.fecha_confirmada||'').slice(0,10); const ix=dias.indexOf(f); if(ix>=0){ citasArr[ix]++; palletsArr[ix]+=Number(s.cant_pallets||0); } });
+    // Resaltar la barra del día seleccionado dentro de la semana
+    var selIx=dias.indexOf(base);
+    var coloresBar=dias.map(function(_,i){ return i===selIx ? '#0C447C' : '#9db8d6'; });
+  }
+
+  // En modo rango todas las barras van con el azul institucional pleno
+  var barColors = (modo==='rango') ? '#1e5a9e' : (typeof coloresBar!=='undefined' ? coloresBar : '#1e5a9e');
+
+  // Etiqueta del período mostrado en el encabezado del gráfico
+  var pElem=document.getElementById('chartPeriodo');
+  if(pElem){
+    if(modo==='rango'){
+      pElem.textContent='';
+    } else {
+      var base2=document.getElementById('fechaDia').value;
+      var ref2=new Date(base2+'T12:00:00');
+      var lun2=new Date(ref2); var dw2=ref2.getDay(); lun2.setDate(ref2.getDate()+(dw2===0?-6:1-dw2));
+      var sab2=new Date(lun2); sab2.setDate(lun2.getDate()+5);
+      pElem.textContent='Semana '+lun2.getDate()+'–'+sab2.getDate()+' '+MES[sab2.getMonth()];
+    }
   }
 
   const ctx=document.getElementById('cargaChart').getContext('2d');
   if(chart) chart.destroy();
   chart=new Chart(ctx,{
     data:{ labels:labels, datasets:[
-      { type:'bar', label:'Citas', data:citasArr, backgroundColor:'#1e5a9e', yAxisID:'y', borderRadius:3 },
+      { type:'bar', label:'Citas', data:citasArr, backgroundColor:barColors, yAxisID:'y', borderRadius:3 },
       { type:'line', label:'Pallets', data:palletsArr, borderColor:'#A32D2D', backgroundColor:'#A32D2D', yAxisID:'y1', tension:.3, pointRadius:3 }
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
@@ -518,7 +558,7 @@ function renderProximos(){
 function refrescarTodo(){
   const listaMetricas=citasPeriodo();
   renderMetricas(listaMetricas);
-  renderChart(listaMetricas);
+  renderChart();
   renderPrincipal();
   if(document.getElementById('modo').value==='dia') renderProximos();
 }
