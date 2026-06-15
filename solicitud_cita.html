@@ -32,12 +32,26 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
   @media(max-width:640px){.grid,.grid-3{grid-template-columns:1fr;} .seccion,.aviso{margin-left:12px;margin-right:12px;}
-    table.lote{min-width:720px;} .cob-cajas{flex-direction:column;} header{padding:12px 14px;}}
+    table.lote{min-width:720px;} .cob-cajas{flex-direction:column;} header{padding:12px 14px;}
+    header h1{font-size:15px;line-height:1.25;} header .sub{font-size:10.5px;} header .logo{width:38px;height:38px;}
+    #cicloTimer{padding:7px 10px;gap:8px;} #cicloTimerLbl{font-size:11px;} #cicloTimerReloj{font-size:20px;}
+    .aviso{font-size:12px;padding:10px 12px;} .aviso ul{margin-left:16px;}
+    .seccion-cuerpo{padding:12px;} .seccion-titulo{font-size:12px;padding:7px 12px;}
+    /* Minicalendario: 2 columnas en móvil para que las celdas respiren */
+    .cal-dias{grid-template-columns:repeat(2,1fr);gap:5px;}
+    .cal-dia .cd-doble{font-size:16px;} .cal-dia .cd-fecha{font-size:10.5px;}
+    .lote-resumen{gap:12px;font-size:12px;}
+    .pv-modal{max-width:94vw;}}
+  @media(max-width:380px){.cal-dias{grid-template-columns:1fr;} header h1{font-size:14px;}}
   .campo{display:flex;flex-direction:column;gap:4px;}
   .campo.full{grid-column:1/-1;}
   label{font-weight:600;font-size:12.5px;color:var(--texto-tenue);}
   label .req{color:var(--rojo);}
-  input,select,textarea{border:1px solid var(--borde);background:#fff;padding:7px 9px;font-size:14px;font-family:inherit;border-radius:2px;}
+  input,select,textarea{border:1px solid var(--borde);background:#fff;padding:7px 9px;font-size:14px;font-family:inherit;border-radius:2px;max-width:100%;}
+  select{width:100%;text-overflow:ellipsis;}
+  /* Selector de renglón: acota el ancho del desplegado para que no se salga de la ventana */
+  #renglon{width:100%;max-width:100%;}
+  #renglon option,#renglon optgroup{max-width:96vw;}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px var(--azul-claro);}
   input[readonly]{background:#f4f4f4;color:var(--texto-tenue);}
   .mono{font-family:var(--mono);}
@@ -141,10 +155,9 @@
     </div>
   </header>
 
-  <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:10px 20px;border-bottom:3px solid #ffe600;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:160px;font-size:12.5px;font-weight:600;letter-spacing:.3px;opacity:.95;line-height:1.3;" id="cicloTimerLbl">El ciclo semanal de solicitud de citas cierra en</div>
-    <div id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:30px;font-weight:700;letter-spacing:1px;white-space:nowrap;text-align:center;">—</div>
-    <div style="flex:1;min-width:160px;font-size:10.5px;opacity:.9;text-align:right;line-height:1.4;" id="cicloTimerSub">Cierre: miércoles · Confirmación: viernes<br>Citas: lunes a viernes siguientes</div>
+  <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:8px 16px;border-bottom:3px solid #ffe600;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:12px;font-weight:600;letter-spacing:.2px;opacity:.95;" id="cicloTimerLbl">El ciclo de solicitud de citas cierra en</span>
+    <span id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:24px;font-weight:700;letter-spacing:1px;white-space:nowrap;">—</span>
   </div>
 
   <div class="aviso">
@@ -174,10 +187,10 @@
         <div class="campo full" id="boxDiferidas" style="display:none;">
           <div style="border:1px solid #1e5a9e;background:#f4f8fc;border-radius:4px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas con CEDIS Panamá</div>
-              <button type="button" id="btnExcelTraz" style="font-size:11px;padding:5px 10px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;">⬇ Descargar Excel</button>
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas — ciclo anterior</div>
+              <button type="button" id="btnExcelTraz" style="font-size:11px;padding:5px 10px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;">⬇ Descargar Excel (historial completo)</button>
             </div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">Trazabilidad de sus solicitudes: agendadas, diferidas, reprogramadas y demás. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones.</div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">Resumen del ciclo de la semana pasada: diferidas, reprogramadas y asistidas. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones. El Excel incluye el historial completo de todas sus citas.</div>
             <div id="listaDiferidas"></div>
           </div>
         </div>
@@ -289,7 +302,7 @@
             <th>Total bultos</th>
             <th>Pallets</th>
             <th>Clasificación bulto</th>
-            <th class="acc"></th>
+            <th class="acc" title="Quitar lote">—</th>
           </tr>
         </thead>
         <tbody id="cuerpoLotes"></tbody>
@@ -771,7 +784,12 @@ document.getElementById('empresa').addEventListener('change', function(){
     items.forEach(x=>{
       const o=document.createElement('option');
       const sap=x.r.cod_sap?(' / '+x.r.cod_sap):'';
-      o.value=x.i; o.textContent=x.r.desc+'  ['+x.r.cod_abasto+sap+']';
+      // Acotar la descripción para que el desplegado no se salga de la ventana; el código va completo.
+      let d=String(x.r.desc||'');
+      if(d.length>68) d=d.slice(0,66).trim()+'…';
+      o.value=x.i;
+      o.textContent=d+'  ['+x.r.cod_abasto+sap+']';
+      o.title=x.r.desc+'  ['+x.r.cod_abasto+sap+']'; // completo en tooltip
       og.appendChild(o);
     });
     selR.appendChild(og);
@@ -811,6 +829,41 @@ document.getElementById('renglon').addEventListener('change', function(){
 
 // ---- Trazabilidad de citas del proveedor (todos los estados) ----
 let _empresaTraz='';
+
+// Punto 2: filtra a la semana laboral ANTERIOR (lun-sáb previos) y solo
+// estados DIFERIDA / REPROGRAMADA / ASISTIO. El resto se oculta en pantalla.
+function filtrarCicloPasado(citas){
+  if(!Array.isArray(citas)||!citas.length) return [];
+  // Lunes de ESTA semana
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dow=hoy.getDay(); // 0=dom..6=sáb
+  const difLun=(dow===0?-6:1-dow);
+  const lunesEsta=new Date(hoy); lunesEsta.setDate(hoy.getDate()+difLun);
+  // Semana pasada: lunes anterior .. sábado anterior
+  const lunesPasada=new Date(lunesEsta); lunesPasada.setDate(lunesEsta.getDate()-7);
+  const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
+  const k=d=>d.toISOString().slice(0,10);
+  const desde=k(lunesPasada), hasta=k(sabadoPasada);
+  const PERMITIDOS={'DIFERIDA':1,'REPROGRAMADA':1,'ASISTIO':1};
+  // Para ubicar la cita en el tiempo: usar fecha confirmada si existe, si no la solicitada
+  const fechaRef=d=>{
+    const f=(d.fecha_confirmada||d.fecha_solicitada||'');
+    return String(f).slice(0,10);
+  };
+  const orden={'DIFERIDA':0,'REPROGRAMADA':1,'ASISTIO':2};
+  return citas
+    .filter(d=>{
+      const est=String(d.estado||'').toUpperCase();
+      if(!PERMITIDOS[est]) return false;
+      const f=fechaRef(d);
+      return f && f>=desde && f<=hasta;
+    })
+    .sort((a,b)=>{
+      const ea=String(a.estado||'').toUpperCase(), eb=String(b.estado||'').toUpperCase();
+      return (orden[ea]-orden[eb]) || (fechaRef(b).localeCompare(fechaRef(a)));
+    });
+}
+
 function cargarDiferidasProveedor(empresa){
   const box=document.getElementById('boxDiferidas');
   const cont=document.getElementById('listaDiferidas');
@@ -820,7 +873,10 @@ function cargarDiferidasProveedor(empresa){
   const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
-    const citas=(resp&&resp.success&&resp.citas)?resp.citas:[];
+    const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
+    // Punto 2: en pantalla mostrar SOLO el ciclo pasado (lun-sáb de la semana previa)
+    // y SOLO diferidas + reprogramadas + asistió. El Excel sí lleva toda la historia.
+    const citas=filtrarCicloPasado(citasTodas);
     if(!citas.length){ box.style.display='none'; return; }
     box.style.display='block';
     const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
@@ -1203,15 +1259,14 @@ function escAttr(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 
 // ===== Temporizador en vivo del cierre del ciclo (miércoles) =====
 function proximoCierre(){
-  // Cierre: próximo miércoles a las 17:00 (5:00 p.m.). Si ya pasó el de esta semana, toma el siguiente.
-  const HORA_CIERRE=17;
+  // Cierre: hasta el ÚLTIMO segundo del miércoles (23:59:59). Al pasar a jueves, reinicia al siguiente miércoles.
   const ahora=new Date();
   const cierre=new Date(ahora);
-  const dow=ahora.getDay(); // 0=dom .. 3=mié
+  const dow=ahora.getDay(); // 0=dom .. 3=mié .. 6=sáb
   let dias=(3-dow+7)%7; // días hasta el próximo miércoles
   cierre.setDate(ahora.getDate()+dias);
-  cierre.setHours(HORA_CIERRE,0,0,0);
-  if(cierre.getTime()<=ahora.getTime()){ cierre.setDate(cierre.getDate()+7); } // ya pasó hoy: siguiente miércoles
+  cierre.setHours(23,59,59,999);
+  if(cierre.getTime()<=ahora.getTime()){ cierre.setDate(cierre.getDate()+7); } // ya terminó el miércoles: siguiente
   return cierre;
 }
 function tickCiclo(){
@@ -1230,13 +1285,13 @@ function tickCiclo(){
   const s=seg%60;
   const z=n=>String(n).padStart(2,'0');
   reloj.textContent=(d>0?d+'d ':'')+z(h)+':'+z(m)+':'+z(s);
-  // Si quedan menos de 12 horas, poner el aviso en alerta (amarillo/rojo)
+  // Si quedan menos de 12 horas, poner el aviso en alerta (rojo)
   if(d===0 && h<12){
     cont.style.background='linear-gradient(135deg,#8a1f1f,#b00020)';
-    lbl.innerHTML='<b>¡Últimas horas!</b> El ciclo de solicitud de citas cierra en';
+    lbl.innerHTML='<b>¡Últimas horas!</b> El ciclo cierra en';
   }else{
     cont.style.background='linear-gradient(135deg,#0C447C,#1e5a9e)';
-    lbl.textContent='El ciclo semanal de solicitud de citas cierra en';
+    lbl.textContent='El ciclo de solicitud de citas cierra en';
   }
 }
 tickCiclo();
