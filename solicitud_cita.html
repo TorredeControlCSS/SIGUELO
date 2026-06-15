@@ -190,7 +190,7 @@
               <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas — ciclo anterior</div>
               <button type="button" id="btnExcelTraz" style="font-size:11px;padding:5px 10px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;">⬇ Descargar Excel (historial completo)</button>
             </div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">Resumen del ciclo de la semana pasada: diferidas, reprogramadas y asistidas. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones. El Excel incluye el historial completo de todas sus citas.</div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">Resumen del ciclo de la semana pasada: diferidas, reprogramadas, agendadas, pendientes y asistidas. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones. El Excel incluye el historial completo de todas sus citas.</div>
             <div id="listaDiferidas"></div>
           </div>
         </div>
@@ -856,13 +856,15 @@ function filtrarCicloPasado(citas){
   const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
   const k=d=>ymdLocal(d);
   const desde=k(lunesPasada), hasta=k(sabadoPasada);
-  const PERMITIDOS={'DIFERIDA':1,'REPROGRAMADA':1,'ASISTIO':1};
+  // Mostrar todo lo del ciclo pasado: diferidas/reprogramadas primero, luego agendadas,
+  // pendientes y por último las asistidas (cierre positivo).
+  const PERMITIDOS={'DIFERIDA':1,'REPROGRAMADA':1,'AGENDADA':1,'PENDIENTE':1,'SOLICITADA':1,'EN ANALISIS':1,'ASISTIO':1};
   // Para ubicar la cita en el tiempo: usar fecha confirmada si existe, si no la solicitada
   const fechaRef=d=>{
     const f=(d.fecha_confirmada||d.fecha_solicitada||'');
     return String(f).slice(0,10);
   };
-  const orden={'DIFERIDA':0,'REPROGRAMADA':1,'ASISTIO':2};
+  const orden={'DIFERIDA':0,'REPROGRAMADA':1,'AGENDADA':2,'PENDIENTE':3,'SOLICITADA':3,'EN ANALISIS':3,'ASISTIO':4};
   return citas
     .filter(d=>{
       const est=String(d.estado||'').toUpperCase();
@@ -895,7 +897,7 @@ function cargarDiferidasProveedor(empresa){
     box.style.display='block';
     if(!citas.length){
       document.getElementById('listaDiferidas').innerHTML=
-        '<div style="font-size:12px;color:#777;padding:6px 0;">Sin diferidas, reprogramadas ni entregas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
+        '<div style="font-size:12px;color:#777;padding:6px 0;">Sin citas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
       return;
     }
     const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
@@ -910,7 +912,8 @@ function cargarDiferidasProveedor(empresa){
       if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
       return ['#eee','#555',e];
     };
-    cont.innerHTML=citas.map(d=>{
+    // Construye la tarjeta HTML de una cita
+    const tarjeta=d=>{
       const st=estiloEstado(d.estado);
       const detalles=[];
       if(d.cant_unidades) detalles.push(fmtNum(d.cant_unidades)+' und');
@@ -931,7 +934,29 @@ function cargarDiferidasProveedor(empresa){
         (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
         (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
         '</div>';
-    }).join('');
+    };
+    // Mostrar las primeras TOPE citas y, si hay más, un botón "ver más" para desplegar el resto.
+    const TOPE=4;
+    const visibles=citas.slice(0,TOPE).map(tarjeta).join('');
+    const ocultas=citas.slice(TOPE).map(tarjeta).join('');
+    if(citas.length>TOPE){
+      cont.innerHTML=visibles+
+        '<div id="trazRestoWrap" style="display:none;">'+ocultas+'</div>'+
+        '<div style="border-top:1px solid #dce6f0;padding-top:8px;margin-top:4px;">'+
+        '<button type="button" id="btnTrazVerMas" style="font-size:12px;padding:5px 12px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;font-weight:600;">'+
+        'Ver '+(citas.length-TOPE)+' cita'+((citas.length-TOPE)>1?'s':'')+' más ▾</button></div>';
+      const btn=document.getElementById('btnTrazVerMas');
+      btn.addEventListener('click',function(){
+        const wrap=document.getElementById('trazRestoWrap');
+        const abierto=wrap.style.display!=='none';
+        wrap.style.display=abierto?'none':'block';
+        this.innerHTML=abierto
+          ? ('Ver '+(citas.length-TOPE)+' cita'+((citas.length-TOPE)>1?'s':'')+' más ▾')
+          : 'Ver menos ▴';
+      });
+    } else {
+      cont.innerHTML=visibles;
+    }
   };
   const s=document.createElement('script');
   s.src=API_URL+'?action=getCitasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
