@@ -194,6 +194,13 @@
             <div id="listaDiferidas"></div>
           </div>
         </div>
+        <div class="campo full" id="boxProximas" style="display:none;">
+          <div style="border:1px solid #2d7a4e;background:#f1f9f4;border-radius:4px;padding:10px 12px;">
+            <div style="font-weight:700;color:#1e6e3e;font-size:13px;margin-bottom:6px;">Sus próximas citas agendadas</div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">Citas ya confirmadas de hoy en adelante. Preséntese en CEDIS Panamá en la fecha y hora indicadas. No necesita volver a solicitar cita para estos renglones.</div>
+            <div id="listaProximas"></div>
+          </div>
+        </div>
         <div class="campo">
           <label>Nombre del solicitante <span class="req">*</span></label>
           <input type="text" id="solicitante" placeholder="Nombre y apellido">
@@ -878,90 +885,122 @@ function filtrarCicloPasado(citas){
     });
 }
 
+// Próximas citas AGENDADA: fecha confirmada de hoy en adelante (ciclo actual + siguiente).
+// Ordenadas por fecha ascendente: la cita más próxima primero.
+function filtrarCicloFuturo(citas){
+  if(!Array.isArray(citas)||!citas.length) return [];
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const hoyStr=ymdLocal(hoy);
+  const fconf=d=>String(d.fecha_confirmada||'').slice(0,10);
+  return citas
+    .filter(d=>{
+      const est=String(d.estado||'').toUpperCase();
+      if(est!=='AGENDADA') return false;
+      const f=fconf(d);
+      return f && f>=hoyStr;
+    })
+    .sort((a,b)=> fconf(a).localeCompare(fconf(b)) || String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) );
+}
+
 function cargarDiferidasProveedor(empresa){
   const box=document.getElementById('boxDiferidas');
   const cont=document.getElementById('listaDiferidas');
+  const boxProx=document.getElementById('boxProximas');
+  const contProx=document.getElementById('listaProximas');
   _empresaTraz=empresa||'';
-  if(!empresa){ box.style.display='none'; return; }
+  if(!empresa){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; return; }
   cont.innerHTML='<div style="font-size:12px;color:#999;">Consultando...</div>';
   const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
     const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
-    // Si el proveedor no tiene NINGÚN historial, ocultar la caja por completo.
-    if(!citasTodas.length){ box.style.display='none'; return; }
-    // Punto 2: en pantalla mostrar SOLO el ciclo pasado (lun-sáb de la semana previa)
-    // y SOLO diferidas + reprogramadas + asistió. El Excel sí lleva toda la historia.
-    const citas=filtrarCicloPasado(citasTodas);
+    // Si el proveedor no tiene NINGÚN historial, ocultar ambas cajas.
+    if(!citasTodas.length){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; return; }
+    // Sección 1: ciclo pasado (lun-sáb de la semana previa). Sección 2: próximas agendadas.
+    const citasPasado=filtrarCicloPasado(citasTodas);
+    const citasFuturo=filtrarCicloFuturo(citasTodas);
+
+    // ----- Sección PRÓXIMAS CITAS AGENDADAS (hacia adelante) -----
+    if(boxProx && contProx){
+      if(citasFuturo.length){
+        boxProx.style.display='block';
+        renderCitasEnCaja(contProx, citasFuturo, 'prox');
+      } else {
+        boxProx.style.display='none';
+      }
+    }
+
+    // ----- Sección CICLO ANTERIOR -----
     // La caja SIEMPRE se muestra si hay historial (para tener disponible el botón de Excel).
     box.style.display='block';
-    if(!citas.length){
-      document.getElementById('listaDiferidas').innerHTML=
-        '<div style="font-size:12px;color:#777;padding:6px 0;">Sin citas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
+    if(!citasPasado.length){
+      cont.innerHTML='<div style="font-size:12px;color:#777;padding:6px 0;">Sin citas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
       return;
     }
-    const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
-    const estiloEstado=e=>{
-      e=String(e||'').toUpperCase();
-      if(e==='AGENDADA') return ['#d6e4f0','#0C447C','Agendada'];
-      if(e==='DIFERIDA') return ['#fde9d3','#8a5200','Diferida'];
-      if(e==='REPROGRAMADA') return ['#fff2cc','#7a5c00','Reprogramada'];
-      if(e==='CANCELADA') return ['#f4cccc','#8a2020','Cancelada'];
-      if(e==='ASISTIO') return ['#d9ead3','#2d5a1e','Asistió'];
-      if(e==='NO_ASISTIO') return ['#f4cccc','#8a2020','No asistió'];
-      if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
-      return ['#eee','#555',e];
-    };
-    // Construye la tarjeta HTML de una cita
-    const tarjeta=d=>{
-      const st=estiloEstado(d.estado);
-      const detalles=[];
-      if(d.cant_unidades) detalles.push(fmtNum(d.cant_unidades)+' und');
-      if(d.cant_bultos) detalles.push(fmtNum(d.cant_bultos)+' bultos');
-      if(d.cant_pallets) detalles.push(fmtNum(d.cant_pallets)+' pallets');
-      let cita='';
-      if(String(d.estado||'').toUpperCase()==='AGENDADA' && d.fecha_confirmada){
-        cita='<span style="color:#0C447C;font-weight:600;">Cita: '+escAttr(d.fecha_confirmada)+(d.hora_confirmada?' '+escAttr(d.hora_confirmada):'')+'</span>';
-      } else if(d.fecha_solicitada){
-        cita='<span style="color:#666;">Solicitada: '+escAttr(d.fecha_solicitada)+'</span>';
-      }
-      return '<div style="border-top:1px solid #dce6f0;padding:7px 0;font-size:12.5px;">'+
-        '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:3px;background:'+st[0]+';color:'+st[1]+';">'+st[2]+'</span> '+
-        '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
-        '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
-        (cita?'<br>'+cita:'')+
-        (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
-        (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
-        (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
-        '</div>';
-    };
-    // Mostrar las primeras TOPE citas y, si hay más, un botón "ver más" para desplegar el resto.
-    const TOPE=4;
-    const visibles=citas.slice(0,TOPE).map(tarjeta).join('');
-    const ocultas=citas.slice(TOPE).map(tarjeta).join('');
-    if(citas.length>TOPE){
-      cont.innerHTML=visibles+
-        '<div id="trazRestoWrap" style="display:none;">'+ocultas+'</div>'+
-        '<div style="border-top:1px solid #dce6f0;padding-top:8px;margin-top:4px;">'+
-        '<button type="button" id="btnTrazVerMas" style="font-size:12px;padding:5px 12px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;font-weight:600;">'+
-        'Ver '+(citas.length-TOPE)+' cita'+((citas.length-TOPE)>1?'s':'')+' más ▾</button></div>';
-      const btn=document.getElementById('btnTrazVerMas');
-      btn.addEventListener('click',function(){
-        const wrap=document.getElementById('trazRestoWrap');
-        const abierto=wrap.style.display!=='none';
-        wrap.style.display=abierto?'none':'block';
-        this.innerHTML=abierto
-          ? ('Ver '+(citas.length-TOPE)+' cita'+((citas.length-TOPE)>1?'s':'')+' más ▾')
-          : 'Ver menos ▴';
-      });
-    } else {
-      cont.innerHTML=visibles;
-    }
+    renderCitasEnCaja(cont, citasPasado, 'pasado');
   };
   const s=document.createElement('script');
   s.src=API_URL+'?action=getCitasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
-  s.onerror=function(){ box.style.display='none'; };
+  s.onerror=function(){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; };
   document.body.appendChild(s);
+}
+
+// ---- Helpers de presentación de citas (reutilizables en ambas secciones) ----
+function _fmtNumCita(n){ return (Number(n)||0).toLocaleString('es-PA'); }
+function _estiloEstadoCita(e){
+  e=String(e||'').toUpperCase();
+  if(e==='AGENDADA') return ['#d6e4f0','#0C447C','Agendada'];
+  if(e==='DIFERIDA') return ['#fde9d3','#8a5200','Diferida'];
+  if(e==='REPROGRAMADA') return ['#fff2cc','#7a5c00','Reprogramada'];
+  if(e==='CANCELADA') return ['#f4cccc','#8a2020','Cancelada'];
+  if(e==='ASISTIO') return ['#d9ead3','#2d5a1e','Asistió'];
+  if(e==='NO_ASISTIO') return ['#f4cccc','#8a2020','No asistió'];
+  if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
+  return ['#eee','#555',e];
+}
+function _tarjetaCita(d){
+  const st=_estiloEstadoCita(d.estado);
+  const detalles=[];
+  if(d.cant_unidades) detalles.push(_fmtNumCita(d.cant_unidades)+' und');
+  if(d.cant_bultos) detalles.push(_fmtNumCita(d.cant_bultos)+' bultos');
+  if(d.cant_pallets) detalles.push(_fmtNumCita(d.cant_pallets)+' pallets');
+  let cita='';
+  if(String(d.estado||'').toUpperCase()==='AGENDADA' && d.fecha_confirmada){
+    cita='<span style="color:#0C447C;font-weight:600;">Cita: '+escAttr(d.fecha_confirmada)+(d.hora_confirmada?' '+escAttr(d.hora_confirmada):'')+'</span>';
+  } else if(d.fecha_solicitada){
+    cita='<span style="color:#666;">Solicitada: '+escAttr(d.fecha_solicitada)+'</span>';
+  }
+  return '<div style="border-top:1px solid #dce6f0;padding:7px 0;font-size:12.5px;">'+
+    '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:3px;background:'+st[0]+';color:'+st[1]+';">'+st[2]+'</span> '+
+    '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
+    '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
+    (cita?'<br>'+cita:'')+
+    (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
+    (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
+    (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
+    '</div>';
+}
+// Renderiza una lista de citas en un contenedor, con tope de 4 + botón "ver más".
+function renderCitasEnCaja(cont, citas, sufijo){
+  const TOPE=4;
+  const visibles=citas.slice(0,TOPE).map(_tarjetaCita).join('');
+  if(citas.length<=TOPE){ cont.innerHTML=visibles; return; }
+  const ocultas=citas.slice(TOPE).map(_tarjetaCita).join('');
+  const idWrap='trazResto_'+sufijo, idBtn='btnTrazVerMas_'+sufijo;
+  const resto=citas.length-TOPE;
+  const etiqueta=t=>'Ver '+resto+' cita'+(resto>1?'s':'')+' más ▾';
+  cont.innerHTML=visibles+
+    '<div id="'+idWrap+'" style="display:none;">'+ocultas+'</div>'+
+    '<div style="border-top:1px solid #dce6f0;padding-top:8px;margin-top:4px;">'+
+    '<button type="button" id="'+idBtn+'" style="font-size:12px;padding:5px 12px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;font-weight:600;">'+
+    etiqueta()+'</button></div>';
+  const btn=document.getElementById(idBtn);
+  btn.addEventListener('click',function(){
+    const wrap=document.getElementById(idWrap);
+    const abierto=wrap.style.display!=='none';
+    wrap.style.display=abierto?'none':'block';
+    this.innerHTML=abierto ? etiqueta() : 'Ver menos ▴';
+  });
 }
 
 // Botón: descargar Excel de trazabilidad del proveedor
