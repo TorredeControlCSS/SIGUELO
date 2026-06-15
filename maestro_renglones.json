@@ -21532,6 +21532,22 @@
         "origen": "adjudicado",
         "origen_detalle": "planificacion"
       },
+       {
+        "cod_abasto": "000000000",
+        "cod_sap": "IN01061072",
+        "desc": "KIT PARA CIERRE DE PUERTOS LAPAROSCOPICOS",
+        "categoria": "MEDICO QUIRURGICO",
+        "especialidad": "MEDICO QUIRURGICO",
+        "presentacion": "",
+        "u_caja": null,
+        "u_pallet": null,
+        "analista": "ON",
+        "pais_origen": "ESTADOS UNIDOS",
+        "consumo_mensual": 1,
+        "consumo_cdpa": null,
+        "origen": "adjudicado",
+        "origen_detalle": "planificacion"
+      },
       {
         "cod_abasto": "915304101",
         "cod_sap": "MN02061093",
