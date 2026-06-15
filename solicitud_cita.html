@@ -583,16 +583,50 @@ const CLASIF_BULTO = ['','BULTOS COMPLETOS','BULTO INCOMPLETO'];
 
 function norm(c){ return String(c||'').replace(/\.0$/,'').replace(/[-\s]/g,'').toUpperCase(); }
 
+// Carga el maestro: primero del endpoint GAS (JSONP, evita CORS); si no, del JSON de GitHub.
+function cargarMaestro(){
+  return new Promise((resolve)=>{
+    let resuelto=false;
+    const finalizar=(obj)=>{ if(!resuelto){ resuelto=true; resolve(obj); } };
+    const fallback=()=>{
+      // Respaldo: maestro_renglones.json estático en GitHub Pages
+      fetch(DATA_URL).then(r=>r.json()).then(j=>finalizar(j||{proveedores:[],catalogo:{}}))
+        .catch(()=>finalizar({proveedores:[],catalogo:{}}));
+    };
+    const cb='_maestroCB_'+Date.now();
+    window[cb]=function(resp){
+      try{
+        if(resp && resp.success && resp.proveedores){ finalizar(resp); }
+        else { fallback(); }
+      } finally {
+        delete window[cb];
+        const s=document.getElementById('jsonpMaestro'); if(s) s.remove();
+      }
+    };
+    const s=document.createElement('script');
+    s.id='jsonpMaestro';
+    s.src=API_URL+'?action=getMaestroRenglones&callback='+cb;
+    s.onerror=()=>{ delete window[cb]; const x=document.getElementById('jsonpMaestro'); if(x)x.remove(); fallback(); };
+    document.body.appendChild(s);
+    // Si el endpoint no responde en 12s, usar el respaldo
+    setTimeout(()=>{ if(!resuelto){ try{ delete window[cb]; }catch(e){} fallback(); } }, 12000);
+  });
+}
+
 async function init(){
+  // 1) Intentar el endpoint en vivo (siempre actualizado desde la hoja MAESTRO_PROVEEDORES).
+  // 2) Si falla, caer al maestro_renglones.json de GitHub (respaldo).
   try{
-    const resp = await fetch(DATA_URL);
-    MAESTRO = await resp.json();
+    MAESTRO = await cargarMaestro();
     const sel = document.getElementById('empresa');
     (MAESTRO.proveedores||[]).forEach(p=>{
       const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
     });
+    if(!MAESTRO.proveedores || !MAESTRO.proveedores.length){
+      mostrarAlerta('err','El catálogo de renglones llegó vacío. Avise a Torre de Control.');
+    }
   }catch(e){
-    mostrarAlerta('err','No se pudo cargar el catálogo de renglones ('+DATA_URL+').');
+    mostrarAlerta('err','No se pudo cargar el catálogo de renglones.');
   }
   document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
   document.getElementById('fechaSolic').addEventListener('change', ()=>{
