@@ -89,7 +89,7 @@
     "JERS MEDICAL PANAMA, INC.",
     "JOTACE, S.A.",
     "KENDALL MEDTRONICS",
-    "LABORATORIO BIOPAS",
+    "LABORATORIOS BIOPAS",
     "LABORATORIO INDUSTRIAL FARMACEUTICO, S.A. (LIFAR, S.A.)",
     "LABORATORIO JAYOR PANAMA, S.A.",
     "LABORATORIOS FARMACÉUTICOS, S.A.",
@@ -10251,7 +10251,7 @@
         "origen_detalle": "json_previo"
       }
     ],
-    "LABORATORIO BIOPAS": [
+    "LABORATORIOS BIOPAS": [
       {
         "cod_abasto": "103055201",
         "cod_sap": "J01CA00001",
