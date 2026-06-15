@@ -595,6 +595,11 @@ const COLORES_CAT = {
 const CLASIF_BULTO = ['','BULTOS COMPLETOS','BULTO INCOMPLETO'];
 
 function norm(c){ return String(c||'').replace(/\.0$/,'').replace(/[-\s]/g,'').toUpperCase(); }
+// Fecha local YYYY-MM-DD SIN conversión a UTC (evita el corrimiento de día por zona horaria)
+function ymdLocal(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
 
 // Carga el maestro: primero del endpoint GAS (JSONP, evita CORS); si no, del JSON de GitHub.
 function cargarMaestro(){
@@ -641,7 +646,7 @@ async function init(){
   }catch(e){
     mostrarAlerta('err','No se pudo cargar el catálogo de renglones.');
   }
-  document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
+  document.getElementById('fechaSolic').min=ymdLocal(new Date());
   document.getElementById('fechaSolic').addEventListener('change', ()=>{
     document.querySelectorAll('#cuerpoLotes input[data-f="venc"]').forEach(actualizarMarcaCorta);
   });
@@ -701,7 +706,7 @@ function ventanaCiclo(){
   lunesVentana.setDate(lunesActual.getDate()+(cerrado?14:7));
   const viernesVentana=new Date(lunesVentana);
   viernesVentana.setDate(lunesVentana.getDate()+4);
-  const k=d=>d.toISOString().slice(0,10);
+  const k=d=>ymdLocal(d);
   return { desde:k(lunesVentana), hasta:k(viernesVentana), cerrado };
 }
 
@@ -722,7 +727,7 @@ function renderCalendario(carga, detalle){
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const semana=['dom','lun','mar','mié','jue','vie','sáb'];
   const info=dias.map(fec=>{
-    const key=fec.toISOString().slice(0,10);
+    const key=ymdLocal(fec);
     const det=detalle[key]||{solicitadas:0,agendadas:0};
     const enVentana=(key>=vent.desde && key<=vent.hasta);
     return {fec,key,sol:det.solicitadas||0,agen:det.agendadas||0,enVentana};
@@ -842,7 +847,7 @@ function filtrarCicloPasado(citas){
   // Semana pasada: lunes anterior .. sábado anterior
   const lunesPasada=new Date(lunesEsta); lunesPasada.setDate(lunesEsta.getDate()-7);
   const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
-  const k=d=>d.toISOString().slice(0,10);
+  const k=d=>ymdLocal(d);
   const desde=k(lunesPasada), hasta=k(sabadoPasada);
   const PERMITIDOS={'DIFERIDA':1,'REPROGRAMADA':1,'ASISTIO':1};
   // Para ubicar la cita en el tiempo: usar fecha confirmada si existe, si no la solicitada
@@ -874,11 +879,18 @@ function cargarDiferidasProveedor(empresa){
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
     const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
+    // Si el proveedor no tiene NINGÚN historial, ocultar la caja por completo.
+    if(!citasTodas.length){ box.style.display='none'; return; }
     // Punto 2: en pantalla mostrar SOLO el ciclo pasado (lun-sáb de la semana previa)
     // y SOLO diferidas + reprogramadas + asistió. El Excel sí lleva toda la historia.
     const citas=filtrarCicloPasado(citasTodas);
-    if(!citas.length){ box.style.display='none'; return; }
+    // La caja SIEMPRE se muestra si hay historial (para tener disponible el botón de Excel).
     box.style.display='block';
+    if(!citas.length){
+      document.getElementById('listaDiferidas').innerHTML=
+        '<div style="font-size:12px;color:#777;padding:6px 0;">Sin diferidas, reprogramadas ni entregas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
+      return;
+    }
     const fmtNum=n=>(Number(n)||0).toLocaleString('es-PA');
     const estiloEstado=e=>{
       e=String(e||'').toUpperCase();
@@ -1246,7 +1258,7 @@ function limpiarTodo(){
   document.getElementById('campoNotaAdelanto').style.display='none';
   document.getElementById('avisoCompromiso').classList.remove('activo');
   renglonActual=null; lotes=[]; agregarLote();
-  document.getElementById('fechaSolic').min=new Date().toISOString().slice(0,10);
+  document.getElementById('fechaSolic').min=ymdLocal(new Date());
   document.getElementById('archivoInfo').textContent='';
   document.getElementById('barraWrap').style.display='none';
   document.getElementById('barraProg').style.width='0%';
