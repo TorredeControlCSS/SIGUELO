@@ -837,13 +837,20 @@ let _empresaTraz='';
 
 // Punto 2: filtra a la semana laboral ANTERIOR (lun-sáb previos) y solo
 // estados DIFERIDA / REPROGRAMADA / ASISTIO. El resto se oculta en pantalla.
+// El DOMINGO se trata como cierre de la semana laboral que acaba de terminar:
+// parado en domingo, "la semana pasada" es la semana lun-sáb que incluye a ese domingo.
 function filtrarCicloPasado(citas){
   if(!Array.isArray(citas)||!citas.length) return [];
-  // Lunes de ESTA semana
   const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const dow=hoy.getDay(); // 0=dom..6=sáb
-  const difLun=(dow===0?-6:1-dow);
-  const lunesEsta=new Date(hoy); lunesEsta.setDate(hoy.getDate()+difLun);
+  const dow=hoy.getDay(); // 0=dom .. 6=sáb
+  // Lunes de la semana laboral actual. El domingo pertenece a la semana que
+  // termina (su lunes fue 6 días antes), no a la que empieza al día siguiente.
+  const lunesEsta=new Date(hoy);
+  const difLun = (dow===0 ? -6 : 1-dow);
+  lunesEsta.setDate(hoy.getDate()+difLun);
+  // Si hoy es domingo, la "semana actual" para efectos de ciclo es la que arranca
+  // mañana (lunes); por eso la semana pasada es la que contiene al domingo de hoy.
+  if(dow===0){ lunesEsta.setDate(lunesEsta.getDate()+7); }
   // Semana pasada: lunes anterior .. sábado anterior
   const lunesPasada=new Date(lunesEsta); lunesPasada.setDate(lunesEsta.getDate()-7);
   const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
