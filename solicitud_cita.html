@@ -323,7 +323,7 @@
     <div class="seccion-titulo"><span class="num">4</span> Detalles Logísticos de la Entrega</div>
     <div class="seccion-cuerpo">
       <div id="calCarga" class="cal-carga" style="display:none;">
-        <div class="cal-titulo">Carga de citas — próximas dos semanas <span class="cal-hint">(<span style="color:#c97a00;font-weight:700;">solicitadas</span> / <span style="color:#0a7a2f;font-weight:700;">agendadas</span> por día)</span></div>
+        <div class="cal-titulo">Carga de citas — próximas dos semanas <span class="cal-hint">(<span style="color:#c97a00;font-weight:700;">pendientes</span> / <span style="color:#0a7a2f;font-weight:700;">confirmadas</span> por día)</span></div>
         <div id="calDias" class="cal-dias"></div>
         <div id="calSugerencia" class="cal-sugerencia"></div>
       </div>
@@ -740,7 +740,7 @@ function renderCalendario(carga, detalle){
     const title = it.enVentana ? 'Clic para elegir este día' : 'Fuera del período de citas vigente (el ciclo cierra el miércoles para la semana siguiente)';
     return `<div class="cal-dia ${cls}${fueraVent}" data-fecha="${it.key}" data-ventana="${it.enVentana?1:0}" title="${title}">
       <div class="cd-fecha">${etiqueta}</div>
-      <div class="cd-doble"><span class="cd-sol" title="Solicitadas">${it.sol}</span><span class="cd-sep">/</span><span class="cd-agen" title="Agendadas (concedidas)">${it.agen}</span></div>
+      <div class="cd-doble"><span class="cd-sol" title="Pendientes por confirmar">${it.sol}</span><span class="cd-sep">/</span><span class="cd-agen" title="Confirmadas (agendadas)">${it.agen}</span></div>
       <div class="cd-estado">${it.enVentana?txt:'Fuera de ciclo'}</div>
     </div>`;
   }).join('');
@@ -757,7 +757,7 @@ function renderCalendario(carga, detalle){
       inp.value=f; inp.dispatchEvent(new Event('change'));
     });
   });
-  if(sug) sug.innerHTML='Cada bloque muestra <b>solicitadas / agendadas</b>. Período vigente para pedir: <b>'+vent.desde+'</b> al <b>'+vent.hasta+'</b> (lun-vie). El ciclo cierra los miércoles; se confirma los viernes.';
+  if(sug) sug.innerHTML='Cada bloque muestra <b>pendientes / confirmadas</b>. Período vigente para pedir: <b>'+vent.desde+'</b> al <b>'+vent.hasta+'</b> (lun-vie). El ciclo cierra los miércoles; se confirma los viernes.';
   wrap.style.display='block';
 }
 
