@@ -187,18 +187,32 @@
         <div class="campo full" id="boxDiferidas" style="display:none;">
           <div style="border:1px solid #1e5a9e;background:#f4f8fc;border-radius:4px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas — ciclo anterior</div>
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Estado de sus citas</div>
               <button type="button" id="btnExcelTraz" style="font-size:11px;padding:5px 10px;border:1px solid #1e5a9e;background:#fff;color:#1e5a9e;border-radius:3px;cursor:pointer;">⬇ Descargar Excel (historial completo)</button>
             </div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">Resumen del ciclo de la semana pasada: diferidas, reprogramadas, agendadas, pendientes y asistidas. Las diferidas ya están registradas y serán reprogramadas; no vuelva a solicitar cita para esos renglones. El Excel incluye el historial completo de todas sus citas.</div>
-            <div id="listaDiferidas"></div>
-          </div>
-        </div>
-        <div class="campo full" id="boxProximas" style="display:none;">
-          <div style="border:1px solid #2d7a4e;background:#f1f9f4;border-radius:4px;padding:10px 12px;">
-            <div style="font-weight:700;color:#1e6e3e;font-size:13px;margin-bottom:6px;">Sus próximas citas agendadas</div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">Citas ya confirmadas de hoy en adelante. Preséntese en CEDIS Panamá en la fecha y hora indicadas. No necesita volver a solicitar cita para estos renglones.</div>
-            <div id="listaProximas"></div>
+            <div style="font-size:12px;color:#666;margin-bottom:10px;">Resumen rápido de sus citas. El Excel incluye el historial completo.</div>
+
+            <!-- Grupo 1: Requieren atención -->
+            <div id="grpAtencion" style="display:none;margin-bottom:12px;">
+              <div style="font-size:11.5px;font-weight:700;color:#8a5200;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #f0d9b5;padding-bottom:3px;margin-bottom:6px;">⚠ Requieren atención</div>
+              <div style="font-size:11px;color:#777;margin-bottom:6px;">Pendientes de confirmar, diferidas o reprogramadas. Para las diferidas ya hay nota: no las vuelva a solicitar.</div>
+              <div id="listaAtencion"></div>
+            </div>
+
+            <!-- Grupo 2: Ya agendadas -->
+            <div id="grpAgendadas" style="display:none;margin-bottom:12px;">
+              <div style="font-size:11.5px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #cddff0;padding-bottom:3px;margin-bottom:6px;">✓ Ya agendadas</div>
+              <div style="font-size:11px;color:#777;margin-bottom:6px;">Citas confirmadas. Preséntese en CEDIS Panamá en la fecha y hora indicadas.</div>
+              <div id="listaAgendadas"></div>
+            </div>
+
+            <!-- Grupo 3: Asistió (semana pasada, discreto) -->
+            <div id="grpAsistio" style="display:none;">
+              <div style="font-size:11px;font-weight:600;color:#2d5a1e;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #d9ead3;padding-bottom:3px;margin-bottom:6px;opacity:.85;">Entregas de la semana pasada</div>
+              <div id="listaAsistio"></div>
+            </div>
+
+            <div id="boxDiferidasVacio" style="display:none;font-size:12px;color:#777;padding:6px 0;">Sin citas activas. Use el botón de Excel para ver su historial completo.</div>
           </div>
         </div>
         <div class="campo">
@@ -842,106 +856,92 @@ document.getElementById('renglon').addEventListener('change', function(){
 // ---- Trazabilidad de citas del proveedor (todos los estados) ----
 let _empresaTraz='';
 
-// Punto 2: filtra a la semana laboral ANTERIOR (lun-sáb previos) y solo
-// estados DIFERIDA / REPROGRAMADA / ASISTIO. El resto se oculta en pantalla.
-// El DOMINGO se trata como cierre de la semana laboral que acaba de terminar:
-// parado en domingo, "la semana pasada" es la semana lun-sáb que incluye a ese domingo.
-function filtrarCicloPasado(citas){
+// Grupo 1 — REQUIEREN ATENCIÓN: pendientes / diferidas / reprogramadas (sin límite de fecha).
+function filtrarAtencion(citas){
   if(!Array.isArray(citas)||!citas.length) return [];
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const dow=hoy.getDay(); // 0=dom .. 6=sáb
-  // Lunes de la semana laboral actual. El domingo pertenece a la semana que
-  // termina (su lunes fue 6 días antes), no a la que empieza al día siguiente.
-  const lunesEsta=new Date(hoy);
-  const difLun = (dow===0 ? -6 : 1-dow);
-  lunesEsta.setDate(hoy.getDate()+difLun);
-  // Si hoy es domingo, la "semana actual" para efectos de ciclo es la que arranca
-  // mañana (lunes); por eso la semana pasada es la que contiene al domingo de hoy.
-  if(dow===0){ lunesEsta.setDate(lunesEsta.getDate()+7); }
-  // Semana pasada: lunes anterior .. sábado anterior
-  const lunesPasada=new Date(lunesEsta); lunesPasada.setDate(lunesEsta.getDate()-7);
-  const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
-  const k=d=>ymdLocal(d);
-  const desde=k(lunesPasada), hasta=k(sabadoPasada);
-  // Mostrar todo lo del ciclo pasado: diferidas/reprogramadas primero, luego agendadas,
-  // pendientes y por último las asistidas (cierre positivo).
-  const PERMITIDOS={'DIFERIDA':1,'REPROGRAMADA':1,'AGENDADA':1,'PENDIENTE':1,'SOLICITADA':1,'EN ANALISIS':1,'ASISTIO':1};
-  // Para ubicar la cita en el tiempo: usar fecha confirmada si existe, si no la solicitada
-  const fechaRef=d=>{
-    const f=(d.fecha_confirmada||d.fecha_solicitada||'');
-    return String(f).slice(0,10);
-  };
-  const orden={'DIFERIDA':0,'REPROGRAMADA':1,'AGENDADA':2,'PENDIENTE':3,'SOLICITADA':3,'EN ANALISIS':3,'ASISTIO':4};
+  const ATENCION={'PENDIENTE':1,'SOLICITADA':1,'EN ANALISIS':1,'DIFERIDA':1,'REPROGRAMADA':1};
+  const orden={'DIFERIDA':0,'REPROGRAMADA':1,'PENDIENTE':2,'SOLICITADA':2,'EN ANALISIS':2};
+  const fechaRef=d=>String(d.fecha_solicitada||d.fecha_confirmada||'').slice(0,10);
   return citas
-    .filter(d=>{
-      const est=String(d.estado||'').toUpperCase();
-      if(!PERMITIDOS[est]) return false;
-      const f=fechaRef(d);
-      return f && f>=desde && f<=hasta;
-    })
+    .filter(d=>ATENCION[String(d.estado||'').toUpperCase()])
     .sort((a,b)=>{
       const ea=String(a.estado||'').toUpperCase(), eb=String(b.estado||'').toUpperCase();
       return (orden[ea]-orden[eb]) || (fechaRef(b).localeCompare(fechaRef(a)));
     });
 }
 
-// Próximas citas AGENDADA: fecha confirmada de hoy en adelante (ciclo actual + siguiente).
-// Ordenadas por fecha ascendente: la cita más próxima primero.
-function filtrarCicloFuturo(citas){
+// Grupo 2 — YA AGENDADAS: estado AGENDADA (sin límite de fecha), por fecha de cita ascendente.
+function filtrarAgendadas(citas){
+  if(!Array.isArray(citas)||!citas.length) return [];
+  const fconf=d=>String(d.fecha_confirmada||'').slice(0,10);
+  return citas
+    .filter(d=>String(d.estado||'').toUpperCase()==='AGENDADA')
+    .sort((a,b)=> fconf(a).localeCompare(fconf(b)) || String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) );
+}
+
+// Grupo 3 — ASISTIÓ semana pasada (discreto). Domingo cierra la semana que termina.
+function filtrarAsistioSemanaPasada(citas){
   if(!Array.isArray(citas)||!citas.length) return [];
   const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const hoyStr=ymdLocal(hoy);
-  const fconf=d=>String(d.fecha_confirmada||'').slice(0,10);
+  const dow=hoy.getDay();
+  const lunesEsta=new Date(hoy);
+  lunesEsta.setDate(hoy.getDate() + (dow===0 ? -6 : 1-dow));
+  if(dow===0){ lunesEsta.setDate(lunesEsta.getDate()+7); }
+  const lunesPasada=new Date(lunesEsta); lunesPasada.setDate(lunesEsta.getDate()-7);
+  const sabadoPasada=new Date(lunesPasada); sabadoPasada.setDate(lunesPasada.getDate()+5);
+  const desde=ymdLocal(lunesPasada), hasta=ymdLocal(sabadoPasada);
+  const fechaRef=d=>String(d.fecha_confirmada||d.fecha_solicitada||'').slice(0,10);
   return citas
     .filter(d=>{
       const est=String(d.estado||'').toUpperCase();
-      if(est!=='AGENDADA') return false;
-      const f=fconf(d);
-      return f && f>=hoyStr;
+      if(est!=='ASISTIO' && est!=='ENTREGADO') return false;
+      const f=fechaRef(d);
+      return f && f>=desde && f<=hasta;
     })
-    .sort((a,b)=> fconf(a).localeCompare(fconf(b)) || String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')) );
+    .sort((a,b)=> fechaRef(b).localeCompare(fechaRef(a)) );
 }
 
 function cargarDiferidasProveedor(empresa){
   const box=document.getElementById('boxDiferidas');
-  const cont=document.getElementById('listaDiferidas');
-  const boxProx=document.getElementById('boxProximas');
-  const contProx=document.getElementById('listaProximas');
   _empresaTraz=empresa||'';
-  if(!empresa){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; return; }
-  cont.innerHTML='<div style="font-size:12px;color:#999;">Consultando...</div>';
+  if(!empresa){ box.style.display='none'; return; }
+  // limpiar grupos
+  ['grpAtencion','grpAgendadas','grpAsistio','boxDiferidasVacio'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
     const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
-    // Si el proveedor no tiene NINGÚN historial, ocultar ambas cajas.
-    if(!citasTodas.length){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; return; }
-    // Sección 1: ciclo pasado (lun-sáb de la semana previa). Sección 2: próximas agendadas.
-    const citasPasado=filtrarCicloPasado(citasTodas);
-    const citasFuturo=filtrarCicloFuturo(citasTodas);
+    if(!citasTodas.length){ box.style.display='none'; return; }
 
-    // ----- Sección PRÓXIMAS CITAS AGENDADAS (hacia adelante) -----
-    if(boxProx && contProx){
-      if(citasFuturo.length){
-        boxProx.style.display='block';
-        renderCitasEnCaja(contProx, citasFuturo, 'prox');
-      } else {
-        boxProx.style.display='none';
-      }
-    }
+    const atencion=filtrarAtencion(citasTodas);
+    const agendadas=filtrarAgendadas(citasTodas);
+    const asistio=filtrarAsistioSemanaPasada(citasTodas);
 
-    // ----- Sección CICLO ANTERIOR -----
-    // La caja SIEMPRE se muestra si hay historial (para tener disponible el botón de Excel).
     box.style.display='block';
-    if(!citasPasado.length){
-      cont.innerHTML='<div style="font-size:12px;color:#777;padding:6px 0;">Sin citas en el ciclo de la semana pasada. Use el botón de Excel para ver su historial completo.</div>';
-      return;
+
+    // Grupo 1: requieren atención
+    if(atencion.length){
+      document.getElementById('grpAtencion').style.display='block';
+      renderCitasEnCaja(document.getElementById('listaAtencion'), atencion, 'aten');
     }
-    renderCitasEnCaja(cont, citasPasado, 'pasado');
+    // Grupo 2: ya agendadas
+    if(agendadas.length){
+      document.getElementById('grpAgendadas').style.display='block';
+      renderCitasEnCaja(document.getElementById('listaAgendadas'), agendadas, 'agen');
+    }
+    // Grupo 3: asistió semana pasada (discreto)
+    if(asistio.length){
+      document.getElementById('grpAsistio').style.display='block';
+      renderCitasEnCaja(document.getElementById('listaAsistio'), asistio, 'asis');
+    }
+    // Si no hay nada en ningún grupo activo, mensaje
+    if(!atencion.length && !agendadas.length && !asistio.length){
+      document.getElementById('boxDiferidasVacio').style.display='block';
+    }
   };
   const s=document.createElement('script');
   s.src=API_URL+'?action=getCitasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
-  s.onerror=function(){ box.style.display='none'; if(boxProx) boxProx.style.display='none'; };
+  s.onerror=function(){ box.style.display='none'; };
   document.body.appendChild(s);
 }
 
@@ -954,6 +954,7 @@ function _estiloEstadoCita(e){
   if(e==='REPROGRAMADA') return ['#fff2cc','#7a5c00','Reprogramada'];
   if(e==='CANCELADA') return ['#f4cccc','#8a2020','Cancelada'];
   if(e==='ASISTIO') return ['#d9ead3','#2d5a1e','Asistió'];
+  if(e==='ENTREGADO') return ['#d9ead3','#2d5a1e','Entregado'];
   if(e==='NO_ASISTIO') return ['#f4cccc','#8a2020','No asistió'];
   if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
   return ['#eee','#555',e];
@@ -1007,16 +1008,34 @@ function renderCitasEnCaja(cont, citas, sufijo){
 document.getElementById('btnExcelTraz').addEventListener('click',function(){
   if(!_empresaTraz){ alert('Seleccione su empresa primero.'); return; }
   const btn=this; const t0=btn.textContent; btn.textContent='Generando...'; btn.disabled=true;
+  // Abrir la pestaña YA, dentro del gesto del clic, para que el navegador no la bloquee.
+  // Le ponemos un mensaje de espera y luego solo cambiamos su ubicación cuando llega la URL.
+  let win=window.open('','_blank');
+  if(win){
+    try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando Excel…</title>'+
+      '<body style="font-family:Segoe UI,Arial,sans-serif;color:#0C447C;text-align:center;padding-top:18%;">'+
+      '<div style="font-size:18px;font-weight:600;">Generando su Excel…</div>'+
+      '<div style="font-size:13px;color:#666;margin-top:8px;">La descarga comenzará en unos segundos.</div></body>'); }catch(e){}
+  }
   const cb='cbXlsTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
     btn.textContent=t0; btn.disabled=false;
-    if(resp&&resp.success&&resp.url){ window.open(resp.url,'_blank'); }
-    else{ alert('No se pudo generar el Excel: '+((resp&&resp.error)||'')); }
+    if(resp&&resp.success&&resp.url){
+      if(win && !win.closed){ win.location=resp.url; }     // reusar la pestaña ya abierta
+      else { window.location.href=resp.url; }              // respaldo: navegar en la misma pestaña
+    } else {
+      if(win && !win.closed){ try{ win.close(); }catch(e){} }
+      alert('No se pudo generar el Excel: '+((resp&&resp.error)||''));
+    }
   };
   const s=document.createElement('script');
   s.src=API_URL+'?action=generarExcelProveedor&empresa='+encodeURIComponent(_empresaTraz)+'&callback='+cb;
-  s.onerror=function(){ btn.textContent=t0; btn.disabled=false; alert('Error de red al generar el Excel.'); };
+  s.onerror=function(){
+    btn.textContent=t0; btn.disabled=false;
+    if(win && !win.closed){ try{ win.close(); }catch(e){} }
+    alert('Error de red al generar el Excel.');
+  };
   document.body.appendChild(s);
 });
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
