@@ -750,7 +750,10 @@ function renderCalendario(carga, detalle){
   const info=dias.map(fec=>{
     const key=ymdLocal(fec);
     const det=detalle[key]||{solicitadas:0,agendadas:0};
-    const enVentana=(key>=vent.desde && key<=vent.hasta);
+    // Vigente = desde el inicio del período vigente EN ADELANTE (sin tope superior):
+    // cualquier fecha del ciclo vigente o de ciclos futuros es válida para pedir.
+    // Solo queda "fuera de ciclo" lo ANTERIOR al inicio del período vigente.
+    const enVentana=(key>=vent.desde);
     return {fec,key,sol:det.solicitadas||0,agen:det.agendadas||0,enVentana};
   });
   cont.innerHTML=info.map(it=>{
@@ -758,11 +761,11 @@ function renderCalendario(carga, detalle){
     const [cls,txt]=clasifCarga(total);
     const etiqueta=semana[it.fec.getDay()]+' '+it.fec.getDate()+' '+meses[it.fec.getMonth()];
     const fueraVent = it.enVentana ? '' : ' cd-fuera';
-    const title = it.enVentana ? 'Clic para elegir este día' : 'Fuera del período de citas vigente (el ciclo cierra el miércoles para la semana siguiente)';
+    const title = it.enVentana ? 'Clic para elegir este día' : 'Período de entrega ya cerrado (anterior al período vigente)';
     return `<div class="cal-dia ${cls}${fueraVent}" data-fecha="${it.key}" data-ventana="${it.enVentana?1:0}" title="${title}">
       <div class="cd-fecha">${etiqueta}</div>
       <div class="cd-doble"><span class="cd-sol" title="Pendientes por confirmar">${it.sol}</span><span class="cd-sep">/</span><span class="cd-agen" title="Confirmadas (agendadas)">${it.agen}</span></div>
-      <div class="cd-estado">${it.enVentana?txt:'Fuera de ciclo'}</div>
+      <div class="cd-estado">${it.enVentana?txt:'Ciclo cerrado'}</div>
     </div>`;
   }).join('');
   // clic en un día -> setear la fecha; advertir si está fuera de la ventana
@@ -771,14 +774,14 @@ function renderCalendario(carga, detalle){
       const f=el.dataset.fecha;
       const dentro=el.dataset.ventana==='1';
       if(!dentro){
-        const ok=confirm('Atención: el '+f+' está FUERA del período de citas vigente.\n\nEl ciclo cierra cada miércoles y se confirman citas de la semana siguiente (lunes a viernes). Las solicitudes fuera de este período pueden no ser atendidas en el período actual.\n\n¿Desea continuar con esta fecha de todos modos?');
+        const ok=confirm('Atención: el '+f+' corresponde a un período de entrega que ya cerró.\n\nEl ciclo cierra cada miércoles y se confirman citas para el período siguiente en adelante. Una fecha anterior al período vigente puede no ser atendida.\n\n¿Desea continuar con esta fecha de todos modos?');
         if(!ok) return;
       }
       const inp=document.getElementById('fechaSolic');
       inp.value=f; inp.dispatchEvent(new Event('change'));
     });
   });
-  if(sug) sug.innerHTML='Cada bloque muestra <b>pendientes / confirmadas</b>. Período vigente para pedir: <b>'+vent.desde+'</b> al <b>'+vent.hasta+'</b> (lun-vie). El ciclo cierra los miércoles; se confirma los viernes.';
+  if(sug) sug.innerHTML='Cada bloque muestra <b>pendientes / confirmadas</b>. Próximo período de entrega: <b>'+vent.desde+'</b> en adelante. El ciclo cierra los miércoles; se confirma los viernes. Puede solicitar para ese período o ciclos posteriores.';
   wrap.style.display='block';
 }
 
