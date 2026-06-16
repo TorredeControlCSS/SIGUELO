@@ -1095,7 +1095,7 @@ function renderLotes(){
     <td><input type="number" min="0" data-i="${i}" data-f="emp_primario" value="${l.emp_primario||''}" placeholder="ej. 12"></td>
     <td><input type="text" data-i="${i}" data-f="presentacion" value="${escAttr(l.presentacion)}" placeholder="del renglón"></td>
     <td><input type="number" min="0" data-i="${i}" data-f="total_bultos" value="${l.total_bultos||''}" placeholder="ej. 7"></td>
-    <td><input type="number" min="0" step="0.01" data-i="${i}" data-f="pallets" value="${l.pallets||''}" placeholder="ej. 5"></td>
+    <td><input type="number" min="0" step="0.01" data-i="${i}" data-f="pallets" id="pallets_${i}" value="${l.pallets||''}" placeholder="ej. 5"><div class="aviso-pallet" id="avisoPallet_${i}" style="display:none;font-size:10px;color:#8a6a00;margin-top:2px;line-height:1.2;">⚠ Bultos completos: use entero</div></td>
     <td><select data-i="${i}" data-f="clasif">${CLASIF_BULTO.map(e=>`<option ${e===l.clasif?'selected':''}>${e}</option>`).join('')}</select></td>
     <td class="acc">${lotes.length>1?`<button class="btn btn-mini btn-rojo" data-del="${i}">✕</button>`:''}</td>
   </tr>`;}).join('');
@@ -1104,16 +1104,43 @@ function renderLotes(){
       const i=+e.target.dataset.i,f=e.target.dataset.f;
       const numericos=['emp_terciario','emp_secundario','emp_primario','total_bultos','cant_lote'];
       lotes[i][f]= numericos.includes(f)?(parseInt(e.target.value,10)||0):(f==='pallets')?(parseFloat(e.target.value)||0):e.target.value;
+      if(f==='pallets'||f==='clasif') chequearCoherenciaPallet(i);
       totales();
     });
     el.addEventListener('change',e=>{
-      if(e.target.dataset.f==='venc') actualizarMarcaCorta(e.target);
+      const f=e.target.dataset.f;
+      if(f==='venc') actualizarMarcaCorta(e.target);
+      if(f==='clasif') chequearCoherenciaPallet(+e.target.dataset.i);
     });
   });
   tb.querySelectorAll('button[data-del]').forEach(b=>{
     b.addEventListener('click',e=>{ lotes.splice(+e.target.dataset.del,1); renderLotes(); });
   });
+  // chequeo inicial de coherencia para lotes ya cargados
+  lotes.forEach((_,i)=>chequearCoherenciaPallet(i));
   totales();
+}
+// Ayuda visual: si el lote es BULTOS COMPLETOS y los pallets tienen decimales,
+// marcar el campo (los pallets completos deberían ser enteros). BULTO INCOMPLETO
+// puede ser decimal (1.4 = un pallet lleno + sueltos), así que no se advierte.
+function chequearCoherenciaPallet(i){
+  const l=lotes[i]; if(!l) return;
+  const inp=document.getElementById('pallets_'+i);
+  const aviso=document.getElementById('avisoPallet_'+i);
+  if(!inp||!aviso) return;
+  const esCompleto=String(l.clasif||'').toUpperCase().indexOf('INCOMPLETO')===-1
+                   && String(l.clasif||'').toUpperCase().indexOf('COMPLETO')!==-1;
+  const p=parseFloat(l.pallets)||0;
+  const tieneDecimal = p>0 && (Math.abs(p-Math.round(p))>0.001);
+  if(esCompleto && tieneDecimal){
+    inp.style.border='1.5px solid #e0a800';
+    inp.style.background='#fff8e1';
+    aviso.style.display='block';
+  } else {
+    inp.style.border='';
+    inp.style.background='';
+    aviso.style.display='none';
+  }
 }
 function actualizarMarcaCorta(inputVenc){
   const i=+inputVenc.dataset.i;
