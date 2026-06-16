@@ -192,23 +192,23 @@
             </div>
             <div style="font-size:12px;color:#666;margin-bottom:10px;">Resumen rápido de sus citas. El Excel incluye el historial completo.</div>
 
-            <!-- Grupo 1: Requieren atención -->
-            <div id="grpAtencion" style="display:none;margin-bottom:12px;">
-              <div style="font-size:11.5px;font-weight:700;color:#8a5200;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #f0d9b5;padding-bottom:3px;margin-bottom:6px;">⚠ Requieren atención</div>
+            <!-- Grupo 1: Requieren atención (ROJO/NARANJA) -->
+            <div id="grpAtencion" style="display:none;margin-bottom:12px;border-left:4px solid #c0392b;padding-left:10px;">
+              <div style="font-size:11.5px;font-weight:700;color:#a3331f;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #f0c5bd;padding-bottom:3px;margin-bottom:6px;">⚠ Requieren atención</div>
               <div style="font-size:11px;color:#777;margin-bottom:6px;">Pendientes de confirmar, diferidas o reprogramadas. Para las diferidas ya hay nota: no las vuelva a solicitar.</div>
               <div id="listaAtencion"></div>
             </div>
 
-            <!-- Grupo 2: Ya agendadas -->
-            <div id="grpAgendadas" style="display:none;margin-bottom:12px;">
-              <div style="font-size:11.5px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #cddff0;padding-bottom:3px;margin-bottom:6px;">✓ Ya agendadas</div>
+            <!-- Grupo 2: Ya agendadas (AMARILLO) -->
+            <div id="grpAgendadas" style="display:none;margin-bottom:12px;border-left:4px solid #e0a800;padding-left:10px;">
+              <div style="font-size:11.5px;font-weight:700;color:#8a6a00;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #f0e0a8;padding-bottom:3px;margin-bottom:6px;">● Ya agendadas</div>
               <div style="font-size:11px;color:#777;margin-bottom:6px;">Citas confirmadas. Preséntese en CEDIS Panamá en la fecha y hora indicadas.</div>
               <div id="listaAgendadas"></div>
             </div>
 
-            <!-- Grupo 3: Asistió (semana pasada, discreto) -->
-            <div id="grpAsistio" style="display:none;">
-              <div style="font-size:11px;font-weight:600;color:#2d5a1e;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #d9ead3;padding-bottom:3px;margin-bottom:6px;opacity:.85;">Entregas de la semana pasada</div>
+            <!-- Grupo 3: Entregado/Asistió semana pasada (VERDE) -->
+            <div id="grpAsistio" style="display:none;border-left:4px solid #2d7a4e;padding-left:10px;">
+              <div style="font-size:11px;font-weight:600;color:#2d5a1e;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #cfe5c3;padding-bottom:3px;margin-bottom:6px;opacity:.9;">● Entregas de la semana pasada</div>
               <div id="listaAsistio"></div>
             </div>
 
@@ -949,14 +949,14 @@ function cargarDiferidasProveedor(empresa){
 function _fmtNumCita(n){ return (Number(n)||0).toLocaleString('es-PA'); }
 function _estiloEstadoCita(e){
   e=String(e||'').toUpperCase();
-  if(e==='AGENDADA') return ['#d6e4f0','#0C447C','Agendada'];
-  if(e==='DIFERIDA') return ['#fde9d3','#8a5200','Diferida'];
-  if(e==='REPROGRAMADA') return ['#fff2cc','#7a5c00','Reprogramada'];
+  if(e==='AGENDADA') return ['#fff3cd','#8a6a00','Agendada'];
+  if(e==='DIFERIDA') return ['#f8d7da','#a3331f','Diferida'];
+  if(e==='REPROGRAMADA') return ['#f8d7da','#a3331f','Reprogramada'];
   if(e==='CANCELADA') return ['#f4cccc','#8a2020','Cancelada'];
   if(e==='ASISTIO') return ['#d9ead3','#2d5a1e','Asistió'];
   if(e==='ENTREGADO') return ['#d9ead3','#2d5a1e','Entregado'];
   if(e==='NO_ASISTIO') return ['#f4cccc','#8a2020','No asistió'];
-  if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fff3cd','#7a5c00','En revisión'];
+  if(e==='PENDIENTE'||e==='SOLICITADA'||e==='EN ANALISIS') return ['#fde2cf','#a3501f','En revisión'];
   return ['#eee','#555',e];
 }
 function _tarjetaCita(d){
@@ -967,15 +967,37 @@ function _tarjetaCita(d){
   if(d.cant_pallets) detalles.push(_fmtNumCita(d.cant_pallets)+' pallets');
   let cita='';
   if(String(d.estado||'').toUpperCase()==='AGENDADA' && d.fecha_confirmada){
-    cita='<span style="color:#0C447C;font-weight:600;">Cita: '+escAttr(d.fecha_confirmada)+(d.hora_confirmada?' '+escAttr(d.hora_confirmada):'')+'</span>';
+    cita='<span style="color:#8a6a00;font-weight:600;">Cita: '+escAttr(d.fecha_confirmada)+(d.hora_confirmada?' '+escAttr(d.hora_confirmada):'')+'</span>';
   } else if(d.fecha_solicitada){
     cita='<span style="color:#666;">Solicitada: '+escAttr(d.fecha_solicitada)+'</span>';
+  }
+  // Vencimiento de OC con cuenta regresiva — solo para citas VIVAS (no entregadas/asistidas).
+  const estU=String(d.estado||'').toUpperCase();
+  const viva = !(estU==='ASISTIO'||estU==='ENTREGADO'||estU==='CANCELADA'||estU==='NO_ASISTIO');
+  let venc='';
+  if(d.fecha_vencimiento){
+    const fv=String(d.fecha_vencimiento).slice(0,10);
+    if(viva){
+      const hoy=new Date(); hoy.setHours(0,0,0,0);
+      const fvD=new Date(fv+'T00:00:00');
+      const dias=Math.round((fvD-hoy)/86400000);
+      let txt,col;
+      if(dias<0){ txt='OC vencida hace '+Math.abs(dias)+' día'+(Math.abs(dias)!==1?'s':''); col='#a3331f'; }
+      else if(dias===0){ txt='OC vence hoy'; col='#a3331f'; }
+      else if(dias<=3){ txt='OC vence en '+dias+' día'+(dias!==1?'s':''); col='#a3331f'; }
+      else if(dias<=7){ txt='OC vence en '+dias+' días'; col='#8a6a00'; }
+      else { txt='OC vence en '+dias+' días'; col='#666'; }
+      venc='<br><span style="color:'+col+';font-weight:600;">⏱ '+txt+' ('+escAttr(fv)+')</span>';
+    } else {
+      venc='<br><span style="color:#888;">Vencimiento OC: '+escAttr(fv)+'</span>';
+    }
   }
   return '<div style="border-top:1px solid #dce6f0;padding:7px 0;font-size:12.5px;">'+
     '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:3px;background:'+st[0]+';color:'+st[1]+';">'+st[2]+'</span> '+
     '<b>'+escAttr(d.descripcion||'')+'</b><br>'+
     '<span style="font-family:Consolas,monospace;color:#666;">OC '+escAttr(d.oc||'')+' · Abasto '+escAttr(d.cod_abasto||'')+'</span>'+
     (cita?'<br>'+cita:'')+
+    venc+
     (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
     (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
     (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
@@ -1012,9 +1034,10 @@ document.getElementById('btnExcelTraz').addEventListener('click',function(){
   // Le ponemos un mensaje de espera y luego solo cambiamos su ubicación cuando llega la URL.
   let win=window.open('','_blank');
   if(win){
-    try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando Excel…</title>'+
-      '<body style="font-family:Segoe UI,Arial,sans-serif;color:#0C447C;text-align:center;padding-top:18%;">'+
-      '<div style="font-size:18px;font-weight:600;">Generando su Excel…</div>'+
+    try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando Reporte de Citas…</title>'+
+      '<body style="font-family:Segoe UI,Arial,sans-serif;color:#0C447C;text-align:center;padding-top:14%;margin:0;background:#ececec;">'+
+      '<img src="https://torredecontrolcss.github.io/SIGUELO/icons/icon-192.png" alt="CSS Panamá" style="width:84px;height:84px;object-fit:contain;margin-bottom:18px;">'+
+      '<div style="font-size:20px;font-weight:700;">Generando su Reporte de Citas en Excel…</div>'+
       '<div style="font-size:13px;color:#666;margin-top:8px;">La descarga comenzará en unos segundos.</div></body>'); }catch(e){}
   }
   const cb='cbXlsTraz'+Date.now();
