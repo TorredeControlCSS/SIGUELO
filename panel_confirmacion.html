@@ -2526,7 +2526,7 @@ function imprimirEstrategia(){
           '<td>'+esc(s.empresa||'')+'</td>'+
           '<td style="font-family:Consolas;">'+esc(s.oc||'')+'</td>'+
           '<td style="font-family:Consolas;">'+esc(s.cod_abasto||'—')+'</td>'+
-          '<td>'+esc(s.descripcion||'')+'</td>'+
+          '<td class="prod">'+esc(s.descripcion||'')+'</td>'+
           '<td style="text-align:right;font-family:Consolas;white-space:nowrap;">'+num(s.cant_unidades)+' und<br>'+num(pal)+' pal</td>'+
           '<td style="text-align:right;font-family:Consolas;'+cobBg+'">'+cobTxt+'</td>'+
           '<td style="text-align:right;font-family:Consolas;'+ueBg+'">'+ueTxt+'</td>'+
@@ -2534,7 +2534,7 @@ function imprimirEstrategia(){
           '</tr>';
       }).join('');
       return '<div class="cat"><div class="cat-tit">'+esc(cat)+' <span style="font-weight:400;color:#666;">('+items.length+' renglón(es))</span></div>'+
-        '<table><thead><tr><th style="text-align:right;">IPR</th><th>Proveedor</th><th>OC</th><th>Abasto</th><th>Producto</th>'+
+        '<table><colgroup><col style="width:4%"><col style="width:15%"><col style="width:11%"><col style="width:8%"><col style="width:33%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:6%"></colgroup><thead><tr><th style="text-align:right;">IPR</th><th>Proveedor</th><th>OC</th><th>Abasto</th><th>Producto</th>'+
         '<th style="text-align:right;">Cantidad</th><th style="text-align:right;">Cobertura</th><th style="text-align:right;">UE en cero</th><th>Vence OC</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
     }).join('');
     totGlobal+=nEst; palGlobal+=palEst;
@@ -2601,17 +2601,38 @@ function imprimirEstrategia(){
     '<div class="estado-bloque" style="margin-top:18px;">'+
       '<div class="est-tit" style="background:#7a1f1f;">CONCLUSIÓN SUGERIDA (algoritmo de priorización)</div>'+
       '<div class="cat"><div class="cat-tit" style="border-left-color:#7a1f1f;">Resumen por área y acción sugerida</div>'+
-        '<table><thead><tr><th>Área</th><th style="text-align:right;">Renglones</th><th style="text-align:right;">Pallets</th><th>Alertas detectadas</th><th>Acción sugerida</th></tr></thead>'+
+        '<table><colgroup><col style="width:22%"><col style="width:11%"><col style="width:9%"><col style="width:38%"><col style="width:20%"></colgroup><thead><tr><th>Área</th><th style="text-align:right;">Renglones</th><th style="text-align:right;">Pallets</th><th>Alertas detectadas</th><th>Acción sugerida</th></tr></thead>'+
         '<tbody>'+filasConcl+'</tbody></table></div>'+
       '<div class="cat"><div class="cat-tit" style="border-left-color:#7a1f1f;">Renglones críticos a priorizar (top '+topCriticos.length+' por score: IPR + vencimiento + cobertura + escasez)</div>'+
-        '<table><thead><tr><th style="text-align:right;">IPR</th><th>Área</th><th>Proveedor</th><th>Abasto</th><th>Producto</th><th>Por qué es crítico</th></tr></thead>'+
+        '<table><colgroup><col style="width:5%"><col style="width:13%"><col style="width:18%"><col style="width:9%"><col style="width:33%"><col style="width:22%"></colgroup><thead><tr><th style="text-align:right;">IPR</th><th>Área</th><th>Proveedor</th><th>Abasto</th><th>Producto</th><th>Por qué es crítico</th></tr></thead>'+
         '<tbody>'+filasCrit+'</tbody></table></div>'+
       '<div style="font-size:9px;color:#666;padding:6px 8px;">Sugerencia automática basada en IPR, vencimiento de la OC, meses de cobertura en CEDIS Panamá y porcentaje de unidades ejecutoras sin existencias. Es una guía; la decisión final es del equipo.</div>'+
     '</div>';
 
   const win=window.open('','_blank');
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Estrategia semana '+isoLun+'</title><style>'+
-
+    '@page{size:landscape;margin:9mm;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:9.5px;margin:0;}'+
+    '.head{display:flex;align-items:center;gap:12px;border-bottom:4px solid #0C447C;padding-bottom:6px;margin-bottom:6px;}'+
+    '.head img{width:46px;height:46px;object-fit:contain;}'+
+    '.head h1{font-size:15px;margin:0;color:#0C447C;font-weight:800;}'+
+    '.head .org{font-size:10px;color:#222;font-weight:700;}'+
+    '.sub{font-size:10.5px;color:#333;margin:0 0 4px;}'+
+    '.sub b{color:#0C447C;}'+
+    '.resumenln{font-size:10.5px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:5px 10px;margin:0 0 6px;border-radius:0 3px 3px 0;}'+
+    '.leyenda{font-size:9px;color:#555;margin:4px 0 8px;}'+
+    '.leyenda span{display:inline-block;padding:1px 6px;margin-right:6px;border:1px solid #ccc;}'+
+    '.estado-bloque{margin-bottom:12px;page-break-inside:avoid;}'+
+    '.est-tit{background:#0C447C;color:#fff;font-weight:700;font-size:12px;padding:6px 10px;display:flex;justify-content:space-between;border-radius:3px 3px 0 0;}'+
+    '.est-cuenta{font-weight:400;font-size:10px;opacity:.9;}'+
+    '.cat{margin:0 0 6px;}'+
+    '.cat-tit{font-size:11px;font-weight:700;color:#0C447C;background:#eef3f9;padding:4px 8px;border-left:3px solid #1e5a9e;}'+
+    'table{border-collapse:collapse;width:100%;table-layout:fixed;margin-bottom:2px;}'+
+    'th{background:#1e5a9e;color:#fff;padding:4px 5px;font-size:8.5px;text-align:left;border:1px solid #1e5a9e;}'+
+    'td{border:1px solid #c2d0e0;padding:3px 5px;font-size:9px;vertical-align:top;word-wrap:break-word;overflow-wrap:break-word;}'+
+    'tr:nth-child(even) td{background:#f4f7fa;}'+
+    '.prod{font-size:8.5px;}'+
+    '@media print{.noprint{display:none;}}'+
   '</style></head><body>'+
     '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
       '<div><h1>ESTRATEGIA DE RECEPCIÓN — SEMANA PRÓXIMA</h1>'+
