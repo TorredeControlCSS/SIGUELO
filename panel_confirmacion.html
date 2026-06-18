@@ -254,11 +254,11 @@
 
   <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
     <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
-      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas agendadas y pallets por día</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas por estado y pallets por día</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
-          <option value="ambas">Solicitadas y agendadas</option>
-          <option value="solicitada">Solo solicitadas</option>
+          <option value="ambas">Todo (sin cita + diferidas + agendadas)</option>
+          <option value="solicitada">Pendientes (sin cita + diferidas)</option>
           <option value="agendada">Solo agendadas</option>
         </select>
         <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
@@ -357,6 +357,7 @@
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
         <button class="btn" id="calExcel">⬇ Excel del día</button>
         <button class="btn" id="calImprimirSemana">🗓 Imprimir semana</button>
+        <button class="btn primary" id="calEstrategia">📋 Reporte estrategia (semana próxima)</button>
         <button class="btn" id="calImprimirCob">🖨 Cobertura detallada</button>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
@@ -511,34 +512,46 @@ function actualizarCargaSemanal(lista){
   const rangoEl = document.getElementById('cargaSemRango');
   if(rangoEl) rangoEl.textContent = fmt(lunes)+' – '+fmt(dom);
 
-  // Agrupar por día: citas solicitadas (fecha_solicitada), agendadas (fecha_confirmada),
-  // y pallets agendados (los pallets cuentan cuando hay agenda real).
+  // Agrupar por día en 3 categorías para barras apiladas:
+  //  - sinCita: solicitudes sin fecha_confirmada (PENDIENTE/SOLICITADA/REPROGRAMADA), por fecha_solicitada
+  //  - diferida: estado DIFERIDA, por fecha_solicitada (no tienen agenda firme)
+  //  - agend: con fecha_confirmada, por fecha_confirmada (+ pallets)
   const agrup = {};
-  dias.forEach(f=>agrup[f]={solic:0,agend:0,pallets:0});
+  dias.forEach(f=>agrup[f]={sinCita:0,diferida:0,agend:0,pallets:0});
   (cargaSemLista||[]).forEach(s=>{
+    const est = String(s.estado||'').toUpperCase().trim();
     const fSol = String(s.fecha_solicitada||'').slice(0,10);
     const fAge = String(s.fecha_confirmada||'').slice(0,10);
-    if(agrup[fSol]) agrup[fSol].solic+=1;
-    if(agrup[fAge]){ agrup[fAge].agend+=1; agrup[fAge].pallets+=Number(s.cant_pallets||0); }
+    if(est==='DIFERIDA'){
+      if(agrup[fSol]) agrup[fSol].diferida+=1;
+    } else if(fAge && agrup[fAge]){
+      agrup[fAge].agend+=1; agrup[fAge].pallets+=Number(s.cant_pallets||0);
+    } else if(agrup[fSol]){
+      // sin fecha de cita confirmada => solicitada sin cita
+      agrup[fSol].sinCita+=1;
+    }
   });
 
   const nombresDia = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const labels = dias.map((f,i)=>{ const d=new Date(f+'T12:00:00'); return nombresDia[i]+' '+String(d.getDate()).padStart(2,'0'); });
-  const datSolic = dias.map(f=>agrup[f].solic);
+  const datSinCita = dias.map(f=>agrup[f].sinCita);
+  const datDiferida = dias.map(f=>agrup[f].diferida);
   const datAgend = dias.map(f=>agrup[f].agend);
   const datPallets = dias.map(f=>agrup[f].pallets);
 
-  // Datasets según el modo.
+  // Datasets apilados según el modo.
   const ds = [];
   if(modo==='ambas' || modo==='solicitada'){
-    ds.push({ type:'bar', label:'Solicitadas', data:datSolic,
+    ds.push({ type:'bar', label:'Solicitadas sin cita', data:datSinCita, stack:'citas',
       backgroundColor:'rgba(120,170,220,0.65)', borderColor:'#5a8fc0', borderWidth:1, yAxisID:'y', order:3 });
+    ds.push({ type:'bar', label:'Diferidas', data:datDiferida, stack:'citas',
+      backgroundColor:'rgba(214,163,90,0.75)', borderColor:'#b8852f', borderWidth:1, yAxisID:'y', order:3 });
   }
   if(modo==='ambas' || modo==='agendada'){
-    ds.push({ type:'bar', label:'Agendadas', data:datAgend,
-      backgroundColor:'rgba(30,90,158,0.8)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 });
+    ds.push({ type:'bar', label:'Agendadas', data:datAgend, stack:'citas',
+      backgroundColor:'rgba(30,90,158,0.85)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 });
   }
-  // Pallets: siempre que haya algo de agenda visible (modo ambas o agendada).
+  // Pallets: línea, visible cuando hay agenda (modo ambas o agendada).
   if(modo==='ambas' || modo==='agendada'){
     ds.push({ type:'line', label:'Pallets (agendados)', data:datPallets,
       borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
@@ -557,8 +570,8 @@ function actualizarCargaSemanal(lista){
         tooltip:{ titleFont:{family:'Consolas,monospace'}, bodyFont:{family:'Consolas,monospace'} }
       },
       scales:{
-        x:{ ticks:{ font:{size:11} }, grid:{ display:false } },
-        y:{ type:'linear', position:'left', beginAtZero:true,
+        x:{ stacked:true, ticks:{ font:{size:11} }, grid:{ display:false } },
+        y:{ stacked:true, type:'linear', position:'left', beginAtZero:true,
             title:{ display:true, text:'Citas', font:{size:11} },
             ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
         y1:{ type:'linear', position:'right', beginAtZero:true, display:mostrarY1,
@@ -677,7 +690,11 @@ function getFiltradas(){
       if(fs<d0 || fs>d1) return false;
     }
     // Filtro por tarjeta KPI
-    if(filtroEstado==='PENDIENTE' && estU!=='PENDIENTE') return false;
+    if(filtroEstado==='PENDIENTE'){
+      // "Pendiente" agrupa todo lo que aún no tiene cita confirmada (sin agendar).
+      const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA'];
+      if(SIN_CITA.indexOf(estU)<0) return false;
+    }
     if(filtroEstado==='AGENDADA' && estU!=='AGENDADA') return false;
     if(filtroEstado==='URGENTE' && Number(s.ipr||0)<75) return false;
     if(filtroEstado==='VENCE'){
@@ -2032,6 +2049,7 @@ document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
 document.getElementById('calExcel').addEventListener('click',excelListaDia);
 document.getElementById('calImprimirSemana').addEventListener('click',imprimirSemana);
+document.getElementById('calEstrategia').addEventListener('click',imprimirEstrategia);
 document.getElementById('calImprimirCob').addEventListener('click',imprimirCoberturaDia);
 
 async function imprimirListaDia(){
@@ -2343,6 +2361,122 @@ async function imprimirSemana(){
     resumenSemHtml+
     '<div class="grid">'+bloques+'</div>'+
     '<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
+  '</body></html>');
+  win.document.close();
+}
+
+// ===== REPORTE DE ESTRATEGIA SEMANAL (para enviar al equipo antes de la reunión) =====
+// Agrupa TODO lo del periodo de la próxima semana (lun-sáb siguientes) por ESTADO,
+// dentro de cada estado por CATEGORÍA, y dentro de cada categoría rankeado por IPR desc.
+// Incluye: agendadas de esa semana (por fecha_confirmada) + todo lo pendiente sin agendar
+// (PENDIENTE, SOLICITADA, EN ANALISIS, REPROGRAMADA, DIFERIDA), que son las candidatas a planificar.
+function imprimirEstrategia(){
+  // Lunes de la PRÓXIMA semana
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const lunEsta=new Date(hoy); lunEsta.setDate(lunEsta.getDate()-((lunEsta.getDay()+6)%7));
+  const lun=new Date(lunEsta); lun.setDate(lun.getDate()+7);   // siguiente lunes
+  const sab=new Date(lun); sab.setDate(lun.getDate()+5);
+  const isoLun=fechaISOloc_(lun), isoSab=fechaISOloc_(sab);
+  const fmt=d=>d.toLocaleDateString('es-PA',{day:'2-digit',month:'short',year:'numeric'});
+
+  const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
+  // Seleccionar las solicitudes que entran al reporte
+  const sel=(SOLICITUDES||[]).filter(s=>{
+    const est=String(s.estado||'').toUpperCase().trim();
+    if(est==='AGENDADA'){
+      const fc=String(s.fecha_confirmada||'').slice(0,10);
+      return fc>=isoLun && fc<=isoSab;   // agendada dentro de la próxima semana
+    }
+    return SIN_AGENDAR.indexOf(est)>=0;  // todo lo pendiente sin agendar
+  });
+
+  // Orden de los estados en el reporte
+  const ORDEN_EST=['AGENDADA','REPROGRAMADA','PENDIENTE','SOLICITADA','EN ANALISIS','DIFERIDA'];
+  const ETIQ={AGENDADA:'Agendadas (semana próxima)',REPROGRAMADA:'Reprogramadas',PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',
+    'EN ANALISIS':'En análisis',DIFERIDA:'Diferidas'};
+
+  // Agrupar: estado -> categoría -> [solicitudes]
+  const porEstado={};
+  sel.forEach(s=>{
+    const est=String(s.estado||'').toUpperCase().trim();
+    const cat=String(s.categoria||'(sin área)').trim()||'(sin área)';
+    if(!porEstado[est]) porEstado[est]={};
+    if(!porEstado[est][cat]) porEstado[est][cat]=[];
+    porEstado[est][cat].push(s);
+  });
+
+  const estadosPresentes=ORDEN_EST.filter(e=>porEstado[e]).concat(
+    Object.keys(porEstado).filter(e=>ORDEN_EST.indexOf(e)<0));
+
+  // Construir bloques HTML por estado
+  let totGlobal=0, palGlobal=0;
+  const bloques=estadosPresentes.map(est=>{
+    const cats=Object.keys(porEstado[est]).sort();
+    let nEst=0, palEst=0;
+    const catBloques=cats.map(cat=>{
+      const items=porEstado[est][cat].slice().sort((a,b)=>Number(b.ipr||0)-Number(a.ipr||0));
+      nEst+=items.length;
+      const filas=items.map(s=>{
+        const ipr=Number(s.ipr||0);
+        const iprBg=ipr>=75?'background:#fde2e2;font-weight:bold;':(ipr>=50?'background:#fff3d6;':'');
+        const pal=Number(s.cant_pallets||0); palEst+=pal;
+        const venc=(s.venc&&s.venc.fecha)?s.venc.fecha:'—';
+        const vencBg=(s.venc&&s.venc.estado==='ROJO')?'color:#b00020;font-weight:bold;':'';
+        const fAge=String(s.fecha_confirmada||'').slice(0,10);
+        return '<tr>'+
+          '<td style="text-align:right;font-family:Consolas;'+iprBg+'">'+ipr+'</td>'+
+          '<td>'+esc(s.empresa||'')+'</td>'+
+          '<td style="font-family:Consolas;">'+esc(s.oc||'')+'</td>'+
+          '<td style="font-family:Consolas;">'+esc(s.cod_abasto||'—')+'</td>'+
+          '<td>'+esc(s.descripcion||'')+'</td>'+
+          '<td style="text-align:right;font-family:Consolas;white-space:nowrap;">'+num(s.cant_unidades)+' und<br>'+num(pal)+' pal</td>'+
+          '<td style="font-family:Consolas;'+vencBg+'">'+esc(venc)+'</td>'+
+          '<td style="font-family:Consolas;">'+esc(fAge||'—')+'</td>'+
+          '</tr>';
+      }).join('');
+      return '<div class="cat"><div class="cat-tit">'+esc(cat)+' <span style="font-weight:400;color:#666;">('+items.length+' renglón(es))</span></div>'+
+        '<table><thead><tr><th style="text-align:right;">IPR</th><th>Proveedor</th><th>OC</th><th>Abasto</th><th>Producto</th>'+
+        '<th style="text-align:right;">Cantidad</th><th>Vence OC</th><th>Fecha cita</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
+    }).join('');
+    totGlobal+=nEst; palGlobal+=palEst;
+    return '<div class="estado-bloque"><div class="est-tit">'+esc(ETIQ[est]||est)+
+      '<span class="est-cuenta">'+nEst+' renglón(es) · '+num(palEst)+' pallets</span></div>'+catBloques+'</div>';
+  }).join('');
+
+  let logoUrl=''; try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
+
+  const win=window.open('','_blank');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Estrategia semana '+isoLun+'</title><style>'+
+    '@page{size:landscape;margin:10mm;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;}'+
+    '.head{display:flex;align-items:center;gap:12px;border-bottom:4px solid #0C447C;padding-bottom:8px;margin-bottom:8px;}'+
+    '.head img{width:54px;height:54px;object-fit:contain;}'+
+    '.head h1{font-size:16px;margin:0;color:#0C447C;font-weight:800;}'+
+    '.head .org{font-size:10px;color:#222;font-weight:700;}'+
+    '.sub{font-size:11px;color:#333;margin:0 0 6px;}'+
+    '.sub b{color:#0C447C;}'+
+    '.resumenln{font-size:11px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:6px 10px;margin:0 0 12px;border-radius:0 3px 3px 0;}'+
+    '.estado-bloque{margin-bottom:16px;page-break-inside:avoid;}'+
+    '.est-tit{background:#0C447C;color:#fff;font-weight:700;font-size:12px;padding:6px 10px;display:flex;justify-content:space-between;border-radius:3px 3px 0 0;}'+
+    '.est-cuenta{font-weight:400;font-size:10px;opacity:.9;}'+
+    '.cat{margin:0 0 8px;}'+
+    '.cat-tit{font-size:11px;font-weight:700;color:#0C447C;background:#eef3f9;padding:4px 8px;border-left:3px solid #1e5a9e;}'+
+    'table{border-collapse:collapse;width:100%;margin-bottom:4px;}'+
+    'th{background:#1e5a9e;color:#fff;padding:4px 6px;font-size:9px;text-align:left;border:1px solid #1e5a9e;}'+
+    'td{border:1px solid #c2d0e0;padding:3px 6px;font-size:9.5px;vertical-align:top;}'+
+    'tr:nth-child(even) td{background:#f4f7fa;}'+
+    '.leyenda{font-size:9px;color:#555;margin:8px 0;}'+
+    '.leyenda span{display:inline-block;padding:1px 6px;margin-right:6px;border:1px solid #ccc;}'+
+    '@media print{.noprint{display:none;}}'+
+  '</style></head><body>'+
+    '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
+      '<div><h1>ESTRATEGIA DE RECEPCIÓN — SEMANA PRÓXIMA</h1>'+
+      '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística · Torre de Control · CEDIS Panamá</div></div></div>'+
+    '<div class="sub">Periodo: <b>'+fmt(lun)+'</b> al <b>'+fmt(sab)+'</b> · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    '<div class="resumenln"><b>'+totGlobal+'</b> renglón(es) a planificar · <b>'+num(palGlobal)+'</b> pallets · agrupados por estado y área, rankeados por IPR</div>'+
+    '<div class="leyenda">IPR: <span style="background:#fde2e2;">≥ 75 (urgente)</span><span style="background:#fff3d6;">50 a 74</span><span>&lt; 50</span> · Vence OC en rojo si está vencida.</div>'+
+    (bloques||'<div style="color:#888;">Sin renglones para la próxima semana.</div>')+
+    '<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button>'+
   '</body></html>');
   win.document.close();
 }
