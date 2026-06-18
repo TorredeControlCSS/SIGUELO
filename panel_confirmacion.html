@@ -169,6 +169,7 @@
   .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
   .tab-kanban{display:none;}
+  .tab-transitos{display:none;}
   .kanban-board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:start;}
   .kanban-col{background:var(--gris-bg);border:1px solid var(--borde-suave);border-radius:3px;display:flex;flex-direction:column;min-height:120px;}
   .kanban-col-head{padding:8px 10px;font-size:12px;font-weight:700;color:#fff;border-radius:3px 3px 0 0;display:flex;justify-content:space-between;align-items:center;}
@@ -277,6 +278,7 @@
     <div class="tab activa" data-tab="lista">Lista priorizada</div>
     <div class="tab" data-tab="calendario">Calendario</div>
     <div class="tab" data-tab="kanban">Kanban</div>
+    <div class="tab" data-tab="transitos">OC en tránsito sin cita</div>
   </div>
 
   <div class="panel-body">
@@ -370,6 +372,19 @@
     </div>
     <div id="tabKanban" class="tab-kanban">
       <div class="kanban-board" id="kanbanBoard"></div>
+    </div>
+    <div id="tabTransitos" class="tab-transitos">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="font-size:13px;color:var(--azul-osc);font-weight:600;flex:1;">Órdenes de compra emitidas (SEGUIRE) que aún no tienen cita agendada. Ordenadas por vencimiento de entrega más próximo.</div>
+        <input type="text" id="trBuscar" placeholder="Buscar OC, proveedor, renglón..." style="padding:6px 10px;border:1px solid var(--borde-suave);border-radius:3px;font-size:13px;min-width:240px;">
+        <button class="btn" id="trRefrescar">↻ Refrescar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+        <div class="kpi"><div class="lbl">OC sin cita</div><div class="val" id="trKpiTotal">—</div></div>
+        <div class="kpi"><div class="lbl">Pallets equivalentes (total)</div><div class="val" id="trKpiPallets" style="color:var(--azul);">—</div></div>
+        <div class="kpi"><div class="lbl">Vence entrega ≤ 7 días</div><div class="val" id="trKpiUrge" style="color:var(--rojo);">—</div></div>
+      </div>
+      <div id="trLista"><div class="estado-msg">Seleccione la pestaña para cargar.</div></div>
     </div>
   </div>
 </div>
@@ -2353,17 +2368,100 @@ async function imprimirCoberturaDia(){
   win.document.close();
 }
 
+/* ====== OC EN TRÁNSITO SIN CITA (radar SEGUIRE) ====== */
+let TRANSITOS_SC = [];
+
+async function cargarTransitosSinCita(){
+  const cont=document.getElementById('trLista');
+  cont.innerHTML='<div class="estado-msg">Cargando órdenes en tránsito...</div>';
+  try{
+    const resp=await loadJsonp('getTransitosSinCita','');
+    if(!resp || !resp.success){ throw new Error((resp&&resp.error)||'error'); }
+    TRANSITOS_SC = resp.transitos||[];
+    renderTransitosSinCita();
+  }catch(e){
+    cont.innerHTML='<div class="estado-msg">No se pudieron cargar los tránsitos: '+esc(e.message)+'</div>';
+  }
+}
+
+function _trDiasEntrega(ymd){
+  if(!ymd) return null;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const f=new Date(ymd+'T00:00:00');
+  if(isNaN(f)) return null;
+  return Math.round((f-hoy)/86400000);
+}
+function _trSemaforo(ymd){
+  const d=_trDiasEntrega(ymd);
+  if(d==null) return ['#6c757d','#f1f1f1','Sin fecha'];
+  if(d<0) return ['#b00020','#f8d7da','Vencida '+Math.abs(d)+'d'];
+  if(d<=7) return ['#b00020','#f8d7da','≤ '+d+'d'];
+  if(d<=21) return ['#c97a00','#fff3cd', d+'d'];
+  return ['#0a7a2f','#d9ead3', d+'d'];
+}
+
+function renderTransitosSinCita(){
+  const cont=document.getElementById('trLista');
+  const q=(document.getElementById('trBuscar').value||'').toLowerCase().trim();
+  let filas=TRANSITOS_SC.slice();
+  if(q){
+    filas=filas.filter(t=>[t.n_documento,t.proveedor,t.cod_abasto,t.cod_abasto_norm,t.cod_sap,t.descripcion,t.planificador]
+      .some(v=>String(v||'').toLowerCase().includes(q)));
+  }
+  // KPIs (sobre el total sin filtrar)
+  document.getElementById('trKpiTotal').textContent=TRANSITOS_SC.length;
+  const totPal=TRANSITOS_SC.reduce((s,t)=>s+(parseFloat(t.pallets_equiv)||0),0);
+  document.getElementById('trKpiPallets').textContent=totPal>0?(Math.round(totPal*10)/10).toLocaleString('es-PA'):'—';
+  document.getElementById('trKpiUrge').textContent=TRANSITOS_SC.filter(t=>{const d=_trDiasEntrega(t.vencimiento_entrega);return d!=null&&d>=0&&d<=7;}).length;
+
+  if(!filas.length){ cont.innerHTML='<div class="estado-msg">No hay órdenes en tránsito sin cita'+(q?' que coincidan con la búsqueda.':'.')+'</div>'; return; }
+
+  let html='<table class="ue-tabla"><thead><tr>'+
+    '<th>Tipo</th><th>N° Documento</th><th>Proveedor</th><th>Renglón</th><th>Descripción</th>'+
+    '<th style="text-align:right;">Cantidad</th><th style="text-align:right;">Pallets eq.</th>'+
+    '<th>Entrega</th><th>Vence entrega</th><th>Planificador</th><th>Cargado</th><th>PDF</th>'+
+    '</tr></thead><tbody>';
+  filas.forEach(t=>{
+    const [col,bg,txt]=_trSemaforo(t.vencimiento_entrega);
+    const pal=(t.pallets_equiv!==''&&t.pallets_equiv!=null)?Number(t.pallets_equiv).toLocaleString('es-PA'):'—';
+    const pdf = t.archivo_url ? '<a href="'+esc(t.archivo_url)+'" target="_blank" rel="noopener" style="color:var(--azul);">ver</a>' : '—';
+    html+='<tr>'+
+      '<td>'+esc(t.tipo||'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:11.5px;">'+esc(t.n_documento||'')+'</td>'+
+      '<td>'+esc(t.proveedor||'')+'</td>'+
+      '<td style="font-family:var(--mono);">'+esc(t.cod_abasto||t.cod_abasto_norm||'')+(t.cod_sap?'<br><span style="color:#888;font-size:10.5px;">'+esc(t.cod_sap)+'</span>':'')+'</td>'+
+      '<td>'+esc(t.descripcion||'')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);">'+(Number(t.cantidad)||0).toLocaleString('es-PA')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);">'+pal+'</td>'+
+      '<td style="text-align:center;">'+esc(t.n_entrega||'—')+'</td>'+
+      '<td><span style="display:inline-block;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:600;color:'+col+';background:'+bg+';">'+esc(txt)+'</span>'+
+        (t.vencimiento_entrega?'<div style="font-size:10px;color:#888;">'+esc(t.vencimiento_entrega)+'</div>':'')+'</td>'+
+      '<td>'+esc(t.planificador||'—')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10.5px;">'+esc(t.fecha_ingesta||'—')+'</td>'+
+      '<td>'+pdf+'</td>'+
+    '</tr>';
+  });
+  html+='</tbody></table>';
+  cont.innerHTML=html;
+}
+
+document.getElementById('trRefrescar').addEventListener('click',cargarTransitosSinCita);
+document.getElementById('trBuscar').addEventListener('input',renderTransitosSinCita);
+
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('activa'));
   t.classList.add('activa');
   const tab=t.dataset.tab;
   TAB_ACTIVA=tab;
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
-  document.querySelector('.filtros').style.display = 'block'; // permanente en todas las vistas
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
   document.getElementById('tabKanban').style.display = tab==='kanban'?'block':'none';
+  document.getElementById('tabTransitos').style.display = tab==='transitos'?'block':'none';
+  // Los filtros estándar no aplican a la vista de tránsitos
+  document.querySelector('.filtros').style.display = (tab==='transitos')?'none':'block';
   if(tab==='calendario') cargarCalendario();
   if(tab==='kanban') renderKanban();
+  if(tab==='transitos') cargarTransitosSinCita();
 }));
 
 
