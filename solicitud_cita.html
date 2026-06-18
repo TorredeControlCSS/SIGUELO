@@ -952,7 +952,8 @@ function renderTransitosDisponibles(lista){
         '<div style="font-size:11px;color:#666;">Renglón <span class="mono">'+escAttr(t.cod_abasto||t.cod_abasto_norm||'')+'</span>'+
           (t.cod_sap?' / SAP <span class="mono">'+escAttr(t.cod_sap)+'</span>':'')+
           ' · Cant. ref. <span class="mono">'+_fmtNumCita(t.cantidad)+'</span>'+
-          (t.analista?' · Analista '+escAttr(t.analista):'')+'</div>'+
+          ((t.pallets_equiv!==''&&t.pallets_equiv!=null)?' · ≈ <span class="mono">'+_fmtNumCita(t.pallets_equiv)+'</span> pallets':'')+
+          (t.planificador?' · Planif. '+escAttr(t.planificador):'')+'</div>'+
         '<div style="font-size:11px;color:'+col+';font-weight:600;margin-top:3px;">'+escAttr(txt)+
           (t.vencimiento_entrega?' (entrega '+escAttr(t.vencimiento_entrega)+')':'')+'</div>'+
       '</div>'+
