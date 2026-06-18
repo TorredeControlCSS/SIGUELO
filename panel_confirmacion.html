@@ -288,7 +288,9 @@
           <span class="et">Estado</span>
           <select id="filtroEstadoSel">
             <option value="">Todos</option>
-            <option value="PENDIENTE">Pendiente</option>
+            <option value="PENDIENTE">Pendientes (sin cita)</option>
+            <option value="SOLICITADA">— Solo solicitadas</option>
+            <option value="REPROGRAMADA">— Solo reprogramadas</option>
             <option value="AGENDADA">Agendada</option>
             <option value="DIFERIDA">Diferida</option>
             <option value="CERRADAS">Cerradas</option>
@@ -706,10 +708,14 @@ function getFiltradas(){
     // __RESCATADAS__ es transversal: marca es_rescatada, no un estado real)
     if(estSel){
       const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
+      const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA'];
       if(estSel==='__RESCATADAS__'){
         if(!s.es_rescatada) return false;
       } else if(estSel==='CERRADAS'){
         if(CERRADAS_GRUPO.indexOf(estU)<0) return false;
+      } else if(estSel==='PENDIENTE'){
+        // "Pendiente" agrupa todo lo que aún no tiene cita asignada (sin agendar).
+        if(SIN_CITA_GRUPO.indexOf(estU)<0) return false;
       } else if(estU!==estSel) return false;
     }
     // Filtro por dropdown de categoría (robusto: tildes/mayúsculas/plural; __FRIO__ transversal).
