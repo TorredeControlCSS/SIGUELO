@@ -338,9 +338,11 @@
         <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
         <button class="btn chip" data-atajo="semana">Esta semana</button>
         <button class="btn chip" data-atajo="proxima">Próxima</button>
-        <button class="btn chip" data-atajo="mes">Este mes</button>
         <button class="btn" id="btnLimpiar">✕ Limpiar</button>
         <button class="btn" id="btnRefrescar">Refrescar</button>
+        <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
+        <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
+        <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
         <button class="btn primary" id="btnExcel">⬇ Excel</button>
       </div>
     </div>
@@ -355,7 +357,6 @@
         <button class="btn primary" id="calImprimir">🖨 Imprimir día</button>
         <button class="btn" id="calExcel">⬇ Excel del día</button>
         <button class="btn" id="calImprimirSemana">🗓 Imprimir semana</button>
-        <button class="btn" id="calImprimirCobResumen">🖨 Cobertura resumida</button>
         <button class="btn" id="calImprimirCob">🖨 Cobertura detallada</button>
         <span class="cal-leyenda">
           <span class="cal-chip" style="background:#1e5a9e;"></span>Confirmada
@@ -610,6 +611,7 @@ function actualizarKPIs(){
 }
 
 let filtroEstado=''; // filtro por tarjeta KPI: '' | 'PENDIENTE' | 'AGENDADA' | 'URGENTE' | 'VENCE' | 'DIFERIDA'
+let _ordenLista={campo:'ipr', dir:'desc'}; // orden de la lista priorizada: campo 'ipr'|'fsol', dir 'asc'|'desc'
 let TAB_ACTIVA='lista';
 let KANBAN_LISTA=[];
 function getFiltradas(){
@@ -673,6 +675,15 @@ function getFiltradas(){
       if(blob.indexOf(q)<0) return false;
     }
     return true;
+  }).sort(function(a,b){
+    if(_ordenLista.campo==='fsol'){
+      var fa=String(a.fecha_solicitada||'').slice(0,10), fb=String(b.fecha_solicitada||'').slice(0,10);
+      var cmp=fa.localeCompare(fb);
+      return _ordenLista.dir==='asc' ? cmp : -cmp;
+    }
+    // por defecto: IPR
+    var ia=Number(a.ipr||0), ib=Number(b.ipr||0);
+    return _ordenLista.dir==='asc' ? (ia-ib) : (ib-ia);
   });
 }
 
@@ -1633,6 +1644,25 @@ document.querySelectorAll('.btn.chip[data-atajo]').forEach(btn=>{
   });
 });
 
+// Botones de orden de la lista priorizada (ciclan asc/desc y se excluyen entre si)
+function _aplicarOrden(campo, btn, etiqueta){
+  if(_ordenLista.campo===campo){
+    _ordenLista.dir = (_ordenLista.dir==='desc') ? 'asc' : 'desc';
+  } else {
+    _ordenLista.campo = campo;
+    _ordenLista.dir = 'desc';
+  }
+  // Actualizar etiquetas de ambos botones
+  const flecha = _ordenLista.dir==='desc' ? '↓' : '↑';
+  document.getElementById('btnOrdenIpr').textContent = 'IPR ' + (_ordenLista.campo==='ipr'?flecha:'↕');
+  document.getElementById('btnOrdenFsol').textContent = 'Fecha solic. ' + (_ordenLista.campo==='fsol'?flecha:'↕');
+  document.getElementById('btnOrdenIpr').classList.toggle('primary', _ordenLista.campo==='ipr');
+  document.getElementById('btnOrdenFsol').classList.toggle('primary', _ordenLista.campo==='fsol');
+  if(TAB_ACTIVA==='lista') render();
+}
+document.getElementById('btnOrdenIpr').addEventListener('click',function(){ _aplicarOrden('ipr',this); });
+document.getElementById('btnOrdenFsol').addEventListener('click',function(){ _aplicarOrden('fsol',this); });
+
 function hayFiltroActivo(){
   return !!(filtroEstado || document.getElementById('buscar').value.trim()
     || document.getElementById('filtroEstadoSel').value
@@ -1985,7 +2015,6 @@ document.getElementById('calHoy').addEventListener('click',()=>{ calMes=new Date
 document.getElementById('calImprimir').addEventListener('click',imprimirListaDia);
 document.getElementById('calExcel').addEventListener('click',excelListaDia);
 document.getElementById('calImprimirSemana').addEventListener('click',imprimirSemana);
-document.getElementById('calImprimirCobResumen').addEventListener('click',imprimirCoberturaResumen);
 document.getElementById('calImprimirCob').addEventListener('click',imprimirCoberturaDia);
 
 async function imprimirListaDia(){
@@ -2034,6 +2063,25 @@ async function imprimirListaDia(){
   let logoUrl='';
   try{ const lg=document.querySelector('.header .logo'); if(lg) logoUrl=lg.src; }catch(e){}
 
+  // Resumen por área: citas y pallets agrupados por categoría
+  const resumenArea={};
+  citas.forEach(s=>{
+    const area=String(s.categoria||'(sin área)').trim()||'(sin área)';
+    if(!resumenArea[area]) resumenArea[area]={citas:0, pallets:0};
+    resumenArea[area].citas++;
+    resumenArea[area].pallets+=(Number(s.cant_pallets)||0);
+  });
+  const totCitas=citas.length;
+  const totPallets=citas.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
+  const areasOrden=Object.keys(resumenArea).sort((a,b)=>resumenArea[b].pallets-resumenArea[a].pallets);
+  const resumenHtml = totCitas ? (
+    '<div class="resumen"><div class="resumen-tit">Resumen por área</div>'+
+    '<table class="resumen-tbl"><thead><tr><th>Área</th><th style="text-align:right;">Citas</th><th style="text-align:right;">Pallets</th></tr></thead><tbody>'+
+    areasOrden.map(a=>'<tr><td>'+esc(a)+'</td><td style="text-align:right;">'+resumenArea[a].citas+'</td><td style="text-align:right;">'+num(resumenArea[a].pallets)+'</td></tr>').join('')+
+    '<tr class="tot"><td>TOTAL</td><td style="text-align:right;">'+totCitas+'</td><td style="text-align:right;">'+num(totPallets)+'</td></tr>'+
+    '</tbody></table></div>'
+  ) : '';
+
   const win=window.open('','_blank');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Citas ${dd}/${mm}/${yy}</title>
   <style>
@@ -2051,6 +2099,12 @@ async function imprimirListaDia(){
     tr:nth-child(even) td{background:#f4f7fa;}
     th.chk,td.chk{width:46px;text-align:center;}
     td.chk{height:26px;}
+    .resumen{margin:0 0 14px;border:1px solid #0C447C;border-radius:4px;padding:8px 10px;background:#f4f7fa;max-width:420px;}
+    .resumen-tit{font-size:11px;font-weight:700;color:#0C447C;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px;}
+    .resumen-tbl{width:100%;border-collapse:collapse;}
+    .resumen-tbl th{background:#1e5a9e;color:#fff;padding:3px 8px;font-size:10px;border:1px solid #1e5a9e;}
+    .resumen-tbl td{border:1px solid #b8c6d6;padding:3px 8px;font-size:10.5px;background:#fff;}
+    .resumen-tbl tr.tot td{font-weight:700;background:#e8f0f8;color:#0C447C;}
     .firma{margin-top:24px;font-size:11px;display:flex;gap:60px;}
     .firma div{border-top:1px solid #333;padding-top:4px;min-width:220px;text-align:center;}
     @media print{.noprint{display:none;}}
@@ -2064,6 +2118,7 @@ async function imprimirListaDia(){
       </div>
     </div>
     <div class="sub">Día: <b>${dd}/${mm}/${yy}</b> · Total: ${citas.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div>
+    ${resumenHtml}
     <table>
       <thead><tr>
         <th>Hora</th><th>Estado</th><th>Proveedor</th><th>Área</th><th>OC</th><th>Abasto</th>
@@ -2209,6 +2264,7 @@ async function imprimirSemana(){
     const iso=isoDe(d);
     const citasDia=agendadas.filter(s=>(s.fecha_confirmada||'').slice(0,10)===iso)
       .sort((a,b)=>String(a.hora_confirmada||'').localeCompare(String(b.hora_confirmada||'')));
+    if(!citasDia.length) return '';  // omitir dias sin citas
     const pallets=citasDia.reduce((t,s)=>t+Number(s.cant_pallets||0),0);
     const filas=citasDia.map(s=>{
       const cob=(s.cobertura_meses!=null && s.cobertura_meses>=0)?Number(s.cobertura_meses).toFixed(1)+'m':'s/d';
@@ -2228,11 +2284,9 @@ async function imprimirSemana(){
     return '<div class="dia">'+
       '<div class="dt">'+DIAS[ix]+' '+d.getDate()+' '+MES[d.getMonth()]+
         '<span class="cuenta">'+citasDia.length+' cita(s) · '+num(pallets)+' pallets</span></div>'+
-      (citasDia.length?
-        '<table><thead><tr><th>Hora</th><th>Proveedor / producto</th><th style="text-align:right;">Abasto</th><th style="text-align:right;">Cant.</th><th style="text-align:right;">Vol.</th><th style="text-align:right;">Inv. CEDIS</th><th style="text-align:right;">UE=0</th><th style="text-align:right;">Cob.</th></tr></thead><tbody>'+filas+'</tbody></table>'
-        :'<div class="vacio">Sin citas agendadas.</div>')+
+      '<table><thead><tr><th>Hora</th><th>Proveedor / producto</th><th style="text-align:right;">Abasto</th><th style="text-align:right;">Cant.</th><th style="text-align:right;">Vol.</th><th style="text-align:right;">Inv. CEDIS</th><th style="text-align:right;">UE=0</th><th style="text-align:right;">Cob.</th></tr></thead><tbody>'+filas+'</tbody></table>'+
     '</div>';
-  }).join('');
+  }).filter(Boolean).join('');
 
   const win=window.open('','_blank');
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Semana '+isoDe(lun)+'</title><style>'+
@@ -2416,7 +2470,7 @@ function renderTransitosSinCita(){
 
   if(!filas.length){ cont.innerHTML='<div class="estado-msg">No hay órdenes en tránsito sin cita'+(q?' que coincidan con la búsqueda.':'.')+'</div>'; return; }
 
-  let html='<table class="ue-tabla"><thead><tr>'+
+  let html='<div style="overflow-x:auto;"><table class="ue-tabla" style="min-width:1180px;"><thead><tr>'+
     '<th>Tipo</th><th>N° Documento</th><th>Proveedor</th><th>CEDI</th><th>Renglón</th><th>Descripción</th>'+
     '<th style="text-align:right;">Cantidad</th><th style="text-align:right;">Pallets eq.</th>'+
     '<th>Entrega</th><th>Vence entrega</th><th>Planificador</th><th>Cargado</th><th>PDF</th>'+
@@ -2442,7 +2496,7 @@ function renderTransitosSinCita(){
       '<td>'+pdf+'</td>'+
     '</tr>';
   });
-  html+='</tbody></table>';
+  html+='</tbody></table></div>';
   cont.innerHTML=html;
 }
 
