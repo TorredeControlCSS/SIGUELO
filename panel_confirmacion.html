@@ -415,6 +415,23 @@ function loadJsonp(action, extra){
   });
 }
 
+// Variante con TIMEOUT: si el callback no llega en msTimeout, rechaza y limpia.
+// Evita que una sola consulta colgada bloquee un proceso por lotes (p.ej. coberturas).
+function loadJsonpT(action, extra, msTimeout){
+  msTimeout = msTimeout || 15000;
+  return new Promise((resolve,reject)=>{
+    const cb='_cbt_'+Date.now()+Math.floor(Math.random()*100000);
+    let done=false;
+    const limpiar=()=>{ try{ delete window[cb]; }catch(e){} const s=document.getElementById(cb); if(s)s.remove(); };
+    const timer=setTimeout(()=>{ if(done)return; done=true; limpiar(); reject(new Error('timeout')); }, msTimeout);
+    window[cb]=(resp)=>{ if(done)return; done=true; clearTimeout(timer); limpiar(); resolve(resp); };
+    const s=document.createElement('script'); s.id=cb;
+    s.src=API_URL+'?action='+action+'&callback='+cb+(extra||'');
+    s.onerror=()=>{ if(done)return; done=true; clearTimeout(timer); limpiar(); reject(new Error('Error de red')); };
+    document.body.appendChild(s);
+  });
+}
+
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function num(n){ return Math.round(Number(n||0)).toLocaleString('es-PA'); }
 // Nombre corto de categoría para el badge distintivo en cada renglón.
@@ -2346,11 +2363,25 @@ async function imprimirCoberturaDia(){
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Coberturas '+dd+'/'+mm+'/'+yy+'</title></head><body style="font-family:Arial;padding:20px;color:#333;">Generando reporte de coberturas… consultando inventarios de '+citas.length+' producto(s). No cierre esta ventana.</body></html>');
   win.document.close();
 
-  // Consultar existencias de cada renglón (secuencial para no saturar la red lenta)
+  // Consultar existencias de cada renglón EN PARALELO, con timeout por consulta.
+  // Antes era secuencial sin timeout: una sola consulta colgada dejaba el reporte
+  // pegado en "consultando inventarios" para siempre. Ahora cada una tiene 15s de
+  // límite y, si falla, se marca como "sin datos" sin bloquear al resto.
+  let _cobHechas=0;
+  const _cobPintarProgreso=()=>{
+    try{
+      win.document.body.innerHTML='Generando reporte de coberturas… '+_cobHechas+' de '+citas.length+' producto(s) consultado(s). No cierre esta ventana.';
+    }catch(e){}
+  };
+  const respuestas=await Promise.all(citas.map(s=>
+    loadJsonpT('getExistenciasRenglon','&cod='+encodeURIComponent(s.cod_abasto), 15000)
+      .then(r=>r).catch(()=>null)
+      .then(r=>{ _cobHechas++; _cobPintarProgreso(); return r; })
+  ));
+
   const secciones=[];
-  for(const s of citas){
-    let resp=null;
-    try{ resp=await loadJsonp('getExistenciasRenglon','&cod='+encodeURIComponent(s.cod_abasto)); }catch(e){ resp=null; }
+  citas.forEach((s, i)=>{
+    const resp=respuestas[i];
     const pts=(resp && resp.success && resp.puntos)?resp.puntos:[];
     // Orden: escasez primero (cobertura<1 o saldo 0), luego por inventario asc
     pts.sort((a,b)=>{
@@ -2383,7 +2414,7 @@ async function imprimirCoberturaDia(){
         '<tbody>'+(filasUE||'<tr><td colspan="4" style="text-align:center;color:#888;">Sin saldos registrados.</td></tr>')+'</tbody></table>'+
       '</div>'
     );
-  }
+  });
 
   win.document.open();
   win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Coberturas '+dd+'/'+mm+'/'+yy+'</title>'+
