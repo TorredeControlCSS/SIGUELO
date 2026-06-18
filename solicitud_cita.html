@@ -215,6 +215,19 @@
             <div id="boxDiferidasVacio" style="display:none;font-size:12px;color:#777;padding:6px 0;">Sin citas activas. Use el botón de Excel para ver su historial completo.</div>
           </div>
         </div>
+
+        <!-- OC en tránsito disponibles para agendar (semilla de la cita) -->
+        <div class="campo full" id="boxTransitos" style="display:none;">
+          <div style="border:1px solid #0C447C;background:#eef4fb;border-radius:4px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Órdenes de compra en tránsito disponibles para agendar</div>
+              <span id="transitosCount" style="font-family:Consolas,'Courier New',monospace;font-size:12px;color:#0C447C;background:#fff;border:1px solid #1e5a9e;border-radius:3px;padding:1px 7px;"></span>
+            </div>
+            <div style="font-size:12px;color:#666;margin-bottom:10px;">Estas son sus OC registradas por la institución y aún sin cita. Pulse "Usar esta OC" para iniciar la solicitud con los datos ya cargados. Podrá ajustar la cantidad de esta entrega capturando sus lotes.</div>
+            <div id="listaTransitos"></div>
+          </div>
+        </div>
+
         <div class="campo">
           <label>Nombre del solicitante <span class="req">*</span></label>
           <input type="text" id="solicitante" placeholder="Nombre y apellido">
@@ -904,15 +917,95 @@ function filtrarAsistioSemanaPasada(citas){
     .sort((a,b)=> fechaRef(b).localeCompare(fechaRef(a)) );
 }
 
+// ---- OC en tránsito disponibles (semilla de cita desde SEGUIRE) ----
+let _transitoSeleccionado=null;
+
+// Semáforo por vencimiento de entrega: rojo <=7 días / ámbar <=21 / verde resto.
+function _semaforoVenc(ymd){
+  if(!ymd) return ['#6c757d','Sin fecha de entrega'];
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const f=new Date(ymd+'T00:00:00');
+  const dias=Math.round((f-hoy)/86400000);
+  if(dias<0) return ['#c0392b','Vencida ('+Math.abs(dias)+' d)'];
+  if(dias<=7) return ['#c0392b','Vence en '+dias+' d'];
+  if(dias<=21) return ['#e0a800','Vence en '+dias+' d'];
+  return ['#2d7a4e','Vence en '+dias+' d'];
+}
+
+function renderTransitosDisponibles(lista){
+  const box=document.getElementById('boxTransitos');
+  const cont=document.getElementById('listaTransitos');
+  const cnt=document.getElementById('transitosCount');
+  if(!box||!cont) return;
+  if(!Array.isArray(lista)||!lista.length){ box.style.display='none'; cont.innerHTML=''; if(cnt)cnt.textContent=''; return; }
+  if(cnt) cnt.textContent=lista.length+(lista.length===1?' OC':' OC');
+  cont.innerHTML='';
+  lista.forEach((t,i)=>{
+    const [col,txt]=_semaforoVenc(t.vencimiento_entrega||t.vencimiento_oc||'');
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;border:1px solid #cfdcec;border-left:4px solid '+col+';background:#fff;border-radius:3px;padding:8px 10px;margin-bottom:6px;';
+    row.innerHTML=
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:12.5px;color:#0C447C;font-weight:700;">OC <span class="mono">'+escAttr(t.n_documento||'')+'</span>'+
+          (t.tipo?' <span style="font-weight:400;color:#777;font-size:11px;">('+escAttr(t.tipo)+')</span>':'')+'</div>'+
+        '<div style="font-size:12px;color:#333;margin:2px 0;">'+escAttr(t.descripcion||'')+'</div>'+
+        '<div style="font-size:11px;color:#666;">Renglón <span class="mono">'+escAttr(t.cod_abasto||t.cod_abasto_norm||'')+'</span>'+
+          (t.cod_sap?' / SAP <span class="mono">'+escAttr(t.cod_sap)+'</span>':'')+
+          ' · Cant. ref. <span class="mono">'+_fmtNumCita(t.cantidad)+'</span>'+
+          (t.analista?' · Analista '+escAttr(t.analista):'')+'</div>'+
+        '<div style="font-size:11px;color:'+col+';font-weight:600;margin-top:3px;">'+escAttr(txt)+
+          (t.vencimiento_entrega?' (entrega '+escAttr(t.vencimiento_entrega)+')':'')+'</div>'+
+      '</div>'+
+      '<button type="button" data-tr="'+i+'" style="flex:0 0 auto;font-size:11px;padding:6px 11px;border:1px solid #0C447C;background:#0C447C;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;">Usar esta OC</button>';
+    row.querySelector('button').addEventListener('click',()=>usarTransito(t));
+    cont.appendChild(row);
+  });
+  box.style.display='block';
+}
+
+// Pre-llena el formulario a partir de una OC en tránsito y selecciona su renglón.
+function usarTransito(t){
+  _transitoSeleccionado=t;
+  // Tipo de entrega por defecto (editable); dispara su lógica de OC/adelanto.
+  const selTipo=document.getElementById('tipoEntrega');
+  if(selTipo && !selTipo.value){ selTipo.value='Completa'; selTipo.dispatchEvent(new Event('change')); }
+  // OC (editable; el backend la normaliza).
+  document.getElementById('oc').value=String(t.n_documento||'');
+  // Vencimiento de la entrega, si vino.
+  const fv=t.vencimiento_entrega||t.vencimiento_oc||'';
+  if(fv) document.getElementById('fechaVenc').value=fv;
+  // Seleccionar el renglón en el catálogo de la empresa, emparejando por código normalizado.
+  const empresa=document.getElementById('empresa').value;
+  const lista=(MAESTRO.catalogo[empresa]||[]);
+  const objetivo=norm(t.cod_abasto_norm||t.cod_abasto||'');
+  let idx=-1;
+  for(let k=0;k<lista.length;k++){ if(norm(lista[k].cod_abasto)===objetivo){ idx=k; break; } }
+  const selR=document.getElementById('renglon');
+  if(idx>=0){
+    selR.value=String(idx);
+    selR.dispatchEvent(new Event('change'));
+    mostrarAlerta('ok','OC '+(t.n_documento||'')+' cargada. Verifique los datos y capture sus lotes (cantidad de referencia: '+_fmtNumCita(t.cantidad)+').');
+  }else{
+    mostrarAlerta('err','Cargué la OC '+(t.n_documento||'')+', pero el renglón '+(t.cod_abasto||'')+' no aparece en su catálogo. Selecciónelo manualmente o avise a Torre de Control.');
+    selR.focus();
+  }
+  document.getElementById('boxTransitos').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
 function cargarDiferidasProveedor(empresa){
   const box=document.getElementById('boxDiferidas');
   _empresaTraz=empresa||'';
+  _transitoSeleccionado=null;
+  const bt=document.getElementById('boxTransitos'); if(bt) bt.style.display='none';
   if(!empresa){ box.style.display='none'; return; }
   // limpiar grupos
   ['grpAtencion','grpAgendadas','grpAsistio','boxDiferidasVacio'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
+    // Tránsitos disponibles (OC sin cita) — vienen en la misma respuesta del backend integrado.
+    renderTransitosDisponibles((resp&&resp.transitos_disponibles)||[]);
+
     const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
     if(!citasTodas.length){ box.style.display='none'; return; }
 
@@ -1293,6 +1386,11 @@ function enviarSolicitud(){
   req.cant_bultos=lotesValidos.reduce((s,l)=>s+(+l.total_bultos||0),0);
   req.cant_pallets=lotesValidos.reduce((s,l)=>s+(+l.pallets||0),0);
 
+  // Si esta cita nació de una OC en tránsito (SEGUIRE), enviar su id para marcarla AGENDADA.
+  if(_transitoSeleccionado && _transitoSeleccionado.id && val('oc')===String(_transitoSeleccionado.n_documento||'')){
+    req.transito_id=String(_transitoSeleccionado.id);
+  }
+
   const payload={action:'nuevaSolicitud', data:req};
   const btn=document.getElementById('btnEnviar');
   btn.disabled=true; btn.textContent='Enviando...';
@@ -1406,6 +1504,8 @@ function limpiarTodo(){
   document.getElementById('barraWrap').style.display='none';
   document.getElementById('barraProg').style.width='0%';
   window._idSolicitudPendiente=null;
+  _transitoSeleccionado=null;
+  const bt=document.getElementById('boxTransitos'); if(bt){ bt.style.display='none'; document.getElementById('listaTransitos').innerHTML=''; document.getElementById('transitosCount').textContent=''; }
 }
 function val(id){ return document.getElementById(id).value.trim(); }
 function mostrarAlerta(tipo,msg){ const a=document.getElementById('alerta'); a.className='alerta '+tipo; a.textContent=msg; a.scrollIntoView({behavior:'smooth',block:'center'}); }
