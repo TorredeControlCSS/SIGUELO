@@ -492,6 +492,26 @@ function fechaISOloc_(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
+// Lunes (00:00) de la semana de la fecha dada. El ciclo de revisión es lun-vie (sáb excepcional).
+function lunesDeSemana_(d){
+  const x=new Date(d); x.setHours(0,0,0,0);
+  x.setDate(x.getDate()-((x.getDay()+6)%7));
+  return x;
+}
+// ¿La solicitud cruzó de ciclo? = sin agendar (o diferida) y su fecha_solicitada es de un
+// ciclo ANTERIOR al lunes de la semana actual. Esas siguen "en revisión" arrastradas.
+function cruzoDeCiclo_(s){
+  const est=String(s.estado||'').toUpperCase().trim();
+  const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
+  if(SIN_CITA.indexOf(est)<0) return false;
+  const fSol=String(s.fecha_solicitada||'').slice(0,10);
+  if(!fSol) return false;
+  const lunActual=lunesDeSemana_(new Date());
+  const fd=new Date(fSol+'T00:00:00');
+  if(isNaN(fd)) return false;
+  return fd < lunActual;  // viene de antes del lunes de esta semana
+}
+
 function actualizarCargaSemanal(lista){
   if(Array.isArray(lista)) cargaSemLista = lista;
   if(cargaSemColapsado) return;
@@ -839,6 +859,7 @@ function render(){
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
+        ${cruzoDeCiclo_(s)?'<span class="badge" style="background:#fbe6c4;color:#8a5a00;border-color:#e0c08a;font-weight:700;">⚠ Cruzó de ciclo — en revisión</span>':''}
         ${s.categoria?`<span class="badge categoria">${esc(catCorta(s.categoria))}</span>`:''}
         ${(()=>{const sg=infoSegregacion(s);return sg.es?`<span class="badge segregada">${sg.texto}</span>`:'';})()}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
@@ -875,6 +896,10 @@ function render(){
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-repro="${idx}">Reprogramar</button>
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
+    }
+    // Si la cita arrastró de un ciclo anterior sin confirmarse, ofrecer avisar al proveedor.
+    if(!CERRADA && cruzoDeCiclo_(s)){
+      acciones += `<button class="btn" data-avisar="${idx}" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo: su cita sigue en revisión (sin nota)">✉ Avisar al proveedor</button>`;
     }
 
     // Dos fechas lado a lado: solicitada (proveedor) y agendada/confirmada. Conserva trazabilidad.
@@ -937,6 +962,7 @@ function render(){
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
   cont.querySelectorAll('[data-parcial]').forEach(b=>b.addEventListener('click',()=>abrirRecibirParcial(lista[+b.dataset.parcial])));
   cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
+  cont.querySelectorAll('[data-avisar]').forEach(b=>b.addEventListener('click',()=>avisarRevision(lista[+b.dataset.avisar])));
 
   // Gráfico de carga semanal reacciona a los mismos filtros (lista ya filtrada).
   if(typeof actualizarCargaSemanal==='function') actualizarCargaSemanal(lista);
@@ -1292,6 +1318,19 @@ async function generarNotaImprimible(id){
   }catch(e){ alert('Error: '+e.message); }
 }
 
+// Envía al proveedor el correo simple de "su cita sigue en revisión" (sin nota).
+async function avisarRevision(s){
+  if(!s || !s.id){ alert('Solicitud inválida.'); return; }
+  const dest = s.correo ? ('\n\nSe enviará a: '+s.correo) : '\n\n(Aviso: esta solicitud no tiene correo de proveedor registrado.)';
+  if(!confirm('¿Enviar al proveedor un aviso de que su cita SIGUE EN REVISIÓN (sin nota)?\n\n'+(s.empresa||'')+' — OC '+(s.oc||'')+dest)) return;
+  try{
+    const resp=await postGAS('avisarRevisionProveedor',{id:s.id, usuario:'Panel SÍGUELO'});
+    if(!resp.success){ throw new Error(resp.error||'Error'); }
+    alert(resp.message||'Aviso enviado.');
+    cargar();
+  }catch(e){ alert('No se pudo enviar el aviso: '+e.message); }
+}
+
 function abrirRecibirParcial(s){
   const total = Number(s.cant_unidades||s.cant_solicitada||0);
   document.getElementById('modalTitulo').textContent='Recibir parcial — '+s.empresa;
@@ -1303,7 +1342,9 @@ function abrirRecibirParcial(s){
       <tr><td class="k">Cantidad total</td><td class="v"><b>${num(total)}</b> und</td></tr>
     </table>
     <div style="font-size:12.5px;color:#555;margin:14px 0 10px;background:#eef4fb;border:1px solid #d6e2f0;padding:9px 11px;border-radius:3px;">
-      Confirma la cita por lo que vas a <b>recibir</b> ahora. El resto se <b>difiere</b> con su propia nota y queda como remanente para el pr&oacute;ximo ciclo.
+      Confirma la cita por lo que vas a <b>recibir</b> ahora. Para el resto elige:<br>
+      &bull; <b>Diferir con nota</b> si la OC está <b>vencida</b> (genera correlativo de nota para eximir al proveedor de multa).<br>
+      &bull; <b>Segregar sin nota</b> si la OC <b>no está vencida</b> (solo es reparto logístico; el resto queda como remanente).
     </div>
     <div style="display:flex;gap:0;margin-bottom:12px;font-family:var(--mono);">
       <div style="flex:1;padding:7px 10px;background:var(--gris-bg);border:1px solid var(--borde-suave);">
@@ -1339,14 +1380,16 @@ function abrirRecibirParcial(s){
       ${causasCheckboxesHtml('parc')}
     </div>
     <div id="parcMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap;">
       <button class="btn" id="parcCancelar">Cancelar</button>
-      <button class="btn primary" id="parcOk" disabled>Confirmar y diferir resto</button>
+      <button class="btn" id="parcOkSinNota" disabled title="OC no vencida: solo reparto logístico, el resto queda como remanente sin nota">Recibir parcial (segregar, sin nota)</button>
+      <button class="btn primary" id="parcOk" disabled title="OC vencida: el resto se difiere con nota correlativa para eximir de multa">Recibir parcial + diferir resto con nota</button>
     </div>`;
   abrirModal();
 
   const inp=document.getElementById('parcCant');
   const okBtn=document.getElementById('parcOk');
+  const okSinNota=document.getElementById('parcOkSinNota');
   const recibeEl=document.getElementById('parcRecibe');
   const difiereEl=document.getElementById('parcDifiere');
   function recalc(){
@@ -1356,33 +1399,40 @@ function abrirRecibirParcial(s){
     const rem=total-v;
     recibeEl.textContent=num(v);
     difiereEl.textContent=num(rem);
-    // Botón habilitado solo si recibe algo y queda algo por diferir (parcial real)
-    okBtn.disabled = !(v>0 && rem>0);
-    okBtn.textContent = (v>0 && rem===0) ? 'Recibes todo (usa Confirmar cita)' : 'Confirmar '+num(v)+' + diferir '+num(rem);
+    // Ambos botones habilitados solo si recibe algo y queda algo (parcial real)
+    const valido=(v>0 && rem>0);
+    okBtn.disabled=!valido;
+    okSinNota.disabled=!valido;
   }
   inp.addEventListener('input',recalc);
   document.getElementById('parcCancelar').addEventListener('click',cerrarModal);
-  okBtn.addEventListener('click',async()=>{
+
+  async function procesarParcial(sinNota){
     const v=Number(inp.value||0);
     const fecha=document.getElementById('parcFecha').value;
     const hora=document.getElementById('parcHora').value||'08:00';
     const msg=document.getElementById('parcMsg');
     if(!(v>0 && v<total)){ msg.style.color='#b00020'; msg.textContent='La cantidad a recibir debe ser mayor que 0 y menor que el total.'; return; }
     if(!fecha){ msg.style.color='#b00020'; msg.textContent='Indica la fecha de la cita para lo que se recibe.'; return; }
-    okBtn.disabled=true; msg.style.color='#555'; msg.textContent='Confirmando recepción y difiriendo el resto...';
+    okBtn.disabled=true; okSinNota.disabled=true; msg.style.color='#555';
+    msg.textContent = sinNota ? 'Confirmando recepción y segregando el resto (sin nota)...' : 'Confirmando recepción y difiriendo el resto con nota...';
     try{
-      const causas=causasSeleccionadas('parc');
-      const resp=await postGAS('recibirParcial',{id:s.id, cant_recibir:v, fecha_confirmada:fecha, hora_confirmada:hora, causas:causas, usuario:'Panel SÍGUELO'});
+      const causas=sinNota ? [] : causasSeleccionadas('parc');
+      const resp=await postGAS('recibirParcial',{id:s.id, cant_recibir:v, fecha_confirmada:fecha, hora_confirmada:hora, causas:causas, sin_nota:sinNota, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       let txt=resp.message;
       if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió)';
       msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
-      msg.textContent=txt+' Abriendo nota del remanente...';
-      setTimeout(async()=>{ cerrarModal(); if(resp.id_remanente){ await generarNotaImprimible(resp.id_remanente); } cargar(); }, 1200);
+      // Solo hay nota imprimible en el caso CON nota.
+      const abreNota = !sinNota && resp.id_remanente && resp.nota_num;
+      msg.textContent = txt + (abreNota ? ' Abriendo nota del remanente...' : '');
+      setTimeout(async()=>{ cerrarModal(); if(abreNota){ await generarNotaImprimible(resp.id_remanente); } cargar(); }, 1200);
     }catch(e){
-      okBtn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo procesar: '+e.message;
+      okBtn.disabled=false; okSinNota.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo procesar: '+e.message;
     }
-  });
+  }
+  okBtn.addEventListener('click',()=>procesarParcial(false));
+  okSinNota.addEventListener('click',()=>procesarParcial(true));
 }
 
 function abrirDiferir(s){
