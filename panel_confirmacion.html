@@ -2111,8 +2111,7 @@ async function imprimirListaDia(){
     .sub b{color:#0C447C;}
     table{border-collapse:collapse;width:100%;}
     th{background:#0C447C;color:#fff;padding:6px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;font-weight:700;}
-    td{border:1px solid #9bb0c7;padding:4px 6px;vertical-align:top;font-size:10px;}
-    tr:nth-child(even) td{background:#eef3f9;}
+
     th.chk,td.chk{width:46px;text-align:center;}
     td.chk{height:26px;}
     .resumenln{font-size:11px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:6px 10px;margin:0 0 12px;border-radius:0 3px 3px 0;}
@@ -2285,7 +2284,9 @@ async function imprimirSemana(){
       const invCedis=(s.cedis_saldo!=null && s.cedis_saldo!=='')?num(s.cedis_saldo):'—';
       return '<tr>'+
         '<td style="font-family:Consolas;">'+esc(s.hora_confirmada||'—')+'</td>'+
+        '<td>'+esc(s.categoria||'—')+'</td>'+
         '<td>'+esc(s.empresa||'')+'<div style="color:#666;font-size:8.5px;">'+esc(s.descripcion||'')+'</div></td>'+
+        '<td style="font-family:Consolas;white-space:nowrap;">'+esc(s.oc||'')+'</td>'+
         '<td style="font-family:Consolas;text-align:right;white-space:nowrap;">'+esc(s.cod_abasto||'—')+'</td>'+
         '<td style="text-align:right;font-family:Consolas;white-space:nowrap;">'+num(s.cant_unidades)+' und</td>'+
         '<td style="text-align:right;font-family:Consolas;white-space:nowrap;">'+num(s.cant_pallets)+' pal<br>'+num(s.cant_bultos)+' blt</td>'+
@@ -2296,7 +2297,7 @@ async function imprimirSemana(){
     return '<div class="dia">'+
       '<div class="dt">'+DIAS[ix]+' '+d.getDate()+' '+MES[d.getMonth()]+
         '<span class="cuenta">'+citasDia.length+' cita(s) · '+num(pallets)+' pallets</span></div>'+
-      '<table><thead><tr><th>Hora</th><th>Proveedor / producto</th><th style="text-align:right;">Abasto</th><th style="text-align:right;">Cant.</th><th style="text-align:right;">Vol.</th><th style="text-align:right;">Inv. CEDIS</th><th style="text-align:right;">UE=0</th><th style="text-align:right;">Cob.</th></tr></thead><tbody>'+filas+'</tbody></table>'+
+      '<table><thead><tr><th>Hora</th><th>Área</th><th>Proveedor / producto</th><th>OC</th><th style="text-align:right;">Abasto</th><th style="text-align:right;">Cant.</th><th style="text-align:right;">Vol.</th><th style="text-align:right;">Inv. CEDIS</th><th style="text-align:right;">UE=0</th><th style="text-align:right;">Cob.</th></tr></thead><tbody>'+filas+'</tbody></table>'+
     '</div>';
   }).filter(Boolean).join('');
 
