@@ -317,6 +317,16 @@
           </select>
         </div>
         <div class="filtro-campo">
+          <span class="et">Antigüedad (ciclos)</span>
+          <select id="filtroCiclos" title="Filtra por ciclos en revisión desde la fecha solicitada">
+            <option value="">Cualquiera</option>
+            <option value="1">1+ ciclo (arrastradas)</option>
+            <option value="2">2+ ciclos</option>
+            <option value="3">3+ ciclos</option>
+            <option value="4">4+ ciclos (críticas)</option>
+          </select>
+        </div>
+        <div class="filtro-campo">
           <span class="et">Fecha agendada</span>
           <div class="rango-fecha">
             <input type="date" id="filtroAgenDesde" title="Agendada desde">
@@ -512,6 +522,21 @@ function cruzoDeCiclo_(s){
   return fd < lunActual;  // viene de antes del lunes de esta semana
 }
 
+// ¿Cuántos ciclos (semanas) han pasado desde la fecha solicitada hasta hoy?
+// 0 = es del ciclo actual; 1 = del ciclo pasado; 2 = de hace dos ciclos; etc.
+// Se mide por diferencia entre el lunes de la semana solicitada y el lunes de la semana actual.
+function ciclosTranscurridos_(s){
+  const fSol=String(s.fecha_solicitada||'').slice(0,10);
+  if(!fSol) return 0;
+  const fd=new Date(fSol+'T00:00:00');
+  if(isNaN(fd)) return 0;
+  const lunSol=lunesDeSemana_(fd);
+  const lunAct=lunesDeSemana_(new Date());
+  const ms=lunAct - lunSol;
+  if(ms<=0) return 0;
+  return Math.round(ms/(7*24*60*60*1000));  // semanas completas de diferencia
+}
+
 function actualizarCargaSemanal(lista){
   if(Array.isArray(lista)) cargaSemLista = lista;
   if(cargaSemColapsado) return;
@@ -669,6 +694,7 @@ function getFiltradas(){
   const estSel=document.getElementById('filtroEstadoSel').value;
   const catSelRaw=document.getElementById('filtroCategoria').value;
   const iprMin=document.getElementById('filtroIprMin').value;
+  const ciclosMin=document.getElementById('filtroCiclos').value;
   // Rangos de fecha de cita (desde-hasta). Vacíos = sin filtro.
   const agenD=document.getElementById('filtroAgenDesde').value;
   const agenH=document.getElementById('filtroAgenHasta').value;
@@ -694,6 +720,10 @@ function getFiltradas(){
       if(iprMin==='r75' && ipr<75) return false;
       if(iprMin==='r50' && (ipr<50 || ipr>=75)) return false;
       if(iprMin==='r0' && ipr>=50) return false;
+    }
+    // Filtro por antigüedad en ciclos (desde fecha solicitada). N+ = al menos N ciclos.
+    if(ciclosMin){
+      if(ciclosTranscurridos_(s) < Number(ciclosMin)) return false;
     }
     // Filtro rango de fecha AGENDADA. Si solo se llena un extremo, se asume ese mismo día.
     if(agenD || agenH){
@@ -859,7 +889,7 @@ function render(){
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
-        ${cruzoDeCiclo_(s)?'<span class="badge" style="background:#fbe6c4;color:#8a5a00;border-color:#e0c08a;font-weight:700;">⚠ Cruzó de ciclo — en revisión</span>':''}
+        ${cruzoDeCiclo_(s)?(()=>{const nc=ciclosTranscurridos_(s);return '<span class="badge" style="background:#fbe6c4;color:#8a5a00;border-color:#e0c08a;font-weight:700;">⚠ '+nc+' ciclo'+(nc===1?'':'s')+' en revisión</span>';})():''}
         ${s.categoria?`<span class="badge categoria">${esc(catCorta(s.categoria))}</span>`:''}
         ${(()=>{const sg=infoSegregacion(s);return sg.es?`<span class="badge segregada">${sg.texto}</span>`:'';})()}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
@@ -1380,10 +1410,11 @@ function abrirRecibirParcial(s){
       ${causasCheckboxesHtml('parc')}
     </div>
     <div id="parcMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
       <button class="btn" id="parcCancelar">Cancelar</button>
-      <button class="btn" id="parcOkSinNota" disabled title="OC no vencida: solo reparto logístico, el resto queda como remanente sin nota">Recibir parcial (segregar, sin nota)</button>
-      <button class="btn primary" id="parcOk" disabled title="OC vencida: el resto se difiere con nota correlativa para eximir de multa">Recibir parcial + diferir resto con nota</button>
+      <div style="flex:1;"></div>
+      <button class="btn" id="parcOkSinNota" disabled title="OC no vencida: solo reparto logístico, el resto queda como remanente sin nota">Segregar sin nota</button>
+      <button class="btn primary" id="parcOk" disabled title="OC vencida: el resto se difiere con nota correlativa para eximir de multa">Diferir resto con nota</button>
     </div>`;
   abrirModal();
 
@@ -1651,6 +1682,7 @@ document.getElementById('filtroAgenHasta').addEventListener('change',aplicarFilt
 document.getElementById('filtroSolicDesde').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroSolicHasta').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroIprMin').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroCiclos').addEventListener('change',aplicarFiltros);
 let verHistorico=false;
 (function(){
   const bh=document.getElementById('btnHistorico');
@@ -1814,6 +1846,7 @@ function limpiarFiltros(){
   document.getElementById('filtroEstadoSel').value='';
   document.getElementById('filtroCategoria').value='';
   document.getElementById('filtroIprMin').value='';
+  document.getElementById('filtroCiclos').value='';
   document.getElementById('filtroAgenDesde').value='';
   document.getElementById('filtroAgenHasta').value='';
   document.getElementById('filtroSolicDesde').value='';
