@@ -947,6 +947,7 @@ function renderTransitosDisponibles(lista){
     row.innerHTML=
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12.5px;color:#0C447C;font-weight:700;">OC <span class="mono">'+escAttr(t.n_documento||'')+'</span>'+
+          (t.cedi?' <span style="font-weight:700;color:#1e5a9e;font-size:11px;">· CEDI '+escAttr(t.cedi)+'</span>':'')+
           (t.tipo?' <span style="font-weight:400;color:#777;font-size:11px;">('+escAttr(t.tipo)+')</span>':'')+'</div>'+
         '<div style="font-size:12px;color:#333;margin:2px 0;">'+escAttr(t.descripcion||'')+'</div>'+
         '<div style="font-size:11px;color:#666;">Renglón <span class="mono">'+escAttr(t.cod_abasto||t.cod_abasto_norm||'')+'</span>'+
