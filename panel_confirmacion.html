@@ -2092,11 +2092,9 @@ async function imprimirListaDia(){
   const totPallets=citas.reduce((a,s)=>a+(Number(s.cant_pallets)||0),0);
   const areasOrden=Object.keys(resumenArea).sort((a,b)=>resumenArea[b].pallets-resumenArea[a].pallets);
   const resumenHtml = totCitas ? (
-    '<div class="resumen"><div class="resumen-tit">Resumen por área</div>'+
-    '<table class="resumen-tbl"><thead><tr><th>Área</th><th style="text-align:right;">Citas</th><th style="text-align:right;">Pallets</th></tr></thead><tbody>'+
-    areasOrden.map(a=>'<tr><td>'+esc(a)+'</td><td style="text-align:right;">'+resumenArea[a].citas+'</td><td style="text-align:right;">'+num(resumenArea[a].pallets)+'</td></tr>').join('')+
-    '<tr class="tot"><td>TOTAL</td><td style="text-align:right;">'+totCitas+'</td><td style="text-align:right;">'+num(totPallets)+'</td></tr>'+
-    '</tbody></table></div>'
+    '<div class="resumenln"><b>'+totCitas+'</b> cita(s) · <b>'+num(totPallets)+'</b> pallets'+
+    (areasOrden.length?' &nbsp;—&nbsp; '+areasOrden.map(a=>esc(a)+': '+resumenArea[a].citas+' cita(s)/'+num(resumenArea[a].pallets)+' pal').join(' &nbsp;·&nbsp; '):'')+
+    '</div>'
   ) : '';
 
   const win=window.open('','_blank');
@@ -2104,24 +2102,21 @@ async function imprimirListaDia(){
   <style>
     @page{size:landscape;margin:12mm;}
     body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;}
-    .head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0C447C;padding-bottom:10px;margin-bottom:10px;}
+    .head{display:flex;align-items:center;gap:14px;border-bottom:4px solid #0C447C;padding-bottom:10px;margin-bottom:10px;}
     .head img{width:60px;height:60px;object-fit:contain;}
-    .head h1{font-size:16px;margin:0;color:#0C447C;}
-    .head .org{font-size:12px;color:#333;font-weight:600;margin-top:2px;}
+    .head h1{font-size:17px;margin:0;color:#0C447C;font-weight:800;}
+    .head .org{font-size:12px;color:#222;font-weight:700;margin-top:2px;}
     .head .org2{font-size:11px;color:#555;}
-    .sub{font-size:11px;color:#555;margin:0 0 12px;}
+    .sub{font-size:11px;color:#333;margin:0 0 6px;}
+    .sub b{color:#0C447C;}
     table{border-collapse:collapse;width:100%;}
-    th{background:#0C447C;color:#fff;padding:5px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;}
-    td{border:1px solid #aaa;padding:4px 6px;vertical-align:top;font-size:10px;}
-    tr:nth-child(even) td{background:#f4f7fa;}
+    th{background:#0C447C;color:#fff;padding:6px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;font-weight:700;}
+    td{border:1px solid #9bb0c7;padding:4px 6px;vertical-align:top;font-size:10px;}
+    tr:nth-child(even) td{background:#eef3f9;}
     th.chk,td.chk{width:46px;text-align:center;}
     td.chk{height:26px;}
-    .resumen{margin:0 0 14px;border:1px solid #0C447C;border-radius:4px;padding:8px 10px;background:#f4f7fa;max-width:420px;}
-    .resumen-tit{font-size:11px;font-weight:700;color:#0C447C;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px;}
-    .resumen-tbl{width:100%;border-collapse:collapse;}
-    .resumen-tbl th{background:#1e5a9e;color:#fff;padding:3px 8px;font-size:10px;border:1px solid #1e5a9e;}
-    .resumen-tbl td{border:1px solid #b8c6d6;padding:3px 8px;font-size:10.5px;background:#fff;}
-    .resumen-tbl tr.tot td{font-weight:700;background:#e8f0f8;color:#0C447C;}
+    .resumenln{font-size:11px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:6px 10px;margin:0 0 12px;border-radius:0 3px 3px 0;}
+    .resumenln b{color:#0C447C;}
     .firma{margin-top:24px;font-size:11px;display:flex;gap:60px;}
     .firma div{border-top:1px solid #333;padding-top:4px;min-width:220px;text-align:center;}
     @media print{.noprint{display:none;}}
@@ -2134,7 +2129,7 @@ async function imprimirListaDia(){
         <div class="org2">Agenda de citas para proveedores</div>
       </div>
     </div>
-    <div class="sub">Día: <b>${dd}/${mm}/${yy}</b> · Total: ${citas.length} cita(s) · Generado ${new Date().toLocaleString('es-PA')}</div>
+    <div class="sub">Día: <b>${dd}/${mm}/${yy}</b> · Generado ${new Date().toLocaleString('es-PA')}</div>
     ${resumenHtml}
     <table>
       <thead><tr>
@@ -2305,29 +2300,46 @@ async function imprimirSemana(){
     '</div>';
   }).filter(Boolean).join('');
 
+  // Resumen sumativo de la semana por área (citas + pallets)
+  const semDesde=isoDe(lun), semHasta=isoDe(dias[5]);
+  const citasSem=agendadas.filter(s=>{const i=(s.fecha_confirmada||'').slice(0,10); return i>=semDesde&&i<=semHasta;});
+  const areaSem={};
+  citasSem.forEach(s=>{ const a=String(s.categoria||'(sin área)').trim()||'(sin área)'; if(!areaSem[a])areaSem[a]={citas:0,pallets:0}; areaSem[a].citas++; areaSem[a].pallets+=(Number(s.cant_pallets)||0); });
+  const totSemCitas=citasSem.length, totSemPallets=citasSem.reduce((t,s)=>t+(Number(s.cant_pallets)||0),0);
+  const areasSem=Object.keys(areaSem).sort((a,b)=>areaSem[b].pallets-areaSem[a].pallets);
+  const resumenSemHtml = totSemCitas ? (
+    '<div class="resumenln"><b>'+totSemCitas+'</b> cita(s) · <b>'+num(totSemPallets)+'</b> pallets en la semana'+
+    (areasSem.length?' &nbsp;—&nbsp; '+areasSem.map(a=>esc(a)+': '+areaSem[a].citas+' cita(s)/'+num(areaSem[a].pallets)+' pal').join(' &nbsp;·&nbsp; '):'')+
+    '</div>'
+  ) : '';
+
   const win=window.open('','_blank');
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Semana '+isoDe(lun)+'</title><style>'+
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Semana '+semDesde+'</title><style>'+
     '@page{size:landscape;margin:9mm;}'+
     'body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;}'+
-    '.head{display:flex;align-items:center;gap:12px;border-bottom:3px solid #0C447C;padding-bottom:8px;margin-bottom:8px;}'+
+    '.head{display:flex;align-items:center;gap:12px;border-bottom:4px solid #0C447C;padding-bottom:8px;margin-bottom:8px;}'+
     '.head img{width:50px;height:50px;object-fit:contain;}'+
-    '.head h1{font-size:14px;margin:0;color:#0C447C;}'+
-    '.head .org{font-size:10px;color:#333;font-weight:600;}'+
-    '.sub{font-size:10px;color:#555;margin:0 0 8px;}'+
+    '.head h1{font-size:15px;margin:0;color:#0C447C;font-weight:800;}'+
+    '.head .org{font-size:10px;color:#222;font-weight:700;}'+
+    '.sub{font-size:10px;color:#333;margin:0 0 6px;}'+
+    '.sub b{color:#0C447C;}'+
+    '.resumenln{font-size:10px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:6px 10px;margin:0 0 10px;border-radius:0 3px 3px 0;}'+
+    '.resumenln b{color:#0C447C;}'+
     '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}'+
-    '.dia{border:1px solid #bbb;border-radius:3px;page-break-inside:avoid;}'+
+    '.dia{border:1px solid #9bb0c7;border-radius:3px;page-break-inside:avoid;}'+
     '.dt{background:#0C447C;color:#fff;padding:4px 7px;font-size:11px;font-weight:bold;display:flex;align-items:center;}'+
     '.dt .cuenta{margin-left:auto;font-size:9px;font-weight:normal;opacity:.9;}'+
     'table{border-collapse:collapse;width:100%;}'+
-    'th{background:#e8f0f8;color:#0C447C;padding:3px 5px;font-size:8.5px;text-align:left;border:1px solid #cdd;}'+
-    'td{border:1px solid #ddd;padding:2px 5px;font-size:8.5px;vertical-align:top;}'+
+    'th{background:#1e5a9e;color:#fff;padding:3px 5px;font-size:8.5px;text-align:left;border:1px solid #1e5a9e;}'+
+    'td{border:1px solid #c2d0e0;padding:2px 5px;font-size:8.5px;vertical-align:top;}'+
     '.vacio{padding:6px;color:#999;font-size:9px;text-align:center;}'+
     '@media print{.noprint{display:none;}}'+
   '</style></head><body>'+
     '<div class="head">'+(logoUrl?'<img src="'+logoUrl+'" alt="Logo CSS">':'')+
       '<div><h1>CARGA SEMANAL DE CITAS — CEDIS PANAMÁ</h1>'+
       '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística · Torre de Control</div></div></div>'+
-    '<div class="sub">Semana: <b>'+isoDe(lun)+'</b> al <b>'+isoDe(dias[5])+'</b> · '+agendadas.filter(s=>{const i=(s.fecha_confirmada||'').slice(0,10); return i>=isoDe(lun)&&i<=isoDe(dias[5]);}).length+' cita(s) agendada(s) · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    '<div class="sub">Semana: <b>'+semDesde+'</b> al <b>'+semHasta+'</b> · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
+    resumenSemHtml+
     '<div class="grid">'+bloques+'</div>'+
     '<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
   '</body></html>');
