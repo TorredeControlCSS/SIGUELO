@@ -2216,8 +2216,12 @@ async function imprimirListaDia(){
     .head .org2{font-size:11px;color:#555;}
     .sub{font-size:11px;color:#333;margin:0 0 6px;}
     .sub b{color:#0C447C;}
-    table{border-collapse:collapse;width:100%;}
+    table{border-collapse:collapse;width:100%;table-layout:fixed;}
     th{background:#0C447C;color:#fff;padding:6px 6px;font-size:10px;text-align:left;border:1px solid #0C447C;font-weight:700;}
+    td{border:1px solid #aaa;padding:4px 6px;vertical-align:top;font-size:10px;word-wrap:break-word;overflow-wrap:break-word;}
+    tr:nth-child(even) td{background:#f4f7fa;}
+    td:nth-child(7){font-size:9px;}
+    @media print{thead{display:table-header-group;}tr{break-inside:avoid;}}
 
     th.chk,td.chk{width:46px;text-align:center;}
     td.chk{height:26px;}
