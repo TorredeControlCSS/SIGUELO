@@ -356,6 +356,8 @@
         <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
         <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
         <button class="btn primary" id="btnExcel">⬇ Excel</button>
+        <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
+        <button class="btn" id="btnAvisarTodos" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo de 'sigue en revisión' a TODOS los proveedores sin cita confirmada">✉ Avisar a todos sin cita</button>
       </div>
     </div>
     <div id="tabLista"></div>
@@ -504,37 +506,51 @@ function fechaISOloc_(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-// Lunes (00:00) de la semana de la fecha dada. El ciclo de revisión es lun-vie (sáb excepcional).
-function lunesDeSemana_(d){
+// ── Definición de CICLO (cierre los jueves) ───────────────────────────────
+// El ciclo de revisión CIERRA cada JUEVES. Lo solicitado de viernes en adelante
+// pertenece al ciclo siguiente. Por tanto el "inicio del ciclo" es el VIERNES
+// posterior al jueves de cierre más reciente.
+//   - getDay(): 0=dom 1=lun 2=mar 3=mie 4=jue 5=vie 6=sab
+// Devuelve la fecha (00:00) del viernes en que arrancó el ciclo que contiene a d.
+function inicioCicloDe_(d){
   const x=new Date(d); x.setHours(0,0,0,0);
-  x.setDate(x.getDate()-((x.getDay()+6)%7));
+  const dow=x.getDay();
+  // Días a retroceder hasta el viernes de inicio del ciclo vigente para esa fecha.
+  // vie=0, sab=1, dom=2, lun=3, mar=4, mie=5, jue=6 (el jueves pertenece al ciclo que cierra ese día).
+  const atras=(dow-5+7)%7;
+  x.setDate(x.getDate()-atras);
   return x;
 }
-// ¿La solicitud cruzó de ciclo? = sin agendar (o diferida) y su fecha_solicitada es de un
-// ciclo ANTERIOR al lunes de la semana actual. Esas siguen "en revisión" arrastradas.
+// Compat: algunos cálculos heredados llamaban lunesDeSemana_. Lo redirigimos al
+// inicio de ciclo (viernes) para unificar la frontera en un solo lugar.
+function lunesDeSemana_(d){ return inicioCicloDe_(d); }
+
+// ¿La solicitud cruzó de ciclo? = sin agendar (o diferida) y su fecha_solicitada
+// pertenece a un ciclo ANTERIOR al ciclo vigente (el que arrancó el último viernes).
 function cruzoDeCiclo_(s){
   const est=String(s.estado||'').toUpperCase().trim();
   const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
   if(SIN_CITA.indexOf(est)<0) return false;
   const fSol=String(s.fecha_solicitada||'').slice(0,10);
   if(!fSol) return false;
-  const lunActual=lunesDeSemana_(new Date());
+  const inicioActual=inicioCicloDe_(new Date());
   const fd=new Date(fSol+'T00:00:00');
   if(isNaN(fd)) return false;
-  return fd < lunActual;  // viene de antes del lunes de esta semana
+  return fd < inicioActual;  // solicitada antes del viernes de arranque del ciclo vigente
 }
 
 // ¿Cuántos ciclos (semanas) han pasado desde la fecha solicitada hasta hoy?
-// 0 = es del ciclo actual; 1 = del ciclo pasado; 2 = de hace dos ciclos; etc.
-// Se mide por diferencia entre el lunes de la semana solicitada y el lunes de la semana actual.
+// 0 = ciclo actual; 1 = ciclo pasado; 2 = hace dos ciclos; etc.
+// Se mide por diferencia entre el inicio de ciclo (viernes) de la fecha solicitada
+// y el inicio de ciclo vigente.
 function ciclosTranscurridos_(s){
   const fSol=String(s.fecha_solicitada||'').slice(0,10);
   if(!fSol) return 0;
   const fd=new Date(fSol+'T00:00:00');
   if(isNaN(fd)) return 0;
-  const lunSol=lunesDeSemana_(fd);
-  const lunAct=lunesDeSemana_(new Date());
-  const ms=lunAct - lunSol;
+  const iniSol=inicioCicloDe_(fd);
+  const iniAct=inicioCicloDe_(new Date());
+  const ms=iniAct - iniSol;
   if(ms<=0) return 0;
   return Math.round(ms/(7*24*60*60*1000));  // semanas completas de diferencia
 }
@@ -1367,6 +1383,20 @@ async function avisarRevision(s){
   }catch(e){ alert('No se pudo enviar el aviso: '+e.message); }
 }
 
+// Barrido masivo: avisa a TODOS los proveedores con solicitudes sin cita confirmada.
+async function avisarRevisionTodos(){
+  if(!confirm('¿Enviar el aviso de "sigue en revisión" a TODOS los proveedores con solicitudes SIN cita confirmada?\n\n(No se reenvía a quien ya se le avisó hoy. No genera nota ni correlativo.)')) return;
+  const btn=document.getElementById('btnAvisarTodos');
+  const txt=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  try{
+    const resp=await postGAS('avisarRevisionMasivo',{soloSiNoAvisadoHoy:true, usuario:'Panel SÍGUELO'});
+    if(!resp.success){ throw new Error(resp.error||'Error'); }
+    alert(resp.message||('Aviso masivo enviado: '+(resp.enviados||0)+' correo(s).'));
+    cargar();
+  }catch(e){ alert('No se pudo enviar el aviso masivo: '+e.message); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
+}
+
 function abrirRecibirParcial(s){
   const total = Number(s.cant_unidades||s.cant_solicitada||0);
   document.getElementById('modalTitulo').textContent='Recibir parcial — '+s.empresa;
@@ -1719,6 +1749,7 @@ document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar();
   });
 })();
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
+document.getElementById('btnAvisarTodos').addEventListener('click',avisarRevisionTodos);
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
 // ===== Atajos de rango: esta semana / semana próxima / este mes =====
