@@ -485,7 +485,10 @@ function infoSegregacion(s){
   // "Remanente diferido de cita XXX (se recibieron 1014 de 2475)"
   mm = m.match(/Remanente diferido.*?se recibieron\s*([\d.,]+)\s+de\s+([\d.,]+)/i);
   if(mm) return {es:true, texto:'✂ Remanente: '+num(Number(String(mm[2]).replace(/[.,]/g,''))-Number(String(mm[1]).replace(/[.,]/g,'')))+' de '+num(mm[2])+' original'};
-  if(/Remanente diferido/i.test(m)) return {es:true, texto:'✂ Remanente de cita partida'};
+  // "Remanente por segregacion logistica de cita XXX (se recibieron 1014 de 2475; OC no vencida, sin nota)"
+  mm = m.match(/Remanente por segregaci[oó]n.*?se recibieron\s*([\d.,]+)\s+de\s+([\d.,]+)/i);
+  if(mm) return {es:true, texto:'✂ Remanente: '+num(Number(String(mm[2]).replace(/[.,]/g,''))-Number(String(mm[1]).replace(/[.,]/g,'')))+' de '+num(mm[2])+' original'};
+  if(/Remanente (diferido|por segregaci)/i.test(m)) return {es:true, texto:'✂ Remanente de cita partida'};
   return {es:false, texto:''};
 }
 
@@ -724,7 +727,7 @@ function getFiltradas(){
     // __RESCATADAS__ es transversal: marca es_rescatada, no un estado real)
     if(estSel){
       const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
-      const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA'];
+      const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
       if(estSel==='__RESCATADAS__'){
         if(!s.es_rescatada) return false;
       } else if(estSel==='CERRADAS'){
@@ -764,7 +767,7 @@ function getFiltradas(){
     // Filtro por tarjeta KPI
     if(filtroEstado==='PENDIENTE'){
       // "Pendiente" agrupa todo lo que aún no tiene cita confirmada (sin agendar).
-      const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA'];
+      const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
       if(SIN_CITA.indexOf(estU)<0) return false;
     }
     if(filtroEstado==='AGENDADA' && estU!=='AGENDADA') return false;
@@ -935,7 +938,7 @@ function render(){
       acciones = `<button class="btn primary" data-conf="${idx}">Reprogramar (confirmar)</button>
                   <button class="btn" data-dif="${idx}">Diferir</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
-    } else if(estadoU==='DIFERIDA'){
+    } else if(estadoU==='DIFERIDA' || estadoU==='REMANENTE'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-nota="${idx}">Generar nota</button>
@@ -2098,9 +2101,11 @@ function renderCalendario(){
     if(!coincideCategoria(s, catSelRaw)) return;
     if(estSel){
       const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
+      const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
       const eU=String(s.estado||'').toUpperCase();
       if(estSel==='__RESCATADAS__'){ if(!s.es_rescatada) return; }
       else if(estSel==='CERRADAS'){ if(CERRADAS_GRUPO.indexOf(eU)<0) return; }
+      else if(estSel==='PENDIENTE'){ if(SIN_CITA_GRUPO.indexOf(eU)<0) return; }
       else if(eU!==estSel) return;
     }
     if(q){ const blob=((s.empresa||'')+' '+(s.oc||'')+' '+(s.cod_abasto||'')+' '+(s.descripcion||'')).toLowerCase(); if(blob.indexOf(q)<0) return; }
@@ -2235,9 +2240,9 @@ function verDiaCalendario(iso, citas){
     abrirModal(); return;
   }
   // Orden de estados (lo vivo primero, lo cerrado al final).
-  const ORDEN_EST=['PENDIENTE','SOLICITADA','REPROGRAMADA','AGENDADA','ASISTIO','DIFERIDA','NO_ASISTIO','PARCIAL','ENTREGADA','ENTREGADO','CANCELADA'];
-  const ETIQ_EST={PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',REPROGRAMADA:'Reprogramadas',AGENDADA:'Agendadas',ASISTIO:'Asistió',DIFERIDA:'Diferidas',NO_ASISTIO:'No asistió',PARCIAL:'Parciales',ENTREGADA:'Entregadas',ENTREGADO:'Entregadas',CANCELADA:'Canceladas'};
-  const COL_EST={PENDIENTE:'#9a5b00',SOLICITADA:'#9a5b00',REPROGRAMADA:'#9a5b00',AGENDADA:'#1e5a9e',ASISTIO:'#0a7a2f',DIFERIDA:'#854F0B',NO_ASISTIO:'#b00020',PARCIAL:'#0a7a2f',ENTREGADA:'#555',ENTREGADO:'#555',CANCELADA:'#999'};
+  const ORDEN_EST=['PENDIENTE','SOLICITADA','REMANENTE','REPROGRAMADA','AGENDADA','ASISTIO','DIFERIDA','NO_ASISTIO','PARCIAL','ENTREGADA','ENTREGADO','CANCELADA'];
+  const ETIQ_EST={PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',REMANENTE:'Remanentes (sin cita)',REPROGRAMADA:'Reprogramadas',AGENDADA:'Agendadas',ASISTIO:'Asistió',DIFERIDA:'Diferidas',NO_ASISTIO:'No asistió',PARCIAL:'Parciales',ENTREGADA:'Entregadas',ENTREGADO:'Entregadas',CANCELADA:'Canceladas'};
+  const COL_EST={PENDIENTE:'#9a5b00',SOLICITADA:'#9a5b00',REMANENTE:'#9a5b00',REPROGRAMADA:'#9a5b00',AGENDADA:'#1e5a9e',ASISTIO:'#0a7a2f',DIFERIDA:'#854F0B',NO_ASISTIO:'#b00020',PARCIAL:'#0a7a2f',ENTREGADA:'#555',ENTREGADO:'#555',CANCELADA:'#999'};
   // Orden de áreas (dentro de cada estado).
   const ORDEN_CAT=['Medicamentos','Médico Quirúrgico','Laboratorio','Odontología','Sustancias Controladas'];
 
@@ -2622,7 +2627,7 @@ function imprimirEstrategia(){
   const isoLun=fechaISOloc_(lun), isoSab=fechaISOloc_(sab);
   const fmt=d=>d.toLocaleDateString('es-PA',{day:'2-digit',month:'short',year:'numeric'});
 
-  const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
+  const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA','REMANENTE'];
   // Seleccionar las solicitudes que entran al reporte
   const sel=(SOLICITUDES||[]).filter(s=>{
     const est=String(s.estado||'').toUpperCase().trim();
@@ -2634,8 +2639,8 @@ function imprimirEstrategia(){
   });
 
   // Orden de los estados en el reporte
-  const ORDEN_EST=['AGENDADA','REPROGRAMADA','PENDIENTE','SOLICITADA','EN ANALISIS','DIFERIDA'];
-  const ETIQ={AGENDADA:'Agendadas (semana próxima)',REPROGRAMADA:'Reprogramadas',PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',
+  const ORDEN_EST=['AGENDADA','REPROGRAMADA','PENDIENTE','SOLICITADA','REMANENTE','EN ANALISIS','DIFERIDA'];
+  const ETIQ={AGENDADA:'Agendadas (semana próxima)',REPROGRAMADA:'Reprogramadas',PENDIENTE:'Pendientes por confirmar',SOLICITADA:'Solicitadas',REMANENTE:'Remanentes (sin cita)',
     'EN ANALISIS':'En análisis',DIFERIDA:'Diferidas'};
 
   // Agrupar: estado -> categoría -> [solicitudes]
