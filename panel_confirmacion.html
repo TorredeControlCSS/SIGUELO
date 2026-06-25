@@ -254,7 +254,7 @@
 
   <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
     <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
-      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas por estado y pallets por día</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas por estado y pallets por día<span style="font-weight:400;font-size:10.5px;color:#888;"> · "Atrasadas" usa escala propia (eje derecho) para no aplastar los días</span></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
           <option value="ambas">Todo (sin cita + diferidas + agendadas)</option>
@@ -665,24 +665,43 @@ function actualizarCargaSemanal(lista){
   const datCerrada = cols.map(f=>agrup[f].cerrada);
   const datPallets = cols.map(f=>agrup[f].pallets);
 
-  // Datasets apilados según el modo.
+  // "Atrasadas" (índice 0) usa su PROPIO eje (yAtras) para no aplastar la escala de los
+  // días. Cada serie se parte en dos: valor solo-en-atrasadas (eje yAtras, stack 'atras')
+  // y valor solo-en-días (eje y, stack 'citas'). Así cada lado escala independiente.
+  const soloAtras = arr => arr.map((v,i)=> i===0 ? v : 0);
+  const soloDias  = arr => arr.map((v,i)=> i===0 ? 0 : v);
+
+  // Colores por serie (compartidos entre ambos ejes).
+  const C = {
+    sinCita:{bg:'rgba(120,170,220,0.65)',bd:'#5a8fc0'},
+    diferida:{bg:'rgba(214,163,90,0.75)',bd:'#b8852f'},
+    agend:{bg:'rgba(30,90,158,0.85)',bd:'#0C447C'},
+    cerrada:{bg:'rgba(120,150,120,0.55)',bd:'#6f8a6f'}
+  };
+
   const ds = [];
+  // Helper: agrega el par (atrasadas + días) de una serie. soloLeyendaEnDias evita
+  // que la leyenda se duplique (la versión 'atras' no muestra su propia entrada).
+  function addSerie(label, datos, col, order){
+    ds.push({ type:'bar', label:label+' (atrasadas)', data:soloAtras(datos), stack:'atras',
+      backgroundColor:col.bg, borderColor:col.bd, borderWidth:1, yAxisID:'yAtras', order:order,
+      __noLegend:true });
+    ds.push({ type:'bar', label:label, data:soloDias(datos), stack:'citas',
+      backgroundColor:col.bg, borderColor:col.bd, borderWidth:1, yAxisID:'y', order:order });
+  }
+
   if(modo==='ambas' || modo==='solicitada'){
-    ds.push({ type:'bar', label:'Solicitadas sin cita', data:datSinCita, stack:'citas',
-      backgroundColor:'rgba(120,170,220,0.65)', borderColor:'#5a8fc0', borderWidth:1, yAxisID:'y', order:3 });
-    ds.push({ type:'bar', label:'Diferidas', data:datDiferida, stack:'citas',
-      backgroundColor:'rgba(214,163,90,0.75)', borderColor:'#b8852f', borderWidth:1, yAxisID:'y', order:3 });
+    addSerie('Solicitadas sin cita', datSinCita, C.sinCita, 3);
+    addSerie('Diferidas', datDiferida, C.diferida, 3);
   }
   if(modo==='ambas' || modo==='agendada'){
-    ds.push({ type:'bar', label:'Agendadas', data:datAgend, stack:'citas',
-      backgroundColor:'rgba(30,90,158,0.85)', borderColor:'#0C447C', borderWidth:1, yAxisID:'y', order:2 });
+    addSerie('Agendadas', datAgend, C.agend, 2);
   }
-  // Entregadas/asistidas: siempre visibles, en gris-verde, sin romper la escala.
-  ds.push({ type:'bar', label:'Entregadas / asistió', data:datCerrada, stack:'citas',
-    backgroundColor:'rgba(120,150,120,0.55)', borderColor:'#6f8a6f', borderWidth:1, yAxisID:'y', order:4 });
-  // Pallets: línea, visible cuando hay agenda (modo ambas o agendada).
+  // Entregadas/asistidas: siempre visibles, en gris-verde.
+  addSerie('Entregadas / asistió', datCerrada, C.cerrada, 4);
+  // Pallets: línea, solo en los días (no aplica a atrasadas).
   if(modo==='ambas' || modo==='agendada'){
-    ds.push({ type:'line', label:'Pallets (agendados)', data:datPallets,
+    ds.push({ type:'line', label:'Pallets (agendados)', data:soloDias(datPallets),
       borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
   }
 
@@ -695,14 +714,20 @@ function actualizarCargaSemanal(lista){
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
       plugins:{
-        legend:{ position:'top', labels:{ font:{size:11}, boxWidth:14 } },
-        tooltip:{ titleFont:{family:'Consolas,monospace'}, bodyFont:{family:'Consolas,monospace'} }
+        legend:{ position:'top', labels:{ font:{size:11}, boxWidth:14,
+          filter:function(item, data){ var d=data.datasets[item.datasetIndex]; return !(d && d.__noLegend); } } },
+        tooltip:{ titleFont:{family:'Consolas,monospace'}, bodyFont:{family:'Consolas,monospace'},
+          filter:function(item){ var d=item.dataset; return !(d && d.__noLegend && item.parsed.y===0); } }
       },
       scales:{
         x:{ stacked:true, ticks:{ font:{size:11} }, grid:{ display:false } },
         y:{ stacked:true, type:'linear', position:'left', beginAtZero:true,
-            title:{ display:true, text:'Citas', font:{size:11} },
+            title:{ display:true, text:'Citas (semana)', font:{size:11} },
             ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
+        yAtras:{ stacked:true, type:'linear', position:'right', beginAtZero:true,
+            title:{ display:true, text:'Atrasadas', font:{size:11}, color:'#6f8a6f' },
+            ticks:{ font:{family:'Consolas,monospace'}, precision:0, color:'#6f8a6f' },
+            grid:{ drawOnChartArea:false } },
         y1:{ type:'linear', position:'right', beginAtZero:true, display:mostrarY1,
              title:{ display:true, text:'Pallets', font:{size:11} },
              ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } }
