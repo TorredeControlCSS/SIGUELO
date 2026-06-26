@@ -1,4 +1,4 @@
-const CACHE_NAME = 'siguelo-citas-v9';
+const CACHE_NAME = 'siguelo-citas-v10';
 const URLS_TO_CACHE = [
   './',
   './index.html',
