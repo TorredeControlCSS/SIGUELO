@@ -260,6 +260,7 @@
           <option value="ambas">Todo (agendadas + entregadas)</option>
           <option value="agendada">Solo agendadas</option>
           <option value="cerradas">Solo entregadas / asistió</option>
+          <option value="solicitadas">Solo solicitadas + diferidas (por fecha pedida)</option>
         </select>
         <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
           <button class="btn" id="cargaSemPrev" style="padding:2px 8px;font-size:12px;">‹</button>
@@ -628,6 +629,11 @@ function actualizarCargaSemanal(lista){
   agrup[ATRAS] = {sinCita:0,diferida:0,agend:0,cerrada:0,pallets:0};
   dias.forEach(f=>agrup[f]={sinCita:0,diferida:0,agend:0,cerrada:0,pallets:0});
 
+  // Acumuladores por FECHA SOLICITADA (para la vista "Solo solicitadas + diferidas"):
+  // cuántas citas pidieron cita para ese día, agendadas o no.
+  const solicDia = {};
+  dias.forEach(f=>solicDia[f]={solicitadas:0,diferidas:0,pallets:0});
+
   // Acumuladores para el fill-rate por día: solicitadas (denominador) y concedidas (numerador).
   const fillRate = {};
   dias.forEach(f=>fillRate[f]={solicitadas:0,concedidas:0});
@@ -646,6 +652,13 @@ function actualizarCargaSemanal(lista){
     const fSol = String(s.fecha_solicitada||'').slice(0,10);
     const fAge = String(s.fecha_confirmada||'').slice(0,10);
 
+    // Acumular por fecha SOLICITADA (toda cita que pidió ese día, sin importar su estado).
+    if(fSol && solicDia[fSol]){
+      if(est==='DIFERIDA') solicDia[fSol].diferidas+=1;
+      else solicDia[fSol].solicitadas+=1;
+      solicDia[fSol].pallets+=Number(s.cant_pallets||0);
+    }
+
     if(CERRADAS.indexOf(est)>=0){
       // Entregadas/asistidas: en el día en que ocurrió la cita.
       const b = bucketDia(fAge||fSol);
@@ -663,8 +676,10 @@ function actualizarCargaSemanal(lista){
       }
     } else {
       // Sin cita confirmada => pool de pendientes (gráfico independiente).
+      // Mismo criterio que la tarjeta KPI y el filtro: grupo sin-cita por estado.
+      const SIN_CITA=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
       if(est==='DIFERIDA') agrup[ATRAS].diferida+=1;
-      else agrup[ATRAS].sinCita+=1;
+      else if(SIN_CITA.indexOf(est)>=0) agrup[ATRAS].sinCita+=1;
       // Para el fill-rate: si pidió cita para un día visible pero NO se le agendó,
       // suma al denominador de ese día (solicitada sin conceder).
       if(fSol && fillRate[fSol]) fillRate[fSol].solicitadas+=1;
@@ -680,6 +695,9 @@ function actualizarCargaSemanal(lista){
   const datAgend = dias.map(f=>agrup[f].agend);
   const datCerrada = dias.map(f=>agrup[f].cerrada);
   const datPallets = dias.map(f=>agrup[f].pallets);
+  const datSolic = dias.map(f=>solicDia[f].solicitadas);
+  const datDifer = dias.map(f=>solicDia[f].diferidas);
+  const datPalletsSolic = dias.map(f=>solicDia[f].pallets);
 
   // Fill-rate por día de CITA: % agendado vs solicitado para ese mismo día.
   const datFill = dias.map(f=>{
@@ -705,9 +723,17 @@ function actualizarCargaSemanal(lista){
     ds.push({ type:'bar', label:'Entregadas / asistió', data:datCerrada, stack:'citas',
       backgroundColor:C.cerrada.bg, borderColor:C.cerrada.bd, borderWidth:1, yAxisID:'y', order:4 });
   }
+  // Vista "Solo solicitadas + diferidas": por fecha PEDIDA (todas las que pidieron ese día).
+  if(modo==='solicitadas'){
+    ds.push({ type:'bar', label:'Solicitadas', data:datSolic, stack:'citas',
+      backgroundColor:C.sinCita.bg, borderColor:C.sinCita.bd, borderWidth:1, yAxisID:'y', order:3 });
+    ds.push({ type:'bar', label:'Diferidas', data:datDifer, stack:'citas',
+      backgroundColor:C.diferida.bg, borderColor:C.diferida.bd, borderWidth:1, yAxisID:'y', order:3 });
+  }
 
-  // Pallets: SIEMPRE visibles (en todos los modos), para no perder la historia.
-  ds.push({ type:'line', label:'Pallets', data:datPallets,
+  // Pallets: SIEMPRE visibles. En la vista de solicitadas, usa los pallets solicitados de ese día.
+  const palletsSerie = (modo==='solicitadas') ? datPalletsSolic : datPallets;
+  ds.push({ type:'line', label:'Pallets', data:palletsSerie,
     borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
 
   // Fill-rate: línea punteada en % (eje propio yFill).
@@ -719,7 +745,7 @@ function actualizarCargaSemanal(lista){
 
   // ===== Gráfico independiente de PENDIENTES POR CONFIRMAR (barra apilada única) =====
   const pendData = {
-    labels:['Pendientes'],
+    labels:[''],
     datasets:[
       { label:'Sin cita', data:[agrup[ATRAS].sinCita], backgroundColor:C.sinCita.bg, borderColor:C.sinCita.bd, borderWidth:1 },
       { label:'Diferidas', data:[agrup[ATRAS].diferida], backgroundColor:C.diferida.bg, borderColor:C.diferida.bd, borderWidth:1 }
@@ -732,10 +758,10 @@ function actualizarCargaSemanal(lista){
       type:'bar', data:pendData,
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ display:true, position:'bottom', labels:{ font:{size:9}, boxWidth:10 } },
+        plugins:{ legend:{ display:true, position:'top', labels:{ font:{size:10}, boxWidth:12 } },
           tooltip:{ bodyFont:{family:'Consolas,monospace'} } },
         scales:{
-          x:{ stacked:true, grid:{display:false}, ticks:{ font:{size:10} } },
+          x:{ stacked:true, grid:{display:false}, ticks:{ display:false } },
           y:{ stacked:true, beginAtZero:true, ticks:{ font:{family:'Consolas,monospace'}, precision:0 } }
         }
       }
@@ -817,7 +843,10 @@ function actualizarKPIs(){
   // agendada o asistió, la OC ya no corre riesgo operativo (la cita ya avanzó).
   const SIN_AGENDAR=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','DIFERIDA'];
   const esSinAgendar=s=>SIN_AGENDAR.indexOf(String(s.estado||'').toUpperCase())>=0;
-  const pend=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='PENDIENTE').length;
+  // "Pendientes por confirmar" = todo lo que aún NO tiene cita asignada (sin agendar),
+  // consistente con el filtro "Pendiente (sin cita)" y el gráfico de pendientes.
+  const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
+  const pend=SOLICITUDES.filter(s=>SIN_CITA_GRUPO.indexOf(String(s.estado||'').toUpperCase().trim())>=0).length;
   const agen=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='AGENDADA').length;
   // Recepción urgente: citas ACTIVAS con IPR crítico (>=75).
   const rec=SOLICITUDES.filter(s=>esActiva(s) && Number(s.ipr||0)>=75).length;
