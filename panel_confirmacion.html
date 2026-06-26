@@ -254,7 +254,7 @@
 
   <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
     <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
-      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas por estado y pallets por día<span style="font-weight:400;font-size:10.5px;color:#888;"> · "Atrasadas" usa escala propia (eje derecho) para no aplastar los días</span></div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas confirmadas por día<span style="font-weight:400;font-size:10.5px;color:#888;"> · "Pendientes" (pool sin confirmar) en eje propio · línea morada = fill-rate (% concedido vs solicitado)</span></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
           <option value="ambas">Todo (sin cita + diferidas + agendadas)</option>
@@ -291,10 +291,13 @@
             <option value="PENDIENTE">Pendientes (sin cita)</option>
             <option value="SOLICITADA">— Solo solicitadas</option>
             <option value="REPROGRAMADA">— Solo reprogramadas</option>
+            <option value="REMANENTE">— Solo remanentes</option>
             <option value="AGENDADA">Agendada</option>
             <option value="DIFERIDA">Diferida</option>
-            <option value="CERRADAS">Cerradas</option>
-            <option value="__RESCATADAS__">⮌ Rescatadas</option>
+            <option value="ENTREGADO">Entregado</option>
+            <option value="ASISTIO">Asistió</option>
+            <option value="NO_ASISTIO">No asistió</option>
+            <option value="CANCELADA">Cancelada</option>
           </select>
         </div>
         <div class="filtro-campo filtro-cat">
@@ -356,7 +359,7 @@
         <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
         <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
         <button class="btn primary" id="btnExcel">⬇ Excel</button>
-        <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel de lotes por estado">⬇ Lista de empaque</button>
+        <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel detallado con todos los lotes y niveles de empaque">⬇ Lista de empaque</button>
         <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
         <button class="btn" id="btnAvisarTodos" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo de 'sigue en revisión' a TODOS los proveedores sin cita confirmada">✉ Avisar a todos sin cita</button>
       </div>
@@ -606,56 +609,65 @@ function actualizarCargaSemanal(lista){
   const rangoEl = document.getElementById('cargaSemRango');
   if(rangoEl) rangoEl.textContent = fmt(lunes)+' – '+fmt(dom);
 
-  // Clave especial para la columna de arrastre (todo lo previo al lunes visible).
+  // Clave especial para el POOL de pendientes por confirmar (sin cita asignada).
   const ATRAS = '__ATRAS__';
-  // Agrupar por día en categorías para barras apiladas:
-  //  - sinCita: solicitudes sin fecha_confirmada (PENDIENTE/SOLICITADA/REPROGRAMADA/REMANENTE)
-  //  - diferida: estado DIFERIDA
-  //  - agend: con fecha_confirmada (+ pallets)
-  //  - cerrada: ENTREGADA/ENTREGADO/ASISTIO (histórico, otro color)
-  // Lo que cae ANTES del lunes visible se acumula en la columna "Atrasadas",
-  // para no perder de vista lo arrastrado de días/semanas anteriores.
+  // Lógica de ciclo (el ciclo cierra cada jueves):
+  //  - Cada DÍA muestra solo lo realmente CONFIRMADO de ese día: agendadas + entregadas.
+  //    Eso refleja la carga real comprometida por día (no ensucia con solicitudes futuras).
+  //  - Todo lo SOLICITADO SIN CONFIRMAR (PENDIENTE/SOLICITADA/REPROGRAMADA/REMANENTE/DIFERIDA),
+  //    de cualquier fecha, cae al pool "Pendientes por confirmar" — porque mientras no se
+  //    agende, no pertenece a ningún día operativo.
+  //  - Fill-rate por día: cuántas citas se SOLICITARON para ese día vs cuántas se concedieron
+  //    (agendaron). Mide la capacidad de respuesta del CEDIS.
   const agrup = {};
   agrup[ATRAS] = {sinCita:0,diferida:0,agend:0,cerrada:0,pallets:0};
   dias.forEach(f=>agrup[f]={sinCita:0,diferida:0,agend:0,cerrada:0,pallets:0});
 
+  // Acumuladores para el fill-rate por día: solicitadas (denominador) y concedidas (numerador).
+  const fillRate = {};
+  dias.forEach(f=>fillRate[f]={solicitadas:0,concedidas:0});
+
   const CERRADAS = ['ENTREGADA','ENTREGADO','ASISTIO'];
-  // Decide en qué columna cae una fecha: si es anterior al lunes => ATRAS;
-  // si cae dentro de la semana => ese día; si es futura (después del sábado) => no se grafica.
-  function bucket(fecha){
+  // Bucket SOLO para los días visibles (lo confirmado). Futuro/pasado fuera de semana = null.
+  function bucketDia(fecha){
     const f = String(fecha||'').slice(0,10);
     if(!f) return null;
-    if(f < lunesIso) return ATRAS;        // arrastrado
-    if(agrup[f]) return f;                // día de la semana visible
-    return null;                          // futuro fuera de la semana
+    if(agrup[f]) return f;
+    return null;
   }
 
   (datosGrafico||[]).forEach(s=>{
     const est = String(s.estado||'').toUpperCase().trim();
     const fSol = String(s.fecha_solicitada||'').slice(0,10);
     const fAge = String(s.fecha_confirmada||'').slice(0,10);
+
+    // Fill-rate: si la fecha SOLICITADA cae en un día visible, cuenta como solicitada de ese día.
+    if(fSol && fillRate[fSol]) fillRate[fSol].solicitadas+=1;
+
     if(CERRADAS.indexOf(est)>=0){
-      // Entregadas/asistidas: por la fecha en que ocurrió la cita (confirmada si existe).
-      const b = bucket(fAge||fSol);
-      if(b) agrup[b].cerrada+=1;
-    } else if(est==='DIFERIDA'){
-      const b = bucket(fSol);
-      if(b) agrup[b].diferida+=1;
+      // Entregadas/asistidas: en el día en que ocurrió la cita (confirmada).
+      const b = bucketDia(fAge||fSol);
+      if(b){ agrup[b].cerrada+=1; if(fSol && fillRate[fSol]) fillRate[fSol].concedidas+=1; }
     } else if(fAge){
-      const b = bucket(fAge);
-      if(b){ agrup[b].agend+=1; agrup[b].pallets+=Number(s.cant_pallets||0); }
+      // AGENDADA (confirmada): cae en su día de cita y cuenta como concedida.
+      const b = bucketDia(fAge);
+      if(b){
+        agrup[b].agend+=1; agrup[b].pallets+=Number(s.cant_pallets||0);
+        if(fSol && fillRate[fSol]) fillRate[fSol].concedidas+=1;
+      }
     } else {
-      // sin fecha de cita confirmada => solicitada sin cita
-      const b = bucket(fSol);
-      if(b) agrup[b].sinCita+=1;
+      // Sin cita confirmada (solicitada/pendiente/diferida/remanente) => POOL pendientes,
+      // sin importar la fecha. No ensucia ningún día.
+      if(est==='DIFERIDA') agrup[ATRAS].diferida+=1;
+      else agrup[ATRAS].sinCita+=1;
     }
   });
 
   const nombresDia = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  // El eje X arranca con "Atrasadas" y sigue con los 6 días.
+  // El eje X arranca con el pool "Pendientes por confirmar" y sigue con los 6 días.
   const cols = [ATRAS].concat(dias);
   const labels = cols.map((f,i)=>{
-    if(f===ATRAS) return 'Atrasadas';
+    if(f===ATRAS) return 'Pendientes';
     const idx = i-1; const d=new Date(f+'T12:00:00');
     return nombresDia[idx]+' '+String(d.getDate()).padStart(2,'0');
   });
@@ -665,8 +677,16 @@ function actualizarCargaSemanal(lista){
   const datCerrada = cols.map(f=>agrup[f].cerrada);
   const datPallets = cols.map(f=>agrup[f].pallets);
 
-  // "Atrasadas" (índice 0) usa su PROPIO eje (yAtras) para no aplastar la escala de los
-  // días. Cada serie se parte en dos: valor solo-en-atrasadas (eje yAtras, stack 'atras')
+  // Fill-rate por día: % de citas concedidas (agendadas) sobre solicitadas para ese día.
+  // El índice 0 (pool de pendientes) no tiene fill-rate.
+  const datFill = cols.map((f,i)=>{
+    if(i===0) return null;
+    const fr=fillRate[f]; if(!fr || !fr.solicitadas) return null;
+    return Math.round((fr.concedidas/fr.solicitadas)*100);
+  });
+
+  // El pool "Pendientes por confirmar" (índice 0) usa su PROPIO eje (yAtras) para no aplastar
+  // la escala de los días. Cada serie se parte: valor solo-en-pool (eje yAtras, stack 'atras')
   // y valor solo-en-días (eje y, stack 'citas'). Así cada lado escala independiente.
   const soloAtras = arr => arr.map((v,i)=> i===0 ? v : 0);
   const soloDias  = arr => arr.map((v,i)=> i===0 ? 0 : v);
@@ -680,30 +700,40 @@ function actualizarCargaSemanal(lista){
   };
 
   const ds = [];
-  // Helper: agrega el par (atrasadas + días) de una serie. soloLeyendaEnDias evita
-  // que la leyenda se duplique (la versión 'atras' no muestra su propia entrada).
-  function addSerie(label, datos, col, order){
-    ds.push({ type:'bar', label:label+' (atrasadas)', data:soloAtras(datos), stack:'atras',
-      backgroundColor:col.bg, borderColor:col.bd, borderWidth:1, yAxisID:'yAtras', order:order,
-      __noLegend:true });
+  // Helper: agrega el par (pool + días) de una serie. __noLegend evita duplicar leyenda.
+  function addSerie(label, datos, col, order, soloEnPool){
+    if(soloEnPool){
+      // Series que solo existen en el pool (pendientes/diferidas): solo en yAtras.
+      ds.push({ type:'bar', label:label, data:soloAtras(datos), stack:'atras',
+        backgroundColor:col.bg, borderColor:col.bd, borderWidth:1, yAxisID:'yAtras', order:order });
+      return;
+    }
+    // Series de días (agendadas/entregadas): solo en los días.
     ds.push({ type:'bar', label:label, data:soloDias(datos), stack:'citas',
       backgroundColor:col.bg, borderColor:col.bd, borderWidth:1, yAxisID:'y', order:order });
   }
 
+  // POOL (eje derecho aislado): pendientes por confirmar + diferidas.
   if(modo==='ambas' || modo==='solicitada'){
-    addSerie('Solicitadas sin cita', datSinCita, C.sinCita, 3);
-    addSerie('Diferidas', datDiferida, C.diferida, 3);
+    addSerie('Pendientes por confirmar', datSinCita, C.sinCita, 3, true);
+    addSerie('Diferidas (pool)', datDiferida, C.diferida, 3, true);
   }
+  // DÍAS (eje izquierdo): agendadas y entregadas/asistidas.
   if(modo==='ambas' || modo==='agendada'){
-    addSerie('Agendadas', datAgend, C.agend, 2);
+    addSerie('Agendadas', datAgend, C.agend, 2, false);
   }
-  // Entregadas/asistidas: siempre visibles, en gris-verde.
-  addSerie('Entregadas / asistió', datCerrada, C.cerrada, 4);
-  // Pallets: línea, solo en los días (no aplica a atrasadas).
+  addSerie('Entregadas / asistió', datCerrada, C.cerrada, 4, false);
+
+  // Pallets agendados: línea (solo días).
   if(modo==='ambas' || modo==='agendada'){
     ds.push({ type:'line', label:'Pallets (agendados)', data:soloDias(datPallets),
       borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
   }
+
+  // Fill-rate: línea punteada en % (eje propio yFill, derecha).
+  ds.push({ type:'line', label:'Fill-rate (% concedido)', data:datFill,
+    borderColor:'#6a3d9a', backgroundColor:'#6a3d9a', borderWidth:1.5, borderDash:[5,3],
+    pointRadius:3, pointStyle:'rectRot', tension:0.2, yAxisID:'yFill', order:0, spanGaps:true });
 
   const mostrarY1 = (modo==='ambas' || modo==='agendada');
 
@@ -717,20 +747,28 @@ function actualizarCargaSemanal(lista){
         legend:{ position:'top', labels:{ font:{size:11}, boxWidth:14,
           filter:function(item, data){ var d=data.datasets[item.datasetIndex]; return !(d && d.__noLegend); } } },
         tooltip:{ titleFont:{family:'Consolas,monospace'}, bodyFont:{family:'Consolas,monospace'},
-          filter:function(item){ var d=item.dataset; return !(d && d.__noLegend && item.parsed.y===0); } }
+          filter:function(item){ var d=item.dataset; return !(d && d.__noLegend && item.parsed.y===0); },
+          callbacks:{ label:function(item){
+            var lbl=item.dataset.label||'';
+            if(item.dataset.yAxisID==='yFill'){ return lbl+': '+(item.parsed.y==null?'—':item.parsed.y+'%'); }
+            return lbl+': '+item.parsed.y;
+          } }
+        }
       },
       scales:{
         x:{ stacked:true, ticks:{ font:{size:11} }, grid:{ display:false } },
         y:{ stacked:true, type:'linear', position:'left', beginAtZero:true,
-            title:{ display:true, text:'Citas (semana)', font:{size:11} },
+            title:{ display:true, text:'Citas (día)', font:{size:11} },
             ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
         yAtras:{ stacked:true, type:'linear', position:'right', beginAtZero:true,
-            title:{ display:true, text:'Atrasadas', font:{size:11}, color:'#6f8a6f' },
-            ticks:{ font:{family:'Consolas,monospace'}, precision:0, color:'#6f8a6f' },
+            title:{ display:true, text:'Pendientes por confirmar', font:{size:10}, color:'#5a8fc0' },
+            ticks:{ font:{family:'Consolas,monospace'}, precision:0, color:'#5a8fc0' },
             grid:{ drawOnChartArea:false } },
         y1:{ type:'linear', position:'right', beginAtZero:true, display:mostrarY1,
              title:{ display:true, text:'Pallets', font:{size:11} },
-             ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } }
+             ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } },
+        yFill:{ type:'linear', position:'right', min:0, max:100, display:false,
+             grid:{ drawOnChartArea:false } }
       }
     }
   });
@@ -818,15 +856,13 @@ function getFiltradas(){
     // Filtro por dropdown de estado (CERRADAS agrupa los estados finales;
     // __RESCATADAS__ es transversal: marca es_rescatada, no un estado real)
     if(estSel){
-      const CERRADAS_GRUPO=['ENTREGADA','ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
       const SIN_CITA_GRUPO=['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA','REMANENTE'];
-      if(estSel==='__RESCATADAS__'){
-        if(!s.es_rescatada) return false;
-      } else if(estSel==='CERRADAS'){
-        if(CERRADAS_GRUPO.indexOf(estU)<0) return false;
-      } else if(estSel==='PENDIENTE'){
-        // "Pendiente" agrupa todo lo que aún no tiene cita asignada (sin agendar).
+      if(estSel==='PENDIENTE'){
+        // "Pendiente (sin cita)" agrupa todo lo que aún no tiene cita asignada (sin agendar).
         if(SIN_CITA_GRUPO.indexOf(estU)<0) return false;
+      } else if(estSel==='ENTREGADO'){
+        // ENTREGADO y ENTREGADA son la misma realidad operativa.
+        if(estU!=='ENTREGADO' && estU!=='ENTREGADA') return false;
       } else if(estU!==estSel) return false;
     }
     // Filtro por dropdown de categoría (robusto: tildes/mayúsculas/plural; __FRIO__ transversal).
@@ -1935,7 +1971,20 @@ document.getElementById('buscar').addEventListener('input',()=>{
     aplicarFiltros();
   }
 });
-document.getElementById('filtroEstadoSel').addEventListener('change',aplicarFiltros);
+document.getElementById('filtroEstadoSel').addEventListener('change',function(){
+  // Estados que viven en el histórico (no se cargan en la vista activa). Si el usuario
+  // elige uno de estos y no está en histórico, se activa solo para que pueda verlos.
+  const HIST=['ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
+  const v=document.getElementById('filtroEstadoSel').value.toUpperCase();
+  if(HIST.indexOf(v)>=0 && !verHistorico){
+    verHistorico=true;
+    const bh=document.getElementById('btnHistorico');
+    if(bh){ bh.textContent='Ocultar histórico'; bh.classList.add('primary'); }
+    cargar();
+    return;
+  }
+  aplicarFiltros();
+});
 document.getElementById('filtroCategoria').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroAgenDesde').addEventListener('change',aplicarFiltros);
 document.getElementById('filtroAgenHasta').addEventListener('change',aplicarFiltros);
@@ -2143,40 +2192,27 @@ function descargarExcel(){
   }).catch(e=>{ btn.disabled=false; btn.textContent=txt; alert('Error: '+e.message); });
 }
 
-// ===== LISTA DE EMPAQUE (reconstruye LOTES_JSON a tabla, filtrable por estado) =====
+// ===== LISTA DE EMPAQUE (reconstruye TODO el LOTES_JSON a tabla detallada) =====
 function abrirListaEmpaque(){
   document.getElementById('modalTitulo').textContent='Lista de empaque — exportar lotes';
-  const ESTADOS=['PENDIENTE','SOLICITADA','EN ANALISIS','AGENDADA','DIFERIDA','REPROGRAMADA','ASISTIO','ENTREGADO','ENTREGADA','REMANENTE','NO_ASISTIO','CANCELADA'];
   document.getElementById('modalBody').innerHTML=`
-    <div style="font-size:12.5px;color:#555;margin-bottom:10px;background:#eef4fb;border:1px solid #d6e2f0;padding:9px 11px;border-radius:3px;">
-      Reconstruye las listas de empaque (lotes) a una tabla plana: una fila por lote. Genera/actualiza la hoja
-      <b>LISTA_EMPAQUE_PLANA</b> en el Google Sheet y descarga el Excel. Seleccione los estados a incluir (sin selección = todos).
+    <div style="font-size:12.5px;color:#555;margin-bottom:14px;background:#eef4fb;border:1px solid #d6e2f0;padding:11px 13px;border-radius:3px;line-height:1.5;">
+      Reconstruye <b>todas</b> las listas de empaque (lotes) a una tabla plana detallada: una fila por lote,
+      con los tres niveles de empaque (terciario / secundario / primario), presentación, bultos, pallets,
+      clasificación y bandera de fecha corta. Genera/actualiza la hoja <b>LISTA_EMPAQUE_PLANA</b> en el
+      Google Sheet y descarga el Excel con todo.
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;" id="leEstados">
-      ${ESTADOS.map(e=>`<label style="font-size:12.5px;display:inline-flex;align-items:center;gap:4px;border:1px solid #a8a8a8;padding:3px 8px;cursor:pointer;background:#fff;">
-        <input type="checkbox" class="leChk" value="${e}"> ${e}</label>`).join('')}
-    </div>
-    <div style="margin:6px 0 12px;">
-      <button class="btn" id="leTodos" type="button" style="font-size:11.5px;">Marcar todos</button>
-      <button class="btn" id="leNinguno" type="button" style="font-size:11.5px;">Limpiar</button>
-      <button class="btn" id="leSugeridos" type="button" style="font-size:11.5px;" title="Agendadas + entregadas">Sugeridos (agendadas/entregadas)</button>
-    </div>
-    <div id="leMsg" style="font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+    <div id="leMsg" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn primary" id="leGenerar" type="button">⬇ Generar y descargar</button>
+      <button class="btn primary" id="leGenerar" type="button">⬇ Generar y descargar todo</button>
     </div>`;
   abrirModal();
-  const chks=()=>Array.from(document.querySelectorAll('.leChk'));
-  document.getElementById('leTodos').addEventListener('click',()=>chks().forEach(c=>c.checked=true));
-  document.getElementById('leNinguno').addEventListener('click',()=>chks().forEach(c=>c.checked=false));
-  document.getElementById('leSugeridos').addEventListener('click',()=>chks().forEach(c=>{ c.checked=['AGENDADA','ASISTIO','ENTREGADO','ENTREGADA'].indexOf(c.value)>=0; }));
   document.getElementById('leGenerar').addEventListener('click',async()=>{
-    const sel=chks().filter(c=>c.checked).map(c=>c.value);
     const msg=document.getElementById('leMsg');
     const btn=document.getElementById('leGenerar');
-    btn.disabled=true; msg.style.color='#0C447C'; msg.textContent='Generando hoja y Excel...';
+    btn.disabled=true; msg.style.color='#0C447C'; msg.textContent='Generando hoja y Excel con todos los lotes...';
     try{
-      const resp=await loadJsonp('generarListaEmpaquePlana','&estados='+encodeURIComponent(sel.join(',')));
+      const resp=await loadJsonp('generarListaEmpaquePlana');
       if(!resp || !resp.success){ throw new Error((resp&&resp.error)||'error'); }
       msg.style.color='#0a7a2f';
       msg.innerHTML='Listo: <b>'+resp.total_lotes+'</b> lote(s) escritos en la hoja <b>'+esc(resp.hoja)+'</b>.';
@@ -2739,8 +2775,7 @@ async function imprimirSemana(){
     '.sub b{color:#0C447C;}'+
     '.resumenln{font-size:10px;color:#0C447C;background:#eaf1f9;border-left:4px solid #0C447C;padding:6px 10px;margin:0 0 10px;border-radius:0 3px 3px 0;}'+
     '.resumenln b{color:#0C447C;}'+
-    '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}'+
-    '.dia{border:1px solid #9bb0c7;border-radius:3px;page-break-inside:avoid;}'+
+    '.dia{border:1px solid #9bb0c7;border-radius:3px;page-break-inside:avoid;margin-bottom:10px;}'+
     '.dt{background:#0C447C;color:#fff;padding:4px 7px;font-size:11px;font-weight:bold;display:flex;align-items:center;}'+
     '.dt .cuenta{margin-left:auto;font-size:9px;font-weight:normal;opacity:.9;}'+
     'table{border-collapse:collapse;width:100%;}'+
@@ -2754,7 +2789,7 @@ async function imprimirSemana(){
       '<div class="org">Caja de Seguro Social · Dirección Nacional de Logística · Torre de Control</div></div></div>'+
     '<div class="sub">Semana: <b>'+semDesde+'</b> al <b>'+semHasta+'</b> · Generado '+new Date().toLocaleString('es-PA')+'</div>'+
     resumenSemHtml+
-    '<div class="grid">'+bloques+'</div>'+
+    bloques+
     '<button class="noprint" onclick="window.print()" style="margin-top:14px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir</button>'+
   '</body></html>');
   win.document.close();
