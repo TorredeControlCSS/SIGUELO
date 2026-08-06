@@ -93,6 +93,9 @@
   .fcaja.age.vacia .fval{color:#999;font-weight:400;font-style:italic;}
   .fdif{display:flex;align-items:center;padding:0 10px;font-size:11px;color:#854F0B;background:#fafafa;border:1px solid #eee;border-left:none;}
   .festado{display:flex;align-items:center;padding:0 12px;font-size:12px;font-weight:600;margin-left:6px;}
+  .fmarca{font-size:9.5px;color:#8a6d3b;margin-top:2px;font-family:var(--mono);}
+  .btn-deshacer{border-color:#b00020 !important;color:#b00020 !important;}
+  .btn-deshacer:hover{background:#fdecec !important;}
   /* Caja IPR lateral, a toda la altura */
   .ipr-box{width:84px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-left:1px solid #eee;}
   .ipr-box.ipr-rojo{background:var(--rojo-bg);border-left-color:#f0d0d6;} .ipr-box.ipr-rojo .n,.ipr-box.ipr-rojo .lbl,.ipr-box.ipr-rojo .cola{color:var(--rojo);}
@@ -295,7 +298,6 @@
             <option value="">Todos</option>
             <option value="PENDIENTE">Pendientes (sin cita)</option>
             <option value="SOLICITADA">— Solo solicitadas</option>
-            <option value="REPROGRAMADA">— Solo reprogramadas</option>
             <option value="REMANENTE">— Solo remanentes</option>
             <option value="AGENDADA">Agendada</option>
             <option value="DIFERIDA">Diferida</option>
@@ -363,6 +365,8 @@
         <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
         <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
         <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
+        <button class="btn" id="btnOrdenVenc" data-campo="venc" title="Ordenar por vencimiento de la OC (lo que vence primero, arriba)">Vence OC ↕</button>
+        <button class="btn" id="btnOrdenAntig" data-campo="antig" title="Ordenar por antigüedad: las que llevan más ciclos sin asignación, arriba">Antigüedad ↕</button>
         <button class="btn primary" id="btnExcel">⬇ Excel</button>
         <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel detallado con todos los lotes y niveles de empaque">⬇ Lista de empaque</button>
         <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
@@ -554,20 +558,41 @@ function cruzoDeCiclo_(s){
   return fd < inicioActual;  // solicitada antes del viernes de arranque del ciclo vigente
 }
 
-// ¿Cuántos ciclos (semanas) han pasado desde la fecha solicitada hasta hoy?
-// 0 = ciclo actual; 1 = ciclo pasado; 2 = hace dos ciclos; etc.
-// Se mide por diferencia entre el inicio de ciclo (viernes) de la fecha solicitada
-// y el inicio de ciclo vigente.
+// (#7) CICLOS SIN ASIGNACIÓN — cada JUEVES de cierre que pasó SIN darle cita.
+// Definición acordada (1b): un "ciclo" es un cierre de jueves que la solicitud
+// atravesó sin que se le asignara cita. No cuenta semanas-calendario en abstracto:
+// cuenta los jueves de revisión transcurridos desde que se solicitó.
+//   - Si la cita YA está agendada/asistió/entregada -> dejó de acumular: se congela
+//     en los ciclos que había acumulado hasta agendarse (usa FECHA_CONFIRMADA si existe).
+//   - Si sigue sin cita -> cuenta hasta hoy.
+// Devuelve el número de jueves de cierre entre la fecha solicitada y el corte.
+function juevesEntre_(desde, hasta){
+  // cuenta cuántos jueves (dow=4) hay en (desde, hasta]  — cierres de ciclo cruzados.
+  const a=new Date(desde); a.setHours(0,0,0,0);
+  const b=new Date(hasta); b.setHours(0,0,0,0);
+  if(b<=a) return 0;
+  // primer jueves estrictamente después de 'a'
+  const primer=new Date(a);
+  const off=(4 - primer.getDay() + 7)%7; // días hasta el próximo jueves
+  primer.setDate(primer.getDate() + (off===0?7:off)); // si 'a' es jueves, el cierre cuenta a partir del siguiente
+  if(primer>b) return 0;
+  const ms=b - primer;
+  return 1 + Math.floor(ms/(7*24*60*60*1000));
+}
 function ciclosTranscurridos_(s){
   const fSol=String(s.fecha_solicitada||'').slice(0,10);
   if(!fSol) return 0;
   const fd=new Date(fSol+'T00:00:00');
   if(isNaN(fd)) return 0;
-  const iniSol=inicioCicloDe_(fd);
-  const iniAct=inicioCicloDe_(new Date());
-  const ms=iniAct - iniSol;
-  if(ms<=0) return 0;
-  return Math.round(ms/(7*24*60*60*1000));  // semanas completas de diferencia
+  const est=String(s.estado||'').toUpperCase().trim();
+  const YA_CON_CITA=['AGENDADA','ASISTIO','NO_ASISTIO','ENTREGADO','ENTREGADA','CANCELADA'];
+  let corte=new Date(); // por defecto, hoy (sigue sin cita)
+  if(YA_CON_CITA.indexOf(est)>=0){
+    // se congeló al agendarse: usar fecha_confirmada si existe, si no, hoy.
+    const fc=String(s.fecha_confirmada||'').slice(0,10);
+    if(fc){ const fcd=new Date(fc+'T00:00:00'); if(!isNaN(fcd)) corte=fcd; }
+  }
+  return juevesEntre_(fd, corte);
 }
 
 // Carga (una vez por mes, cacheada) las citas ENTREGADAS/ENTREGADO del mes de la semana
@@ -598,7 +623,11 @@ function actualizarCargaSemanal(lista){
   const baseActiva = (cargaSemLista||[]);
   baseActiva.forEach(s=>{ if(s && s.id) vistosId[s.id]=1; });
   const cerradasExtra = (cargaSemCerradas||[]).filter(s=> s && s.id && !vistosId[s.id]);
-  const datosGrafico = baseActiva.concat(cerradasExtra);
+  let datosGrafico = baseActiva.concat(cerradasExtra);
+  // (#8) El gráfico reacciona al filtro de Categoría: si hay categoría seleccionada,
+  // restringe también las series del gráfico (usa la misma coincidencia robusta de la lista).
+  const _catGraf = (document.getElementById('filtroCategoria')||{}).value || '';
+  if(_catGraf){ datosGrafico = datosGrafico.filter(s=>coincideCategoria(s,_catGraf)); }
 
   const modoSel = document.getElementById('cargaSemModo');
   const modo = modoSel ? modoSel.value : 'ambas';
@@ -946,6 +975,25 @@ function getFiltradas(){
       var cmp=fa.localeCompare(fb);
       return _ordenLista.dir==='asc' ? cmp : -cmp;
     }
+    if(_ordenLista.campo==='venc'){
+      // Vencimiento de OC: menos días (o vencida) primero cuando dir=asc.
+      // Sin dato de vencimiento va al final siempre.
+      var da=(a.venc&&a.venc.dias!=null)?Number(a.venc.dias):Infinity;
+      var db=(b.venc&&b.venc.dias!=null)?Number(b.venc.dias):Infinity;
+      if(da===db) return 0;
+      var cmpv = da<db ? -1 : 1;
+      return _ordenLista.dir==='asc' ? cmpv : -cmpv;
+    }
+    if(_ordenLista.campo==='antig'){
+      // (#11) Antigüedad: ciclos sin asignación. Más ciclos primero cuando dir=desc.
+      var ca=ciclosTranscurridos_(a), cb=ciclosTranscurridos_(b);
+      if(ca===cb){ // desempate: vencimiento más próximo arriba
+        var va=(a.venc&&a.venc.dias!=null)?Number(a.venc.dias):Infinity;
+        var vb=(b.venc&&b.venc.dias!=null)?Number(b.venc.dias):Infinity;
+        return va-vb;
+      }
+      return _ordenLista.dir==='asc' ? (ca-cb) : (cb-ca);
+    }
     // por defecto: IPR
     var ia=Number(a.ipr||0), ib=Number(b.ipr||0);
     return _ordenLista.dir==='asc' ? (ia-ib) : (ib-ia);
@@ -1070,7 +1118,7 @@ function render(){
         ${estadoU==='DIFERIDA' && s.motivo ? `<span class="badge ambar">Diferida: ${esc(s.motivo)}</span>` : ''}
         ${estadoU==='REPROGRAMADA' ? `<span class="badge" style="background:#ece9f7;color:#5a4ba8;border-color:#c7bfe8;">Reprogramada: ${esc(s.motivo||'próximo período')}</span>` : ''}
         ${s.es_rescatada?'<span class="badge rescatada">⮌ Rescatada del ciclo anterior</span>':''}
-        ${cruzoDeCiclo_(s)?(()=>{const nc=ciclosTranscurridos_(s);return '<span class="badge" style="background:#fbe6c4;color:#8a5a00;border-color:#e0c08a;font-weight:700;">⚠ '+nc+' ciclo'+(nc===1?'':'s')+' en revisión</span>';})():''}
+        ${cruzoDeCiclo_(s)?(()=>{const nc=ciclosTranscurridos_(s);return '<span class="badge" style="background:#fbe6c4;color:#8a5a00;border-color:#e0c08a;font-weight:700;" title="Jueves de cierre que pasaron sin asignarle cita">⚠ '+nc+' ciclo'+(nc===1?'':'s')+' sin asignación</span>';})():''}
         ${s.categoria?`<span class="badge categoria">${esc(catCorta(s.categoria))}</span>`:''}
         ${(()=>{const sg=infoSegregacion(s);return sg.es?`<span class="badge segregada">${sg.texto}</span>`:'';})()}
         ${s.es_frio?'<span class="badge frio">❄ Frío</span>':''}
@@ -1086,7 +1134,8 @@ function render(){
     } else if(estadoU==='AGENDADA'){
       acciones = `<button class="btn primary" data-asis="${idx}">Marcar asistencia</button>
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
-                  <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
+                  <button class="btn" data-ent="${idx}">Registrar entrega</button>
+                  <button class="btn btn-deshacer" data-deshacer="${idx}" title="Anular esta cita y devolverla a pendiente (envía correo de anulación al proveedor)">↺ Deshacer cita</button>`;
     } else if(estadoU==='ASISTIO'){
       acciones = `<button class="btn primary" data-ent="${idx}">Registrar entrega</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
@@ -1099,7 +1148,8 @@ function render(){
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-nota="${idx}">Generar nota</button>
                   <button class="btn" data-aut="${idx}">Autorización de entrega</button>
-                  <button class="btn" data-ent="${idx}">Registrar entrega</button>`;
+                  <button class="btn" data-ent="${idx}">Registrar entrega</button>
+                  <button class="btn btn-deshacer" data-deshacer="${idx}" title="Devolver a pendiente (limpia diferimiento)">↺ Deshacer</button>`;
     } else if(estadoU==='REPROGRAMADA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
@@ -1135,6 +1185,7 @@ function render(){
         <div class="fcaja sol">
           <div class="fcap">Solicitada por proveedor</div>
           <div class="fval">${fSol?esc(fSol):'—'}</div>
+          ${s.marca_temporal?`<div class="fmarca" title="Fecha/hora en que el proveedor registró la solicitud">pedida el ${esc(String(s.marca_temporal).slice(0,16).replace('T',' '))}</div>`:''}
         </div>
         <div class="fcaja age${fAge?'':' vacia'}">
           <div class="fcap">Agendada / confirmada</div>
@@ -1175,6 +1226,7 @@ function render(){
   cont.querySelectorAll('[data-det]').forEach(b=>b.addEventListener('click',()=>verDetalle(lista[+b.dataset.det])));
   cont.querySelectorAll('[data-ipr]').forEach(b=>b.addEventListener('click',()=>explicarIPR(lista[+b.dataset.ipr])));
   cont.querySelectorAll('[data-conf]').forEach(b=>b.addEventListener('click',()=>abrirConfirmar(lista[+b.dataset.conf])));
+  cont.querySelectorAll('[data-deshacer]').forEach(b=>b.addEventListener('click',()=>abrirDeshacer(lista[+b.dataset.deshacer])));
   cont.querySelectorAll('[data-dif]').forEach(b=>b.addEventListener('click',()=>abrirDiferir(lista[+b.dataset.dif])));
   cont.querySelectorAll('[data-repro]').forEach(b=>b.addEventListener('click',()=>abrirReprogramar(lista[+b.dataset.repro])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
@@ -1409,6 +1461,36 @@ function postGAS(action,data){
   }).then(r=>r.json());
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  ACTUALIZACIÓN OPTIMISTA (#2, #9)
+//  En vez de llamar cargar() (que recarga y recalcula ~4000 filas sin caché),
+//  mutamos SOLO la solicitud afectada en el arreglo SOLICITUDES en memoria y
+//  re-renderizamos la vista activa. El backend ya confirmó el cambio; no hay
+//  necesidad de releer todo el universo para saber que una fila cambió.
+//  Uso: tras una acción exitosa -> actualizarLocal(id, {estado:'AGENDADA', ...}).
+// ═══════════════════════════════════════════════════════════════════════════
+function actualizarLocal(id, cambios){
+  const i = SOLICITUDES.findIndex(s=>String(s.id)===String(id));
+  if(i>=0){ SOLICITUDES[i] = Object.assign({}, SOLICITUDES[i], cambios||{}); }
+  actualizarKPIs();
+  aplicarFiltros();
+}
+// Quita una solicitud de la vista activa (p.ej. al cerrarse del todo). No borra en backend.
+function removerLocal(id){
+  const i = SOLICITUDES.findIndex(s=>String(s.id)===String(id));
+  if(i>=0){ SOLICITUDES.splice(i,1); }
+  actualizarKPIs();
+  aplicarFiltros();
+}
+// Refresco silencioso opcional: re-sincroniza en 2do plano SIN parpadeo de "Cargando…".
+// Se usa muy de vez en cuando (no en cada acción). No bloquea la UI.
+function refrescoSilencioso(){
+  if(verHistorico) return;
+  loadJsonp('getSolicitudesPriorizadas','').then(resp=>{
+    if(resp && resp.success){ SOLICITUDES = resp.solicitudes||[]; actualizarKPIs(); aplicarFiltros(); }
+  }).catch(()=>{});
+}
+
 // ===== Próximo viernes (sugerencia por defecto) en YYYY-MM-DD =====
 function proximoViernesISO(){
   const d=new Date(); d.setHours(12,0,0,0);
@@ -1462,9 +1544,63 @@ function abrirConfirmar(s){
       msg.textContent = resp.correo_enviado
         ? 'Cita confirmada (AGENDADA) y correo enviado.'
         : 'Cita confirmada (AGENDADA). Aviso: el correo no se envió'+(resp.correo_error?' ('+resp.correo_error+')':'')+'.';
-      setTimeout(()=>{ cerrarModal(); cargar(); }, 1200);
+      // Optimista: mutar solo esta fila (no recargar todo el universo).
+      actualizarLocal(s.id, { estado:'AGENDADA', fecha_confirmada:fecha, hora_confirmada:hora });
+      setTimeout(()=>{ cerrarModal(); }, 1200);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo confirmar: '+e.message;
+    }
+  });
+}
+
+// ═══ (#1) DESHACER CITA — modal de confirmación con advertencia de correo ═══
+function abrirDeshacer(s){
+  const estU=String(s.estado||'').toUpperCase().trim();
+  const eraAgendada = (estU==='AGENDADA');
+  document.getElementById('modalTitulo').textContent='Deshacer cita — '+s.empresa;
+  document.getElementById('modalBody').innerHTML=`
+    <table>
+      <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
+      <tr><td class="k">Producto</td><td class="v">${esc(s.descripcion)}</td></tr>
+      <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
+      <tr><td class="k">Estado actual</td><td class="v">${esc(s.estado)}</td></tr>
+      ${s.fecha_confirmada?`<tr><td class="k">Agendada para</td><td class="v">${esc(String(s.fecha_confirmada).slice(0,10))} ${esc(s.hora_confirmada||'')}</td></tr>`:''}
+    </table>
+    <div style="background:${eraAgendada?'#fdecec':'#fff8e1'};border:1px solid ${eraAgendada?'#e0a0a0':'#e0c97a'};padding:10px 12px;margin:14px 0;font-size:12.5px;color:${eraAgendada?'#8a1a1a':'#6b5400'};border-radius:3px;">
+      ${eraAgendada
+        ? '<b>Esta cita está AGENDADA.</b> El proveedor ya recibió el correo de confirmación. Al deshacerla se le enviará automáticamente un <b>correo de anulación</b> y la solicitud volverá a <b>PENDIENTE</b> (sin fecha ni hora).'
+        : 'La cita volverá a <b>PENDIENTE</b>, limpiando diferimiento, nota y fechas. No se envía correo (no había confirmación en firme).'}
+    </div>
+    <div style="margin:10px 0;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Motivo (opcional, aparece en el correo/registro)</label>
+      <input type="text" id="deshMotivo" placeholder="Ej: solicitud del proveedor, error de agenda…" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
+    </div>
+    <div id="deshMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+      <button class="btn" id="deshCancelar">Cancelar</button>
+      <button class="btn primary" id="deshConfirmar" style="background:#b00020;border-color:#8a0018;">${eraAgendada?'Deshacer y notificar':'Deshacer'}</button>
+    </div>`;
+  abrirModal();
+  document.getElementById('deshCancelar').addEventListener('click',cerrarModal);
+  document.getElementById('deshConfirmar').addEventListener('click',async ()=>{
+    const motivo=document.getElementById('deshMotivo').value.trim();
+    const msg=document.getElementById('deshMsg');
+    const btn=document.getElementById('deshConfirmar');
+    btn.disabled=true; msg.style.color='#555'; msg.textContent=eraAgendada?'Deshaciendo y enviando correo de anulación…':'Deshaciendo…';
+    try{
+      const resp=await postGAS('deshacerCita',{ id:s.id, motivo_deshacer:motivo, usuario:'Panel SÍGUELO' });
+      if(!resp.success){ throw new Error(resp.error||'Error al deshacer'); }
+      msg.style.color='#0a7a2f';
+      let t='Cita deshecha (volvió a PENDIENTE).';
+      if(resp.correo_enviado) t+=' Correo de anulación enviado.';
+      else if(resp.correo_omitido) t+=' (Sin correo: no había confirmación previa.)';
+      else if(resp.correo_error) t+=' (Aviso: el correo no se envió.)';
+      msg.textContent=t;
+      // Optimista: la cita vuelve a PENDIENTE limpiando fecha/hora.
+      actualizarLocal(s.id, { estado:'PENDIENTE', fecha_confirmada:'', hora_confirmada:'', motivo:'', nota_num:'' });
+      setTimeout(()=>{ cerrarModal(); }, 1200);
+    }catch(e){
+      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo deshacer: '+e.message;
     }
   });
 }
@@ -1500,7 +1636,8 @@ function abrirAsistencia(s){
       const resp=await postGAS('marcarAsistencia',{id:s.id, asistio:asistio, nota:nota, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
       msg.style.color='#0a7a2f'; msg.textContent=resp.message+'.';
-      setTimeout(()=>{ cerrarModal(); cargar(); }, 1100);
+      actualizarLocal(s.id, { estado: asistio?'ASISTIO':'NO_ASISTIO' });
+      setTimeout(()=>{ cerrarModal(); }, 1100);
     }catch(e){
       bSi.disabled=false; bNo.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
     }
@@ -1623,7 +1760,7 @@ function abrirAutorizacionEntrega(s){
     msg.style.color='#0C447C'; msg.textContent='Generando autorización…';
     await generarAutorizacionImprimible(s.id, tramos, true);
     cerrarModal();
-    cargar();
+    refrescoSilencioso();
   });
 }
 
@@ -1667,7 +1804,7 @@ async function avisarRevision(s){
     const resp=await postGAS('avisarRevisionProveedor',{id:s.id, usuario:'Panel SÍGUELO'});
     if(!resp.success){ throw new Error(resp.error||'Error'); }
     alert(resp.message||'Aviso enviado.');
-    cargar();
+    refrescoSilencioso();
   }catch(e){ alert('No se pudo enviar el aviso: '+e.message); }
 }
 
@@ -1680,7 +1817,7 @@ async function avisarRevisionTodos(){
     const resp=await postGAS('avisarRevisionMasivo',{soloSiNoAvisadoHoy:true, usuario:'Panel SÍGUELO'});
     if(!resp.success){ throw new Error(resp.error||'Error'); }
     alert(resp.message||('Aviso masivo enviado: '+(resp.enviados||0)+' correo(s).'));
-    cargar();
+    refrescoSilencioso();
   }catch(e){ alert('No se pudo enviar el aviso masivo: '+e.message); }
   finally{ if(btn){ btn.disabled=false; btn.textContent=txt; } }
 }
@@ -1781,7 +1918,7 @@ function abrirRecibirParcial(s){
       // Solo hay nota imprimible en el caso CON nota.
       const abreNota = !sinNota && resp.id_remanente && resp.nota_num;
       msg.textContent = txt + (abreNota ? ' Abriendo nota del remanente...' : '');
-      setTimeout(async()=>{ cerrarModal(); if(abreNota){ await generarNotaImprimible(resp.id_remanente); } cargar(); }, 1200);
+      setTimeout(async()=>{ cerrarModal(); if(abreNota){ await generarNotaImprimible(resp.id_remanente); } refrescoSilencioso(); }, 1200);
     }catch(e){
       okBtn.disabled=false; okSinNota.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo procesar: '+e.message;
     }
@@ -1838,7 +1975,8 @@ function abrirDiferir(s){
       if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
       msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
       msg.textContent=txt+' Abriendo nota...';
-      setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
+      actualizarLocal(s.id, { estado:'DIFERIDA', motivo:motivo });
+      setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
     }
@@ -1889,7 +2027,8 @@ function abrirReprogramar(s){
       if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
       msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
       msg.textContent=txt;
-      setTimeout(()=>{ cerrarModal(); cargar(); }, 1100);
+      actualizarLocal(s.id, { estado:'REPROGRAMADA', motivo:motivo });
+      setTimeout(()=>{ cerrarModal(); }, 1100);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo reprogramar: '+e.message;
     }
@@ -1961,12 +2100,14 @@ function abrirRegistrarEntrega(s){
         if(r2.success){
           txt+=' Saldo diferido (segregación).'; if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
           msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
-          setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); cargar(); }, 1100);
+          refrescoSilencioso();
+          setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
           return;
         } else { txt+=' (Aviso: no se pudo diferir el saldo: '+(r2.error||'')+')'; }
       }
       msg.style.color='#0a7a2f'; msg.textContent=txt;
-      setTimeout(()=>{ cerrarModal(); cargar(); }, 1400);
+      refrescoSilencioso();
+      setTimeout(()=>{ cerrarModal(); }, 1400);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
     }
@@ -1988,6 +2129,8 @@ function aplicarFiltros(){
   if(TAB_ACTIVA==='lista') render();
   else if(TAB_ACTIVA==='calendario'){ if(typeof renderCalendario==='function') renderCalendario(); }
   else if(TAB_ACTIVA==='kanban'){ if(typeof renderKanban==='function') renderKanban(); }
+  // (#8) refrescar el gráfico para que refleje el filtro de categoría
+  if(typeof actualizarCargaSemanal==='function') actualizarCargaSemanal();
   actualizarBotonLimpiar && actualizarBotonLimpiar();
 }
 document.getElementById('buscar').addEventListener('input',()=>{
@@ -2111,12 +2254,35 @@ function _aplicarOrden(campo, btn, etiqueta){
   const flecha = _ordenLista.dir==='desc' ? '↓' : '↑';
   document.getElementById('btnOrdenIpr').textContent = 'IPR ' + (_ordenLista.campo==='ipr'?flecha:'↕');
   document.getElementById('btnOrdenFsol').textContent = 'Fecha solic. ' + (_ordenLista.campo==='fsol'?flecha:'↕');
+  var bV=document.getElementById('btnOrdenVenc'); if(bV) bV.textContent = 'Vence OC ' + (_ordenLista.campo==='venc'?flecha:'↕');
+  var bA=document.getElementById('btnOrdenAntig'); if(bA) bA.textContent = 'Antigüedad ' + (_ordenLista.campo==='antig'?flecha:'↕');
   document.getElementById('btnOrdenIpr').classList.toggle('primary', _ordenLista.campo==='ipr');
   document.getElementById('btnOrdenFsol').classList.toggle('primary', _ordenLista.campo==='fsol');
+  if(bV) bV.classList.toggle('primary', _ordenLista.campo==='venc');
+  if(bA) bA.classList.toggle('primary', _ordenLista.campo==='antig');
   if(TAB_ACTIVA==='lista') render();
 }
 document.getElementById('btnOrdenIpr').addEventListener('click',function(){ _aplicarOrden('ipr',this); });
 document.getElementById('btnOrdenFsol').addEventListener('click',function(){ _aplicarOrden('fsol',this); });
+function _ordenInicial(campo, dirInicial){
+  if(_ordenLista.campo===campo){
+    _ordenLista.dir = (_ordenLista.dir==='desc') ? 'asc' : 'desc';
+  } else {
+    _ordenLista.campo = campo; _ordenLista.dir = dirInicial;
+  }
+  const flecha = _ordenLista.dir==='desc' ? '↓' : '↑';
+  document.getElementById('btnOrdenIpr').textContent = 'IPR ' + (_ordenLista.campo==='ipr'?flecha:'↕');
+  document.getElementById('btnOrdenFsol').textContent = 'Fecha solic. ' + (_ordenLista.campo==='fsol'?flecha:'↕');
+  var bV=document.getElementById('btnOrdenVenc'); if(bV) bV.textContent = 'Vence OC ' + (_ordenLista.campo==='venc'?flecha:'↕');
+  var bA=document.getElementById('btnOrdenAntig'); if(bA) bA.textContent = 'Antigüedad ' + (_ordenLista.campo==='antig'?flecha:'↕');
+  document.getElementById('btnOrdenIpr').classList.toggle('primary', _ordenLista.campo==='ipr');
+  document.getElementById('btnOrdenFsol').classList.toggle('primary', _ordenLista.campo==='fsol');
+  if(bV) bV.classList.toggle('primary', _ordenLista.campo==='venc');
+  if(bA) bA.classList.toggle('primary', _ordenLista.campo==='antig');
+  if(TAB_ACTIVA==='lista') render();
+}
+document.getElementById('btnOrdenVenc').addEventListener('click',function(){ _ordenInicial('venc','asc'); });
+document.getElementById('btnOrdenAntig').addEventListener('click',function(){ _ordenInicial('antig','desc'); });
 
 function hayFiltroActivo(){
   return !!(filtroEstado || document.getElementById('buscar').value.trim()
@@ -3235,7 +3401,66 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 }));
 
 
-cargar();
+// ═══════════════════════════════════════════════════════════════════════════
+//  (#10) CONTROL DE ACCESO POR PIN — sesión de 8 horas.
+//  Información sensible: solo personas con PIN acceden. Hardcodeado (según
+//  decisión de Diego). El PIN válido se guarda con marca de tiempo; expira a
+//  las 8 h. No ralentiza el panel: valida una vez y libera.
+// ═══════════════════════════════════════════════════════════════════════════
+var PIN_VALIDOS = ['3229','2191','5640','2172','1261','2173'];
+var PIN_LS_KEY = 'siguelo_pin_ok';
+var PIN_TTL_MS = 8*60*60*1000; // 8 horas
+
+function pinVigente_(){
+  try{
+    var raw = localStorage.getItem(PIN_LS_KEY);
+    if(!raw) return false;
+    var obj = JSON.parse(raw);
+    if(!obj || !obj.t) return false;
+    if((Date.now() - Number(obj.t)) > PIN_TTL_MS){ localStorage.removeItem(PIN_LS_KEY); return false; }
+    return PIN_VALIDOS.indexOf(String(obj.p))>=0;
+  }catch(e){ return false; }
+}
+function pinGuardar_(pin){
+  try{ localStorage.setItem(PIN_LS_KEY, JSON.stringify({p:String(pin), t:Date.now()})); }catch(e){}
+}
+function mostrarGatePin_(){
+  var ov = document.createElement('div');
+  ov.id='pinGate';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#0C447C;display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;';
+  ov.innerHTML =
+    '<div style="background:#fff;border:1px solid #a8a8a8;border-radius:4px;padding:28px 30px;width:320px;box-shadow:0 8px 30px rgba(0,0,0,.35);">'+
+      '<div style="text-align:center;margin-bottom:16px;">'+
+        '<div style="font-size:16px;font-weight:700;color:#0C447C;">Panel de Confirmación de Citas</div>'+
+        '<div style="font-size:12px;color:#666;margin-top:3px;">CEDIS Panamá · Acceso restringido</div>'+
+      '</div>'+
+      '<label style="display:block;font-size:12px;font-weight:600;color:#0C447C;margin-bottom:5px;">Ingrese su PIN</label>'+
+      '<input type="password" id="pinInput" inputmode="numeric" maxlength="4" autocomplete="off" '+
+        'style="width:100%;padding:10px;border:1px solid #a8a8a8;border-radius:2px;font-family:Consolas,monospace;font-size:20px;letter-spacing:6px;text-align:center;" placeholder="••••">'+
+      '<div id="pinMsg" style="font-size:12px;color:#b00020;min-height:16px;margin:8px 0 4px;text-align:center;"></div>'+
+      '<button id="pinEntrar" style="width:100%;padding:10px;background:#0C447C;color:#fff;border:none;border-radius:2px;font-size:14px;font-weight:600;cursor:pointer;">Entrar</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+  var inp=document.getElementById('pinInput');
+  var msg=document.getElementById('pinMsg');
+  inp.focus();
+  function intentar(){
+    var v=String(inp.value||'').trim();
+    if(PIN_VALIDOS.indexOf(v)>=0){
+      pinGuardar_(v);
+      var g=document.getElementById('pinGate'); if(g) g.remove();
+      arrancarPanel_();
+    } else {
+      msg.textContent='PIN incorrecto.'; inp.value=''; inp.focus();
+    }
+  }
+  document.getElementById('pinEntrar').addEventListener('click',intentar);
+  inp.addEventListener('keydown',function(e){ if(e.key==='Enter') intentar(); });
+}
+function arrancarPanel_(){ cargar(); }
+
+// Arranque con gate: si el PIN sigue vigente, entra directo; si no, pide PIN.
+if(pinVigente_()){ arrancarPanel_(); } else { mostrarGatePin_(); }
 </script>
 </body>
 </html>
