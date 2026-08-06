@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="./favicon.ico?v=1">
 <link rel="shortcut icon" href="./favicon.ico?v=1">
-<title>Panel de Confirmación de citas | CEDIS Panamá</title>
+<title>Panel de Confirmación de Citas | CEDIS Panamá</title>
 <style>
   :root{
     --azul:#1e5a9e; --azul-osc:#0C447C; --fondo:#ececec; --borde:#a8a8a8;
@@ -93,7 +93,8 @@
   .fcaja.age.vacia .fval{color:#999;font-weight:400;font-style:italic;}
   .fdif{display:flex;align-items:center;padding:0 10px;font-size:11px;color:#854F0B;background:#fafafa;border:1px solid #eee;border-left:none;}
   .festado{display:flex;align-items:center;padding:0 12px;font-size:12px;font-weight:600;margin-left:6px;}
-  .fmarca{font-size:9.5px;color:#8a6d3b;margin-top:2px;font-family:var(--mono);}
+  .fmarca{font-size:10px;color:#8a6d3b;margin-top:3px;font-family:var(--mono);}
+  .fmarca-lbl{font-family:Arial,Helvetica,sans-serif;font-weight:700;text-transform:uppercase;font-size:8.5px;letter-spacing:.3px;color:#a07d3b;}
   .btn-deshacer{border-color:#b00020 !important;color:#b00020 !important;}
   .btn-deshacer:hover{background:#fdecec !important;}
   /* Caja IPR lateral, a toda la altura */
@@ -1185,7 +1186,7 @@ function render(){
         <div class="fcaja sol">
           <div class="fcap">Solicitada por proveedor</div>
           <div class="fval">${fSol?esc(fSol):'—'}</div>
-          ${s.marca_temporal?`<div class="fmarca" title="Fecha/hora en que el proveedor registró la solicitud">pedida el ${esc(String(s.marca_temporal).slice(0,16).replace('T',' '))}</div>`:''}
+          ${s.marca_temporal?`<div class="fmarca" title="Fecha y hora en que el proveedor registró la solicitud (cuándo pidió)"><span class="fmarca-lbl">Pedida:</span> ${esc(String(s.marca_temporal).slice(0,16).replace('T',' '))}</div>`:''}
         </div>
         <div class="fcaja age${fAge?'':' vacia'}">
           <div class="fcap">Agendada / confirmada</div>
