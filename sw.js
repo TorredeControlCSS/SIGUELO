@@ -5,7 +5,7 @@
 //     se reflejan al recargar, sin Ctrl+Shift+R). Cae a caché solo sin conexión.
 //   - Assets estáticos (íconos, manifest, css/js): cache-first (rápido).
 // IMPORTANTE: subir CACHE_NAME (vN -> vN+1) en cada despliegue para forzar refresco.
-const CACHE_NAME = 'siguelo-citas-v12';
+const CACHE_NAME = 'siguelo-citas-v13';
 const URLS_TO_CACHE = [
   './',
   './index.html',
