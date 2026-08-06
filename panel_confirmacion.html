@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="./favicon.ico?v=1">
 <link rel="shortcut icon" href="./favicon.ico?v=1">
-<title>Panel de Confirmación de Citas | CEDIS Panama</title>
+<title>Panel de Confirmación de Citas | CEDIS Panamá</title>
 <style>
   :root{
     --azul:#1e5a9e; --azul-osc:#0C447C; --fondo:#ececec; --borde:#a8a8a8;
@@ -1415,7 +1415,81 @@ function verDetalle(s){
   cargarExistencias(s.cod_abasto);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  (#5) SALDOS DESDE JSON ESTÁTICO (GitHub Pages) con fallback al backend.
+//  El JSON contiene TODOS los renglones ya precalculados (misma forma que
+//  getExistenciasRenglon). Se lee una vez y se cachea en memoria. Si falla
+//  (JSON aún no publicado, sin red), cae al backend como antes. Transparente.
+// ═══════════════════════════════════════════════════════════════════════════
+var SALDOS_JSON_URL = './saldos_en_linea.json';  // mismo repo/Pages que este panel
+var _SALDOS_CACHE = null;      // objeto { _meta, renglones:{cod:{...}} }
+var _SALDOS_PROMISE = null;    // evita cargas concurrentes
+
+function cargarSaldosJSON_(){
+  if(_SALDOS_CACHE) return Promise.resolve(_SALDOS_CACHE);
+  if(_SALDOS_PROMISE) return _SALDOS_PROMISE;
+  // cache-busting suave por si Pages sirve una copia vieja tras publicar
+  const url = SALDOS_JSON_URL + '?t=' + Math.floor(Date.now()/60000); // cambia cada minuto
+  _SALDOS_PROMISE = fetch(url, {cache:'no-cache'})
+    .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+    .then(obj=>{ _SALDOS_CACHE = obj; return obj; })
+    .catch(err=>{ _SALDOS_PROMISE=null; throw err; });
+  return _SALDOS_PROMISE;
+}
+
+function pintarExistencias_(resp, box){
+    if(!resp || !resp.success){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudieron cargar las existencias.</div>'; return; }
+    const pts=resp.puntos||[];
+    if(!pts.length){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin saldos registrados para este renglón.</div>'; return; }
+    // Tabla consolidada: UE | Inventario | Consumo/mes | Cobertura
+    const filas=pts.map(p=>{
+      const esCedis=p.es_cedis || String(p.punto||'').toUpperCase().indexOf('CEDIS')===0;
+      const invCls=p.saldo<=0?'color:var(--rojo);':'';
+      let cobTxt='<span style="color:#999;">s/d</span>';
+      if(p.cobertura!=null){
+        const cob=Number(p.cobertura);
+        const cls=cob<1?'rojo':(cob<3?'ambar':'verde');
+        cobTxt=`<span class="badge ${cls}">${cob.toFixed(1)}m</span>`;
+      }
+      const consTxt = (p.consumo>0?num(p.consumo):'<span style="color:#999;">s/d</span>');
+      return `<tr${esCedis?' style="background:#eef4fb;font-weight:600;"':''}>
+        <td>${esc(p.punto_canon||p.punto)}${esCedis?' <span style="font-size:10px;color:#1e5a9e;">(CEDIS)</span>':''}</td>
+        <td style="text-align:right;font-family:var(--mono);${invCls}">${num(p.saldo)}</td>
+        <td style="text-align:right;font-family:var(--mono);">${consTxt}</td>
+        <td style="text-align:right;">${cobTxt}</td>
+      </tr>`;
+    }).join('');
+    box.innerHTML=`
+      <div class="ue-resumen" style="margin-bottom:8px;">
+        <div class="ue-res-item"><div class="lbl">Inventario nacional</div><div class="val">${num(resp.total_nacional)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Inv. CEDIS</div><div class="val">${num(resp.total_cedis)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Inv. UE</div><div class="val">${num(resp.total_ue)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Consumo UE/mes</div><div class="val">${num(resp.total_consumo_ue||0)}</div></div>
+        <div class="ue-res-item"><div class="lbl">Consumo CEDIS/mes</div><div class="val">${num(resp.total_consumo_cedis||0)}</div></div>
+      </div>
+      <table class="ue-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Consumo/mes</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>${filas}</tbody></table>
+      <div style="font-size:11px;color:#888;margin-top:4px;">${resp.n_puntos} puntos · ordenado de mayor a menor inventario · CEDIS = flujo de despacho del almacén central (mostrado aparte)</div>`;
+}
+
+function cargarExistenciasBackend_(cod, box){
+  loadJsonp('getExistenciasRenglon', '&cod='+encodeURIComponent(cod)).then(resp=>{
+    pintarExistencias_(resp, box);
+  }).catch(()=>{ box.innerHTML='<div style="color:#999;font-size:12.5px;">Error consultando saldos.</div>'; });
+}
+
 function cargarExistencias(cod){
+  const box=document.getElementById('existenciasBox');
+  if(!box) return;
+  const codN = String(cod||'').replace(/\.0+$/,'').trim();
+  // 1) Intentar JSON estático (rápido). 2) Si no está el código o falla, backend.
+  cargarSaldosJSON_().then(obj=>{
+    const r = obj && obj.renglones ? obj.renglones[codN] : null;
+    if(r){ pintarExistencias_(r, box); }
+    else { cargarExistenciasBackend_(codN, box); } // código no está en el JSON: pedir al backend
+  }).catch(()=>{ cargarExistenciasBackend_(codN, box); }); // sin JSON: backend
+}
+
+function cargarExistencias_OLD_(cod){
   const box=document.getElementById('existenciasBox');
   if(!box) return;
   loadJsonp('getExistenciasRenglon', '&cod='+encodeURIComponent(cod)).then(resp=>{
@@ -3408,7 +3482,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 //  decisión de Diego). El PIN válido se guarda con marca de tiempo; expira a
 //  las 8 h. No ralentiza el panel: valida una vez y libera.
 // ═══════════════════════════════════════════════════════════════════════════
-var PIN_VALIDOS = ['3229','2291','5640','2172','1261','2173'];
+var PIN_VALIDOS = ['3229','2191','5640','2172','1261','2173'];
 var PIN_LS_KEY = 'siguelo_pin_ok';
 var PIN_TTL_MS = 8*60*60*1000; // 8 horas
 
