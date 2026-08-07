@@ -1083,33 +1083,21 @@ function render(){
           <div class="dato"><span class="num">s/d</span><span class="desc">sin dato de consumo</span></div>
         </div>`;
       }
-      // Columna VENCIMIENTO: informativa (no manda el semaforo). Color propio segun urgencia.
+      // Columna CONSUMO MENSUAL del renglón (el vencimiento OC ya se muestra arriba,
+      // en la caja de fechas; aquí ese espacio da un dato más útil: la demanda mensual).
       let colVenc;
-      if(s.venc && s.venc.etiqueta){
-        const vNivel = s.venc.estado==='ROJO'?'rojo':(s.venc.estado==='AMBAR'?'ambar':'gris');
-        let fechaHtml='';
-        if(s.venc.ajustada){
-          // Fecha original tachada + fecha ajustada + motivo (cae sábado/domingo/feriado).
-          fechaHtml=`
-            <div style="font-size:10px;color:#999;">
-              <span style="text-decoration:line-through;">${esc(s.venc.fecha_original)}</span>
-              → <span style="color:#1e5a9e;font-weight:600;">${esc(s.venc.fecha)}</span>
-            </div>
-            <div style="font-size:9.5px;color:#854F0B;">se corre: ${esc(s.venc.motivo_ajuste)}</div>`;
-        } else if(s.venc.fecha){
-          fechaHtml=`<div style="font-size:10px;color:#999;">${esc(s.venc.fecha)}</div>`;
-        }
+      const consMes = Number(s.consumo_mensual||0);
+      if(consMes > 0){
         colVenc = `
-        <div class="senal-col ${vNivel}">
-          <div class="cap">VENCIMIENTO OC</div>
-          <div class="dato"><span class="num" style="font-size:13px;">${esc(s.venc.etiqueta)}</span></div>
-          ${fechaHtml}
+        <div class="senal-col gris">
+          <div class="cap">Consumo mensual (renglón)</div>
+          <div class="dato"><span class="num" style="font-size:13px;">${num(consMes)}</span><span class="desc">und/mes</span></div>
         </div>`;
       } else {
         colVenc = `
         <div class="senal-col gris">
-          <div class="cap">VENCIMIENTO OC</div>
-          <div class="dato"><span class="num" style="font-size:13px;">s/d</span></div>
+          <div class="cap">Consumo mensual (renglón)</div>
+          <div class="dato"><span class="num" style="font-size:13px;">s/d</span><span class="desc">sin dato</span></div>
         </div>`;
       }
       // Nota de redistribucion: hay stock en CEDIS pero mal repartido.
@@ -1256,7 +1244,22 @@ function render(){
   cont.querySelectorAll('[data-repro]').forEach(b=>b.addEventListener('click',()=>abrirReprogramar(lista[+b.dataset.repro])));
   cont.querySelectorAll('[data-ent]').forEach(b=>b.addEventListener('click',()=>abrirRegistrarEntrega(lista[+b.dataset.ent])));
   cont.querySelectorAll('[data-parcial]').forEach(b=>b.addEventListener('click',()=>abrirRecibirParcial(lista[+b.dataset.parcial])));
-  cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>generarNotaImprimible(lista[+b.dataset.nota].id)));
+  cont.querySelectorAll('[data-nota]').forEach(b=>b.addEventListener('click',()=>{
+    const s=lista[+b.dataset.nota];
+    const notaNum=String(s.nota_num||s.NOTA_NUM||'').trim();
+    if(notaNum){
+      // (#2) Ya está emitida: abrir el PDF archivado en Drive (no regenerar).
+      // Abrimos ventana AHORA (evita bloqueo de popups) y luego la redirigimos.
+      const w=window.open('','_blank');
+      if(w){ try{ w.document.write('<!doctype html><body style="font-family:Arial;color:#555;padding:40px;text-align:center;">Abriendo la nota '+notaNum+'…</body>'); }catch(e){} }
+      postGAS('pdfNotaExistente',{nota_num:notaNum,empresa:s.empresa}).then(r=>{
+        if(r&&r.success&&r.url){ if(w) w.location.href=r.url; else window.open(r.url,'_blank'); }
+        else { if(w) w.close(); if(confirm('No se encontró el PDF archivado de '+notaNum+'. ¿Regenerar la nota?')) generarNotaImprimible(s.id); }
+      }).catch(()=>{ if(w) w.close(); if(confirm('Error al buscar el PDF. ¿Regenerar la nota?')) generarNotaImprimible(s.id); });
+    } else {
+      generarNotaImprimible(s.id);
+    }
+  }));
   cont.querySelectorAll('[data-aut]').forEach(b=>b.addEventListener('click',()=>abrirAutorizacionEntrega(lista[+b.dataset.aut])));
   cont.querySelectorAll('[data-avisar]').forEach(b=>b.addEventListener('click',()=>avisarRevision(lista[+b.dataset.avisar])));
 
@@ -1761,9 +1764,13 @@ function causasCheckboxesHtml(p){return CAUSAS_NOTA.map(function(c){return '<lab
 function causasSeleccionadas(p){return Array.from(document.querySelectorAll('.'+p+'-causa:checked')).map(function(c){return c.value;});}
 
 async function generarNotaImprimible(id){
+  // (#3) Abrir la ventana AQUÍ, en el mismo gesto del clic, para que el navegador
+  // no la bloquee como popup. Se llena después con el contenido.
+  const w=window.open('','_blank');
+  if(w){ try{ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Generando nota…</title></head><body style="font-family:Arial;color:#555;padding:40px;text-align:center;">Generando la nota, un momento…</body></html>'); }catch(e){} }
   try{
     const r=await loadJsonp('generarNotaDiferimiento','&id='+encodeURIComponent(id)+'&asignar=1');
-    if(!r||!r.success){ alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
+    if(!r||!r.success){ if(w) w.close(); alert('No se pudo generar la nota: '+((r&&r.error)||'')); return; }
     const ca=(r.causas||'').split('|').map(function(x){return x.trim();}).filter(Boolean);
     const fc=CAUSAS_NOTA.map(function(c){var m=ca.some(function(x){return x===c;});return '<div style="margin:4px 0;font-size:12px;">'+(m?'\u2612':'\u2610')+' '+esc(c)+'</div>';}).join('');
     let ff=r.nota_fecha||'';
@@ -1773,7 +1780,8 @@ async function generarNotaImprimible(id){
     else if(ff){ const d=new Date(ff); if(!isNaN(d)){ ff=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); } }
     let lu=''; try{ const lg=document.querySelector('.header .logo'); if(lg) lu=lg.src; }catch(e){}
     const vt=(Number(r.pallets)>0||Number(r.bultos)>0)?(' ('+Number(r.bultos||0)+' bultos, '+Number(r.pallets||0)+' pallets)'):'';
-    const w=window.open('','_blank');
+    if(!w){ alert('El navegador bloqueó la ventana. Permite ventanas emergentes para este sitio.'); return; }
+    w.document.open();
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Nota '+esc(r.nota_num)+'</title><style>@page{size:portrait;margin:18mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;line-height:1.6;max-width:720px;margin:0 auto;}.head{text-align:center;margin-bottom:6px;}.head img{width:62px;height:62px;object-fit:contain;}.head .t{font-weight:bold;font-size:13px;margin:1px 0;}.meta{display:flex;justify-content:space-between;font-weight:bold;margin:16px 0 6px;font-size:13px;}table{border-collapse:collapse;width:100%;margin:12px 0;}th,td{border:1px solid #333;padding:6px 8px;font-size:12px;text-align:left;}th{background:#0C447C;color:#fff;}.firma{margin-top:50px;display:flex;justify-content:space-around;text-align:center;font-size:12px;}.firma div{border-top:1px solid #333;padding-top:4px;width:240px;}.cc{margin-top:30px;font-size:11px;color:#444;}@media print{.noprint{display:none;}}</style></head><body>'+
       '<div class="head">'+(lu?'<img src="'+lu+'">':'')+'<div class="t">CAJA DE SEGURO SOCIAL</div><div class="t">DIRECCIÓN NACIONAL DE LOGÍSTICA</div><div class="t">DIRECCIÓN DE ABASTOS</div></div>'+
       '<div class="meta"><span>Fecha: '+esc(ff)+'</span><span>'+esc(r.nota_num)+'</span></div>'+
@@ -2300,16 +2308,67 @@ document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar();
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnListaEmpaque').addEventListener('click',abrirListaEmpaque);
 document.getElementById('btnAvisarTodos').addEventListener('click',avisarRevisionTodos);
-document.getElementById('btnReporteDiferidos').addEventListener('click',async function(){
-  if(!confirm('¿Enviar el reporte de entregas diferidas (con cruce de autorización) a la Dirección de Compras?')) return;
-  const b=this; b.disabled=true; const t=b.textContent; b.textContent='Enviando…';
-  try{
-    const resp=await postGAS('reporteDiferidos',{enviar:true});
-    if(!resp.success) throw new Error(resp.error||'Error');
-    alert('Reporte enviado. Casos: '+resp.total+' · Con autorización: '+resp.con_autorizacion);
-  }catch(e){ alert('No se pudo enviar: '+e.message); }
-  finally{ b.disabled=false; b.textContent=t; }
-});
+document.getElementById('btnReporteDiferidos').addEventListener('click',()=>abrirMenuReporteDiferidos());
+
+// (#1) Menú de opciones del reporte de diferidos: ver / Excel / PDF / enviar.
+function abrirMenuReporteDiferidos(){
+  document.getElementById('modalTitulo').textContent='Reporte de entregas diferidas';
+  document.getElementById('modalBody').innerHTML=`
+    <p style="font-size:12.5px;color:#444;margin:0 0 14px;">Elige qué hacer con el reporte de diferidos (incluye el cruce de autorización de entrega):</p>
+    <div id="repMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;color:#555;"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn primary" id="repVer">👁 Ver en pantalla</button>
+      <button class="btn" id="repExcel">⬇ Descargar Excel</button>
+      <button class="btn" id="repPDF">⬇ Descargar PDF</button>
+      <button class="btn" id="repEnviar" style="border-color:#0C447C;color:#0C447C;">✉ Enviar a Dirección de Compras</button>
+    </div>`;
+  abrirModal();
+  const msg=document.getElementById('repMsg');
+  function trabajando(t){ msg.style.color='#555'; msg.textContent=t; }
+
+  // Ver en pantalla: abre el HTML del reporte en pestaña nueva (ventana antes del await).
+  document.getElementById('repVer').addEventListener('click',()=>{
+    const w=window.open('','_blank');
+    if(w){ try{ w.document.write('<!doctype html><body style="font-family:Arial;color:#555;padding:40px;text-align:center;">Generando el reporte…</body>'); }catch(e){} }
+    trabajando('Generando vista…');
+    postGAS('reporteDiferidos',{enviar:false}).then(r=>{
+      if(r&&r.success&&r.html){ if(w){ w.document.open(); w.document.write(r.html); w.document.close(); } }
+      else { if(w) w.close(); msg.style.color='#b00020'; msg.textContent='No se pudo generar la vista.'; }
+    }).catch(e=>{ if(w) w.close(); msg.style.color='#b00020'; msg.textContent='Error: '+e.message; });
+  });
+
+  // Descargar Excel
+  document.getElementById('repExcel').addEventListener('click',()=>{
+    const w=window.open('','_blank');
+    if(w){ try{ w.document.write('<!doctype html><body style="font-family:Arial;color:#555;padding:40px;text-align:center;">Generando Excel…</body>'); }catch(e){} }
+    trabajando('Generando Excel…');
+    postGAS('reporteDiferidosExcel',{}).then(r=>{
+      if(r&&r.success&&r.download){ if(w) w.location.href=r.download; msg.style.color='#0a7a2f'; msg.textContent='Excel generado ('+r.total+' casos).'; }
+      else { if(w) w.close(); msg.style.color='#b00020'; msg.textContent=(r&&r.error)||'No se pudo generar el Excel.'; }
+    }).catch(e=>{ if(w) w.close(); msg.style.color='#b00020'; msg.textContent='Error: '+e.message; });
+  });
+
+  // Descargar PDF
+  document.getElementById('repPDF').addEventListener('click',()=>{
+    const w=window.open('','_blank');
+    if(w){ try{ w.document.write('<!doctype html><body style="font-family:Arial;color:#555;padding:40px;text-align:center;">Generando PDF…</body>'); }catch(e){} }
+    trabajando('Generando PDF…');
+    postGAS('reporteDiferidosPDF',{}).then(r=>{
+      if(r&&r.success&&r.url){ if(w) w.location.href=r.url; msg.style.color='#0a7a2f'; msg.textContent='PDF generado ('+r.total+' casos).'; }
+      else { if(w) w.close(); msg.style.color='#b00020'; msg.textContent=(r&&r.error)||'No se pudo generar el PDF.'; }
+    }).catch(e=>{ if(w) w.close(); msg.style.color='#b00020'; msg.textContent='Error: '+e.message; });
+  });
+
+  // Enviar a Compras
+  document.getElementById('repEnviar').addEventListener('click',function(){
+    if(!confirm('¿Enviar el reporte a la Dirección de Compras?')) return;
+    this.disabled=true; trabajando('Enviando…');
+    postGAS('reporteDiferidos',{enviar:true}).then(r=>{
+      if(r&&r.success){ msg.style.color='#0a7a2f'; msg.textContent='Reporte enviado ('+r.total+' casos · '+r.con_autorizacion+' con autorización).'; }
+      else { msg.style.color='#b00020'; msg.textContent=(r&&r.error)||'No se pudo enviar.'; }
+    }).catch(e=>{ msg.style.color='#b00020'; msg.textContent='Error: '+e.message; });
+  });
+}
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
 // ===== Atajos de rango: esta semana / semana próxima / este mes =====
