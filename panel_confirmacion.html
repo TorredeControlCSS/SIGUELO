@@ -96,6 +96,13 @@
   .fmarca{font-size:10px;color:#8a6d3b;margin-top:3px;font-family:var(--mono);}
   .fmarca-lbl{font-family:Arial,Helvetica,sans-serif;font-weight:700;text-transform:uppercase;font-size:8.5px;letter-spacing:.3px;color:#a07d3b;}
   .btn-deshacer{border-color:#b00020 !important;color:#b00020 !important;}
+  .btn-nota{border-color:#0C447C !important;color:#0C447C !important;background:#f4f8fd !important;}
+  .btn-nota:hover{background:#e8f0fa !important;}
+  .sep-acc{display:inline-block;width:1px;height:20px;background:#d0d0d0;margin:0 4px;vertical-align:middle;}
+  .fcaja.venc .fcap{color:inherit;opacity:.85;}
+  .fcaja.venc-ok{background:#eef7f0;border-color:#bfe0c8;color:#0a7a2f;}
+  .fcaja.venc-warn{background:#fff8e1;border-color:#e6d08a;color:#8a6d00;}
+  .fcaja.venc-mal{background:#fdecec;border-color:#e0a8a8;color:#b00020;}
   .btn-deshacer:hover{background:#fdecec !important;}
   /* Caja IPR lateral, a toda la altura */
   .ipr-box{width:84px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-left:1px solid #eee;}
@@ -372,6 +379,7 @@
         <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel detallado con todos los lotes y niveles de empaque">⬇ Lista de empaque</button>
         <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
         <button class="btn" id="btnAvisarTodos" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo de 'sigue en revisión' a TODOS los proveedores sin cita confirmada">✉ Avisar a todos sin cita</button>
+        <button class="btn" id="btnReporteDiferidos" style="border-color:#0C447C;color:#0C447C;" title="Enviar a la Dirección de Compras el reporte de entregas diferidas, con cruce de autorización">📋 Reporte de diferidos</button>
       </div>
     </div>
     <div id="tabLista"></div>
@@ -1147,8 +1155,6 @@ function render(){
     } else if(estadoU==='DIFERIDA' || estadoU==='REMANENTE'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
-                  <button class="btn" data-nota="${idx}">Generar nota</button>
-                  <button class="btn" data-aut="${idx}">Autorización de entrega</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>
                   <button class="btn btn-deshacer" data-deshacer="${idx}" title="Devolver a pendiente (limpia diferimiento)">↺ Deshacer</button>`;
     } else if(estadoU==='REPROGRAMADA'){
@@ -1164,11 +1170,17 @@ function render(){
     if(!CERRADA && cruzoDeCiclo_(s)){
       acciones += `<button class="btn" data-avisar="${idx}" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo: su cita sigue en revisión (sin nota)">✉ Avisar al proveedor</button>`;
     }
-    // Autorización de entrega: SOLO para citas que vienen de un diferido. Si la cita ya
-    // estaba DIFERIDA, el botón ya se agregó arriba. Si se reagendó (AGENDADA/ASISTIO) pero
-    // conserva su nota de diferido (s.nota_num), también puede emitir la autorización.
-    if(!CERRADA && estadoU!=='DIFERIDA' && (estadoU==='AGENDADA'||estadoU==='ASISTIO') && String(s.nota_num||s.NOTA_NUM||'').trim()){
-      acciones += `<button class="btn" data-aut="${idx}" title="Autorización de entrega (cita proveniente de un diferido)">Autorización de entrega</button>`;
+    // ── BOTONES DE NOTA SIEMPRE VISIBLES (petición del equipo) ──
+    // La nota de diferido y la autorización de entrega deben poder emitirse en
+    // CUALQUIER estado no cerrado (incluso con cita agendada), porque un reverso
+    // por notas no emitidas desordenó la operación. El sistema no juzga el caso;
+    // entrega la herramienta y el operador decide la causal.
+    if(!CERRADA){
+      const yaTieneNota = String(s.nota_num||s.NOTA_NUM||'').trim();
+      const yaTieneAut  = String(s.aut_num||s.AUT_NUM||'').trim();
+      acciones += `<span class="sep-acc"></span>`;
+      acciones += `<button class="btn btn-nota" data-nota="${idx}" title="Generar/regenerar la nota de diferimiento (el proveedor conserva este documento)">📄 Nota de diferido${yaTieneNota?` (${esc(yaTieneNota)})`:''}</button>`;
+      acciones += `<button class="btn btn-nota" data-aut="${idx}" title="Generar la autorización de entrega (cuando ya hay espacio para recibir el diferido)">📝 Autorización${yaTieneAut?` (${esc(yaTieneAut)})`:''}</button>`;
     }
 
     // Dos fechas lado a lado: solicitada (proveedor) y agendada/confirmada. Conserva trazabilidad.
@@ -1193,6 +1205,18 @@ function render(){
           <div class="fval">${fAge?esc(fAge):'sin agendar'}</div>
         </div>
         ${difTxt?`<div class="fdif">↔ ${difTxt}</div>`:''}
+        ${(()=>{
+          if(!s.venc || s.venc.fecha==null) return '';
+          const dias = s.venc.dias;
+          const vencida = (dias!=null && dias<0);
+          const cls = vencida ? 'venc-mal' : (dias!=null && dias<=7 ? 'venc-warn' : 'venc-ok');
+          const txt = vencida ? `OC vencida hace ${Math.abs(dias)} d` : (dias!=null? `Vence en ${dias} d` : 'Venc. OC');
+          return `<div class="fcaja venc ${cls}" title="Fecha de vencimiento de la Orden de Compra">
+                    <div class="fcap">Vencimiento OC</div>
+                    <div class="fval">${esc(String(s.venc.fecha).slice(0,10))}</div>
+                    <div class="fmarca" style="color:inherit;">${txt}</div>
+                  </div>`;
+        })()}
         <div class="festado" style="color:${estCol};">${esc(s.estado)}</div>
       </div>`;
     const colaTxt = CERRADA ? '' : (s.cola==='RECEPCION'?'Recepción':'Redistrib.');
@@ -1721,11 +1745,17 @@ function abrirAsistencia(s){
   document.getElementById('asisNo').addEventListener('click',()=>enviar(false));
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  CAUSALES DE DIFERIMIENTO (lo que se IMPRIME en la nota).
+//  PROVISIONALES — pendientes de validación por Legal / Dirección de Compras.
+//  Principio: cada causal describe un HECHO físico/verificable, no una decisión
+//  ni un proceso. Para cambiar el wording, edita SOLO esta lista.
+// ═══════════════════════════════════════════════════════════════════════════
 const CAUSAS_NOTA = [
-  'Falta de espacio disponible en el área de almacenamiento y proceso de inventario en el CDPA',
-  'Priorización de otras entregas',
-  'Segregación por capacidad de recepción',
-  'Falta de espacio en bodega'
+  'Capacidad de almacenamiento del CEDIS temporalmente copada al momento de la entrega',
+  'Volumen de la entrega excede la capacidad de recepción disponible en la fecha solicitada',
+  'Entrega segregada por volumen — recepción escalonada acordada',
+  'Proceso de Toma de Inventario en curso en el CEDIS/Almacén'
 ];
 function causasCheckboxesHtml(p){return CAUSAS_NOTA.map(function(c){return '<label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;color:#333;margin-bottom:5px;cursor:pointer;"><input type="checkbox" class="'+p+'-causa" value="'+esc(c)+'" style="margin-top:2px;"> <span>'+esc(c)+'</span></label>';}).join('');}
 function causasSeleccionadas(p){return Array.from(document.querySelectorAll('.'+p+'-causa:checked')).map(function(c){return c.value;});}
@@ -2270,6 +2300,16 @@ document.getElementById('btnRefrescar').addEventListener('click',()=>{ cargar();
 document.getElementById('btnExcel').addEventListener('click',descargarExcel);
 document.getElementById('btnListaEmpaque').addEventListener('click',abrirListaEmpaque);
 document.getElementById('btnAvisarTodos').addEventListener('click',avisarRevisionTodos);
+document.getElementById('btnReporteDiferidos').addEventListener('click',async function(){
+  if(!confirm('¿Enviar el reporte de entregas diferidas (con cruce de autorización) a la Dirección de Compras?')) return;
+  const b=this; b.disabled=true; const t=b.textContent; b.textContent='Enviando…';
+  try{
+    const resp=await postGAS('reporteDiferidos',{enviar:true});
+    if(!resp.success) throw new Error(resp.error||'Error');
+    alert('Reporte enviado. Casos: '+resp.total+' · Con autorización: '+resp.con_autorizacion);
+  }catch(e){ alert('No se pudo enviar: '+e.message); }
+  finally{ b.disabled=false; b.textContent=t; }
+});
 document.getElementById('btnLimpiar').addEventListener('click',limpiarFiltros);
 
 // ===== Atajos de rango: esta semana / semana próxima / este mes =====
@@ -3482,7 +3522,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 //  decisión de Diego). El PIN válido se guarda con marca de tiempo; expira a
 //  las 8 h. No ralentiza el panel: valida una vez y libera.
 // ═══════════════════════════════════════════════════════════════════════════
-var PIN_VALIDOS = ['3229','2291','5640','2172','1261','2173'];
+var PIN_VALIDOS = ['3229','2191','5640','2172','1261','2173'];
 var PIN_LS_KEY = 'siguelo_pin_ok';
 var PIN_TTL_MS = 8*60*60*1000; // 8 horas
 
