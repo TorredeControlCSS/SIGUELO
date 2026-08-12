@@ -1790,8 +1790,8 @@ async function generarNotaImprimible(id){
       '<table><thead><tr><th>N.º de Entrega</th><th>Código De Abasto</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody><tr><td>1</td><td>'+esc(r.cod_abasto)+'</td><td>'+esc(r.descripcion)+'</td><td>'+Number(r.cantidad||0).toLocaleString('es-PA')+vt+'</td></tr></tbody></table>'+
       '<p><b>ha sido diferida y segmentada temporalmente debido a las siguientes causas:</b></p>'+fc+
       '<p>Le indicamos que puede realizar su entrega una vez contemos con espacio disponible, lo cual será notificado por escrito.</p><p>Agradecemos su comprensión.</p>'+
-      '<div class="firma"><div>Paola Moreno<br><b>Jefe Almacén</b></div><div>Ildemaro Vásquez<br><b>Torre de Control Logística</b></div></div>'+
-      '<div class="cc">cc. Dirección Nacional de Logística<br>cp. Dirección de Abastos</div>'+
+      '<div class="firma"><div>Paola Moreno<br><b>Jefe de Almacén</b></div><div>Zuleika Avila<br><b>Regente de Almacén</b></div></div>'+
+      '<div class="cc">cc. Deparamento de Planificacion<br>cc. Dirección de Abastos</div>'+
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button></body></html>');
     w.document.close();
   }catch(e){ alert('Error: '+e.message); }
@@ -1901,8 +1901,8 @@ async function generarAutorizacionImprimible(id, tramos, asignar){
       '<p>Las entregas se han parcializado debido a limitaciones de espacio disponible en el almacén, por lo cual se ha coordinado la recepción de manera escalonada para optimizar la capacidad de almacenamiento.</p>'+
       '<p class="notaex"><b>Nota:</b> esta cita es exclusivamente para este medicamento, debido a la distribución del espacio en el CEDIS, no se recibirán entregas que no hayan sido previamente agendadas.</p>'+
       '<p>Saludos cordiales,</p>'+
-      '<div class="firma"><div>Paola Moreno<br><b>Jefe Almacén</b></div><div>Ildemaro Vásquez<br><b>Torre de Control Logística</b></div></div>'+
-      '<div class="cc">cc. Dirección Nacional de Logística<br>cp. Dirección de Abastos</div>'+
+      '<div class="firma"><div>Paola Moreno<br><b>Jefe de Almacén</b></div><div>Zuleika Avila<br><b>Regente de Almacén</b></div></div>'+
+      '<div class="cc">cc. Departamento de Planificación<br>cc. Dirección de Abastos</div>'+
       '<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e5a9e;color:#fff;border:none;border-radius:3px;cursor:pointer;">Imprimir / Guardar PDF</button></body></html>');
     w.document.close();
   }catch(e){ alert('Error: '+e.message); }
