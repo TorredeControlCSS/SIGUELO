@@ -145,7 +145,7 @@
   /* Tutorial guiado */
   #tourOverlay{position:fixed;inset:0;z-index:10000;}
   #tourBackdrop{position:absolute;inset:0;background:rgba(12,68,124,.55);}
-  .tour-spot{position:absolute;border:3px solid var(--azul);border-radius:4px;box-shadow:0 0 0 9999px rgba(12,68,124,.35);transition:all .25s ease;pointer-events:none;}
+  .tour-spot{position:absolute;z-index:10001;border:3px solid var(--azul);border-radius:4px;box-shadow:0 0 0 9999px rgba(12,68,124,.35);transition:all .25s ease;pointer-events:none;}
   #tourBox{position:absolute;z-index:10002;background:#fff;border:1px solid #a8a8a8;border-radius:6px;padding:14px 16px;max-width:340px;box-shadow:0 8px 30px rgba(0,0,0,.28);border-top:4px solid var(--azul);}
   #tourTitulo{font-size:14px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;font-family:'Segoe UI',Arial,sans-serif;}
   #tourTexto{font-size:12.5px;line-height:1.5;color:#333;}
@@ -156,6 +156,8 @@
   #tourNext{background:var(--azul) !important;color:#fff;font-weight:700;border-color:var(--azul) !important;padding:7px 14px !important;}
   #tourSkip,#tourPrev{color:#555;}
   #btnTutorial{background:#fff;color:var(--azul-osc);font-weight:700;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-size:12px;flex-shrink:0;}
+  details#avisoInstrucciones summary::-webkit-details-marker{display:none;}
+  details#avisoInstrucciones[open] #avisoInstruccionesFlecha{transform:rotate(90deg);}
 </style>
 </head>
 <body>
@@ -175,7 +177,12 @@
     <span id="cicloTimerReloj" style="font-family:Consolas,'Courier New',monospace;font-size:24px;font-weight:700;letter-spacing:1px;white-space:nowrap;">—</span>
   </div>
 
-  <div class="aviso">
+  <details class="aviso" id="avisoInstrucciones">
+    <summary style="cursor:pointer;font-weight:700;color:var(--azul-osc);list-style:none;display:flex;align-items:center;gap:8px;">
+      <span id="avisoInstruccionesFlecha" style="transition:transform .2s;">&#9656;</span>
+      Instrucciones para solicitar su cita de entrega
+    </summary>
+    <div style="margin-top:10px;">
     <p style="margin-bottom:8px;">Todos los proveedores deberán coordinar previamente mediante una solicitud de cita las entregas de sus pedidos.</p>
     <ul>
       <li>Las solicitudes deben enviarse a <b>más tardar los miércoles</b>, para programar las entregas de la semana siguiente.</li>
@@ -184,10 +191,14 @@
       <li>Este formulario constituye el <b>único medio autorizado</b> para solicitar citas en el CEDIS Panamá.</li>
       <li><b>Una solicitud por renglón.</b> Si entrega varios renglones, envíe una solicitud por cada uno con su número de orden de compra.</li>
     </ul>
+    <p style="margin-top:10px;padding:8px 12px;background:#fdecea;border:1px solid #f0c5bd;border-radius:3px;color:#7a231a;">
+      <b>Solicitud de Prórroga (Formato CON-0050):</b> si prevé que no podrá cumplir con la entrega dentro de la fecha de vencimiento de su contrato u orden de compra, es <b>obligatorio</b> presentar formalmente una Solicitud de Prórroga antes del vencimiento. Esta obligación se mantiene <b>aunque su cita haya sido diferida</b> por el almacén: el diferimiento de la cita no sustituye ni suspende el término contractual. La solicitud debe dirigirse al servidor público correspondiente de la Dirección Nacional de Logística de la Caja de Seguro Social. Puede generar el documento CON-0050 en la sección de identificación del proveedor.
+    </p>
     <p style="margin-top:8px;">Cualquier duda comunicarse al correo: <b>careyes@css.gob.pa</b> o <b>ildvasquez@css.gob.pa | Tel. +507 513-7000 Ext. 86322</b>
     </p>
     <p style="margin-top:8px;">Agradecemos su colaboración para una gestión más eficiente del proceso logístico.</p>
-  </div>
+    </div>
+  </details>
 
   <!-- 1. PROVEEDOR -->
   <div class="seccion">
@@ -235,7 +246,7 @@
         <div class="campo full" id="boxTransitos" style="display:none;">
           <div style="border:1px solid #0C447C;background:#eef4fb;border-radius:4px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Órdenes de compra en tránsito disponibles para agendar</div>
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Órdenes de Compra y Solicitudes de Entrega disponibles para agendar</div>
               <span id="transitosCount" style="font-family:Consolas,'Courier New',monospace;font-size:12px;color:#0C447C;background:#fff;border:1px solid #1e5a9e;border-radius:3px;padding:1px 7px;"></span>
             </div>
             <div style="font-size:12px;color:#666;margin-bottom:10px;">Estas son sus OC registradas por la institución y aún sin cita. Pulse "Usar esta OC" para iniciar la solicitud con los datos ya cargados. Podrá ajustar la cantidad de esta entrega capturando sus lotes.</div>
@@ -1035,17 +1046,25 @@ function renderTransitosDisponibles(lista){
   const cnt=document.getElementById('transitosCount');
   if(!box||!cont) return;
   if(!Array.isArray(lista)||!lista.length){ box.style.display='none'; cont.innerHTML=''; if(cnt)cnt.textContent=''; return; }
-  if(cnt) cnt.textContent=lista.length+(lista.length===1?' OC':' OC');
+  if(cnt) cnt.textContent=lista.length+' doc'+(lista.length===1?'':'s');
   cont.innerHTML='';
   lista.forEach((t,i)=>{
     const [col,txt]=_semaforoVenc(t.vencimiento_entrega||t.vencimiento_oc||'');
+    // Etiqueta legible por tipo de documento.
+    const tp=String(t.tipo||'').toUpperCase();
+    let tipoLbl='Documento';
+    if(tp==='ORDEN_COMPRA') tipoLbl='Orden de Compra';
+    else if(tp==='SOLICITUD_ENTREGA') tipoLbl='Solicitud de Entrega';
+    else if(tp==='ADELANTO') tipoLbl='Nota de Adelanto';
+    // Para ORDEN_COMPRA el n_documento ES la OC; para los demás, la OC madre va aparte.
+    const ocMadre = (tp==='ORDEN_COMPRA') ? (t.n_documento||'') : (t.n_orden_compra||'');
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:flex-start;gap:10px;border:1px solid #cfdcec;border-left:4px solid '+col+';background:#fff;border-radius:3px;padding:8px 10px;margin-bottom:6px;';
     row.innerHTML=
       '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:12.5px;color:#0C447C;font-weight:700;">OC <span class="mono">'+escAttr(t.n_documento||'')+'</span>'+
-          (t.cedi?' <span style="font-weight:700;color:#1e5a9e;font-size:11px;">· CEDI '+escAttr(t.cedi)+'</span>':'')+
-          (t.tipo?' <span style="font-weight:400;color:#777;font-size:11px;">('+escAttr(t.tipo)+')</span>':'')+'</div>'+
+        '<div style="font-size:12.5px;color:#0C447C;font-weight:700;">'+escAttr(tipoLbl)+' <span class="mono">'+escAttr(t.n_documento||'')+'</span>'+
+          (t.cedi?' <span style="font-weight:700;color:#1e5a9e;font-size:11px;">· CEDI '+escAttr(t.cedi)+'</span>':'')+'</div>'+
+        (ocMadre?'<div style="font-size:11.5px;color:#0C447C;font-weight:600;margin-top:1px;">OC <span class="mono">'+escAttr(ocMadre)+'</span></div>':'')+
         '<div style="font-size:12px;color:#333;margin:2px 0;">'+escAttr(t.descripcion||'')+'</div>'+
         '<div style="font-size:11px;color:#666;">Renglón <span class="mono">'+escAttr(t.cod_abasto||t.cod_abasto_norm||'')+'</span>'+
           (t.cod_sap?' / SAP <span class="mono">'+escAttr(t.cod_sap)+'</span>':'')+
