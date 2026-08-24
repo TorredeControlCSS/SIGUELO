@@ -143,10 +143,10 @@
   .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
   .vida-corta{font-size:10px;color:#b8860b;font-weight:700;margin-top:2px;}
   /* Tutorial guiado */
-  #tourOverlay{position:fixed;inset:0;z-index:10000;}
-  #tourBackdrop{position:absolute;inset:0;background:rgba(12,68,124,.55);}
+  #tourOverlay{position:fixed;inset:0;z-index:10000;pointer-events:none;}
+  #tourBackdrop{position:absolute;inset:0;background:rgba(12,68,124,.55);pointer-events:none;}
   .tour-spot{position:absolute;z-index:10001;border:3px solid var(--azul);border-radius:4px;box-shadow:0 0 0 9999px rgba(12,68,124,.35);transition:all .25s ease;pointer-events:none;}
-  #tourBox{position:absolute;z-index:10002;background:#fff;border:1px solid #a8a8a8;border-radius:6px;padding:14px 16px;max-width:340px;box-shadow:0 8px 30px rgba(0,0,0,.28);border-top:4px solid var(--azul);}
+  #tourBox{position:absolute;z-index:10002;pointer-events:auto;background:#fff;border:1px solid #a8a8a8;border-radius:6px;padding:14px 16px;max-width:340px;box-shadow:0 8px 30px rgba(0,0,0,.28);border-top:4px solid var(--azul);}
   #tourTitulo{font-size:14px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;font-family:'Segoe UI',Arial,sans-serif;}
   #tourTexto{font-size:12.5px;line-height:1.5;color:#333;}
   #tourNav{display:flex;align-items:center;gap:8px;margin-top:12px;}
@@ -570,6 +570,21 @@
   <div class="pv-modal">
     <div class="pv-modal-head"><span id="pvTitulo">Cobertura nacional por Unidad Ejecutora</span><button class="pv-modal-x" id="pvX">&times;</button></div>
     <div class="pv-modal-body" id="pvBody"></div>
+  </div>
+</div>
+
+<div id="tourOverlay" style="display:none;">
+  <div id="tourBackdrop"></div>
+  <div id="tourBox">
+    <div id="tourTitulo"></div>
+    <div id="tourTexto"></div>
+    <div id="tourNav">
+      <span id="tourPaso"></span>
+      <span class="sep"></span>
+      <button id="tourSkip" type="button">Saltar</button>
+      <button id="tourPrev" type="button">◂ Atrás</button>
+      <button id="tourNext" type="button">Siguiente ▸</button>
+    </div>
   </div>
 </div>
 
@@ -1903,20 +1918,6 @@ init();
       <div id="resumenConfirm" style="font-size:12px;color:#444;text-align:left;background:#f4f7fb;border:1px solid #d6e2f0;padding:8px 10px;margin-bottom:14px;"></div>
       <div style="font-size:11.5px;color:#777;margin-bottom:14px;">Se ha enviado una copia de este comprobante al correo <b id="correoConfirm">—</b>.</div>
       <button class="btn" id="btnCerrarConfirm" style="background:#1e5a9e;color:#fff;border:none;padding:9px 22px;cursor:pointer;">Entendido</button>
-    </div>
-  </div>
-</div>
-<div id="tourOverlay" style="display:none;">
-  <div id="tourBackdrop"></div>
-  <div id="tourBox">
-    <div id="tourTitulo"></div>
-    <div id="tourTexto"></div>
-    <div id="tourNav">
-      <span id="tourPaso"></span>
-      <span class="sep"></span>
-      <button id="tourSkip" type="button">Saltar</button>
-      <button id="tourPrev" type="button">◂ Atrás</button>
-      <button id="tourNext" type="button">Siguiente ▸</button>
     </div>
   </div>
 </div>
