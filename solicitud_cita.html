@@ -243,6 +243,88 @@
           </div>
         </div>
 
+        <!-- Subsección: Solicitud de Prórroga CON-0050 -->
+        <div class="campo full" id="boxProrroga" style="display:none;">
+          <div style="border:1px solid #0C447C;background:#f4f8fc;border-radius:4px;padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <div style="font-weight:700;color:#0C447C;font-size:13px;flex:1;">Solicitud de Prórroga — Formato CON-0050</div>
+            </div>
+            <div style="font-size:12px;color:#666;margin-bottom:12px;">Si no podrá entregar antes de la fecha de vencimiento de su contrato u orden de compra, debe solicitar una prórroga formal. Aplica <b>aunque su cita esté diferida</b> por el almacén. El sistema genera el documento CON-0050 en Word, listo para firmar y presentar.</div>
+
+            <!-- Aviso automático (pastel sólido, sin barra lateral) -->
+            <div id="avisoProrroga" style="display:none;gap:10px;align-items:flex-start;background:#fdecea;border:1px solid #f0c5bd;padding:10px 12px;margin-bottom:12px;border-radius:3px;">
+              <span style="font-size:18px;line-height:1;color:#c0392b;">&#9888;</span>
+              <span id="avisoProrrogaTxt" style="font-size:12.5px;color:#7a231a;"></span>
+            </div>
+
+            <div style="margin-bottom:4px;">
+              <button type="button" class="btn" id="btnAbrirProrroga">Generar prórroga (CON-0050)</button>
+            </div>
+
+            <!-- Formulario -->
+            <div id="formProrroga" style="display:none;border-top:1px dashed var(--borde-suave);margin-top:12px;padding-top:12px;">
+              <div class="grid">
+                <div class="campo">
+                  <label>(1) Fecha de la nota <span class="req">*</span></label>
+                  <input type="date" id="prFecha">
+                </div>
+                <div class="campo">
+                  <label>(4) N.º de Contrato / Orden de Compra <span class="req">*</span></label>
+                  <input type="text" id="prOC" class="mono" placeholder="Ej. 1001112714">
+                  <span class="hint">Se pre-llena si viene de una orden en tránsito.</span>
+                </div>
+                <div class="campo full">
+                  <label>(2) Nombre y cargo del servidor público al que se dirige <span class="req">*</span></label>
+                  <input type="text" id="prDestinatario" placeholder="Ej. Licda. Nombre Apellido, Directora Nacional de Compras">
+                </div>
+                <div class="campo full">
+                  <label>(3) Entidad tramitante <span class="req">*</span></label>
+                  <input type="text" id="prEntidad" placeholder="Ej. Caja de Seguro Social — Dirección Nacional de Logística">
+                </div>
+                <div class="campo full">
+                  <label>(5) Descripción del objeto contractual <span class="req">*</span></label>
+                  <input type="text" id="prObjeto" placeholder="Ej. Suministro de medicamentos renglón 101099901">
+                </div>
+                <div class="campo">
+                  <label>(6) Tipo de cumplimiento <span class="req">*</span></label>
+                  <select id="prCumplimiento">
+                    <option value="">— Seleccione —</option>
+                    <option>Entrega del suministro</option>
+                    <option>Prestación del servicio</option>
+                    <option>Entrega de la obra</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>(7) Fecha de vencimiento del contrato/OC <span class="req">*</span></label>
+                  <input type="date" id="prVenc">
+                </div>
+                <div class="campo">
+                  <label>(8) Días hábiles de prórroga solicitados <span class="req">*</span></label>
+                  <input type="number" id="prDias" min="1" class="mono">
+                </div>
+              </div>
+
+              <div style="font-size:12.5px;font-weight:600;color:var(--texto-tenue);margin:12px 0 4px;">(9) Situaciones o causas que justifican la prórroga <span class="req">*</span></div>
+              <div class="campo full" style="margin-bottom:8px;"><input type="text" id="prCausa1" placeholder="Causa 1 (obligatoria)"></div>
+              <div class="campo full" style="margin-bottom:8px;"><input type="text" id="prCausa2" placeholder="Causa 2 (opcional)"></div>
+              <div class="campo full"><input type="text" id="prCausa3" placeholder="Causa 3 (opcional)"></div>
+
+              <div class="campo full" style="margin-top:12px;">
+                <label>(10) Nombre del representante legal (para el bloque de firma) <span class="req">*</span></label>
+                <input type="text" id="prRepresentante" placeholder="Nombre completo del representante legal">
+                <span class="hint">La firma se coloca a mano sobre el documento impreso.</span>
+              </div>
+
+              <div id="prAlerta" class="alerta" style="margin-left:0;margin-right:0;"></div>
+
+              <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+                <button type="button" class="btn-sec btn" id="btnCancelarProrroga">Cancelar</button>
+                <button type="button" class="btn" id="btnDescargarProrroga">Descargar CON-0050 (Word)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="campo">
           <label>Nombre del solicitante <span class="req">*</span></label>
           <input type="text" id="solicitante" placeholder="Nombre y apellido">
@@ -1014,16 +1096,21 @@ function cargarDiferidasProveedor(empresa){
   _empresaTraz=empresa||'';
   _transitoSeleccionado=null;
   const bt=document.getElementById('boxTransitos'); if(bt) bt.style.display='none';
-  if(!empresa){ box.style.display='none'; return; }
+  if(!empresa){ box.style.display='none'; var bp=document.getElementById('boxProrroga'); if(bp) bp.style.display='none'; return; }
   // limpiar grupos
   ['grpAtencion','grpAgendadas','grpAsistio','boxDiferidasVacio'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   const cb='cbTraz'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
     // Tránsitos disponibles (OC sin cita) — vienen en la misma respuesta del backend integrado.
-    renderTransitosDisponibles((resp&&resp.transitos_disponibles)||[]);
+    const transitosDisp=(resp&&resp.transitos_disponibles)||[];
+    renderTransitosDisponibles(transitosDisp);
 
     const citasTodas=(resp&&resp.success&&resp.citas)?resp.citas:[];
+
+    // Subsección de prórroga: mostrar y evaluar aviso automático con citas + tránsitos.
+    prepararProrroga(empresa, citasTodas, transitosDisp);
+
     if(!citasTodas.length){ box.style.display='none'; return; }
 
     const atencion=filtrarAtencion(citasTodas);
@@ -1056,6 +1143,145 @@ function cargarDiferidasProveedor(empresa){
   s.src=API_URL+'?action=getCitasProveedor&empresa='+encodeURIComponent(empresa)+'&callback='+cb;
   s.onerror=function(){ box.style.display='none'; };
   document.body.appendChild(s);
+}
+
+/* ================== SOLICITUD DE PRÓRROGA (CON-0050) ================== */
+// Datos del último vencimiento detectado, para pre-llenar el formulario.
+let _prorrogaPrefill=null;
+
+// Días hábiles (lun-vie) entre hoy y una fecha yyyy-mm-dd. Negativo si ya pasó.
+function _diasHabilesHasta(ymd){
+  if(!ymd) return null;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const fin=new Date(String(ymd).slice(0,10)+'T00:00:00');
+  if(isNaN(fin.getTime())) return null;
+  const signo = fin<hoy ? -1 : 1;
+  let a=new Date(Math.min(hoy,fin)), b=new Date(Math.max(hoy,fin)), n=0;
+  const cur=new Date(a);
+  while(cur<b){ cur.setDate(cur.getDate()+1); const d=cur.getDay(); if(d!==0 && d!==6) n++; }
+  return signo*n;
+}
+
+// Muestra la subsección, evalúa el aviso automático y guarda datos para pre-llenar.
+function prepararProrroga(empresa, citas, transitos){
+  const box=document.getElementById('boxProrroga');
+  if(!box) return;
+  box.style.display='block';
+
+  // Reunir candidatos con fecha de vencimiento (citas vivas + tránsitos disponibles).
+  const candidatos=[];
+  (citas||[]).forEach(c=>{
+    const estU=String(c.estado||'').toUpperCase();
+    const viva=!(estU==='ASISTIO'||estU==='ENTREGADO'||estU==='CANCELADA'||estU==='NO_ASISTIO');
+    const fv=c.fecha_vencimiento?String(c.fecha_vencimiento).slice(0,10):'';
+    if(viva && fv) candidatos.push({ oc:c.oc||'', desc:c.descripcion||'', venc:fv });
+  });
+  (transitos||[]).forEach(t=>{
+    const fv=t.vencimiento_entrega||t.vencimiento_oc||'';
+    if(fv) candidatos.push({ oc:t.n_documento||'', desc:t.descripcion||'', venc:String(fv).slice(0,10) });
+  });
+
+  // Elegir el más urgente (menor cantidad de días hábiles hasta vencer).
+  let urgente=null, urgenteDias=null;
+  candidatos.forEach(c=>{
+    const d=_diasHabilesHasta(c.venc);
+    if(d===null) return;
+    if(urgenteDias===null || d<urgenteDias){ urgenteDias=d; urgente=c; }
+  });
+  _prorrogaPrefill = urgente;
+
+  // Aviso automático: <=5 días hábiles o ya vencido.
+  const aviso=document.getElementById('avisoProrroga');
+  const avisoTxt=document.getElementById('avisoProrrogaTxt');
+  if(urgente && urgenteDias!==null && urgenteDias<=5){
+    let frase;
+    if(urgenteDias<0) frase='venció hace '+Math.abs(urgenteDias)+' día'+(Math.abs(urgenteDias)!==1?'s hábiles':' hábil');
+    else if(urgenteDias===0) frase='vence hoy';
+    else frase='vence en '+urgenteDias+' día'+(urgenteDias!==1?'s hábiles':' hábil');
+    avisoTxt.innerHTML='<b>Recordatorio:</b> tiene la orden <span class="mono">'+escAttr(urgente.oc)+'</span> con vencimiento el <b>'+escAttr(urgente.venc)+'</b> ('+frase+'). Si no entregará a tiempo, genere su Solicitud de Prórroga. Este aviso no lo obliga; es un recordatorio.';
+    aviso.style.display='flex';
+  }else{
+    aviso.style.display='none';
+  }
+}
+
+// Pre-llena el formulario de prórroga con lo que sepamos.
+function _prefillFormProrroga(){
+  document.getElementById('prFecha').value=ymdLocal(new Date());
+  const p=_prorrogaPrefill;
+  if(p){
+    if(p.oc && !document.getElementById('prOC').value) document.getElementById('prOC').value=p.oc;
+    if(p.desc && !document.getElementById('prObjeto').value) document.getElementById('prObjeto').value=p.desc;
+    if(p.venc && !document.getElementById('prVenc').value) document.getElementById('prVenc').value=p.venc;
+  }
+}
+
+function _prAlerta(tipo,msg){ const a=document.getElementById('prAlerta'); a.className='alerta '+tipo; a.textContent=msg; }
+function _prOcultarAlerta(){ document.getElementById('prAlerta').className='alerta'; }
+
+(function(){
+  const btnAbrir=document.getElementById('btnAbrirProrroga');
+  const btnCanc=document.getElementById('btnCancelarProrroga');
+  const btnDesc=document.getElementById('btnDescargarProrroga');
+  const form=document.getElementById('formProrroga');
+  if(btnAbrir) btnAbrir.addEventListener('click', function(){
+    const abierto=form.style.display!=='none';
+    if(abierto){ form.style.display='none'; return; }
+    _prefillFormProrroga();
+    form.style.display='block';
+    form.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  if(btnCanc) btnCanc.addEventListener('click', function(){ form.style.display='none'; _prOcultarAlerta(); });
+  if(btnDesc) btnDesc.addEventListener('click', enviarProrroga);
+})();
+
+function enviarProrroga(){
+  _prOcultarAlerta();
+  const causas=[document.getElementById('prCausa1').value.trim(),
+               document.getElementById('prCausa2').value.trim(),
+               document.getElementById('prCausa3').value.trim()].filter(x=>x);
+  const data={
+    fecha: document.getElementById('prFecha').value,
+    destinatario: document.getElementById('prDestinatario').value.trim(),
+    entidad: document.getElementById('prEntidad').value.trim(),
+    oc: document.getElementById('prOC').value.trim(),
+    objeto: document.getElementById('prObjeto').value.trim(),
+    cumplimiento: document.getElementById('prCumplimiento').value,
+    vencimiento: document.getElementById('prVenc').value,
+    dias_habiles: document.getElementById('prDias').value,
+    causas: causas,
+    representante: document.getElementById('prRepresentante').value.trim(),
+    empresa: document.getElementById('empresa').value
+  };
+  // Validación en cliente (el backend revalida).
+  const falta=[];
+  if(!data.fecha) falta.push('fecha');
+  if(!data.destinatario) falta.push('destinatario (2)');
+  if(!data.entidad) falta.push('entidad (3)');
+  if(!data.oc) falta.push('N° de contrato/OC (4)');
+  if(!data.objeto) falta.push('objeto (5)');
+  if(!data.cumplimiento) falta.push('tipo de cumplimiento (6)');
+  if(!data.vencimiento) falta.push('vencimiento (7)');
+  if(!data.dias_habiles) falta.push('días hábiles (8)');
+  if(!causas.length) falta.push('al menos una causa (9)');
+  if(!data.representante) falta.push('representante legal (10)');
+  if(falta.length){ _prAlerta('err','Complete: '+falta.join(', ')+'.'); return; }
+
+  const btn=document.getElementById('btnDescargarProrroga');
+  btn.disabled=true; btn.textContent='Generando...';
+  fetch(API_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({action:'generarProrrogaDocx', data:data}) })
+    .then(r=>r.json())
+    .then(res=>{
+      btn.disabled=false; btn.textContent='Descargar CON-0050 (Word)';
+      if(res&&res.success&&res.url){
+        _prAlerta('ok','Documento generado. La descarga comenzará automáticamente.');
+        const a=document.createElement('a'); a.href=res.url; a.download=res.nombre||'CON-0050.docx';
+        document.body.appendChild(a); a.click(); a.remove();
+      }else{
+        _prAlerta('err','No se pudo generar: '+((res&&res.error)||'error desconocido'));
+      }
+    })
+    .catch(err=>{ btn.disabled=false; btn.textContent='Descargar CON-0050 (Word)'; _prAlerta('err','Error de red: '+(err.message||err)); });
 }
 
 // ---- Helpers de presentación de citas (reutilizables en ambas secciones) ----
