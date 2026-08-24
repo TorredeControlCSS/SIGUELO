@@ -142,6 +142,20 @@
   .lote-resumen{margin-top:8px;padding:8px 12px;background:#f4f4f4;border:1px solid var(--borde-suave);font-size:12.5px;display:flex;gap:20px;flex-wrap:wrap;}
   .lote-resumen b{font-family:var(--mono);color:var(--azul-osc);}
   .vida-corta{font-size:10px;color:#b8860b;font-weight:700;margin-top:2px;}
+  /* Tutorial guiado */
+  #tourOverlay{position:fixed;inset:0;z-index:10000;}
+  #tourBackdrop{position:absolute;inset:0;background:rgba(12,68,124,.55);}
+  .tour-spot{position:absolute;border:3px solid var(--azul);border-radius:4px;box-shadow:0 0 0 9999px rgba(12,68,124,.35);transition:all .25s ease;pointer-events:none;}
+  #tourBox{position:absolute;z-index:10002;background:#fff;border:1px solid #a8a8a8;border-radius:6px;padding:14px 16px;max-width:340px;box-shadow:0 8px 30px rgba(0,0,0,.28);border-top:4px solid var(--azul);}
+  #tourTitulo{font-size:14px;font-weight:700;color:var(--azul-osc);margin-bottom:6px;font-family:'Segoe UI',Arial,sans-serif;}
+  #tourTexto{font-size:12.5px;line-height:1.5;color:#333;}
+  #tourNav{display:flex;align-items:center;gap:8px;margin-top:12px;}
+  #tourPaso{font-size:11px;color:#888;}
+  #tourNav button{font-size:12px;padding:5px 10px;border-radius:4px;border:1px solid #a8a8a8;background:#fff;cursor:pointer;}
+  #tourNav .sep{margin-left:auto;}
+  #tourNext{background:var(--azul) !important;color:#fff;font-weight:700;border-color:var(--azul) !important;padding:7px 14px !important;}
+  #tourSkip,#tourPrev{color:#555;}
+  #btnTutorial{background:#fff;color:var(--azul-osc);font-weight:700;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-size:12px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -153,6 +167,7 @@
       <h1>Solicitud de Cita de Entrega de Proveedores — Almacén CEDIS PANAMÁ</h1>
       <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Único canal autorizado para coordinar entregas v2.0</div>
     </div>
+    <button id="btnTutorial" type="button" style="margin-left:auto;">▶ Ver tutorial guiado</button>
   </header>
 
   <div id="cicloTimer" style="background:linear-gradient(135deg,#0C447C,#1e5a9e);color:#fff;padding:8px 16px;border-bottom:3px solid #ffe600;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -317,7 +332,7 @@
   </div>
 
   <!-- 3. LISTA DE EMPAQUE -->
-  <div class="seccion">
+  <div class="seccion" id="secLotes">
     <div class="seccion-titulo"><span class="num">3</span> Lista de Empaque (por lote) <span class="req" style="margin-left:4px;">*</span></div>
     <div class="seccion-cuerpo">
       <span class="hint" style="display:block;margin-bottom:6px;">Capture cada lote del renglón con su fecha de vencimiento y cantidad. Reemplaza el archivo de lista de empaque.</span>
@@ -1554,6 +1569,81 @@ function tickCiclo(){
 tickCiclo();
 setInterval(tickCiclo,1000);
 
+/* ====== TUTORIAL GUIADO (proveedor) ======
+   Portado de transitos.html con el clamp de viewport corregido.
+   Helper $ local para no colisionar con el resto del archivo (que usa getElementById). */
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var TOUR_STEPS = [
+    { sel:'#empresa', tit:'1. Seleccione su empresa', txt:'Elija el nombre de su empresa. El sistema le mostrará sus renglones adjudicados, sus órdenes de compra en tránsito disponibles para agendar y el estado de sus citas.' },
+    { sel:'#boxTransitos', tit:'2. Sus órdenes disponibles', txt:'Si la institución ya registró una orden de compra suya, aparecerá aquí. Pulse "Usar esta OC" y el formulario se completa con esos datos; usted solo captura sus lotes. Si no ve esta sección, aún no hay órdenes registradas: continúe llenando el formulario manualmente.' },
+    { sel:'#boxDiferidas', tit:'3. Estado de sus citas', txt:'Aquí verá el resumen de sus citas: las que requieren atención, las ya agendadas y las entregas de la semana pasada. Para las diferidas ya existe una nota: no las vuelva a solicitar.' },
+    { sel:'#solicitante', tit:'4. Sus datos de contacto', txt:'Indique el nombre del solicitante, un correo y un teléfono. A ese correo se enviará el comprobante y la confirmación de la cita.' },
+    { sel:'#tipoEntrega', tit:'5. Tipo de entrega y orden', txt:'Elija el tipo de entrega y capture el número de orden de compra o contrato. Recuerde: una solicitud por cada renglón, con su propio número de orden.' },
+    { sel:'#renglon', tit:'6. Renglón a entregar', txt:'Seleccione el renglón que va a entregar. Verá su ficha con la presentación y, cuando aplique, la señal de cobertura a nivel nacional.' },
+    { sel:'#secLotes', tit:'7. Lista de empaque', txt:'Capture cada lote con su fecha de vencimiento y su cantidad. Esta lista reemplaza el archivo de lista de empaque: procure que las cantidades coincidan con lo que traerá.' },
+    { sel:'#archivoSustento', tit:'8. Documento de sustento', txt:'Adjunte la orden de compra o la carta de compromiso en PDF, JPG o PNG (máximo 10 MB). Es obligatorio para procesar su solicitud.' },
+    { sel:'#btnEnviar', tit:'9. Enviar su solicitud', txt:'Al enviar recibirá un comprobante con un código. Recuerde: el comprobante NO es la confirmación de la cita; su cita será confirmada el viernes al correo indicado.' }
+  ];
+  var TOUR_I = 0;
+
+  function iniciarTour(){
+    TOUR_I = 0;
+    $('tourOverlay').style.display='block';
+    setTimeout(mostrarPasoTour, 200);
+  }
+  function cerrarTour(){
+    $('tourOverlay').style.display='none';
+    var sp=document.querySelector('.tour-spot'); if(sp) sp.remove();
+  }
+  function mostrarPasoTour(){
+    var step = TOUR_STEPS[TOUR_I];
+    if(!step){ cerrarTour(); return; }
+    posicionarTour(step);
+  }
+  function posicionarTour(step){
+    var target = document.querySelector(step.sel);
+    // Si el objetivo existe pero está oculto (ej. boxTransitos/boxDiferidas sin datos),
+    // trátalo como ausente: caja centrada, sin spotlight.
+    if(target && (target.offsetParent===null && getComputedStyle(target).position!=='fixed')) target=null;
+    var box = $('tourBox');
+    var sp = document.querySelector('.tour-spot');
+    if(!sp){ sp=document.createElement('div'); sp.className='tour-spot'; $('tourOverlay').appendChild(sp); }
+    if (target){
+      target.scrollIntoView({block:'center', behavior:'smooth'});
+      setTimeout(function(){
+        var r = target.getBoundingClientRect();
+        sp.style.top=(r.top-6)+'px'; sp.style.left=(r.left-6)+'px';
+        sp.style.width=(r.width+12)+'px'; sp.style.height=(r.height+12)+'px';
+        sp.style.display='block';
+        box.style.transform='none';
+        var bh=box.offsetHeight||160, bw=box.offsetWidth||340;
+        var top = r.bottom+14; if (top+bh > window.innerHeight-10) top = Math.max(10, r.top-bh-14);
+        // Clamp final: la caja (y su botón Siguiente) SIEMPRE debe quedar dentro del viewport.
+        top = Math.min(Math.max(10, top), Math.max(10, window.innerHeight-bh-10));
+        var left = Math.min(Math.max(10, r.left), window.innerWidth-bw-10);
+        box.style.top=top+'px'; box.style.left=left+'px';
+      }, 300);
+    } else {
+      sp.style.display='none';
+      box.style.top='50%'; box.style.left='50%'; box.style.transform='translate(-50%,-50%)';
+    }
+    $('tourTitulo').textContent = step.tit;
+    $('tourTexto').textContent = step.txt;
+    $('tourPaso').textContent = 'Paso '+(TOUR_I+1)+' de '+TOUR_STEPS.length;
+    $('tourPrev').style.visibility = TOUR_I===0 ? 'hidden' : 'visible';
+    $('tourNext').textContent = TOUR_I===TOUR_STEPS.length-1 ? 'Terminar' : 'Siguiente ▸';
+  }
+  var b=$('btnTutorial'); if(b) b.addEventListener('click', iniciarTour);
+  var n=$('tourNext'); if(n) n.addEventListener('click', function(){
+    if(TOUR_I>=TOUR_STEPS.length-1){ cerrarTour(); return; }
+    TOUR_I++; mostrarPasoTour();
+  });
+  var p=$('tourPrev'); if(p) p.addEventListener('click', function(){ if(TOUR_I>0){ TOUR_I--; mostrarPasoTour(); } });
+  var s=$('tourSkip'); if(s) s.addEventListener('click', cerrarTour);
+  window.addEventListener('resize', function(){ if($('tourOverlay').style.display==='block') posicionarTour(TOUR_STEPS[TOUR_I]); });
+})();
+
 init();
 </script>
 <div id="modalConfirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
@@ -1568,6 +1658,20 @@ init();
       <div id="resumenConfirm" style="font-size:12px;color:#444;text-align:left;background:#f4f7fb;border:1px solid #d6e2f0;padding:8px 10px;margin-bottom:14px;"></div>
       <div style="font-size:11.5px;color:#777;margin-bottom:14px;">Se ha enviado una copia de este comprobante al correo <b id="correoConfirm">—</b>.</div>
       <button class="btn" id="btnCerrarConfirm" style="background:#1e5a9e;color:#fff;border:none;padding:9px 22px;cursor:pointer;">Entendido</button>
+    </div>
+  </div>
+</div>
+<div id="tourOverlay" style="display:none;">
+  <div id="tourBackdrop"></div>
+  <div id="tourBox">
+    <div id="tourTitulo"></div>
+    <div id="tourTexto"></div>
+    <div id="tourNav">
+      <span id="tourPaso"></span>
+      <span class="sep"></span>
+      <button id="tourSkip" type="button">Saltar</button>
+      <button id="tourPrev" type="button">◂ Atrás</button>
+      <button id="tourNext" type="button">Siguiente ▸</button>
     </div>
   </div>
 </div>
