@@ -1848,6 +1848,16 @@ setInterval(tickCiclo,1000);
   var TOUR_I = 0;
 
   function iniciarTour(){
+    // Opción B estricta: el tour requiere una empresa seleccionada para mostrar
+    // las secciones reales (órdenes disponibles, estado de citas) con datos.
+    var emp = $('empresa');
+    if(!emp || !emp.value){
+      if(typeof mostrarAlerta==='function'){
+        mostrarAlerta('err','Para ver el tutorial guiado, primero seleccione su empresa proveedora. Así podremos mostrarle sus órdenes y el estado de sus citas.');
+      }
+      if(emp){ try{ emp.focus(); emp.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }
+      return;
+    }
     TOUR_I = 0;
     $('tourOverlay').style.display='block';
     setTimeout(mostrarPasoTour, 200);
