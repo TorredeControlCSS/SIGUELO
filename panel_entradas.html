@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entradas de Mercancía por Recepción — CDPA 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{max-width:100%;overflow-x:hidden}
+body{font-family:Segoe UI,Tahoma,Arial,sans-serif;background:#ececec;color:#242424;font-size:13px;line-height:1.45}
+.num{font-family:Consolas,"Courier New",monospace}
+
+/* ---------- cabecera ---------- */
+header{background:#0C447C;color:#fff;padding:11px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header img{height:40px;width:40px;flex:none}
+header .tit{min-width:0;flex:1 1 340px}
+header h1{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+header .sub{font-size:11px;opacity:.85;margin-top:2px;overflow-wrap:anywhere}
+header .meta{font-size:11px;opacity:.92;text-align:right;flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
+@media(max-width:760px){header .meta{text-align:left;flex-basis:100%}}
+
+.wrap{padding:12px 16px 44px;max-width:1680px;margin:0 auto}
+
+/* ---------- filtros ---------- */
+.filtros{background:#fff;border:1px solid #a8a8a8;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#555;font-weight:600;white-space:nowrap}
+.f select,.f input{border:1px solid #a8a8a8;padding:5px 6px;font-size:12px;font-family:inherit;background:#fff;width:190px;max-width:100%}
+.f select{text-overflow:ellipsis}
+.f input.wide{width:280px}
+button.btn{border:1px solid #0C447C;background:#0C447C;color:#fff;padding:6px 13px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+button.btn.sec{background:#fff;color:#0C447C}
+button.btn:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
+
+/* ---------- KPI: pastel sólido, sin línea lateral ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:8px;margin-bottom:12px}
+.kpi{border:1px solid #a8a8a8;padding:10px 12px;min-width:0;overflow:hidden}
+.kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#3d4a58;font-weight:700;
+  overflow-wrap:anywhere;hyphens:auto}
+.kpi .val{font-size:20px;font-weight:600;color:#0C447C;margin-top:4px;
+  font-family:Consolas,"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .foot{font-size:10px;color:#5c6773;margin-top:3px;overflow-wrap:anywhere}
+.p-azul{background:#dbe6f3}.p-verde{background:#dcebdf}.p-ambar{background:#f6edd6}
+.p-rojo{background:#f4dedd}.p-gris{background:#e6e8ea}.p-lila{background:#e4e2ef}
+.kpi.p-rojo .val{color:#8f3232}
+.kpi.p-verde .val{color:#2c6144}
+
+/* ---------- pestañas ---------- */
+nav.tabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:12px}
+nav.tabs button{border:1px solid #a8a8a8;background:#dcdcdc;padding:7px 14px;font-size:12px;cursor:pointer;
+  font-family:inherit;color:#333;white-space:nowrap}
+nav.tabs button.on{background:#0C447C;color:#fff;border-color:#0C447C;font-weight:600}
+
+/* ---------- tarjetas: pastel sólido, sin línea lateral ---------- */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:12px}
+@media(max-width:960px){.grid2{grid-template-columns:1fr}}
+.card{border:1px solid #a8a8a8;margin-bottom:12px;min-width:0;overflow:hidden;background:#fff;
+  display:flex;flex-direction:column}
+.card h2{font-size:12px;font-weight:700;color:#0C447C;padding:8px 11px;border-bottom:1px solid #a8a8a8;
+  text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card h2 .per{margin-left:auto;font-size:10px;font-weight:400;color:#4a5560;text-transform:none;letter-spacing:0}
+.card .body{padding:11px;min-width:0;flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+.card h2{flex:0 0 auto}
+.card.c-azul h2{background:#dbe6f3}.card.c-verde h2{background:#dcebdf}
+.card.c-ambar h2{background:#f6edd6}.card.c-rojo h2{background:#f4dedd}
+.card.c-gris h2{background:#e6e8ea}.card.c-lila h2{background:#e4e2ef}
+
+.chartbox{position:relative;flex:1 1 auto;height:290px;min-height:250px;max-height:340px;min-width:0}
+.chartbox.tall{height:380px;min-height:340px;max-height:430px}
+.chartbox.anillo{height:330px;min-height:300px;max-height:360px}
+/* la tabla dentro de una tarjeta flexible no debe forzar altura extra */
+.card .body>.scroll{flex:1 1 auto;min-height:0}
+
+/* ---------- notas ---------- */
+.nota{border:1px solid #a8a8a8;background:#f6edd6;padding:10px 13px;font-size:12px;margin-bottom:12px;
+  overflow-wrap:anywhere}
+.nota.ok{background:#dcebdf}.nota.info{background:#dbe6f3}
+.nota b{color:#0C447C}
+
+/* ---------- tablas ---------- */
+.scroll{max-height:400px;overflow:auto;border:1px solid #a8a8a8;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+th{background:#0C447C;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px;
+  position:sticky;top:0;z-index:2;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{background:#1E5A9E}
+th .ar{opacity:.4;margin-left:5px;font-size:8px}
+th.asc .ar,th.desc .ar{opacity:1}
+td{padding:5px 8px;border-bottom:1px solid #e3e3e3;vertical-align:top;overflow-wrap:anywhere;word-break:normal}
+td.n,th.n{text-align:right;font-family:Consolas,"Courier New",monospace;white-space:nowrap}
+td.w{max-width:340px}
+td.w2{max-width:230px}
+tr:nth-child(even) td{background:#fafafa}
+tr:hover td{background:#eaf1f9}
+
+.tag{display:inline-block;padding:1px 7px;font-size:10px;border:1px solid #a8a8a8;background:#eceef0;
+  font-weight:600;white-space:nowrap}
+.tag.ok{border-color:#4a7c5e;color:#2c6144;background:#dcebdf}
+.tag.bad{border-color:#a86a68;color:#8f3232;background:#f4dedd}
+.tag.frio{border-color:#5a82ad;color:#0C447C;background:#dbe6f3}
+.tag.med{border-color:#b09543;color:#78621b;background:#f6edd6}
+.mini{font-size:11px;color:#5c6773;overflow-wrap:anywhere;display:block}
+.load{padding:44px 20px;text-align:center;color:#555;line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <img src="./icons/icon-192.png" alt="CSS" onerror="this.style.display='none'">
+  <div class="tit">
+    <h1>Entradas de Mercancía por Recepción</h1>
+    <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
+  </div>
+  <div class="meta" id="metaHead"></div>
+</header>
+<div class="wrap" id="app"><div class="load">Cargando datos…</div></div>
+<script id="DATA" type="application/json">
+
+</script>
+<script>
+/* ============================================================
+   FUENTE: entradas_recepcion.json publicado por el GAS de SÍGUELO
+   en la raíz del repo. El cache-busting por minuto es necesario
+   porque el service worker sirve los assets cache-first.
+   ============================================================ */
+const JSON_URL='./entradas_recepcion.json';
+let DB=null, ROWS=[], META={};
+function arranque(){
+  const app=document.getElementById('app'), emb=document.getElementById('DATA');
+  const respaldo=err=>{
+    if(emb && emb.textContent.trim().length>10){
+      try{ const j=JSON.parse(emb.textContent); DB={meta:j._meta||j.meta,rows:j.rows}; iniciar(); return; }catch(e){}
+    }
+    app.innerHTML='<div class="load">No se pudo leer <b>entradas_recepcion.json</b>.<br><br>'+
+      'Verifique que el GAS lo haya publicado: menú <b>SÍGUELO &rarr; Entradas por recepción &rarr; Publicar entradas a Pages</b>.'+
+      '<br><br><span class="mini">'+(err&&err.message?err.message:err)+'</span></div>';
+  };
+  try{
+    fetch(JSON_URL+'?t='+Math.floor(Date.now()/60000),{cache:'no-cache'})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(j=>{ DB={meta:j._meta||j.meta,rows:j.rows}; iniciar(); })
+      .catch(respaldo);
+  }catch(e){ respaldo(e); }
+}
+
+const MESN={1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+const fmtB=n=>'B/. '+(n||0).toLocaleString('es-PA',{minimumFractionDigits:2,maximumFractionDigits:2});
+/* Escala escrita en palabras. "M" y "MM" se prestan a confusión: en Panamá M
+   es mil y MM es millón, pero en notación internacional M es millón. Se escribe. */
+const fmtEsc=n=>{n=n||0;
+  const a=Math.abs(n);
+  if(a>=1e6) return (n/1e6).toFixed(a>=1e7?1:2).replace(/\.0+$/,'')+' millones';
+  if(a>=1e3) return Math.round(n/1e3).toLocaleString('es-PA')+' mil';
+  return Math.round(n).toLocaleString('es-PA');};
+/* Versión corta para ejes, donde no cabe la palabra completa. */
+const fmtEje=n=>{n=n||0;
+  const a=Math.abs(n);
+  if(a>=1e6) return (n/1e6).toFixed(a>=1e7?0:1)+' mill.';
+  if(a>=1e3) return Math.round(n/1e3).toLocaleString('es-PA')+' mil';
+  return Math.round(n).toLocaleString('es-PA');};
+const fmtK=fmtEsc;
+const fmtN=n=>(n===null||n===undefined)?'—':n.toLocaleString('es-PA');
+const fmt0=n=>(n||0).toLocaleString('es-PA',{maximumFractionDigits:0});
+const cort=(s,n)=>{s=String(s||'');return s.length>n?s.slice(0,n-1)+'…':s;};
+/* Abrevia modalidades largas conservando el identificador, que es lo que las
+   distingue entre si. "LICITACION PRECIO UNICO 05-2024" -> "LPU 05-2024" */
+const abrevMod=s=>String(s||'')
+  .replace(/LICITACION PRECIO UNICO/,'LPU').replace(/L\/P UNICO/,'LPU')
+  .replace(/LP-/,'LPU ').replace(/COTIZACION EN LINEA/,'Cotización en línea')
+  .replace(/CONTRATACION MENOR/,'Contratación menor')
+  .replace(/REPOSICION POR VENCIDO/,'Reposición por vencido')
+  .replace(/PROCEDIM[I]?ENTO EXCEPCION[A-Z]*/,'Procedimiento de excepción')
+  .replace(/TRASLADO DE CDDI A CDPA/,'Traslado entre CEDIS');
+const AZ='#0C447C',AZ2='#1E5A9E',RJ='#9c3b34',GR='#6f7b87',AM='#c08a26',VD='#2f6b4f',TE='#1d7a86',PU='#6b4c8a';
+/* paleta categorica con contraste real: azul, terracota, teal, ambar, verde,
+   ciruela, gris pizarra, oliva, ladrillo, azul claro, mostaza, verde azulado */
+const PAL=['#0C447C','#9c3b34','#1d7a86','#c08a26','#2f6b4f','#6b4c8a',
+           '#5b6f82','#7d8c3f','#b5623f','#4a7fb5','#d4a72c','#3f8f7a'];
+
+/* Plugin de etiquetas: escribe la cifra sobre cada barra o al final de la barra
+   horizontal. Sin dependencias externas. Se activa con opciones.etiquetas. */
+const plugEtiq={
+  id:'etiq',
+  additionalOptionScopes:['etiquetas'],
+  afterDatasetsDraw(ch,args,opts){
+    if(!opts||!opts.on) return;
+    const ctx=ch.ctx, fmt=opts.fmt||(v=>fmtN(v)), horiz=ch.options.indexAxis==='y';
+    const puestos=[];   // rectangulos ya ocupados, para no encimar etiquetas
+    const libre=(x,y,w,h)=>{
+      for(let i=0;i<puestos.length;i++){
+        const p=puestos[i];
+        if(Math.abs(x-p.x)<(w+p.w)/2+3 && Math.abs(y-p.y)<(h+p.h)/2+2) return false;
+      }
+      return true;
+    };
+    ctx.save();
+    ctx.font='600 10px Consolas, "Courier New", monospace';
+    ctx.lineJoin='round';
+    // Las lineas se rotulan primero: su dato es el que suele quedar tapado.
+    const idx=ch.data.datasets.map((d,i)=>i).sort((a,b)=>
+      (ch.data.datasets[b].type==='line'?1:0)-(ch.data.datasets[a].type==='line'?1:0));
+    idx.forEach(di=>{
+      const ds=ch.data.datasets[di];
+      const meta=ch.getDatasetMeta(di);
+      if(meta.hidden) return;
+      const esLinea=(ds.type==='line');
+      meta.data.forEach((el,i)=>{
+        const v=ds.data[i];
+        if(v===null||v===undefined||v===0) return;
+        const t=fmt(v,di); if(!t) return;
+        const w=ctx.measureText(t).width, h=11;
+        let x,y;
+        if(horiz){
+          x=Math.min(el.x+6+w/2, ch.chartArea.right-w/2-2);
+          y=el.y;
+        }else{
+          x=Math.min(Math.max(el.x, ch.chartArea.left+w/2+2), ch.chartArea.right-w/2-2);
+          y=el.y-7;
+          // si choca, sube; la etiqueta de linea puede ir tambien por debajo del punto
+          let k=0;
+          while(!libre(x,y,w,h) && k<6){ y-= (esLinea && k%2===1) ? -26 : 13; k++; }
+        }
+        if(y<ch.chartArea.top+7) y=ch.chartArea.top+7;
+        puestos.push({x:x,y:y,w:w,h:h});
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        // halo blanco: garantiza lectura sobre barra oscura, clara o fondo
+        ctx.strokeStyle='rgba(255,255,255,0.92)'; ctx.lineWidth=3.5;
+        ctx.strokeText(t,x,y);
+        ctx.fillStyle=esLinea?(ds.borderColor||'#333'):'#1f1f1f';
+        ctx.fillText(t,x,y);
+      });
+    });
+    ctx.restore();
+  }
+};
+
+/* Anillo con líneas de llamado: cada porción se rotula por fuera, unida por
+   una guía. Sustituye a la leyenda, que obligaba a ir y venir con la vista. */
+const plugAnillo={
+  id:'anillo',
+  additionalOptionScopes:['anillo'],
+  afterDatasetsDraw(ch,args,opts){
+    if(!opts||!opts.on) return;
+    const ctx=ch.ctx, ds=ch.data.datasets[0];
+    const tot=ds.data.reduce((a,b)=>a+(b||0),0)||1;
+    const meta=ch.getDatasetMeta(0);
+    const cx=(ch.chartArea.left+ch.chartArea.right)/2;
+    const cy=(ch.chartArea.top+ch.chartArea.bottom)/2;
+    const items=[];
+    meta.data.forEach((el,i)=>{
+      const v=ds.data[i]||0, p=v*100/tot;
+      if(p<1.2) return;
+      const ang=(el.startAngle+el.endAngle)/2;
+      const r=el.outerRadius;
+      items.push({i:i,ang:ang,p:p,v:v,r:r,
+        x0:cx+Math.cos(ang)*r, y0:cy+Math.sin(ang)*r,
+        lado:Math.cos(ang)>=0?1:-1,
+        y1:cy+Math.sin(ang)*(r+16),
+        col:Array.isArray(ds.backgroundColor)?ds.backgroundColor[i%ds.backgroundColor.length]:ds.backgroundColor,
+        l1:cort((opts.rotulo?opts.rotulo(ch.data.labels[i]):ch.data.labels[i]),26),
+        l2:(opts.cifra?opts.cifra(v):fmtN(v))+'  ·  '+p.toFixed(1)+'%'});
+    });
+    // separar verticalmente las etiquetas de cada lado
+    [1,-1].forEach(lado=>{
+      const g=items.filter(o=>o.lado===lado).sort((a,b)=>a.y1-b.y1);
+      const alto=26;
+      for(let k=1;k<g.length;k++) if(g[k].y1-g[k-1].y1<alto) g[k].y1=g[k-1].y1+alto;
+      const exceso=g.length?g[g.length-1].y1-(ch.height-14):0;
+      if(exceso>0) g.forEach(o=>o.y1-=exceso);
+      if(g.length && g[0].y1<14){ const falta=14-g[0].y1; g.forEach(o=>o.y1+=falta); }
+    });
+    ctx.save(); ctx.lineWidth=1.2;
+    items.forEach(o=>{
+      const xCodo=cx+o.lado*(o.r+18);
+      const xFin=xCodo+o.lado*14;
+      ctx.strokeStyle=o.col; ctx.globalAlpha=.85;
+      ctx.beginPath(); ctx.moveTo(o.x0,o.y0); ctx.lineTo(xCodo,o.y1); ctx.lineTo(xFin,o.y1); ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.textAlign=o.lado>0?'left':'right'; ctx.textBaseline='middle';
+      let xt=xFin+o.lado*5;
+      // recortar el rotulo si no cabe en el ancho disponible
+      ctx.font='600 11px Segoe UI, Arial, sans-serif';
+      const disp=o.lado>0?(ch.width-6-xt):(xt-6);
+      while(o.l1.length>6 && ctx.measureText(o.l1).width>disp) o.l1=o.l1.slice(0,-2)+'…';
+      ctx.font='10px Consolas, "Courier New", monospace';
+      while(o.l2.length>8 && ctx.measureText(o.l2).width>disp) o.l2=o.l2.replace(/  ·  B\/\. /,' ·');
+      ctx.font='600 11px Segoe UI, Arial, sans-serif';
+      ctx.strokeStyle='rgba(255,255,255,0.92)'; ctx.lineWidth=3.5; ctx.lineJoin='round';
+      ctx.strokeText(o.l1,xt,o.y1-6); ctx.fillStyle='#1f1f1f'; ctx.fillText(o.l1,xt,o.y1-6);
+      ctx.font='10px Consolas, "Courier New", monospace';
+      ctx.strokeText(o.l2,xt,o.y1+7); ctx.fillStyle='#4a5560'; ctx.fillText(o.l2,xt,o.y1+7);
+      ctx.lineWidth=1.2;
+    });
+    ctx.restore();
+  }
+};
+
+const F={mes:'',prov:'',renglon:'',mod:'',frio:'',cumpl:'',origen:''};
+function filtrar(){
+  return ROWS.filter(r=>{
+    if(F.mes && String(r.mes)!==F.mes) return false;
+    if(F.prov && r.prov!==F.prov) return false;
+    if(F.mod && r.mod!==F.mod) return false;
+    if(F.frio==='SI' && !r.frio) return false;
+    if(F.frio==='NO' && r.frio) return false;
+    if(F.cumpl && r.cumpl!==F.cumpl) return false;
+    if(F.origen && r.origen!==F.origen) return false;
+    if(F.renglon){
+      const q=F.renglon.toUpperCase();
+      if(!((r.desc||'').toUpperCase().includes(q)||String(r.cod).includes(q)||
+           (r.mat||'').toUpperCase().includes(q)||(r.comercial||'').toUpperCase().includes(q))) return false;
+    }
+    return true;
+  });
+}
+function agrupar(arr,key){
+  const m=new Map();
+  arr.forEach(r=>{
+    const k=typeof key==='function'?key(r):r[key];
+    if(k===null||k===undefined||k==='') return;
+    if(!m.has(k)) m.set(k,{k:k,n:0,valor:0,cant:0,bultos:0,palets:0,ocs:new Set(),rgs:new Set(),lags:[]});
+    const o=m.get(k); o.n++; o.valor+=r.valor||0; o.cant+=r.cant||0; o.bultos+=r.bultos||0;
+    o.palets+=r.palet||0; if(r.oc)o.ocs.add(r.oc); if(r.cod)o.rgs.add(r.cod);
+    if(r.lagSalmi!==null&&r.lagSalmi!==undefined) o.lags.push(r.lagSalmi);
+  });
+  return [...m.values()].map(o=>{
+    o.lags.sort((a,b)=>a-b);
+    return {...o,ocs:o.ocs.size,rgs:o.rgs.size,
+      lagMed:o.lags.length?o.lags[Math.floor(o.lags.length/2)]:null,nLag:o.lags.length};
+  });
+}
+
+/* ---------- tabla ordenable ---------- */
+let TID=0;
+function tabla(cols,datos,opts){
+  opts=opts||{}; const id='t'+(TID++);
+  const head=cols.map((c,i)=>`<th class="${c.n?'n':''}" data-i="${i}">${c.t}<span class="ar">&#9650;&#9660;</span></th>`).join('');
+  setTimeout(()=>{
+    const el=document.getElementById(id); if(!el)return;
+    let dat=datos.slice(), si=opts.sort!==undefined?opts.sort:null, sd=opts.dir||'desc';
+    const pinta=()=>{
+      el.querySelector('tbody').innerHTML=dat.map(d=>'<tr>'+cols.map(c=>
+        `<td class="${c.n?'n':''}${c.w?' '+c.w:''}">${c.f(d)}</td>`).join('')+'</tr>').join('');
+      el.querySelectorAll('th').forEach((th,i)=>{th.className=(cols[i].n?'n ':'')+(i===si?sd:'');});
+    };
+    const orden=i=>{
+      const c=cols[i];
+      dat.sort((a,b)=>{
+        let x=c.v?c.v(a):c.f(a), y=c.v?c.v(b):c.f(b);
+        if(x===null||x===undefined)x=c.n?-Infinity:'';
+        if(y===null||y===undefined)y=c.n?-Infinity:'';
+        if(typeof x==='number'&&typeof y==='number') return sd==='asc'?x-y:y-x;
+        return sd==='asc'?String(x).localeCompare(String(y),'es'):String(y).localeCompare(String(x),'es');
+      }); pinta();
+    };
+    el.querySelectorAll('th').forEach((th,i)=>th.onclick=()=>{sd=(si===i&&sd==='desc')?'asc':'desc';si=i;orden(i);});
+    if(si!==null) orden(si); else pinta();
+  },0);
+  return `<div class="scroll"><table id="${id}"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
+}
+const CH={};
+function chart(id,cfg){
+  setTimeout(()=>{
+    const c=document.getElementById(id); if(!c)return;
+    if(CH[id])CH[id].destroy();
+    cfg.plugins=(cfg.plugins||[]).concat([plugEtiq,plugAnillo]);
+    cfg.options=cfg.options||{};
+    cfg.options.responsive=true; cfg.options.maintainAspectRatio=false;
+    cfg.options.layout=Object.assign({padding:{top:16,right:10}},cfg.options.layout||{});
+    cfg.options.plugins=Object.assign(
+      {legend:{labels:{font:{family:'Segoe UI',size:11},boxWidth:12,
+        sort:(a,b)=>a.datasetIndex-b.datasetIndex}}},cfg.options.plugins||{});
+    CH[id]=new Chart(c,cfg);
+  },0);
+}
+
+/* ---------- arranque ---------- */
+let TAB='resumen';
+function iniciar(){
+  ROWS=DB.rows; META=DB.meta||{};
+  document.getElementById('metaHead').innerHTML=
+    `Fuente: ${cort(META.fuente,46)}<br>Última recepción: ${META.corte||'—'} · Generado ${META.generado||'—'}`;
+  pintarShell(); render();
+}
+function pintarShell(){
+  const provs=[...new Set(ROWS.map(r=>r.prov))].sort((a,b)=>a.localeCompare(b,'es'));
+  const mods=[...new Set(ROWS.map(r=>r.mod))].sort((a,b)=>a.localeCompare(b,'es'));
+  const meses=[...new Set(ROWS.map(r=>r.mes))].sort((a,b)=>a-b);
+  document.getElementById('app').innerHTML=`
+  <div class="filtros">
+    <div class="f"><label>Mes de recepción</label><select id="fMes"><option value="">Todos</option>${meses.map(m=>`<option value="${m}">${MESN[m]} 2026</option>`).join('')}</select></div>
+    <div class="f"><label>Proveedor</label><select id="fProv"><option value="">Todos</option>${provs.map(p=>`<option value="${p}">${cort(p,44)}</option>`).join('')}</select></div>
+    <div class="f"><label>Renglón · código, descripción o marca</label><input id="fRen" class="wide" placeholder="101013101 · PARACETAMOL · N02BE"></div>
+    <div class="f"><label>Modalidad</label><select id="fMod"><option value="">Todas</option>${mods.map(m=>`<option value="${m}">${cort(m,38)}</option>`).join('')}</select></div>
+    <div class="f"><label>Cadena de frío</label><select id="fFrio"><option value="">Todas</option><option value="SI">Solo frío</option><option value="NO">Excluir frío</option></select></div>
+    <div class="f"><label>Cumplimiento</label><select id="fCumpl"><option value="">Todos</option><option value="A TIEMPO">A tiempo</option><option value="TARDIA">Tardía</option></select></div>
+    <div class="f"><label>Origen</label><select id="fOrigen"><option value="">Todos</option><option value="PROVEEDOR EXTERNO">Proveedor externo</option><option value="MOVIMIENTO INTERNO">Entre CEDIS</option></select></div>
+    <button class="btn sec" id="btnLimpiar">Limpiar</button>
+    <button class="btn" id="btnCsv">Descargar CSV</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <nav class="tabs" id="tabs">
+    <button data-t="resumen">Resumen</button>
+    <button data-t="salmi">Recepción → SALMI</button>
+    <button data-t="prov">Proveedores</button>
+    <button data-t="reng">Renglones</button>
+    <button data-t="cumpl">Cumplimiento</button>
+    <button data-t="frio">Cadena de frío</button>
+    <button data-t="calidad">Calidad del dato</button>
+    <button data-t="detalle">Detalle</button>
+  </nav>
+  <div id="panels"></div>`;
+  const bind=(id,k)=>document.getElementById(id).onchange=e=>{F[k]=e.target.value;render();};
+  bind('fMes','mes');bind('fProv','prov');bind('fMod','mod');bind('fFrio','frio');
+  bind('fCumpl','cumpl');bind('fOrigen','origen');
+  let tmr; document.getElementById('fRen').oninput=e=>{clearTimeout(tmr);tmr=setTimeout(()=>{F.renglon=e.target.value;render();},280);};
+  document.getElementById('btnLimpiar').onclick=()=>{Object.keys(F).forEach(k=>F[k]='');
+    ['fMes','fProv','fMod','fFrio','fCumpl','fOrigen','fRen'].forEach(i=>document.getElementById(i).value='');render();};
+  document.getElementById('btnCsv').onclick=csv;
+  document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;render();});
+}
+function render(){
+  const d=filtrar();
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
+  kpis(d);
+  const p=document.getElementById('panels');
+  p.innerHTML = TAB==='resumen'?pResumen(d) : TAB==='salmi'?pSalmi(d) : TAB==='prov'?pProv(d)
+    : TAB==='reng'?pReng(d) : TAB==='cumpl'?pCumpl(d) : TAB==='frio'?pFrio(d)
+    : TAB==='calidad'?pCalidad(d) : pDetalle(d);
+  p.scrollTop=0;
+}
+const kpi=(cls,l,v,f)=>`<div class="kpi ${cls}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="foot">${f}</div></div>`;
+function kpis(d){
+  const val=d.reduce((s,r)=>s+(r.valor||0),0);
+  const ocs=new Set(d.filter(r=>r.oc).map(r=>r.oc)).size;
+  const ren=new Set(d.filter(r=>r.cod).map(r=>r.cod)).size;
+  const prv=new Set(d.map(r=>r.prov)).size;
+  const conD=d.filter(r=>r.cumpl), aT=conD.filter(r=>r.cumpl==='A TIEMPO').length;
+  const pct=conD.length?Math.round(aT*100/conD.length):0;
+  const lags=d.filter(r=>r.lagSalmi!==null&&r.lagSalmi!==undefined).map(r=>r.lagSalmi).sort((a,b)=>a-b);
+  const med=lags.length?lags[Math.floor(lags.length/2)]:null;
+  const sinS=d.filter(r=>!r.fSalmi).length;
+  document.getElementById('kpis').innerHTML=
+   kpi('p-azul','Recepciones registradas',fmtN(d.length),'líneas · acumulado del período')+
+   kpi('p-azul','Valor recibido',fmt0(val),'balboas · acumulado del período')+
+   kpi('p-gris','Órdenes de compra',fmtN(ocs),'OC distintas en el período')+
+   kpi('p-gris','Renglones distintos',fmtN(ren),'códigos Abasto únicos')+
+   kpi('p-lila','Proveedores',fmtN(prv),'razones sociales normalizadas')+
+   kpi(pct>=70?'p-verde':'p-ambar','Entregas a tiempo',pct+' %',aT+' de '+conD.length+' comparables')+
+   kpi(med!==null&&med<=5?'p-verde':'p-ambar','Rezago a SALMI',med!==null?med+' días':'—','mediana · '+fmtN(lags.length)+' líneas medibles')+
+   kpi(sinS?'p-rojo':'p-verde','Sin fecha de SALMI',fmtN(sinS),sinS?'no medibles en tiempo de servicio':'todas medibles');
+}
+
+/* ===== RESUMEN ===== */
+function pResumen(d){
+  const pm=agrupar(d,'mes').sort((a,b)=>a.k-b.k);
+  const mod=agrupar(d,'mod').sort((a,b)=>b.valor-a.valor);
+  // order MAYOR = se dibuja despues = queda ENCIMA. La linea va sobre las barras.
+  chart('gMes',{type:'bar',data:{labels:pm.map(o=>MESN[o.k]),datasets:[
+    {label:'Valor recibido (B/.)',data:pm.map(o=>o.valor),backgroundColor:AZ,yAxisID:'y',order:2},
+    {label:'Líneas de recepción',data:pm.map(o=>o.n),type:'line',borderColor:RJ,backgroundColor:RJ,
+     borderWidth:2.5,pointRadius:4,pointBackgroundColor:RJ,pointBorderColor:'#fff',pointBorderWidth:1.5,
+     yAxisID:'y1',tension:.25,order:1}]},
+    options:{etiquetas:{on:true,fmt:(v,di)=>di===0?fmtEsc(v):fmtN(v)},
+      scales:{y:{ticks:{callback:v=>fmtEje(v)},title:{display:true,text:'Balboas recibidos'},grace:'12%'},
+      y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Líneas de recepción'},grace:'20%'}}}});
+
+  // Anillo: 7 modalidades mayores + "Otras", con cifra y porcentaje en la leyenda.
+  const totMod=mod.reduce((s,o)=>s+o.valor,0)||1;
+  const top=mod.slice(0,7), resto=mod.slice(7);
+  const restoV=resto.reduce((s,o)=>s+o.valor,0);
+  const mLab=top.map(o=>o.k).concat(resto.length?['OTRAS ('+resto.length+' modalidades)']:[]);
+  const mVal=top.map(o=>o.valor).concat(resto.length?[restoV]:[]);
+  chart('gMod',{type:'doughnut',
+    data:{labels:mLab,datasets:[{data:mVal,backgroundColor:PAL,borderColor:'#fff',borderWidth:2}]},
+    options:{cutout:'44%',
+      anillo:{on:true,rotulo:l=>abrevMod(l),cifra:v=>'B/. '+fmtEsc(v)},
+      layout:{padding:{left:126,right:126,top:20,bottom:20}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:c=>abrevMod(c[0].label),
+          label:c=>fmtB(c.raw)+'  ('+(c.raw*100/totMod).toFixed(1)+'%)'}}}}});
+
+  chart('gCarga',{type:'bar',data:{labels:pm.map(o=>MESN[o.k]),datasets:[
+    {label:'Bultos recibidos',data:pm.map(o=>o.bultos),backgroundColor:AZ,yAxisID:'y',order:2},
+    {label:'Palets recibidos',data:pm.map(o=>o.palets),type:'line',borderColor:AM,backgroundColor:AM,
+     borderWidth:2.5,pointRadius:4,pointBackgroundColor:AM,pointBorderColor:'#fff',pointBorderWidth:1.5,
+     yAxisID:'y1',tension:.25,order:1}]},
+    options:{etiquetas:{on:true,fmt:v=>fmtN(v)},
+      scales:{y:{title:{display:true,text:'Bultos'},grace:'16%'},
+      y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Palets'},grace:'22%'}}}});
+  const filas=pm.map(o=>({...o,tic:o.n?o.valor/o.n:0}));
+  return `
+  <div class="grid2">
+    <div class="card c-azul"><h2>Valor y volumen recibido<span class="per">Mensual</span></h2><div class="body"><div class="chartbox"><canvas id="gMes"></canvas></div></div></div>
+    <div class="card c-lila"><h2>Valor por modalidad de compra<span class="per">Acumulado del período · 7 mayores</span></h2><div class="body"><div class="chartbox anillo"><canvas id="gMod"></canvas></div></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card c-gris"><h2>Carga física recibida<span class="per">Mensual · bultos y palets</span></h2><div class="body"><div class="chartbox"><canvas id="gCarga"></canvas></div></div></div>
+    <div class="card c-azul"><h2>Cierre mensual<span class="per">Mensual</span></h2><div class="body">${tabla([
+      {t:'Mes',f:o=>MESN[o.k],v:o=>o.k},
+      {t:'Líneas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+      {t:'OC',n:1,f:o=>fmtN(o.ocs),v:o=>o.ocs},
+      {t:'Renglones',n:1,f:o=>fmtN(o.rgs),v:o=>o.rgs},
+      {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor},
+      {t:'Valor medio por línea',n:1,f:o=>fmt0(o.tic),v:o=>o.tic},
+      {t:'Bultos',n:1,f:o=>fmtN(o.bultos),v:o=>o.bultos},
+      {t:'Rezago SALMI',n:1,f:o=>o.lagMed===null?'—':o.lagMed+' d',v:o=>o.lagMed}],filas,{sort:0,dir:'asc'})}</div></div>
+  </div>`;
+}
+
+/* ===== SALMI ===== */
+/* Los tramos son los mismos en la gráfica de distribución y en la tabla por
+   proveedor: sin eso, las dos vistas dan impresiones distintas del mismo dato. */
+const TRAMOS=[
+  {k:'Mismo día',min:0,max:0,col:VD},
+  {k:'1 a 2 días',min:1,max:2,col:VD},
+  {k:'3 a 5 días',min:3,max:5,col:VD},
+  {k:'6 a 10 días',min:6,max:10,col:AM},
+  {k:'11 a 20 días',min:11,max:20,col:RJ},
+  {k:'más de 20 días',min:21,max:1e9,col:RJ}
+];
+const META_DIAS=5;   // umbral de servicio acordado: disponible en SALMI en 5 días
+
+function pSalmi(d){
+  const con=d.filter(r=>r.lagSalmi!==null&&r.lagSalmi!==undefined);
+  const pm=agrupar(d,'mes').sort((a,b)=>a.k-b.k);
+  chart('gSal',{type:'bar',data:{labels:pm.map(o=>MESN[o.k]),datasets:[
+    {label:'Rezago mediano (días)',data:pm.map(o=>o.lagMed),order:2,
+     backgroundColor:pm.map(o=>o.lagMed===null?'#cfd4d8':(o.lagMed<=META_DIAS?VD:AM)),yAxisID:'y'},
+    {label:'Cobertura del registro (%)',data:pm.map(o=>o.n?Math.round(o.nLag*100/o.n):0),type:'line',
+     borderColor:PU,backgroundColor:PU,borderWidth:2.5,pointRadius:4,pointBackgroundColor:PU,
+     pointBorderColor:'#fff',pointBorderWidth:1.5,yAxisID:'y1',tension:.2,order:1}]},
+    options:{etiquetas:{on:true,fmt:(v,di)=>di===0?String(v):v+'%'},
+      scales:{y:{title:{display:true,text:'Días de rezago'},grace:'30%'},
+      y1:{position:'right',max:118,grid:{drawOnChartArea:false},ticks:{callback:v=>v>100?'':v+'%'}}}}});
+
+  const hist=TRAMOS.map(t=>({...t,n:con.filter(r=>r.lagSalmi>=t.min&&r.lagSalmi<=t.max).length}));
+  chart('gHistS',{type:'bar',data:{labels:hist.map(o=>o.k),
+    datasets:[{label:'Líneas',data:hist.map(o=>o.n),backgroundColor:hist.map(o=>o.col)}]},
+    options:{etiquetas:{on:true},plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'Líneas de recepción'},grace:'16%'}}}});
+
+  const dentro=con.filter(r=>r.lagSalmi<=META_DIAS).length;
+  const pctDentro=con.length?dentro*100/con.length:0;
+
+  /* Misma segmentación, ahora por proveedor: cada fila reparte sus líneas en
+     los mismos tramos de la gráfica de arriba. Así las dos vistas reconcilian. */
+  const gp=agrupar(con,'prov').filter(o=>o.nLag>=4).map(o=>{
+    const s=con.filter(r=>r.prov===o.k);
+    const c=t=>s.filter(r=>r.lagSalmi>=t.min&&r.lagSalmi<=t.max).length;
+    const dOk=s.filter(r=>r.lagSalmi<=META_DIAS).length;
+    return {...o,t0:c(TRAMOS[0])+c(TRAMOS[1]),t1:c(TRAMOS[2]),
+      t2:c(TRAMOS[3]),t3:c(TRAMOS[4])+c(TRAMOS[5]),
+      ok:dOk,pctOk:dOk*100/s.length};
+  }).sort((a,b)=>a.pctOk-b.pctOk);
+  const cubre=gp.reduce((x,o)=>x+o.nLag,0);
+  const barra=(v,n)=>{const p=n?v*100/n:0;
+    return v?`<span class="num">${v}</span>`:'<span class="mini">—</span>';};
+
+  return `
+  <div class="nota info">Tiempo entre el <b>ingreso físico a recepción</b> y la <b>disponibilidad del renglón en SALMI</b>. Es el indicador de servicio del CEDIS: mientras el renglón no está en el WMS, no se puede despachar a ninguna Unidad Ejecutora aunque esté en el almacén. Medible en <b>${fmtN(con.length)}</b> de ${fmtN(d.length)} líneas; el registro arranca en marzo, enero y febrero no tienen el dato.<br><br>Tomando <b>${META_DIAS} días</b> como umbral de servicio: <b>${fmtN(dentro)}</b> líneas lo cumplen, el <b>${pctDentro.toFixed(1)} %</b>. Las tres vistas de abajo son el mismo dato: por mes, repartido en tramos, y ese mismo reparto por proveedor.</div>
+  <div class="grid2">
+    <div class="card c-verde"><h2>Rezago mediano y cobertura del registro<span class="per">Mensual</span></h2><div class="body"><div class="chartbox"><canvas id="gSal"></canvas></div></div></div>
+    <div class="card c-ambar"><h2>Distribución del rezago<span class="per">Acumulado · ${fmtN(con.length)} líneas medibles</span></h2><div class="body"><div class="chartbox"><canvas id="gHistS"></canvas></div></div></div>
+  </div>
+  <div class="card c-azul"><h2>El mismo reparto, por proveedor<span class="per">${gp.length} proveedores con 4 o más líneas medibles · cubren ${fmtN(cubre)} de ${fmtN(con.length)}</span></h2><div class="body">${tabla([
+    {t:'Proveedor',w:'w',f:o=>o.k},
+    {t:'Líneas medibles',n:1,f:o=>fmtN(o.nLag),v:o=>o.nLag},
+    {t:'0 a 2 días',n:1,f:o=>barra(o.t0,o.nLag),v:o=>o.t0},
+    {t:'3 a 5 días',n:1,f:o=>barra(o.t1,o.nLag),v:o=>o.t1},
+    {t:'6 a 10 días',n:1,f:o=>barra(o.t2,o.nLag),v:o=>o.t2},
+    {t:'más de 10 días',n:1,f:o=>barra(o.t3,o.nLag),v:o=>o.t3},
+    {t:'Dentro de '+META_DIAS+' días',n:1,f:o=>`<span class="tag ${o.pctOk>=80?'ok':(o.pctOk<50?'bad':'med')}">${o.pctOk.toFixed(0)} %</span>`,v:o=>o.pctOk},
+    {t:'Rezago mediano',n:1,f:o=>o.lagMed+' d',v:o=>o.lagMed},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor}],gp,{sort:6,dir:'asc'})}</div></div>`;
+}
+
+/* ===== PROVEEDORES ===== */
+function pProv(d){
+  const g=agrupar(d,'prov').sort((a,b)=>b.valor-a.valor);
+  const tot=g.reduce((s,o)=>s+o.valor,0)||1;
+  let ac=0; const par=g.map(o=>{ac+=o.valor;return{...o,acum:ac*100/tot,part:o.valor*100/tot};});
+  const t12=par.slice(0,12);
+  chart('gProv',{type:'bar',data:{labels:t12.map(o=>cort(o.k,26)),datasets:[
+    {label:'Valor recibido (B/.)',data:t12.map(o=>o.valor),backgroundColor:AZ,yAxisID:'y',order:2},
+    {label:'% acumulado',data:t12.map(o=>o.acum),type:'line',borderColor:RJ,backgroundColor:RJ,
+     borderWidth:2.5,pointRadius:4,pointBackgroundColor:RJ,pointBorderColor:'#fff',pointBorderWidth:1.5,
+     yAxisID:'y1',tension:.2,order:1}]},
+    options:{etiquetas:{on:true,fmt:(v,di)=>di===0?fmtEsc(v):v.toFixed(0)+'%'},
+      scales:{x:{ticks:{maxRotation:60,minRotation:35,font:{size:9}}},
+      y:{ticks:{callback:v=>fmtEje(v)},title:{display:true,text:'Balboas recibidos'},grace:'16%'},
+      y1:{position:'right',max:118,grid:{drawOnChartArea:false},ticks:{callback:v=>v>100?'':v+'%'}}},
+      plugins:{tooltip:{callbacks:{label:c=>c.dataset.type==='line'?c.raw.toFixed(1)+'%':fmtB(c.raw)}}}}});
+  const n80=par.findIndex(o=>o.acum>=80)+1;
+  return `
+  <div class="nota">Concentración del abastecimiento: <b>${n80}</b> proveedores de <b>${g.length}</b> reúnen el 80 % del valor recibido en la selección actual. Es la medida de exposición del CEDIS ante la falla de un solo proveedor.</div>
+  <div class="card c-azul"><h2>Pareto de proveedores por valor recibido<span class="per">Acumulado · 12 primeros</span></h2><div class="body"><div class="chartbox tall"><canvas id="gProv"></canvas></div></div></div>
+  <div class="card c-gris"><h2>Detalle por proveedor<span class="per">Acumulado del período</span></h2><div class="body">${tabla([
+    {t:'Proveedor',w:'w',f:o=>o.k},
+    {t:'Líneas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+    {t:'OC',n:1,f:o=>fmtN(o.ocs),v:o=>o.ocs},
+    {t:'Renglones',n:1,f:o=>fmtN(o.rgs),v:o=>o.rgs},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor},
+    {t:'Participación',n:1,f:o=>o.part.toFixed(2)+' %',v:o=>o.part},
+    {t:'Bultos',n:1,f:o=>fmtN(o.bultos),v:o=>o.bultos},
+    {t:'Rezago SALMI',n:1,f:o=>o.lagMed===null?'—':o.lagMed+' d',v:o=>o.lagMed}],par,{sort:4})}</div></div>`;
+}
+
+/* ===== RENGLONES ===== */
+function pReng(d){
+  const g=agrupar(d,r=>r.cod||'SIN CÓDIGO');
+  const info={}; d.forEach(r=>{const k=r.cod||'SIN CÓDIGO'; if(!info[k])info[k]={desc:r.desc,mat:r.mat};});
+  const g2=g.map(o=>({...o,desc:info[o.k].desc,mat:info[o.k].mat})).sort((a,b)=>b.valor-a.valor);
+  const t15=g2.slice(0,15);
+  chart('gReng',{type:'bar',data:{labels:t15.map(o=>cort(o.desc,40)),datasets:[{label:'Valor B/.',data:t15.map(o=>o.valor),backgroundColor:AZ}]},
+    options:{indexAxis:'y',etiquetas:{on:true,fmt:v=>fmtEsc(v)},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtB(c.raw)}}},
+      scales:{x:{ticks:{callback:v=>fmtEje(v)},title:{display:true,text:'Balboas recibidos'},grace:'20%'},
+      y:{ticks:{font:{size:10}}}}}});
+  const rep=g2.filter(o=>o.n>1).length;
+  return `
+  <div class="nota info">La selección contiene <b>${fmtN(g2.length)}</b> renglones distintos. <b>${fmtN(rep)}</b> recibieron más de una entrega en el período, lo que permite construir la frecuencia real de reabastecimiento por renglón.</div>
+  <div class="card c-azul"><h2>Renglones de mayor valor recibido<span class="per">Acumulado · 15 primeros</span></h2><div class="body"><div class="chartbox tall"><canvas id="gReng"></canvas></div></div></div>
+  <div class="card c-gris"><h2>Detalle por renglón<span class="per">Acumulado del período</span></h2><div class="body">${tabla([
+    {t:'Cód. Abasto',f:o=>`<span class="num">${o.k}</span>`,v:o=>o.k},
+    {t:'Material SAFIRO',f:o=>`<span class="num">${o.mat||'—'}</span>`,v:o=>o.mat},
+    {t:'Descripción de renglón',w:'w',f:o=>o.desc||'—'},
+    {t:'Entregas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+    {t:'Cantidad',n:1,f:o=>fmtN(o.cant),v:o=>o.cant},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor}],g2,{sort:5})}</div></div>`;
+}
+
+/* ===== CUMPLIMIENTO ===== */
+function pCumpl(d){
+  const con=d.filter(r=>r.cumpl);
+  const pm=[...new Set(con.map(r=>r.mes))].sort((a,b)=>a-b).map(m=>{
+    const s=con.filter(r=>r.mes===m), a=s.filter(r=>r.cumpl==='A TIEMPO').length;
+    return {m,a,t:s.length-a,pct:s.length?a*100/s.length:0};});
+  chart('gC',{type:'bar',data:{labels:pm.map(o=>MESN[o.m]),datasets:[
+    {label:'A tiempo',data:pm.map(o=>o.a),backgroundColor:VD,stack:'s',order:2},
+    {label:'Tardía',data:pm.map(o=>o.t),backgroundColor:RJ,stack:'s',order:2},
+    {label:'% a tiempo',data:pm.map(o=>o.pct),type:'line',borderColor:AM,backgroundColor:AM,
+     borderWidth:2.5,pointRadius:4,pointBackgroundColor:AM,pointBorderColor:'#fff',pointBorderWidth:1.5,
+     yAxisID:'y1',tension:.2,order:1}]},
+    options:{etiquetas:{on:true,fmt:(v,di)=>di===2?v.toFixed(0)+'%':fmtN(v)},
+      scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'Líneas de entrega'},grace:'16%'},
+      y1:{position:'right',max:118,grid:{drawOnChartArea:false},ticks:{callback:v=>v>100?'':v+'%'}}}}});
+  const dias=con.map(r=>r.dias).sort((a,b)=>a-b);
+  const bins=[[-1e9,-31,'31+ días antes'],[-30,-8,'8 a 30 antes'],[-7,0,'0 a 7 antes'],
+              [1,7,'1 a 7 tarde'],[8,30,'8 a 30 tarde'],[31,1e9,'más de 30 tarde']];
+  chart('gH',{type:'bar',data:{labels:bins.map(b=>b[2]),datasets:[{label:'Líneas',
+    data:bins.map(b=>dias.filter(x=>x>=b[0]&&x<=b[1]).length),
+    backgroundColor:bins.map((b,i)=>i<3?VD:RJ)}]},
+    options:{etiquetas:{on:true},plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'Líneas de entrega'},grace:'16%'}}}});
+  const gp=agrupar(con,'prov').map(o=>{
+    const s=con.filter(r=>r.prov===o.k), a=s.filter(r=>r.cumpl==='A TIEMPO').length;
+    const at=s.filter(r=>r.cumpl==='TARDIA').map(r=>r.dias);
+    return {...o,a,tard:s.length-a,pct:a*100/s.length,ret:at.length?at.reduce((x,y)=>x+y,0)/at.length:0};
+  }).filter(o=>o.n>=3).sort((a,b)=>a.pct-b.pct);
+  const med=dias.length?dias[Math.floor(dias.length/2)]:0;
+  return `
+  <div class="nota">Se comparó la <b>fecha de vencimiento de entrega</b> contra la <b>fecha de ingreso a recepción</b> en <b>${fmtN(con.length)}</b> de ${fmtN(d.length)} líneas. Mediana de <b>${med} días</b> respecto a la fecha comprometida; el signo negativo indica entrega anticipada. Las ${fmtN(d.length-con.length)} restantes no son comparables porque la fecha de compromiso viene vacía, en texto libre o con un año inverosímil.</div>
+  <div class="grid2">
+    <div class="card c-verde"><h2>Cumplimiento por mes<span class="per">Mensual</span></h2><div class="body"><div class="chartbox"><canvas id="gC"></canvas></div></div></div>
+    <div class="card c-ambar"><h2>Desvío frente a la fecha comprometida<span class="per">Acumulado del período</span></h2><div class="body"><div class="chartbox"><canvas id="gH"></canvas></div></div></div>
+  </div>
+  <div class="card c-azul"><h2>Desempeño por proveedor<span class="per">Acumulado · 3 o más entregas comparables</span></h2><div class="body">${tabla([
+    {t:'Proveedor',w:'w',f:o=>o.k},
+    {t:'Entregas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+    {t:'A tiempo',n:1,f:o=>fmtN(o.a),v:o=>o.a},
+    {t:'Tardías',n:1,f:o=>fmtN(o.tard),v:o=>o.tard},
+    {t:'% a tiempo',n:1,f:o=>`<span class="tag ${o.pct>=80?'ok':(o.pct<50?'bad':'med')}">${o.pct.toFixed(0)} %</span>`,v:o=>o.pct},
+    {t:'Retraso medio',n:1,f:o=>o.ret?o.ret.toFixed(0)+' d':'—',v:o=>o.ret},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor}],gp,{sort:4,dir:'asc'})}</div></div>`;
+}
+
+/* ===== FRÍO ===== */
+function pFrio(d){
+  const f=d.filter(r=>r.frio);
+  const pm=[...new Set(d.map(r=>r.mes))].sort((a,b)=>a-b).map(m=>({m,
+    n:f.filter(r=>r.mes===m).length,valor:f.filter(r=>r.mes===m).reduce((s,r)=>s+r.valor,0)}));
+  chart('gF',{type:'bar',data:{labels:pm.map(o=>MESN[o.m]),datasets:[
+    {label:'Líneas en cadena de frío',data:pm.map(o=>o.n),backgroundColor:TE,yAxisID:'y',order:2},
+    {label:'Valor B/.',data:pm.map(o=>o.valor),type:'line',borderColor:RJ,backgroundColor:RJ,
+     borderWidth:2.5,pointRadius:4,pointBackgroundColor:RJ,pointBorderColor:'#fff',pointBorderWidth:1.5,
+     yAxisID:'y1',tension:.2,order:1}]},
+    options:{etiquetas:{on:true,fmt:(v,di)=>di===0?fmtN(v):fmtEsc(v)},
+      scales:{y:{title:{display:true,text:'Líneas en frío'},grace:'18%'},
+      y1:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>fmtEje(v)},
+        title:{display:true,text:'Balboas'},grace:'22%'}}}});
+  const gp=agrupar(f,'prov').sort((a,b)=>b.valor-a.valor);
+  const val=f.reduce((s,r)=>s+r.valor,0), totv=d.reduce((s,r)=>s+r.valor,0)||1;
+  const rec=f.filter(r=>!r.frioMarcado).length;
+  return `
+  <div class="nota">La condición de frío se toma del <b>renglón</b>, no de la línea: ${META.renglonesFrio||49} códigos Abasto del maestro validado. En la selección hay <b>${fmtN(f.length)}</b> líneas por <b>${fmtB(val)}</b>, el <b>${(val*100/totv).toFixed(1)} %</b> del valor recibido. De ellas, <b>${fmtN(rec)}</b> no traían la marca escrita en la columna Palet y se recuperaron por catálogo.</div>
+  <div class="grid2">
+    <div class="card c-azul"><h2>Recepciones en cadena de frío<span class="per">Mensual</span></h2><div class="body"><div class="chartbox"><canvas id="gF"></canvas></div></div></div>
+    <div class="card c-lila"><h2>Proveedores de cadena de frío<span class="per">Acumulado del período</span></h2><div class="body">${tabla([
+      {t:'Proveedor',w:'w2',f:o=>o.k},
+      {t:'Líneas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+      {t:'Renglones',n:1,f:o=>fmtN(o.rgs),v:o=>o.rgs},
+      {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor}],gp,{sort:3})}</div></div>
+  </div>
+  <div class="card c-gris"><h2>Detalle de recepciones en frío<span class="per">Acumulado del período</span></h2><div class="body">${tabla([
+    {t:'Recepción',f:o=>o.fRec,v:o=>o.fRec},
+    {t:'SALMI',f:o=>o.fSalmi||'—',v:o=>o.fSalmi},
+    {t:'Proveedor',w:'w2',f:o=>o.prov},
+    {t:'Código',f:o=>`<span class="num">${o.cod||'—'}</span>`,v:o=>o.cod},
+    {t:'Descripción de renglón',w:'w',f:o=>o.desc},
+    {t:'Marca en línea',f:o=>o.frioMarcado?'<span class="tag ok">Anotada</span>':'<span class="tag bad">Por catálogo</span>',v:o=>o.frioMarcado?1:0},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor}],f,{sort:0,dir:'asc'})}</div></div>`;
+}
+
+/* ===== CALIDAD ===== */
+const FT={
+ SIN_FECHA_SALMI:['Sin fecha de ingreso a SALMI','Impide medir el tiempo de servicio en esa línea. Enero y febrero no tienen el dato en el origen; de marzo en adelante son omisiones puntuales.'],
+ FECHA_VENC_TEXTO:['Fecha de compromiso en texto libre','Se digitó texto en una columna de fecha. Anula el cálculo de cumplimiento en esas líneas.'],
+ FRIO_NO_MARCADO_EN_LINEA:['Cadena de frío no anotada en la línea','El renglón es de frío según el maestro pero quien digitó no escribió la marca. La condición se recuperó del renglón.'],
+ ALIAS_NO_REGISTRADO:['Escritura de proveedor fuera del maestro','Forma de escribir el nombre que el maestro no contempla. Hay que agregarla o la línea no suma al proveedor correcto.'],
+ VALOR_CERO:['Valor en cero','Línea recibida sin valor monetario. Subestima el total del período.'],
+ MATERIAL_RESCATADO_DE_MARA:['Material SAFIRO recuperado del catálogo','La búsqueda contra el libro externo no resolvió y el dato se tomó del catálogo MARA local.'],
+ DESC_RESCATADA_DE_MARA:['Descripción recuperada del catálogo','Igual que el anterior, para la descripción del renglón.'],
+ SALMI_NO_ES_FECHA:['El campo SALMI no contiene una fecha','Se escribió otra cosa en la columna de fecha.'],
+ SALMI_INVEROSIMIL:['Rezago a SALMI fuera de rango','Fecha de SALMI anterior a la recepción o a más de 180 días. Se excluye del cálculo.'],
+ FECHA_VENC_INVEROSIMIL:['Fecha de compromiso inverosímil','Diferencia mayor a 400 días frente a la recepción. Error de digitación del año.'],
+ SIN_FECHA_VENC:['Sin fecha de compromiso','La celda está vacía. No hay contra qué medir la entrega.'],
+ COD_ABASTO_FUERA_DE_MARA:['Código Abasto fuera del catálogo','El código no existe en el catálogo MARA disponible.'],
+ SIN_MATERIAL_SAFIRO:['Material SAFIRO ausente','Ni el archivo ni el catálogo resolvieron el material.'],
+ SIN_COD_ABASTO:['Sin Código Abasto','Línea sin identificador de renglón.'],
+ MES_HOJA_DISCREPA:['Recepción en la pestaña de otro mes','La fecha no corresponde al mes de la pestaña. Los cortes se hacen por fecha, no por pestaña.']
+};
+function pCalidad(d){
+  const cnt={}; d.forEach(r=>r.flags.forEach(f=>cnt[f]=(cnt[f]||0)+1));
+  const lst=Object.keys(cnt).map(k=>({k,v:cnt[k],pct:cnt[k]*100/(d.length||1)})).sort((a,b)=>b.v-a.v);
+  chart('gFl',{type:'bar',data:{labels:lst.map(o=>cort(FT[o.k]?FT[o.k][0]:o.k,42)),
+    datasets:[{label:'Líneas',data:lst.map(o=>o.v),
+    backgroundColor:lst.map(o=>o.pct>25?RJ:(o.pct>3?AM:GR))}]},
+    options:{indexAxis:'y',etiquetas:{on:true},
+      plugins:{legend:{display:false}},
+      scales:{x:{title:{display:true,text:'Líneas afectadas'},grace:'22%'},
+      y:{ticks:{font:{size:10}}}}}});
+  const AL=META.aliasProveedor||[];
+  const porRaw=new Map();
+  ROWS.forEach(r=>{const k=r.provRaw||'';const o=porRaw.get(k)||{n:0,v:0};o.n++;o.v+=r.valor||0;porRaw.set(k,o);});
+  const gr=new Map();
+  AL.forEach(a=>{const k=a.canon||'(sin canónico)';
+    if(!gr.has(k))gr.set(k,{k,esc:[],n:0,val:0});
+    const g=gr.get(k); const st=porRaw.get(a.raw);
+    if(st){g.esc.push(a.raw);g.n+=st.n;g.val+=st.v;}});
+  const alias=[...gr.values()].filter(o=>o.n>0).sort((a,b)=>b.esc.length-a.esc.length);
+  const sinReg=(META.aliasSinRegistrar||[]).slice().sort((a,b)=>b.n-a.n);
+  return `
+  <div class="nota info">De las <b>${fmtN(META.filasReales)}</b> filas del archivo, <b>${fmtN(META.filasDescartadas)}</b> se descartaron por no tener fecha de ingreso a recepción. Este archivo no arrastra filas residuales, a diferencia del formato anterior. El catálogo MARA vive en un libro externo enlazado por fórmula; se resuelve contra una copia local de <b>${fmtN(META.renglonesMara)}</b> renglones cuando el enlace no responde.</div>
+  <div class="grid2">
+    <div class="card c-ambar"><h2>Incidencias detectadas<span class="per">Sobre la selección actual</span></h2><div class="body"><div class="chartbox tall"><canvas id="gFl"></canvas></div></div></div>
+    <div class="card c-gris"><h2>Qué significa cada incidencia<span class="per">Sobre la selección actual</span></h2><div class="body">${tabla([
+      {t:'Incidencia',w:'w2',f:o=>FT[o.k]?FT[o.k][0]:o.k},
+      {t:'Líneas',n:1,f:o=>fmtN(o.v),v:o=>o.v},
+      {t:'%',n:1,f:o=>`<span class="tag ${o.pct>25?'bad':(o.pct>3?'med':'')}">${o.pct.toFixed(1)}</span>`,v:o=>o.pct},
+      {t:'Efecto sobre el análisis',w:'w',f:o=>`<span class="mini">${FT[o.k]?FT[o.k][1]:''}</span>`}],lst,{sort:1})}</div></div>
+  </div>
+  ${sinReg.length?`<div class="nota"><b>${sinReg.length}</b> escritura(s) de proveedor no están en el maestro y afectan <b>${fmtN(sinReg.reduce((s,x)=>s+x.n,0))}</b> línea(s). Agréguelas a la hoja <b>MAESTRO_ALIAS_PROVEEDOR</b> y vuelva a publicar.</div>
+  <div class="card c-rojo"><h2>Escrituras de proveedor sin registrar<span class="per">Requieren alta en el maestro</span></h2><div class="body">${tabla([
+    {t:'Como aparece en el archivo',w:'w',f:o=>o.raw},
+    {t:'Líneas afectadas',n:1,f:o=>fmtN(o.n),v:o=>o.n}],sinReg,{sort:1})}</div></div>`:'<div class="nota ok">Todas las escrituras de proveedor del archivo están resueltas contra el maestro.</div>'}
+  <div class="card c-azul"><h2>Maestro de alias de proveedor<span class="per">${alias.length} razones sociales con recepción en el período</span></h2><div class="body">${tabla([
+    {t:'Razón social canónica',w:'w2',f:o=>o.k},
+    {t:'Escrituras',n:1,f:o=>fmtN(o.esc.length),v:o=>o.esc.length},
+    {t:'Líneas',n:1,f:o=>fmtN(o.n),v:o=>o.n},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.val),v:o=>o.val},
+    {t:'Cómo aparece en el archivo',w:'w',f:o=>`<span class="mini">${o.esc.join(' · ')}</span>`}],alias,{sort:1})}</div></div>`;
+}
+
+/* ===== DETALLE ===== */
+function pDetalle(d){
+  return `<div class="card c-azul"><h2>Detalle de recepciones<span class="per">${fmtN(d.length)} líneas en la selección actual</span></h2><div class="body">${tabla([
+    {t:'Recepción',f:o=>o.fRec,v:o=>o.fRec},
+    {t:'SALMI',f:o=>o.fSalmi||'—',v:o=>o.fSalmi},
+    {t:'Rezago',n:1,f:o=>o.lagSalmi===null||o.lagSalmi===undefined?'—':o.lagSalmi+' d',v:o=>o.lagSalmi},
+    {t:'Compromiso',f:o=>o.fVenc||'—',v:o=>o.fVenc},
+    {t:'Cumplimiento',f:o=>o.cumpl?`<span class="tag ${o.cumpl==='A TIEMPO'?'ok':'bad'}">${o.cumpl==='A TIEMPO'?'A tiempo':'Tardía'}</span>`:'—',v:o=>o.cumpl},
+    {t:'Proveedor',w:'w2',f:o=>o.prov},
+    {t:'OC',f:o=>`<span class="num">${o.oc||'—'}</span>`,v:o=>o.oc},
+    {t:'Código',f:o=>`<span class="num">${o.cod||'—'}</span>`,v:o=>o.cod},
+    {t:'Descripción de renglón',w:'w',f:o=>o.desc},
+    {t:'Cantidad',n:1,f:o=>fmtN(o.cant),v:o=>o.cant},
+    {t:'Bultos',n:1,f:o=>fmtN(o.bultos),v:o=>o.bultos},
+    {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor},
+    {t:'Modalidad',w:'w2',f:o=>o.mod},
+    {t:'Frío',f:o=>o.frio?'<span class="tag frio">Frío</span>':'',v:o=>o.frio?1:0},
+    {t:'Observación',w:'w2',f:o=>`<span class="mini">${o.obs||''}</span>`}],d,{sort:0,dir:'asc'})}</div></div>`;
+}
+
+/* ===== CSV ===== */
+function csv(){
+  const d=filtrar();
+  const h=['FECHA_RECEPCION','FECHA_SALMI','REZAGO_SALMI_DIAS','FECHA_SAFIRO','FECHA_COMPROMISO','DIAS','CUMPLIMIENTO',
+    'PROVEEDOR','PROVEEDOR_ORIGEN','ORIGEN','ORDEN_COMPRA','NUM_SAFIRO','COD_ABASTO','MATERIAL_SAFIRO',
+    'DESCRIPCION_RENGLON','NOMBRE_COMERCIAL','MARCA','INSERTO','CANTIDAD','BULTOS','PALET','CADENA_FRIO',
+    'PRECIO_UNITARIO','VALOR','MODALIDAD','CARTA_COMPROMISO','OBSERVACION','INCIDENCIAS'];
+  const esc=v=>'"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';
+  const cuerpo=d.map(r=>[r.fRec,r.fSalmi,r.lagSalmi,r.fSafiro,r.fVenc,r.dias,r.cumpl,r.prov,r.provRaw,r.origen,
+    r.oc,r.safiro,r.cod,r.mat,r.desc,r.comercial,r.marca,r.inserto,r.cant,r.bultos,r.palet,r.frio?'SI':'NO',
+    r.pu,r.valor,r.mod,r.cc,r.obs,r.flags.join('|')].map(esc).join(';'));
+  const blob=new Blob(['\ufeff'+h.join(';')+'\n'+cuerpo.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='entradas_recepcion_seleccion.csv'; a.click();
+}
+arranque();
+</script>
+</body>
+</html>
