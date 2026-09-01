@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entradas de Mercancía por Recepción — CDPA 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{max-width:100%;overflow-x:hidden}
@@ -395,7 +396,8 @@ function pintarShell(){
     <div class="f"><label>Cumplimiento</label><select id="fCumpl"><option value="">Todos</option><option value="A TIEMPO">A tiempo</option><option value="TARDIA">Tardía</option></select></div>
     <div class="f"><label>Origen</label><select id="fOrigen"><option value="">Todos</option><option value="PROVEEDOR EXTERNO">Proveedor externo</option><option value="MOVIMIENTO INTERNO">Entre CEDIS</option></select></div>
     <button class="btn sec" id="btnLimpiar">Limpiar</button>
-    <button class="btn" id="btnCsv">Descargar CSV</button>
+    <button class="btn sec" id="btnCsv">Descargar CSV</button>
+    <button class="btn" id="btnXls">Reporte de cumplimiento (Excel)</button>
   </div>
   <div class="kpis" id="kpis"></div>
   <nav class="tabs" id="tabs">
@@ -416,6 +418,7 @@ function pintarShell(){
   document.getElementById('btnLimpiar').onclick=()=>{Object.keys(F).forEach(k=>F[k]='');
     ['fMes','fProv','fMod','fFrio','fCumpl','fOrigen','fRen'].forEach(i=>document.getElementById(i).value='');render();};
   document.getElementById('btnCsv').onclick=csv;
+  document.getElementById('btnXls').onclick=reporteCumplimiento;
   document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;render();});
 }
 function render(){
@@ -806,6 +809,317 @@ function csv(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='entradas_recepcion_seleccion.csv'; a.click();
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTE DE CUMPLIMIENTO DE PROVEEDORES  ·  Excel institucional
+   Tres hojas: cumplimiento por proveedor, detalle línea a línea, y metodología.
+   Mide las DOS dimensiones que existen en el dato y que no son lo mismo:
+     · Entrega  — fecha comprometida contra fecha de ingreso a recepción.
+                  Responsabilidad del proveedor.
+     · SALMI    — recepción física contra disponibilidad en el WMS.
+                  Responsabilidad compartida con el CEDIS.
+   Respeta los filtros activos del tablero y los declara en el encabezado.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const XLS_AZUL='FF0C447C', XLS_AZUL2='FF1E5A9E';
+const XLS_VERDE='FFDCEBDF', XLS_AMBAR='FFF6EDD6', XLS_ROJO='FFF4DEDD', XLS_GRIS='FFF2F3F4';
+
+async function _xlsLogo_(wb){
+  const rutas=['./icons/icon-192.png',
+               'https://raw.githubusercontent.com/TorredeControlCSS/SIGUELO/main/icons/icon-192.png'];
+  for(const u of rutas){
+    try{
+      const r=await fetch(u); if(!r.ok) continue;
+      const b64=await new Promise((ok,no)=>{
+        const fr=new FileReader(); fr.onload=()=>ok(String(fr.result).split(',')[1]);
+        fr.onerror=no; r.blob().then(x=>fr.readAsDataURL(x));
+      });
+      return wb.addImage({ base64:b64, extension:'png' });
+    }catch(e){}
+  }
+  return null;   // sin logo el reporte sale igual
+}
+
+function _xlsFiltrosActivos_(){
+  const t=[];
+  if(F.mes) t.push('Mes: '+MESN[F.mes]);
+  if(F.prov) t.push('Proveedor: '+F.prov);
+  if(F.renglon) t.push('Renglón: '+F.renglon);
+  if(F.mod) t.push('Modalidad: '+F.mod);
+  if(F.frio==='SI') t.push('Solo cadena de frío');
+  if(F.frio==='NO') t.push('Excluye cadena de frío');
+  if(F.cumpl) t.push('Cumplimiento: '+F.cumpl);
+  if(F.origen) t.push('Origen: '+F.origen);
+  return t.length? t.join('   ·   ') : 'Sin filtros: período completo';
+}
+
+/* Encabezado institucional común a las tres hojas. Devuelve la fila donde
+   empieza la tabla. */
+function _xlsCabecera_(ws, wb, idLogo, titulo, nCols){
+  ws.getColumn(1).width=42;
+  if(idLogo!==null && idLogo!==undefined){
+    ws.addImage(idLogo,{ tl:{col:0.15,row:0.2}, ext:{width:52,height:52} });
+  }
+  const lineas=[
+    ['CAJA DE SEGURO SOCIAL',11,true,'FF444444'],
+    ['Dirección Nacional de Logística  ·  Centro de Distribución de Panamá',10,false,'FF666666'],
+    [titulo,14,true,XLS_AZUL]
+  ];
+  lineas.forEach((l,i)=>{
+    const r=ws.getRow(i+1);
+    ws.mergeCells(i+1,2,i+1,nCols);
+    const c=ws.getCell(i+1,2);
+    c.value=l[0];
+    c.font={ name:'Calibri', size:l[1], bold:l[2], color:{argb:l[3]} };
+    c.alignment={ vertical:'middle' };
+    r.height= i===2 ? 22 : 16;
+  });
+  const meta=[
+    ['Período de recepción', (META.corte? ('hasta '+META.corte):'—')],
+    ['Filtros aplicados', _xlsFiltrosActivos_()],
+    ['Umbral de servicio', (META.metaDias||5)+' días entre recepción física y disponibilidad en SALMI'],
+    ['Fuente', (META.fuente||'—')+'   ·   publicado '+(META.generado||'—')],
+    ['Generado', new Date().toLocaleString('es-PA')]
+  ];
+  let f=5;
+  meta.forEach(m=>{
+    ws.getCell(f,1).value=m[0];
+    ws.getCell(f,1).font={ name:'Calibri', size:9, bold:true, color:{argb:'FF555555'} };
+    ws.mergeCells(f,2,f,nCols);
+    ws.getCell(f,2).value=m[1];
+    ws.getCell(f,2).font={ name:'Calibri', size:9, color:{argb:'FF333333'} };
+    ws.getRow(f).height=13;
+    f++;
+  });
+  return f+1;
+}
+
+function _xlsCabeceraTabla_(ws, fila, cols){
+  const r=ws.getRow(fila);
+  cols.forEach((c,i)=>{
+    const cel=ws.getCell(fila,i+1);
+    cel.value=c.t;
+    cel.font={ name:'Calibri', size:10, bold:true, color:{argb:'FFFFFFFF'} };
+    cel.fill={ type:'pattern', pattern:'solid', fgColor:{argb:XLS_AZUL} };
+    cel.alignment={ vertical:'middle', horizontal:c.n?'right':'left', wrapText:true };
+    cel.border={ top:{style:'thin',color:{argb:'FFA8A8A8'}}, bottom:{style:'thin',color:{argb:'FFA8A8A8'}},
+                 left:{style:'thin',color:{argb:'FFA8A8A8'}}, right:{style:'thin',color:{argb:'FFA8A8A8'}} };
+    ws.getColumn(i+1).width=c.w;
+  });
+  r.height=30;
+  ws.views=[{ state:'frozen', ySplit:fila }];
+  return fila+1;
+}
+
+function _xlsFila_(ws, fila, cols, datos, relleno){
+  cols.forEach((c,i)=>{
+    const cel=ws.getCell(fila,i+1);
+    cel.value=datos[i];
+    cel.font={ name:c.n?'Consolas':'Calibri', size:9.5 };
+    cel.alignment={ vertical:'top', horizontal:c.n?'right':'left', wrapText:!c.n && c.w>34 };
+    if(c.f) cel.numFmt=c.f;
+    if(relleno) cel.fill={ type:'pattern', pattern:'solid', fgColor:{argb:relleno} };
+    cel.border={ bottom:{style:'hair',color:{argb:'FFCCCCCC'}} };
+  });
+}
+
+/* Clasificación de un proveedor: verde si cumple en las dos dimensiones,
+   rojo si falla en alguna por debajo de la mitad, ámbar en el medio.
+   Si una dimensión no es medible, se juzga solo por la otra. */
+function _xlsSemaforo_(pctEnt, nEnt, pctSal, nSal){
+  const v=[]; if(nEnt>=3) v.push(pctEnt); if(nSal>=3) v.push(pctSal);
+  if(!v.length) return { texto:'Sin base suficiente', color:XLS_GRIS };
+  const min=Math.min.apply(null,v);
+  if(min>=80) return { texto:'Cumple', color:XLS_VERDE };
+  if(min>=50) return { texto:'En observación', color:XLS_AMBAR };
+  return { texto:'Incumple', color:XLS_ROJO };
+}
+
+async function reporteCumplimiento(){
+  const btn=document.getElementById('btnXls');
+  if(typeof ExcelJS==='undefined'){
+    alert('No se pudo cargar el generador de Excel. Revise la conexión e intente de nuevo.'); return;
+  }
+  const rotulo=btn.textContent; btn.textContent='Generando…'; btn.disabled=true;
+  try{
+    const d=filtrar();
+    if(!d.length){ alert('La selección actual no tiene líneas.'); return; }
+    const META_D=META.metaDias||5;
+
+    const wb=new ExcelJS.Workbook();
+    wb.creator='Dirección Nacional de Logística'; wb.created=new Date();
+    const idLogo=await _xlsLogo_(wb);
+
+    /* ---------- agregación por proveedor ---------- */
+    const m=new Map();
+    d.forEach(r=>{
+      if(!m.has(r.prov)) m.set(r.prov,{k:r.prov,n:0,valor:0,bultos:0,ocs:new Set(),rgs:new Set(),
+        ent:0,aT:0,tard:0,retrasos:[], sal:0,t0:0,t1:0,t2:0,t3:0,lags:[], frio:0});
+      const o=m.get(r.prov);
+      o.n++; o.valor+=r.valor||0; o.bultos+=r.bultos||0;
+      if(r.oc)o.ocs.add(r.oc); if(r.cod)o.rgs.add(r.cod); if(r.frio)o.frio++;
+      if(r.cumpl){ o.ent++; if(r.cumpl==='A TIEMPO')o.aT++; else { o.tard++; o.retrasos.push(r.dias); } }
+      const L=r.lagSalmi;
+      if(L!==null&&L!==undefined){
+        o.sal++; o.lags.push(L);
+        if(L<=2)o.t0++; else if(L<=5)o.t1++; else if(L<=10)o.t2++; else o.t3++;
+      }
+    });
+    const prov=[...m.values()].map(o=>{
+      o.lags.sort((a,b)=>a-b); o.retrasos.sort((a,b)=>a-b);
+      o.pctEnt=o.ent?o.aT*100/o.ent:null;
+      o.dentro=o.t0+o.t1;
+      o.pctSal=o.sal?o.dentro*100/o.sal:null;
+      o.lagMed=o.lags.length?o.lags[Math.floor(o.lags.length/2)]:null;
+      o.retMed=o.retrasos.length?o.retrasos[Math.floor(o.retrasos.length/2)]:null;
+      o.sem=_xlsSemaforo_(o.pctEnt,o.ent,o.pctSal,o.sal);
+      return o;
+    }).sort((a,b)=>b.valor-a.valor);
+
+    /* ---------- HOJA 1 ---------- */
+    const c1=[
+      {t:'Proveedor',w:44},
+      {t:'Evaluación',w:17},
+      {t:'Líneas recibidas',w:11,n:1,f:'#,##0'},
+      {t:'Valor recibido B/.',w:16,n:1,f:'#,##0.00'},
+      {t:'Órdenes de compra',w:11,n:1,f:'#,##0'},
+      {t:'Renglones',w:10,n:1,f:'#,##0'},
+      {t:'ENTREGA · comparables',w:12,n:1,f:'#,##0'},
+      {t:'ENTREGA · a tiempo',w:11,n:1,f:'#,##0'},
+      {t:'ENTREGA · tardías',w:11,n:1,f:'#,##0'},
+      {t:'ENTREGA · % a tiempo',w:12,n:1,f:'0.0"%"'},
+      {t:'ENTREGA · retraso mediano (días)',w:13,n:1,f:'#,##0'},
+      {t:'SALMI · medibles',w:11,n:1,f:'#,##0'},
+      {t:'SALMI · 0 a 2 días',w:11,n:1,f:'#,##0'},
+      {t:'SALMI · 3 a 5 días',w:11,n:1,f:'#,##0'},
+      {t:'SALMI · 6 a 10 días',w:11,n:1,f:'#,##0'},
+      {t:'SALMI · más de 10 días',w:12,n:1,f:'#,##0'},
+      {t:'SALMI · % dentro de '+META_D+' días',w:13,n:1,f:'0.0"%"'},
+      {t:'SALMI · rezago mediano (días)',w:13,n:1,f:'#,##0'},
+      {t:'Líneas en cadena de frío',w:12,n:1,f:'#,##0'}
+    ];
+    const ws1=wb.addWorksheet('Cumplimiento', {views:[{showGridLines:false}],
+      pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+    let f=_xlsCabecera_(ws1,wb,idLogo,'REPORTE DE CUMPLIMIENTO DE PROVEEDORES',c1.length);
+    f=_xlsCabeceraTabla_(ws1,f,c1);
+    const ini=f;
+    prov.forEach(o=>{
+      _xlsFila_(ws1,f,c1,[o.k,o.sem.texto,o.n,o.valor,o.ocs.size,o.rgs.size,
+        o.ent,o.aT,o.tard,o.pctEnt,o.retMed,
+        o.sal,o.t0,o.t1,o.t2,o.t3,o.pctSal,o.lagMed,o.frio],o.sem.color);
+      f++;
+    });
+    // totales
+    const T={n:0,valor:0,ent:0,aT:0,tard:0,sal:0,t0:0,t1:0,t2:0,t3:0,frio:0};
+    prov.forEach(o=>{['n','valor','ent','aT','tard','sal','t0','t1','t2','t3','frio'].forEach(k=>T[k]+=o[k]);});
+    const ocT=new Set(d.filter(r=>r.oc).map(r=>r.oc)).size;
+    const rgT=new Set(d.filter(r=>r.cod).map(r=>r.cod)).size;
+    _xlsFila_(ws1,f,c1,['TOTAL   ('+prov.length+' proveedores)','',T.n,T.valor,ocT,rgT,
+      T.ent,T.aT,T.tard,T.ent?T.aT*100/T.ent:null,null,
+      T.sal,T.t0,T.t1,T.t2,T.t3,T.sal?(T.t0+T.t1)*100/T.sal:null,null,T.frio],'FFD6DEE8');
+    for(let i=1;i<=c1.length;i++){
+      const c=ws1.getCell(f,i);
+      c.font={ name:i===1?'Calibri':'Consolas', size:10, bold:true, color:{argb:XLS_AZUL} };
+      c.border={ top:{style:'medium',color:{argb:XLS_AZUL}} };
+    }
+    ws1.autoFilter={ from:{row:ini-1,column:1}, to:{row:f-1,column:c1.length} };
+
+    /* ---------- HOJA 2 ---------- */
+    const c2=[
+      {t:'Fecha recepción',w:13},{t:'Fecha SALMI',w:12},
+      {t:'Rezago a SALMI (días)',w:11,n:1,f:'#,##0'},
+      {t:'Fecha comprometida',w:13},
+      {t:'Desvío vs compromiso (días)',w:12,n:1,f:'#,##0'},
+      {t:'Cumplimiento de entrega',w:14},
+      {t:'Proveedor',w:40},{t:'Cómo se digitó',w:30},{t:'Origen',w:17},
+      {t:'Orden de compra',w:14},{t:'Cód. Abasto',w:12},{t:'Material SAFIRO',w:15},
+      {t:'Descripción de renglón',w:46},
+      {t:'Cantidad',w:10,n:1,f:'#,##0'},{t:'Bultos',w:9,n:1,f:'#,##0'},
+      {t:'Valor B/.',w:14,n:1,f:'#,##0.00'},
+      {t:'Modalidad',w:26},{t:'Cadena de frío',w:11},
+      {t:'Incidencias',w:34}
+    ];
+    const ws2=wb.addWorksheet('Detalle de entregas',{views:[{showGridLines:false}]});
+    let g=_xlsCabecera_(ws2,wb,null,'DETALLE DE ENTREGAS',c2.length);
+    g=_xlsCabeceraTabla_(ws2,g,c2);
+    const ini2=g;
+    d.slice().sort((a,b)=>String(a.fRec).localeCompare(String(b.fRec))).forEach(r=>{
+      const col = r.cumpl==='TARDIA' ? XLS_ROJO
+                : ((r.lagSalmi!==null&&r.lagSalmi!==undefined&&r.lagSalmi>META_D) ? XLS_AMBAR : null);
+      _xlsFila_(ws2,g,c2,[r.fRec,r.fSalmi||'',
+        (r.lagSalmi===null||r.lagSalmi===undefined)?null:r.lagSalmi,
+        r.fVenc||'', (r.dias===null||r.dias===undefined)?null:r.dias,
+        r.cumpl==='A TIEMPO'?'A tiempo':(r.cumpl==='TARDIA'?'Tardía':'No comparable'),
+        r.prov, r.provRaw, r.origen==='MOVIMIENTO INTERNO'?'Entre CEDIS':'Proveedor externo',
+        r.oc||'', r.cod||'', r.mat||'', r.desc||'',
+        r.cant, r.bultos, r.valor, r.mod, r.frio?'Sí':'',
+        (r.flags||[]).join(' · ')],col);
+      g++;
+    });
+    ws2.autoFilter={ from:{row:ini2-1,column:1}, to:{row:g-1,column:c2.length} };
+
+    /* ---------- HOJA 3 ---------- */
+    const ws3=wb.addWorksheet('Cómo leer este reporte',{views:[{showGridLines:false}]});
+    let h=_xlsCabecera_(ws3,wb,null,'METODOLOGÍA Y ALCANCE',4);
+    ws3.getColumn(1).width=34; ws3.getColumn(2).width=100;
+    const sinEnt=d.length-T.ent, sinSal=d.length-T.sal;
+    const notas=[
+      ['CUMPLIMIENTO DE ENTREGA',''],
+      ['Qué mide','Diferencia entre la fecha de vencimiento de entrega y la fecha de ingreso a recepción. Es responsabilidad del proveedor.'],
+      ['A tiempo','La mercancía ingresó en la fecha comprometida o antes.'],
+      ['Base de cálculo',T.ent.toLocaleString('es-PA')+' de '+d.length.toLocaleString('es-PA')+' líneas de la selección.'],
+      ['Exclusiones',sinEnt.toLocaleString('es-PA')+' líneas no son comparables: la fecha de compromiso viene vacía, escrita como texto libre, o con un año inverosímil (diferencia mayor a 400 días).'],
+      ['',''],
+      ['REZAGO A SALMI',''],
+      ['Qué mide','Días entre el ingreso físico a recepción y la disponibilidad del renglón en el WMS. Mientras el renglón no está en SALMI no se puede despachar a ninguna Unidad Ejecutora aunque esté en el almacén.'],
+      ['Responsabilidad','Compartida. Depende del proveedor (documentación, rotulado, presentación) y del CEDIS (capacidad de procesamiento).'],
+      ['Umbral de servicio',META_D+' días. Es una referencia técnica, no un compromiso contractual vigente.'],
+      ['Base de cálculo',T.sal.toLocaleString('es-PA')+' de '+d.length.toLocaleString('es-PA')+' líneas de la selección.'],
+      ['Exclusiones',sinSal.toLocaleString('es-PA')+' líneas sin fecha de SALMI registrada. El registro de este campo arranca en marzo de 2026: enero y febrero no tienen el dato en el origen.'],
+      ['',''],
+      ['EVALUACIÓN DEL PROVEEDOR',''],
+      ['Cumple','80 % o más en ambas dimensiones medibles.'],
+      ['En observación','Entre 50 % y 80 % en la dimensión más débil.'],
+      ['Incumple','Menos de 50 % en alguna dimensión medible.'],
+      ['Sin base suficiente','Menos de 3 entregas comparables en ambas dimensiones. No se emite juicio.'],
+      ['',''],
+      ['ADVERTENCIAS DE LECTURA',''],
+      ['Nombres de proveedor','Normalizados contra el maestro de alias de la Dirección Nacional de Logística. Una misma empresa se digita hasta de ocho formas distintas en el archivo de origen; la columna "Cómo se digitó" de la hoja de detalle conserva el texto literal.'],
+      ['Movimientos entre CEDIS','Aparecen con origen "Entre CEDIS". No son compras a proveedor y no deben leerse como desempeño de un tercero.'],
+      ['Cadena de frío','La condición se toma del renglón según el maestro validado, no de lo que se haya escrito en la línea.'],
+      ['Incidencias','La última columna de la hoja de detalle marca cada anomalía detectada en el dato de origen. Una línea con incidencias sigue contando, pero su lectura requiere cuidado.']
+    ];
+    notas.forEach(nt=>{
+      const esTitulo = nt[0] && !nt[1];
+      ws3.getCell(h,1).value=nt[0];
+      ws3.getCell(h,1).font={ name:'Calibri', size:esTitulo?11:10, bold:true,
+        color:{argb: esTitulo?XLS_AZUL:'FF444444'} };
+      ws3.getCell(h,2).value=nt[1];
+      ws3.getCell(h,2).font={ name:'Calibri', size:10, color:{argb:'FF333333'} };
+      ws3.getCell(h,2).alignment={ wrapText:true, vertical:'top' };
+      if(esTitulo){
+        ws3.getCell(h,1).fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFDBE6F3'} };
+        ws3.getCell(h,2).fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFDBE6F3'} };
+      }
+      ws3.getRow(h).height = esTitulo?18:(nt[1].length>110?30:15);
+      h++;
+    });
+
+    /* ---------- descarga ---------- */
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='Cumplimiento_Proveedores_'+(META.corte||'')+'.xlsx';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch(e){
+    alert('No se pudo generar el reporte: '+(e&&e.message?e.message:e));
+  }finally{
+    btn.textContent=rotulo; btn.disabled=false;
+  }
+}
+
 arranque();
 </script>
 </body>
