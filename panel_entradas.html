@@ -103,6 +103,10 @@ tr:hover td{background:#eaf1f9}
 .tag.bad{border-color:#a86a68;color:#8f3232;background:#f4dedd}
 .tag.frio{border-color:#5a82ad;color:#0C447C;background:#dbe6f3}
 .tag.med{border-color:#b09543;color:#78621b;background:#f6edd6}
+.ctxf{display:none;margin:0 0 10px;padding:8px 12px;background:#dbe6f3;border:1px solid #5a82ad;border-left:4px solid #0C447C;color:#0C447C;font-size:12px;overflow-wrap:anywhere}
+.ctxf b{font-weight:600}
+.ctxf .cod{font-family:Consolas,"Courier New",monospace}
+.ctxf .sep{color:#5a82ad;padding:0 6px}
 .mini{font-size:11px;color:#5c6773;overflow-wrap:anywhere;display:block}
 .load{padding:44px 20px;text-align:center;color:#555;line-height:1.7}
 </style>
@@ -439,6 +443,62 @@ function tabla(cols,datos,opts){
   return `<div class="scroll"><table id="${id}"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
 }
 const CH={};
+/* CONTEXTO DEL FILTRO. Cuando se filtra por un renglón, el campo solo conserva
+   lo que se tecleó (normalmente el código), así que en el resto del tablero no
+   se sabe de qué renglón se está hablando sin entrar al detalle. Esta barra
+   resuelve el código a su descripción y la mantiene a la vista en todas las
+   pestañas; el mismo texto se usa como subtítulo de cada gráfico. */
+function renglonActivo(d){
+  if(!F.renglon) return null;
+  const cods=[...new Set(d.filter(r=>r.cod).map(r=>r.cod))];
+  if(cods.length===1){
+    const r=d.find(o=>o.cod===cods[0]);
+    return {cod:cods[0], desc:r?(r.desc||r.comercial||''):'', tipo:r?r.tipoCod:'', n:cods.length};
+  }
+  return {cod:'', desc:'', tipo:'', n:cods.length, q:F.renglon.trim()};
+}
+function ctxTexto(d){
+  const p=[];
+  const ra=renglonActivo(d);
+  if(ra) p.push(ra.cod
+    ? ('Renglón '+ra.cod+(ra.desc?' · '+ra.desc:''))
+    : ('Búsqueda "'+ra.q+'" · '+fmtN(ra.n)+' renglones'));
+  if(F.mes)    p.push('Mes: '+MESN[Number(F.mes)]);
+  if(F.prov)   p.push('Proveedor: '+F.prov);
+  if(F.mod)    p.push('Modalidad: '+F.mod);
+  if(F.frio)   p.push('Cadena de frío: '+(F.frio==='SI'?'Sí':'No'));
+  if(F.cumpl)  p.push('Cumplimiento: '+(F.cumpl==='A TIEMPO'?'A tiempo':'Tardía'));
+  if(F.origen) p.push('Origen: '+F.origen);
+  return p.join('  ·  ');
+}
+function pintarCtx(d){
+  const el=document.getElementById('ctxFiltros'); if(!el)return;
+  const ra=renglonActivo(d);
+  const partes=[];
+  if(ra&&ra.cod){
+    partes.push('<b>Renglón</b> <span class="cod">'+ra.cod+'</span>'+
+      (ra.tipo==='COMPRA_DIRECTA'?' <span class="tag med">Compra directa</span>':'')+
+      (ra.desc?'<span class="sep">·</span>'+ra.desc:''));
+  } else if(ra){
+    partes.push('<b>Búsqueda</b> “'+ra.q+'”<span class="sep">·</span>'+fmtN(ra.n)+' renglones distintos');
+  }
+  const otros=[];
+  if(F.mes)    otros.push('Mes: <b>'+MESN[Number(F.mes)]+'</b>');
+  if(F.prov)   otros.push('Proveedor: <b>'+F.prov+'</b>');
+  if(F.mod)    otros.push('Modalidad: <b>'+F.mod+'</b>');
+  if(F.frio)   otros.push('Cadena de frío: <b>'+(F.frio==='SI'?'Sí':'No')+'</b>');
+  if(F.cumpl)  otros.push('Cumplimiento: <b>'+(F.cumpl==='A TIEMPO'?'A tiempo':'Tardía')+'</b>');
+  if(F.origen) otros.push('Origen: <b>'+F.origen+'</b>');
+  if(otros.length) partes.push(otros.join('<span class="sep">·</span>'));
+  if(!partes.length){ el.style.display='none'; el.innerHTML=''; CTX=''; return; }
+  partes.push('<b>'+fmtN(d.length)+'</b> líneas<span class="sep">·</span>B/. <b>'+
+    fmt0(d.reduce((s,r)=>s+(r.valor||0),0))+'</b>');
+  CTX=ctxTexto(d);
+  el.style.display='block';
+  el.innerHTML=partes.join('<span class="sep">|</span>');
+}
+let CTX='';
+
 function chart(id,cfg){
   setTimeout(()=>{
     const c=document.getElementById(id); if(!c)return;
@@ -450,6 +510,11 @@ function chart(id,cfg){
     cfg.options.plugins=Object.assign(
       {legend:{labels:{font:{family:'Segoe UI',size:11},boxWidth:12,
         sort:(a,b)=>a.datasetIndex-b.datasetIndex}}},cfg.options.plugins||{});
+    /* Etiqueta del filtro activo sobre cada gráfico: sin esto, un tablero
+       filtrado por un renglón se ve igual que el tablero completo. */
+    if(CTX) cfg.options.plugins.subtitle={display:true,text:cort(CTX,110),
+      color:'#0C447C',font:{family:'Segoe UI',size:11,weight:'600'},
+      padding:{top:0,bottom:8},align:'start'};
     CH[id]=new Chart(c,cfg);
   },0);
 }
@@ -479,6 +544,7 @@ function pintarShell(){
     <button class="btn sec" id="btnLimpiar">Limpiar</button>
     <button class="btn" id="btnXls">Reporte de cumplimiento (Excel)</button>
   </div>
+  <div class="ctxf" id="ctxFiltros"></div>
   <div class="kpis" id="kpis"></div>
   <nav class="tabs" id="tabs">
     <button data-t="resumen">Resumen</button>
@@ -505,6 +571,7 @@ function pintarShell(){
 }
 function render(){
   const d=filtrar();
+  pintarCtx(d);
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
   kpis(d);
   const p=document.getElementById('panels');
