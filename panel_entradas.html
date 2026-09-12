@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entradas de Mercancía por Recepción — CDPA 2026</title>
+<link rel="icon" href="./favicon.ico?v=1">
+<link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?v=1">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
@@ -296,6 +299,79 @@ const plugAnillo={
 };
 
 const F={mes:'',prov:'',renglon:'',mod:'',frio:'',cumpl:'',origen:''};
+/* CONCILIACIÓN. La ingesta firma líneas y valor por periodo leyendo el Excel;
+   el panel los vuelve a contar desde las filas publicadas y compara. Si
+   cuadran, el dashboard dice lo mismo que el archivo de la Dirección, y eso
+   queda escrito en pantalla en vez de quedar en la palabra de nadie. */
+function conciliar(){
+  const firma=META.porPeriodo;
+  if(!firma) return 'Conciliación: la publicación aún no trae firma por periodo';
+  const mio={};
+  ROWS.forEach(r=>{const p=r.periodo; if(!mio[p])mio[p]={lineas:0,valor:0};
+    mio[p].lineas++; mio[p].valor+=r.valor||0;});
+  const malos=[];
+  Object.keys(firma).forEach(p=>{
+    const a=firma[p], b=mio[p]||{lineas:0,valor:0};
+    if(a.lineas!==b.lineas||Math.abs(a.valor-b.valor)>1) malos.push(p);
+  });
+  Object.keys(mio).forEach(p=>{ if(!firma[p]) malos.push(p); });
+  const n=Object.keys(firma).length;
+  return malos.length
+    ? `<b style="color:#ffd9d6">Conciliación con diferencias</b> en ${[...new Set(malos)].join(', ')}`
+    : `Conciliado · ${n} periodos · ${fmtN(META.filasReales)} líneas · B/. ${fmt0(META.valorTotal)}`;
+}
+
+/* Distintivos de línea. El dato siempre se muestra; lo que cambia es que
+   quede dicho de dónde salió y si el código pertenece a nuestro sistema. */
+function marcaCod(o){
+  if(o.tipoCod==='COMPRA_DIRECTA')
+    return ' <span class="tag med" title="Código de 8 dígitos: compra directa, fuera del sistema de abasto del CEDIS">Compra directa</span>';
+  if(o.tipoCod==='SIN_CODIGO') return ' <span class="tag bad" title="La línea llegó sin código Abasto">Sin código</span>';
+  if(o.tipoCod==='NO_CANONICO') return ' <span class="tag bad" title="El código no tiene 8 ni 9 dígitos">No canónico</span>';
+  return '';
+}
+function marcaDesc(o){
+  const f=o.flags||[]; let t='';
+  if(f.indexOf('RENGLON_ANULADO')>=0)
+    t+=' <span class="tag bad" title="El maestro tiene este renglón como anulado o inactivo">Anulado</span>';
+  if(o.origenDesc==='NOMBRE_COMERCIAL')
+    t+=' <span class="tag med" title="El catálogo no resolvió este renglón: se muestra el nombre comercial declarado en la línea">Nombre comercial</span>';
+  return t;
+}
+
+/* Sugerencias predictivas del buscador de renglón. Se arman sobre los
+   renglones que realmente aparecen en el reporte, no sobre el catálogo
+   completo: lo que no se recibió no tiene por qué ofrecerse. */
+let CAT_REN=null;
+function catRenglones(){
+  if(CAT_REN) return CAT_REN;
+  const m=new Map();
+  ROWS.forEach(r=>{const k=r.cod||r.desc; if(!k||m.has(k))return;
+    m.set(k,{cod:r.cod||'',desc:r.desc||r.comercial||'',tipo:r.tipoCod||''});});
+  CAT_REN=[...m.values()].sort((a,b)=>String(a.cod).localeCompare(String(b.cod)));
+  return CAT_REN;
+}
+function sugerir(txt){
+  const dl=document.getElementById('lRen'); if(!dl)return;
+  const q=nrm(txt);
+  const base=catRenglones();
+  const hits=(q?base.filter(o=>nrm(o.cod+' '+o.desc).includes(q)):base).slice(0,14);
+  dl.innerHTML=hits.map(o=>`<option value="${(o.cod||o.desc).replace(/"/g,'')}">${
+    (o.cod?o.cod+' · ':'')+cort(o.desc,52)+(o.tipo==='COMPRA_DIRECTA'?'  (compra directa)':'')}</option>`).join('');
+}
+
+/* Normaliza texto para buscar: mayúsculas, sin acentos, sin saltos de línea
+   ni espacios repetidos, y sin la cola decimal que Excel pega en los códigos
+   numéricos ("101013101.0" -> "101013101"). */
+function nrm(s){
+  return String(s===null||s===undefined?'':s)
+    .replace(/\u00A0/g,' ')
+    .toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/(\d)\.0+\b/g,'$1')
+    .replace(/\s+/g,' ')
+    .trim();
+}
 function filtrar(){
   return ROWS.filter(r=>{
     if(F.mes && String(r.mes)!==F.mes) return false;
@@ -306,9 +382,13 @@ function filtrar(){
     if(F.cumpl && r.cumpl!==F.cumpl) return false;
     if(F.origen && r.origen!==F.origen) return false;
     if(F.renglon){
-      const q=F.renglon.toUpperCase();
-      if(!((r.desc||'').toUpperCase().includes(q)||String(r.cod).includes(q)||
-           (r.mat||'').toUpperCase().includes(q)||(r.comercial||'').toUpperCase().includes(q))) return false;
+      /* La consulta se normaliza: al copiar una celda de Excel o Sheets el
+         portapapeles trae salto de línea y espacios, y las descripciones
+         vienen con acentos. Sin esto, pegar un código no encontraba nada. */
+      const q=nrm(F.renglon);
+      if(!q) return true;
+      const heno=nrm((r.desc||'')+' '+(r.cod||'')+' '+(r.mat||'')+' '+(r.comercial||'')+' '+(r.marca||''));
+      if(!q.split(' ').every(t=>heno.includes(t))) return false;
     }
     return true;
   });
@@ -379,7 +459,8 @@ let TAB='resumen';
 function iniciar(){
   ROWS=DB.rows; META=DB.meta||{};
   document.getElementById('metaHead').innerHTML=
-    `Fuente: ${cort(META.fuente,46)}<br>Última recepción: ${META.corte||'—'} · Generado ${META.generado||'—'}`;
+    `Fuente: ${cort(META.fuente,46)}<br>Última recepción: ${META.corte||'—'} · Generado ${META.generado||'—'}`
+    + `<br>${conciliar()}`;
   pintarShell(); render();
 }
 function pintarShell(){
@@ -390,13 +471,12 @@ function pintarShell(){
   <div class="filtros">
     <div class="f"><label>Mes de recepción</label><select id="fMes"><option value="">Todos</option>${meses.map(m=>`<option value="${m}">${MESN[m]} 2026</option>`).join('')}</select></div>
     <div class="f"><label>Proveedor</label><select id="fProv"><option value="">Todos</option>${provs.map(p=>`<option value="${p}">${cort(p,44)}</option>`).join('')}</select></div>
-    <div class="f"><label>Renglón · código, descripción o marca</label><input id="fRen" class="wide" placeholder="101013101 · PARACETAMOL · N02BE"></div>
+    <div class="f"><label>Renglón · código, descripción o marca</label><input id="fRen" class="wide" list="lRen" autocomplete="off" placeholder="101013101 · PARACETAMOL · N02BE"><datalist id="lRen"></datalist></div>
     <div class="f"><label>Modalidad</label><select id="fMod"><option value="">Todas</option>${mods.map(m=>`<option value="${m}">${cort(m,38)}</option>`).join('')}</select></div>
     <div class="f"><label>Cadena de frío</label><select id="fFrio"><option value="">Todas</option><option value="SI">Solo frío</option><option value="NO">Excluir frío</option></select></div>
     <div class="f"><label>Cumplimiento</label><select id="fCumpl"><option value="">Todos</option><option value="A TIEMPO">A tiempo</option><option value="TARDIA">Tardía</option></select></div>
     <div class="f"><label>Origen</label><select id="fOrigen"><option value="">Todos</option><option value="PROVEEDOR EXTERNO">Proveedor externo</option><option value="MOVIMIENTO INTERNO">Entre CEDIS</option></select></div>
     <button class="btn sec" id="btnLimpiar">Limpiar</button>
-    <button class="btn sec" id="btnCsv">Descargar CSV</button>
     <button class="btn" id="btnXls">Reporte de cumplimiento (Excel)</button>
   </div>
   <div class="kpis" id="kpis"></div>
@@ -414,10 +494,12 @@ function pintarShell(){
   const bind=(id,k)=>document.getElementById(id).onchange=e=>{F[k]=e.target.value;render();};
   bind('fMes','mes');bind('fProv','prov');bind('fMod','mod');bind('fFrio','frio');
   bind('fCumpl','cumpl');bind('fOrigen','origen');
-  let tmr; document.getElementById('fRen').oninput=e=>{clearTimeout(tmr);tmr=setTimeout(()=>{F.renglon=e.target.value;render();},280);};
+  let tmr; const inRen=document.getElementById('fRen');
+  inRen.oninput=e=>{clearTimeout(tmr);tmr=setTimeout(()=>{
+    F.renglon=e.target.value; sugerir(e.target.value); render();},240);};
+  inRen.onfocus=e=>sugerir(e.target.value);
   document.getElementById('btnLimpiar').onclick=()=>{Object.keys(F).forEach(k=>F[k]='');
     ['fMes','fProv','fMod','fFrio','fCumpl','fOrigen','fRen'].forEach(i=>document.getElementById(i).value='');render();};
-  document.getElementById('btnCsv').onclick=csv;
   document.getElementById('btnXls').onclick=reporteCumplimiento;
   document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;render();});
 }
@@ -435,7 +517,11 @@ const kpi=(cls,l,v,f)=>`<div class="kpi ${cls}"><div class="lbl">${l}</div><div 
 function kpis(d){
   const val=d.reduce((s,r)=>s+(r.valor||0),0);
   const ocs=new Set(d.filter(r=>r.oc).map(r=>r.oc)).size;
-  const ren=new Set(d.filter(r=>r.cod).map(r=>r.cod)).size;
+  /* Solo códigos canónicos de 9 dígitos. Los de 8 son compra directa: están
+     fuera del sistema de abasto del CEDIS y no deben inflar este conteo. */
+  const canon=d.filter(r=>r.cod&&(r.tipoCod?r.tipoCod==='CANONICO':/^\d{9}$/.test(r.cod)));
+  const ren=new Set(canon.map(r=>r.cod)).size;
+  const nCD=d.filter(r=>r.tipoCod==='COMPRA_DIRECTA').length;
   const prv=new Set(d.map(r=>r.prov)).size;
   const conD=d.filter(r=>r.cumpl), aT=conD.filter(r=>r.cumpl==='A TIEMPO').length;
   const pct=conD.length?Math.round(aT*100/conD.length):0;
@@ -446,7 +532,7 @@ function kpis(d){
    kpi('p-azul','Recepciones registradas',fmtN(d.length),'líneas · acumulado del período')+
    kpi('p-azul','Valor recibido',fmt0(val),'balboas · acumulado del período')+
    kpi('p-gris','Órdenes de compra',fmtN(ocs),'OC distintas en el período')+
-   kpi('p-gris','Renglones distintos',fmtN(ren),'códigos Abasto únicos')+
+   kpi('p-gris','Renglones distintos',fmtN(ren),nCD?('códigos Abasto canónicos · '+fmtN(nCD)+' línea(s) de compra directa aparte'):'códigos Abasto únicos')+
    kpi('p-lila','Proveedores',fmtN(prv),'razones sociales normalizadas')+
    kpi(pct>=70?'p-verde':'p-ambar','Entregas a tiempo',pct+' %',aT+' de '+conD.length+' comparables')+
    kpi(med!==null&&med<=5?'p-verde':'p-ambar','Rezago a SALMI',med!==null?med+' días':'—','mediana · '+fmtN(lags.length)+' líneas medibles')+
@@ -753,7 +839,7 @@ function pCalidad(d){
   const alias=[...gr.values()].filter(o=>o.n>0).sort((a,b)=>b.esc.length-a.esc.length);
   const sinReg=(META.aliasSinRegistrar||[]).slice().sort((a,b)=>b.n-a.n);
   return `
-  <div class="nota info">De las <b>${fmtN(META.filasReales)}</b> filas del archivo, <b>${fmtN(META.filasDescartadas)}</b> se descartaron por no tener fecha de ingreso a recepción. Este archivo no arrastra filas residuales, a diferencia del formato anterior. El catálogo MARA vive en un libro externo enlazado por fórmula; se resuelve contra una copia local de <b>${fmtN(META.renglonesMara)}</b> renglones cuando el enlace no responde.</div>
+  <div class="nota info">De las <b>${fmtN(META.filasReales)}</b> filas del archivo, <b>${fmtN(META.filasDescartadas)}</b> se descartaron por no tener fecha de ingreso a recepción. Este archivo no arrastra filas residuales, a diferencia del formato anterior. El catálogo de renglones del archivo es una fórmula a un libro externo que Google no resuelve al convertir: llega como <span class="num">#ERROR!</span>. La identidad se resuelve en cascada contra <b>${fmtN(META.renglonesCatalogo||META.renglonesMara||0)}</b> renglones de este ecosistema, y si ninguna hoja lo tiene se usa el nombre comercial declarado en la línea. Ninguna descripción se publica en blanco ni con el error.</div>
   <div class="grid2">
     <div class="card c-ambar"><h2>Incidencias detectadas<span class="per">Sobre la selección actual</span></h2><div class="body"><div class="chartbox tall"><canvas id="gFl"></canvas></div></div></div>
     <div class="card c-gris"><h2>Qué significa cada incidencia<span class="per">Sobre la selección actual</span></h2><div class="body">${tabla([
@@ -784,8 +870,8 @@ function pDetalle(d){
     {t:'Cumplimiento',f:o=>o.cumpl?`<span class="tag ${o.cumpl==='A TIEMPO'?'ok':'bad'}">${o.cumpl==='A TIEMPO'?'A tiempo':'Tardía'}</span>`:'—',v:o=>o.cumpl},
     {t:'Proveedor',w:'w2',f:o=>o.prov},
     {t:'OC',f:o=>`<span class="num">${o.oc||'—'}</span>`,v:o=>o.oc},
-    {t:'Código',f:o=>`<span class="num">${o.cod||'—'}</span>`,v:o=>o.cod},
-    {t:'Descripción de renglón',w:'w',f:o=>o.desc},
+    {t:'Código',f:o=>`<span class="num">${o.cod||'—'}</span>`+marcaCod(o),v:o=>o.cod},
+    {t:'Descripción de renglón',w:'w',f:o=>(o.desc||'—')+marcaDesc(o)},
     {t:'Cantidad',n:1,f:o=>fmtN(o.cant),v:o=>o.cant},
     {t:'Bultos',n:1,f:o=>fmtN(o.bultos),v:o=>o.bultos},
     {t:'Valor B/.',n:1,f:o=>fmt0(o.valor),v:o=>o.valor},
@@ -794,21 +880,6 @@ function pDetalle(d){
     {t:'Observación',w:'w2',f:o=>`<span class="mini">${o.obs||''}</span>`}],d,{sort:0,dir:'asc'})}</div></div>`;
 }
 
-/* ===== CSV ===== */
-function csv(){
-  const d=filtrar();
-  const h=['FECHA_RECEPCION','FECHA_SALMI','REZAGO_SALMI_DIAS','FECHA_SAFIRO','FECHA_COMPROMISO','DIAS','CUMPLIMIENTO',
-    'PROVEEDOR','PROVEEDOR_ORIGEN','ORIGEN','ORDEN_COMPRA','NUM_SAFIRO','COD_ABASTO','MATERIAL_SAFIRO',
-    'DESCRIPCION_RENGLON','NOMBRE_COMERCIAL','MARCA','INSERTO','CANTIDAD','BULTOS','PALET','CADENA_FRIO',
-    'PRECIO_UNITARIO','VALOR','MODALIDAD','CARTA_COMPROMISO','OBSERVACION','INCIDENCIAS'];
-  const esc=v=>'"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';
-  const cuerpo=d.map(r=>[r.fRec,r.fSalmi,r.lagSalmi,r.fSafiro,r.fVenc,r.dias,r.cumpl,r.prov,r.provRaw,r.origen,
-    r.oc,r.safiro,r.cod,r.mat,r.desc,r.comercial,r.marca,r.inserto,r.cant,r.bultos,r.palet,r.frio?'SI':'NO',
-    r.pu,r.valor,r.mod,r.cc,r.obs,r.flags.join('|')].map(esc).join(';'));
-  const blob=new Blob(['\ufeff'+h.join(';')+'\n'+cuerpo.join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='entradas_recepcion_seleccion.csv'; a.click();
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    REPORTE DE CUMPLIMIENTO DE PROVEEDORES  ·  Excel institucional
