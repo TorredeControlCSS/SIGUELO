@@ -107,12 +107,6 @@ tr:hover td{background:#eaf1f9}
 .ctxf b{font-weight:600}
 .ctxf .cod{font-family:Consolas,"Courier New",monospace}
 .ctxf .sep{color:#5a82ad;padding:0 6px}
-.frescura{padding:9px 16px;font-size:12px;border-bottom:1px solid #a8a8a8;background:#e8f0e6;color:#2a5d2a;overflow-wrap:anywhere}
-.frescura.viejo{background:#f6edd6;color:#78621b}
-.frescura.malo{background:#f4dedd;color:#8f3232}
-.frescura b{font-weight:600}
-.frescura .arch{font-family:Consolas,"Courier New",monospace}
-.frescura .sep{opacity:.5;padding:0 8px}
 .mini{font-size:11px;color:#5c6773;overflow-wrap:anywhere;display:block}
 .load{padding:44px 20px;text-align:center;color:#555;line-height:1.7}
 </style>
@@ -126,7 +120,6 @@ tr:hover td{background:#eaf1f9}
   </div>
   <div class="meta" id="metaHead"></div>
 </header>
-<div class="frescura" id="frescura"></div>
 <div class="wrap" id="app"><div class="load">Cargando datos…</div></div>
 <script id="DATA" type="application/json">
 
@@ -310,36 +303,6 @@ const plugAnillo={
 };
 
 const F={mes:'',prov:'',renglon:'',mod:'',frio:'',cumpl:'',origen:''};
-/* FRESCURA. Antes, saber de qué archivo y de cuándo eran los datos exigía leer
-   letra chica en la esquina. Esta franja lo dice de frente: qué archivo se está
-   mostrando, cuándo se generó, cuánto hace de eso, y si el recuento del panel
-   cuadra con la firma de la ingesta. Cambia de color con la antigüedad. */
-function pintarFrescura(){
-  const el2=document.getElementById('frescura'); if(!el2)return;
-  const g=META.generado||'';
-  let horas=null;
-  if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(g)){
-    const d=new Date(g.replace(' ','T')+'-05:00');
-    if(!isNaN(d)) horas=(Date.now()-d.getTime())/3600000;
-  }
-  let hace='';
-  if(horas!==null){
-    if(horas<1)       hace='hace '+Math.max(1,Math.round(horas*60))+' min';
-    else if(horas<48) hace='hace '+Math.round(horas)+' h';
-    else              hace='hace '+Math.round(horas/24)+' días';
-  }
-  const conc=conciliar();
-  const malo=conc.indexOf('diferencias')>=0;
-  el2.className='frescura'+(malo?' malo':(horas!==null&&horas>30?' viejo':''));
-  el2.innerHTML=
-    (malo?'⚠ ':'✓ ')+
-    'Mostrando <b>'+fmtN(META.filasReales||ROWS.length)+' líneas</b> del archivo '+
-    '<span class="arch">'+(META.fuente||'—')+'</span>'+
-    '<span class="sep">·</span>última recepción <b>'+(META.corte||'—')+'</b>'+
-    '<span class="sep">·</span>publicado <b>'+(g||'—')+'</b>'+(hace?' ('+hace+')':'')+
-    '<span class="sep">·</span>'+conc;
-}
-
 /* CONCILIACIÓN. La ingesta firma líneas y valor por periodo leyendo el Excel;
    el panel los vuelve a contar desde las filas publicadas y compara. Si
    cuadran, el dashboard dice lo mismo que el archivo de la Dirección, y eso
@@ -563,7 +526,6 @@ function iniciar(){
   document.getElementById('metaHead').innerHTML=
     `Fuente: ${cort(META.fuente,46)}<br>Última recepción: ${META.corte||'—'} · Generado ${META.generado||'—'}`
     + `<br>${conciliar()}`;
-  pintarFrescura();
   pintarShell(); render();
 }
 function pintarShell(){
