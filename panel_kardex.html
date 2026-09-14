@@ -1341,12 +1341,12 @@ function optV(u, apilado) {
   return {responsive:true, maintainAspectRatio:false,
     layout:{padding:{top:18}},
     elements:{bar:{borderWidth:1.5, borderSkipped:false}},
-    plugins:{ legend:{labels:{font:{size:11}, boxWidth:12}},
+    plugins:{ legend:{labels:{font:{size:11}, boxWidth:12, padding:16}},
       datalabels: etqDato({anchor:'end', align:'top', offset:-2}),
       tooltip:{callbacks:{label:function (c) {
         return (c.dataset.label ? c.dataset.label + ': ' : '') + nf2(c.parsed.y) + ' ' + (u || ''); }}}},
     scales:{
-      y:{beginAtZero:true, stacked:!!apilado,
+      y:{beginAtZero:true, stacked:!!apilado, grace:'14%',
          title:{display:true, text:u || '', font:{size:11, weight:'700'}, color:'#3d4a5a'},
          ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}},
       x:{stacked:!!apilado, ticks:{font:{size:10}, maxRotation:60}}}};
