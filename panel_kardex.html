@@ -21,7 +21,7 @@ header{background:#0C447C;padding:10px 16px;display:flex;align-items:center;gap:
 header img{height:42px;width:42px}
 header h1{font-size:16px;font-weight:600;letter-spacing:.2px;color:#fff}
 header .sub{font-size:11.5px;margin-top:2px;color:#dfe8f3}
-header .meta{margin-left:auto;text-align:right;font-size:11.5px;line-height:1.5;color:#dfe8f3}
+header .meta{margin-left:auto;text-align:right;white-space:nowrap;font-size:11.5px;line-height:1.5;color:#dfe8f3}
 .wrap{padding:12px 16px 48px}
 .filtros{background:#fff;border:1px solid #a8a8a8;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
 .f{display:flex;flex-direction:column;gap:3px}
@@ -57,6 +57,10 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th{background:#0C447C;color:#fff;padding:5px 7px;text-align:left;font-weight:600;font-size:11px;position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
 th:hover{background:#1E5A9E}
 th .ar{font-size:9px;opacity:.55;margin-left:3px}
+.th-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;
+  margin-left:5px;border:1px solid rgba(255,255,255,.7);border-radius:50%;font-size:9px;
+  font-style:italic;font-weight:700;line-height:1;cursor:help;vertical-align:middle}
+.th-i:hover{background:#fff;color:#0C447C;border-color:#fff}
 th.act .ar{opacity:1}
 td{padding:4px 7px;border-bottom:1px solid #e0e0e0}
 tbody tr:nth-child(even){background:#fafafa}
@@ -107,9 +111,9 @@ td.c,th.c{text-align:center}
 .btn-plano{background:transparent;border:none;color:#666;text-decoration:underline;padding:6px 4px;cursor:pointer;font-family:inherit;font-size:12px}
 .btn-plano:hover{color:#0C447C}
 #tourNext{background:#0C447C;color:#fff;font-weight:700;border:1px solid #0C447C;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px}
-#btnTour{margin-left:auto;background:#fff;color:#0C447C;border:1px solid #0C447C;padding:5px 12px;
-  font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px;font-weight:700}
-#btnTour:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
+#btnTour{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.55);
+  padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px;font-weight:700}
+#btnTour:hover{background:#fff;color:#0C447C;border-color:#fff}
 /* Vista de flujo. El SVG se dibuja a mano y no con un plugin: asi el pastel,
    las etiquetas con su unidad y el foco al pasar el cursor quedan bajo control
    y se pueden verificar con pruebas. */
@@ -124,6 +128,29 @@ td.c,th.c{text-align:center}
   line-height:1.5;pointer-events:none;display:none;max-width:320px}
 .flu-tip b{color:#0C447C}
 .flu-tip .v{font-family:Consolas,monospace;font-weight:700}
+/* Aviso de lectura del balance. Los filtros de clase, destino y usuario
+   recortan UN SOLO lado, asi que el residuo absorbe la diferencia y el
+   diagrama sigue cerrando pero la variacion de existencia deja de ser
+   interpretable. El diagrama no miente; la lectura si engaña. */
+.aviso-bal{display:none;background:#faf0d7;border:1px solid #d9c48a;border-left:4px solid #b5820a;
+  padding:9px 12px;margin-bottom:10px;font-size:12px;line-height:1.6;color:#4a4a4a}
+.aviso-bal b{color:#8a6207}
+/* Modal de concepto. Las etiquetas del diagrama tienen que ser cortas para no
+   pisarse; lo que no cabe en la etiqueta vive aqui, a un clic, en vez de
+   perderse o de apiñarse en la pantalla. */
+#modal{position:fixed;inset:0;z-index:1100;background:rgba(15,25,40,.5);
+  display:none;align-items:center;justify-content:center;padding:20px}
+#modBox{background:#fff;border:1px solid #a8a8a8;max-width:560px;width:100%;
+  box-shadow:0 12px 34px rgba(0,0,0,.32)}
+#modHead{background:#0C447C;color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px}
+#modTit{font-size:14px;font-weight:700;letter-spacing:.2px}
+#modX{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.55);
+  color:#fff;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;border-radius:2px}
+#modX:hover{background:rgba(255,255,255,.18)}
+#modBody{padding:14px;font-size:12.5px;line-height:1.6;color:#333}
+#modBody p{margin:0 0 10px}
+#modBody p:last-child{margin-bottom:0}
+#modBody .ojo{background:#faf0d7;border:1px solid #d9c48a;padding:9px 11px;color:#4a4a4a}
 </style>
 </head>
 <body>
@@ -133,11 +160,13 @@ td.c,th.c{text-align:center}
 <h1>Kardex SAP-SAFIRO &middot; Movimientos e inventario</h1>
 <div class="sub">Direcci&oacute;n Nacional de Log&iacute;stica &middot; CEDIS Panam&aacute; &middot; Torre de Control</div>
 </div>
+<button id="btnTour" title="Recorrido guiado por el tablero">&#9654; Ver tutorial guiado</button>
+<!-- La marca de publicacion va SIEMPRE en la esquina superior derecha: es la
+     firma del tablero y no se desplaza por un boton. -->
 <div class="meta">
 <div>Corte de datos: <b id="mCorte">&mdash;</b></div>
 <div>Publicado: <span id="mGen">&mdash;</span></div>
 </div>
-<button id="btnTour" title="Recorrido guiado por el tablero">&#9654; Ver tutorial guiado</button>
 </header>
 
 <div id="carga">Cargando el kardex publicado&hellip;<div class="bar"><i id="cbar"></i></div><div id="cmsg">&nbsp;</div></div>
@@ -169,6 +198,13 @@ td.c,th.c{text-align:center}
 
 <div class="tabs" id="tabs"></div>
 
+<div id="modal">
+  <div id="modBox">
+    <div id="modHead"><span id="modTit"></span><button id="modX" title="Cerrar">&times;</button></div>
+    <div id="modBody"></div>
+  </div>
+</div>
+
 <div id="tourOverlay" style="display:none">
   <div id="tourBackdrop"></div>
   <div id="tourBox">
@@ -199,16 +235,17 @@ td.c,th.c{text-align:center}
 </div>
 
 <div class="panel" id="p-flujo">
-  <div class="sub">El kardex es un <b>balance</b>: todo lo que entra al CEDIS sale por alguna boca o se queda en existencia. Aqu&iacute; se ve el conjunto que las dem&aacute;s pesta&ntilde;as muestran por partes. Las <b>anulaciones se netean</b> contra su contraparte &mdash; un 314 no es una salida m&aacute;s, es una salida que no ocurri&oacute;. Los movimientos <b>309 y 310</b> quedan fuera: son traslado material a material dentro del mismo almac&eacute;n y no cruzan la frontera.</div>
+  <div class="sub">El kardex es un <b>balance</b> y aqu&iacute; cierra: lo que aporta existencia suma exactamente lo mismo que lo que la consume, porque la <b>variaci&oacute;n de existencia</b> se dibuja como un concepto m&aacute;s. <b>Toda clase de movimiento est&aacute; dentro</b>, incluidas las que a&uacute;n no est&aacute;n catalogadas. Los netos van <b>con signo</b>: una anulaci&oacute;n descuenta su movimiento en vez de sumarse como uno nuevo. <b>Haga clic en cualquier concepto</b> para ver qu&eacute; registra y qu&eacute; tener en cuenta al leerlo.</div>
+  <div class="aviso-bal" id="avisoBal"></div>
   <div class="kpis" id="kFlu"></div>
-  <div class="card"><h3>Flujo de documentos del Kardex<span class="per" id="perFlu">&mdash;</span></h3>
+  <div class="card"><h3>Balance de existencias<span class="per" id="perFlu">&mdash;</span></h3>
     <div class="tabla-h">
-      <span>Pase el cursor sobre una cinta o una boca para ver su cifra. El grosor es proporcional al valor.</span>
+      <span>Pase el cursor sobre una cinta para ver su cifra, y <b>haga clic en un concepto</b> para su explicaci&oacute;n. El grosor es proporcional al neto.</span>
       <div class="der">
         <label style="font-size:11px;color:#555;font-weight:600">M&Eacute;TRICA&nbsp;
           <select id="fluMet" style="border:1px solid #a8a8a8;padding:3px 6px;font-size:12px;font-family:inherit;border-radius:2px">
             <option value="bal">Balboas (B/.)</option>
-            <option value="lin">L&iacute;neas capturadas</option>
+            <option value="uni">Unidades</option>
           </select></label>
         <label style="font-size:11px;color:#555;font-weight:600">&nbsp;DESTINOS&nbsp;
           <select id="fluUE" style="border:1px solid #a8a8a8;padding:3px 6px;font-size:12px;font-family:inherit;border-radius:2px">
@@ -220,10 +257,9 @@ td.c,th.c{text-align:center}
     </div>
     <div class="body"><div id="sankey" style="width:100%;overflow-x:auto"></div>
       <div id="fluTip" class="flu-tip"></div></div></div>
-  <div class="card"><h3>Balance por boca<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>Una fila por boca de entrada o de salida, con las clases de movimiento que la componen.</span><div class="der"><button class="btn sec" data-csv="tFlu">Exportar Excel</button></div></div>
+  <div class="card"><h3>El balance, cifra por cifra<span class="per">Acumulado del rango &middot; netos con signo</span></h3>
+    <div class="tabla-h"><span>Una fila por concepto, con las clases de movimiento de SAP que lo componen. La &uacute;ltima fila es la variaci&oacute;n de existencia, que es lo que hace cerrar el balance.</span><div class="der"><button class="btn sec" data-csv="tFlu">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tFlu"></table></div></div>
-  <div class="card"><h3>Lo que queda fuera del balance</h3><div class="body" id="fluFuera"></div></div>
 </div>
 
 <div class="panel" id="p-fact">
@@ -309,7 +345,7 @@ td.c,th.c{text-align:center}
 </div>
 
 <div class="panel" id="p-prod">
-  <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.</div>
+  <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.<br><b>Las horas de esta pesta&ntilde;a son horas de captura en SAP, no de asistencia.</b> La asistencia real est&aacute; en el reporte del reloj biom&eacute;trico, que es otra fuente y otro tablero. Cada columna sensible tiene una (i) que explica qu&eacute; significa y qu&eacute; no.</div>
   <div class="kpis" id="kProd"></div>
   <div class="grid2">
     <div class="card"><h3>Curva horaria de captura<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas por hora</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
@@ -779,6 +815,11 @@ function init() {
      demas ni disparan un refiltrado completo */
   $('fluMet').onchange = pintarFlujo;
   $('fluUE').onchange = pintarFlujo;
+  $('modX').onclick = fluCerrarModal;
+  $('modal').onclick = function (e) { if (e.target === $('modal')) fluCerrarModal(); };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('modal').style.display === 'flex') fluCerrarModal();
+  });
   Array.prototype.forEach.call(document.querySelectorAll('[data-csv]'), function (b) {
     b.onclick = function () { csv(b.dataset.csv); };
   });
@@ -968,6 +1009,41 @@ function kpis(cont, items) {
   }).join('');
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ *  AYUDA DE COLUMNA
+ *  Cada entrada dice QUE ES la cifra, y sobre todo QUE NO ES. Las columnas de
+ *  la pestaña de Productividad son las que mas importan: con ellas se va a
+ *  medir a personas, y un nombre corto no alcanza para evitar que se lean como
+ *  hora de entrada y salida de la jornada.
+ * ────────────────────────────────────────────────────────────────────────── */
+var COL_DOC = {
+  captIni: {t:'Primera captura \u00b7 mediana',
+    es:'Es la <b>mediana</b> —no el promedio— de la hora de la <b>primera captura en SAP de cada d\u00eda</b>, tomada sobre todos los d\u00edas en que la persona registr\u00f3 movimientos. Se usa la mediana porque el promedio lo mueve un solo d\u00eda at\u00edpico, y el m\u00ednimo del per\u00edodo lo mueve uno solo del todo.',
+    no:'<b>No es la hora de entrada a trabajar.</b> Es la hora en que la persona toc\u00f3 SAP por primera vez ese d\u00eda. Alguien puede llegar a las 7:00 y trabajar en el almac\u00e9n cuatro horas antes de capturar su primer movimiento. La asistencia real est\u00e1 en el reloj biom\u00e9trico, que es otro reporte y otro tablero: no se deben confundir.'},
+  captFin: {t:'\u00daltima captura \u00b7 mediana',
+    es:'La <b>mediana</b> de la hora de la <b>\u00faltima captura en SAP de cada d\u00eda</b>, sobre los d\u00edas activos de la persona.',
+    no:'<b>No es la hora de salida.</b> Es cu\u00e1ndo dej\u00f3 de capturar, no cu\u00e1ndo dej\u00f3 de trabajar. El cierre de turno puede ocurrir despu\u00e9s de la \u00faltima captura, y tambi\u00e9n antes, si el resto del turno fue trabajo f\u00edsico.'},
+  captVen: {t:'Ventana de captura',
+    es:'Las horas transcurridas entre la primera y la \u00faltima captura medianas. Describe el <b>tramo del d\u00eda en que la persona estuvo registrando en SAP</b>.',
+    no:'<b>No son horas trabajadas ni horas extras.</b> No descuenta almuerzo ni pausas, no sabe si hubo trabajo fuera de esa ventana, y no sirve para calcular pago. Para eso est\u00e1 el biom\u00e9trico.'},
+  linDia: {t:'L\u00edneas por d\u00eda',
+    es:'L\u00edneas capturadas divididas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
+    no:'No es una meta ni un est\u00e1ndar. Una l\u00ednea de un pedido grande cuesta lo mismo que la de uno peque\u00f1o, as\u00ed que el n\u00famero mide <b>volumen de captura</b>, no esfuerzo ni dificultad.'},
+  mideDes: {t:'Mide desempe\u00f1o',
+    es:'Dice si esa persona entra en los indicadores de arriba. Solo entra el <b>personal de CEDIS Panam\u00e1</b> que dirige la Jefatura de Facturaci\u00f3n, seg\u00fan el padr\u00f3n configurado en el tablero.',
+    no:'El MB51 es un reporte <b>nacional</b>: muestra capturadores de todo el pa\u00eds. Los de otras sedes se listan aparte porque no est\u00e1n bajo esa jefatura, y atribuirle su trabajo ser\u00eda un error de medici\u00f3n, no una cortes\u00eda.'},
+  diasAct: {t:'D\u00edas activos',
+    es:'D\u00edas distintos, dentro del rango filtrado, en que esa persona registr\u00f3 al menos un movimiento en SAP.',
+    no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un d\u00eda cuyo reporte no se carg\u00f3. El tablero no puede distinguirlos.'}
+};
+function modalColumna(k) {
+  var d = COL_DOC[k];
+  if (!d) return;
+  modalAbrir(d.t,
+    '<p>' + d.es + '</p>' +
+    '<p class="ojo"><b>Qu\u00e9 NO es.</b> ' + d.no + '</p>');
+}
+
 /* ── tabla ordenable ── */
 var TBL = {};
 /* tope = cuantas filas se DIBUJAN. El CSV sigue llevando todo. Sin esto la
@@ -997,8 +1073,11 @@ function render(id) {
   var th = t.cols.map(function (c, i) {
     var act = t.sort && t.sort.i === i;
     var ar = act ? (t.sort.d === 1 ? '&#9650;' : '&#9660;') : '&#9670;';
+    /* La (i) abre la explicacion de la columna. Va en las que pueden leerse de
+       dos maneras, sobre todo las que sirven para medir a una persona. */
+    var info = c.doc ? '<span class="th-i" data-cdoc="' + c.doc + '" title="Qu\u00e9 significa esta columna">i</span>' : '';
     return '<th class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) + (act ? ' act' : '') +
-      '" data-i="' + i + '" title="Ordenar">' + c.h + '<span class="ar">' + ar + '</span></th>';
+      '" data-i="' + i + '" title="Ordenar">' + c.h + info + '<span class="ar">' + ar + '</span></th>';
   }).join('');
   var tb = fs.map(function (f) {
     return '<tr>' + t.cols.map(function (c, i) {
@@ -1011,7 +1090,10 @@ function render(id) {
     'que incluye todas.</td></tr></tfoot>' : '';
   el.innerHTML = '<thead><tr>' + th + '</tr></thead><tbody>' + tb + '</tbody>' + pie;
   Array.prototype.forEach.call(el.querySelectorAll('th'), function (h) {
-    h.onclick = function () {
+    h.onclick = function (e) {
+      /* la (i) no ordena: abre la ayuda */
+      var inf = e.target.closest ? e.target.closest('[data-cdoc]') : null;
+      if (inf) { e.stopPropagation(); modalColumna(inf.getAttribute('data-cdoc')); return; }
       var i = +h.dataset.i;
       t.sort = (t.sort && t.sort.i === i) ? {i:i, d:-t.sort.d} : {i:i, d:t.cols[i].t === 'n' ? -1 : 1};
       render(id);
@@ -1795,312 +1877,434 @@ function pintarLat() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
- *  VISTA DE FLUJO · Sankey en SVG propio
+ *  BALANCE DE EXISTENCIAS · diagrama de flujo en SVG propio
  *
- *  Cuatro columnas: bocas de entrada -> CEDIS Panama -> bocas de salida ->
- *  destinos (solo la rama de Unidades Ejecutoras, que es la que importa).
+ *  UN BALANCE CIERRA. La primera version dejaba clases "fuera del balance" y
+ *  lo declaraba con elegancia, que no es lo mismo que resolverlo. Ahora TODA
+ *  clase de movimiento entra, y el residuo aritmetico —la variacion de
+ *  existencia— se dibuja como un concepto mas. Por construccion, el lado
+ *  izquierdo suma exactamente lo mismo que el derecho.
  *
- *  Se dibuja a mano y no con un plugin de Chart.js por tres razones: la paleta
- *  pastel con borde queda bajo control, las etiquetas llevan su unidad, y el
- *  resultado es un SVG verificable con pruebas en vez de un canvas opaco.
+ *  CON SIGNO, NO EN VALOR ABSOLUTO. La version anterior sumaba |valor| y
+ *  ponia las anulaciones como movimientos adicionales: Compras salia en 137.3
+ *  millones en vez de 119.7, que es 101 menos 102. Con signo el descuadre en
+ *  balboas baja de 13 millones a 307 mil sobre 170.8, un 0.18%.
  *
- *  LO QUE NO SE FINGE: el diagrama NO cuadra a cero, y no debe. La diferencia
- *  entre lo que entra y lo que sale es la variacion de existencia del periodo,
- *  y se declara como tal en su propia tarjeta. Un Sankey forzado a cuadrar
- *  seria una mentira ordenada.
+ *  EL LADO LO DECIDE EL SIGNO, no una tabla fija: un concepto cuyo neto es
+ *  positivo aporta existencia y va a la izquierda; si es negativo, la consume
+ *  y va a la derecha. Asi el diagrama no puede mentir sobre la direccion.
  * ══════════════════════════════════════════════════════════════════════════ */
 
+/* Cada clase de movimiento a su concepto. Las que no estan catalogadas caen
+   en 'Sin catalogar' y el modal enumera cuales son: no se esconden. */
+var CONCEPTO = {
+  '101':'Compras a proveedor',        '102':'Compras a proveedor',
+  '315':'Traslados entre almacenes',  '316':'Traslados entre almacenes',
+  '561':'Ajuste de entrada',          '562':'Baja de existencias',
+  '701':'Sobrante de inventario',     '702':'Faltante de inventario',
+  '313':'Despacho a Unidades Ejecutoras', '314':'Despacho a Unidades Ejecutoras',
+  '201':'Consumo a centro de coste',  '202':'Consumo a centro de coste',
+  '309':'Reclasificaci\u00f3n interna',    '310':'Reclasificaci\u00f3n interna'
+};
+var SIN_CAT = 'Sin catalogar';
+var CIERRE  = '__cierre__';
+
+/* Explicacion de cada concepto, para el modal. Sale al hacer clic sobre el
+   nodo: las etiquetas del diagrama tienen que ser cortas para que no se
+   pisen, y lo que no cabe en la etiqueta va aqui en vez de perderse. */
+var CONCEPTO_DOC = {
+  'Compras a proveedor': {
+    cl:'101 entrada por pedido de compra \u00b7 102 anulaci\u00f3n',
+    qe:'Mercanc\u00eda que entra al CEDIS contra una orden de compra. Es el \u00fanico flujo que SAP valoriza por s\u00ed mismo: trae su propio Importe ML.',
+    oj:'La latencia mediana entre la fecha del documento y la de contabilizaci\u00f3n es alta en esta clase, as\u00ed que una compra puede aparecer en el kardex semanas despu\u00e9s de haber llegado f\u00edsicamente.' },
+  'Traslados entre almacenes': {
+    cl:'315 entrada por traslado \u00b7 316 anulaci\u00f3n',
+    qe:'Mercanc\u00eda que llega desde otro almac\u00e9n de la red, no desde un proveedor. Es la segunda etapa de un traslado que empez\u00f3 con un 313 en el almac\u00e9n de origen.',
+    oj:'Llega con Importe ML en cero: SAP no valoriza el traslado. El valor que se muestra es un estimado con el precio del MB52.' },
+  'Ajuste de entrada': {
+    cl:'561 entrada inicial de existencias',
+    qe:'Carga de existencia sin pedido de compra detr\u00e1s. Se usa para regularizaciones y para la carga inicial de un rengl\u00f3n.',
+    oj:'Muchos de estos motivos aparecen tambi\u00e9n en el 562 y se anulan al centavo: son reclasificaciones, no entradas reales de mercanc\u00eda. La pesta\u00f1a de Ajustes y bajas lo marca por motivo.' },
+  'Sobrante de inventario': {
+    cl:'701 entrada por inventario f\u00edsico',
+    qe:'Existencia que apareci\u00f3 en el conteo f\u00edsico y no estaba en el sistema. Corrige el registro hacia arriba.',
+    oj:'Se concentra en los d\u00edas de toma de inventario, as\u00ed que distorsiona cualquier promedio diario si no se aisla.' },
+  'Despacho a Unidades Ejecutoras': {
+    cl:'313 salida por traslado \u00b7 314 anulaci\u00f3n',
+    qe:'Salida de mercanc\u00eda hacia una policl\u00ednica, hospital u otro CEDIS. Es la evidencia sist\u00e9mica de que el pedido se factur\u00f3.',
+    oj:'Llega con Importe ML en cero. El destino sale del campo estructurado Almac\u00e9n receptor, que siempre viene lleno; la Forma 8 del texto libre solo empata en algo m\u00e1s de la mitad de los casos.' },
+  'Consumo a centro de coste': {
+    cl:'201 consumo \u00b7 202 anulaci\u00f3n',
+    qe:'Mercanc\u00eda consumida por un centro de coste del propio CEDIS, no despachada a una unidad externa.',
+    oj:'Es el flujo m\u00e1s peque\u00f1o del balance; conviene revisarlo solo cuando aparece un salto.' },
+  'Baja de existencias': {
+    cl:'562 salida inicial de existencias',
+    qe:'Salida sin destino: vencimiento, deterioro, regularizaci\u00f3n contable.',
+    oj:'El bruto de esta clase sobreestima el da\u00f1o. Medido sobre el hist\u00f3rico, buena parte se anula contra un 561 con el mismo motivo, y solo una fracci\u00f3n m\u00ednima declara vigencia. La cifra que importa es la que no tiene contrapartida, y est\u00e1 en la pesta\u00f1a de Ajustes y bajas.' },
+  'Faltante de inventario': {
+    cl:'702 salida por inventario f\u00edsico',
+    qe:'Existencia que el sistema ten\u00eda y el conteo f\u00edsico no encontr\u00f3. Corrige el registro hacia abajo.',
+    oj:'Igual que el sobrante: se concentra en los d\u00edas de conteo.' },
+  'Reclasificaci\u00f3n interna': {
+    cl:'309 traslado material a material \u00b7 310 anulaci\u00f3n',
+    qe:'Mueve existencia de un rengl\u00f3n a otro dentro del mismo almac\u00e9n. No entra ni sale mercanc\u00eda del CEDIS.',
+    oj:'Su neto es casi cero, pero no exactamente: se incluye en el balance porque un balance incluye todo, y esa diferencia peque\u00f1a es real.' },
+  'Sin catalogar': {
+    cl:'se detalla abajo',
+    qe:'Clases de movimiento que aparecen en el reporte y no est\u00e1n documentadas todav\u00eda. Se ubican por el signo de su cantidad: si suman existencia van a la izquierda, si la restan a la derecha.',
+    oj:'Est\u00e1n en el balance, no fuera de \u00e9l, pero no se sabe qu\u00e9 registran. Es una consulta pendiente a la Jefatura de Facturaci\u00f3n.' },
+  '__cierre__': {
+    cl:'no es una clase de SAP',
+    qe:'Es el residuo aritm\u00e9tico del balance: la diferencia entre todo lo que aport\u00f3 existencia y todo lo que la consumi\u00f3 en el rango. Sin filtros que recorten un solo lado, corresponde a la variaci\u00f3n de existencia del per\u00edodo.',
+    oj:'Con un filtro de clase, destino o usuario activo esta cifra <b>ya no es la variaci\u00f3n del CEDIS</b>: es lo que falta para cuadrar lo que qued\u00f3 a la vista. Y tampoco se puede verificar contra el MB52, porque solo hay una foto publicada: har\u00edan falta la del inicio y la del final del rango. En balboas, adem\u00e1s, parte del flujo es estimada con el precio del MB52, as\u00ed que el residuo arrastra ese estimado.' }
+};
+
+/* true cuando un filtro recorta un solo lado del balance */
+function fluParcial() {
+  return !!($('fMov').value || $('fUE').value || $('fUsr').value);
+}
 function fluMetrica() { return ($('fluMet') && $('fluMet').value) || 'bal'; }
 function fluTopUE()   { return Number(($('fluUE') && $('fluUE').value) || 8); }
+function fluUnidad()  { return fluMetrica() === 'uni' ? U_UNI : U_BAL; }
+function fluFmt(v)    { return fluMetrica() === 'uni' ? nf(v) : nf2(v); }
 
-/* Suma la metrica elegida. En balboas se usa el valor absoluto porque el signo
-   ya lo da el lado del diagrama: dibujar una salida negativa dejaria la cinta
-   con grosor negativo. */
-function fluVal(arr) {
-  if (fluMetrica() === 'lin') return arr.length;
-  return suma(arr, function (r) { return Math.abs(valor(r)); });
+/* CON SIGNO. valor() ya devuelve el importe con su signo y r[cQ] tambien, asi
+   que las anulaciones se descuentan solas en vez de sumarse como movimientos
+   nuevos. Esto es lo que hace que el balance cuadre. */
+function fluNeto(arr) {
+  if (fluMetrica() === 'uni') return suma(arr, function (r) { return r[cQ]; });
+  return suma(arr, function (r) { return valor(r); });
 }
-function fluUnidad() { return fluMetrica() === 'lin' ? U_LIN : U_BAL; }
-function fluFmt(v) { return fluMetrica() === 'lin' ? nf(v) : nf2(v); }
 
-/* Agrupa las lineas en vista por boca, y de paso separa lo que no pertenece
-   al balance para poder declararlo. */
 function fluAgrupar() {
-  var bocas = {}, fuera = {}, internos = {};
+  var g = {}, clasesSin = {};
   for (var i = 0; i < F.length; i++) {
-    var r = F[i], m = r[cM], g = FLU[m];
-    if (m === '309' || m === '310') {
-      if (!internos[m]) internos[m] = [];
-      internos[m].push(r);
-      continue;
-    }
-    if (!g) { if (!fuera[m]) fuera[m] = []; fuera[m].push(r); continue; }
-    var k = g[0] + '|' + g[1];
-    if (!bocas[k]) bocas[k] = [];
-    bocas[k].push(r);
+    var r = F[i], m = r[cM];
+    var c = CONCEPTO[m] || SIN_CAT;
+    if (c === SIN_CAT) clasesSin[m] = (clasesSin[m] || 0) + 1;
+    if (!g[c]) g[c] = [];
+    g[c].push(r);
   }
-  return {bocas:bocas, fuera:fuera, internos:internos};
+  return {g:g, clasesSin:clasesSin};
+}
+
+/* Los filtros de clase, destino y usuario recortan UN SOLO lado del balance.
+   El diagrama sigue cerrando —el residuo absorbe la diferencia— pero la
+   variacion de existencia deja de significar lo que dice: con "Clase: 313"
+   el cierre diria que el CEDIS consumio 94.8 millones de existencia, cuando
+   lo que paso es que se escondieron las entradas.
+   Los filtros de fecha, renglon y tipo NO tienen ese problema: recortan los
+   dos lados por igual. */
+function fluAvisoLectura() {
+  var rotos = [];
+  if ($('fMov').value) rotos.push('clase de movimiento (' + $('fMov').value + ')');
+  if ($('fUE').value)  rotos.push('destino');
+  if ($('fUsr').value) rotos.push('usuario (' + $('fUsr').value + ')');
+  var el = $('avisoBal');
+  if (!rotos.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML = '<b>Cuidado al leer la variaci\u00f3n de existencia con este filtro.</b> ' +
+    'Est\u00e1 activo un filtro de <b>' + rotos.join('</b> y <b>') + '</b>, que recorta ' +
+    '<b>un solo lado</b> del balance. Las cifras de cada concepto son correctas, pero la ' +
+    'variaci\u00f3n de existencia ya no es la del CEDIS: es lo que falta para cuadrar lo que ' +
+    'qued\u00f3 a la vista. Para leer el balance completo, quite ese filtro. ' +
+    'Los filtros de <b>fecha, rengl\u00f3n y tipo</b> s\u00ed son seguros aqu\u00ed: recortan los dos lados por igual.';
 }
 
 function pintarFlujo() {
   var A = fluAgrupar(), U = fluUnidad();
-  $('perFlu').textContent = 'Acumulado del rango \u00b7 ' + U;
+  $('perFlu').textContent = 'Acumulado del rango \u00b7 ' + U + ' \u00b7 neto con signo';
+  fluAvisoLectura();
 
-  var ent = [], sal = [], tE = 0, tS = 0, i;
-  for (i = 0; i < FLU_ENT.length; i++) {
-    var ke = 'E|' + FLU_ENT[i], ae = A.bocas[ke] || [];
-    if (!ae.length) continue;
-    var ve = fluVal(ae);
-    ent.push({nom:FLU_ENT[i], v:ve, n:ae.length, arr:ae}); tE += ve;
+  var izq = [], der = [], c;
+  for (c in A.g) {
+    var v = fluNeto(A.g[c]);
+    if (Math.abs(v) < 0.005) continue;                 /* un neto nulo no se dibuja */
+    var nodo = {nom:c, v:Math.abs(v), n:A.g[c].length, arr:A.g[c], neto:v};
+    (v > 0 ? izq : der).push(nodo);
   }
-  for (i = 0; i < FLU_SAL.length; i++) {
-    var ks = 'S|' + FLU_SAL[i], as = A.bocas[ks] || [];
-    if (!as.length) continue;
-    var vs = fluVal(as);
-    sal.push({nom:FLU_SAL[i], v:vs, n:as.length, arr:as}); tS += vs;
-  }
-  var neto = tE - tS;
+  var sIzq = suma(izq, function (x) { return x.v; });
+  var sDer = suma(der, function (x) { return x.v; });
+  var cierre = sIzq - sDer;
 
+  /* El residuo se dibuja como un concepto mas, del lado que le toque. Es lo
+     que cierra el balance: sin esto el diagrama muestra dos lados de distinto
+     tamaño y no explica por que. */
+  var nCierre = null;
+  if (Math.abs(cierre) >= 0.005) {
+    nCierre = {nom:CIERRE, v:Math.abs(cierre), n:0, arr:[], neto:cierre,
+      etq:(fluParcial() ? 'Residuo del recorte'
+                        : (cierre > 0 ? 'Se acumula en existencia' : 'Sale de existencia'))};
+    (cierre > 0 ? der : izq).push(nCierre);
+  }
+  izq.sort(function (a, b) { return b.v - a.v; });
+  der.sort(function (a, b) { return b.v - a.v; });
+  var total = Math.max(suma(izq, function (x) { return x.v; }), suma(der, function (x) { return x.v; }));
+
+  var ent = suma(izq.filter(function (x) { return x.nom !== CIERRE; }), function (x) { return x.v; });
+  var sal = suma(der.filter(function (x) { return x.nom !== CIERRE; }), function (x) { return x.v; });
   kpis('kFlu', [
-    ['Entra al CEDIS', fluFmt(tE), 'verde', U],
-    ['Sale del CEDIS', fluFmt(tS), '', U],
-    /* En balboas el neto ES la variacion de existencia. En lineas NO: una
-       linea de compra se convierte en muchas de despacho, asi que el neto en
-       lineas mide volumen documental, no inventario. Rotularlo igual seria
-       decir que el CEDIS perdio 25,502 de existencia, que es falso. */
-    (fluMetrica() === 'bal'
-      ? ['Variaci\u00f3n de existencia', fluFmt(neto), neto < 0 ? 'rojo' : 'amb',
-         neto >= 0 ? 'el CEDIS acumul\u00f3 valor' : 'el CEDIS entreg\u00f3 m\u00e1s valor del que recibi\u00f3']
-      : ['Diferencia documental', fluFmt(neto), '',
-         'Una l\u00ednea de compra se reparte en varias de despacho']),
-    ['Bocas de entrada', nf(ent.length), '', 'Con movimiento en el rango'],
-    ['Bocas de salida', nf(sal.length), '', 'Con movimiento en el rango'],
-    ['Despacho a UE', tS ? (((sal.filter(function (x) { return x.nom === 'Unidades Ejecutoras'; })[0] || {v:0}).v / tS) * 100).toFixed(1) + '%' : '0%',
-      '', 'De todo lo que sale'],
-    ['Clases fuera del balance', nf(Object.keys(A.fuera).length), Object.keys(A.fuera).length ? 'amb' : 'verde', 'Sin catalogar'],
-    ['Traslado interno 309/310', nf(Object.keys(A.internos).length ? suma(Object.keys(A.internos).map(function (k) { return A.internos[k].length; }), function (x) { return x; }) : 0),
-      '', 'L\u00edneas, fuera del flujo']
+    ['Aporta a existencia', fluFmt(ent), 'verde', U + ' \u00b7 neto'],
+    ['Consume de existencia', fluFmt(sal), '', U + ' \u00b7 neto'],
+    (fluParcial()
+      ? ['Residuo del recorte', fluFmt(cierre), 'amb', 'No es la variaci\u00f3n del CEDIS: ver el aviso']
+      : ['Variaci\u00f3n de existencia', fluFmt(cierre), cierre < 0 ? 'rojo' : 'amb',
+         cierre >= 0 ? 'el CEDIS acumul\u00f3' : 'el CEDIS consumi\u00f3 existencia previa']),
+    ['Descuadre sobre el flujo', ent ? (Math.abs(cierre) / ent * 100).toFixed(2) + '%' : '0%',
+      '', 'La variaci\u00f3n frente a lo que entr\u00f3'],
+    ['Conceptos en el balance', nf(izq.length + der.length - (nCierre ? 1 : 0)), '', 'Con neto distinto de cero'],
+    ['Clases de movimiento', nf(uniq(F, function (r) { return r[cM]; })), 'verde', 'Todas dentro del balance'],
+    ['Sin catalogar', nf(Object.keys(A.clasesSin).length), Object.keys(A.clasesSin).length ? 'amb' : 'verde',
+      Object.keys(A.clasesSin).sort().join(' \u00b7 ') || 'ninguna'],
+    ['El balance cierra', 'S\u00cd', 'verde', 'Por construcci\u00f3n: los dos lados suman igual']
   ]);
 
-  /* rama de destinos: top N unidades ejecutoras del 313/314 */
+  /* rama de destinos del despacho a UE */
   var ue = [], topN = fluTopUE();
-  var rUE = (A.bocas['S|Unidades Ejecutoras'] || []);
-  if (topN > 0 && rUE.length) {
-    var g = agrupar(rUE, function (r) { return r[cREC]; });
-    var lista = Object.keys(g).map(function (k) {
+  var nDesp = null;
+  for (c = 0; c < der.length; c++) if (der[c].nom === 'Despacho a Unidades Ejecutoras') nDesp = der[c];
+  if (topN > 0 && nDesp) {
+    var gg = agrupar(nDesp.arr, function (r) { return r[cREC]; });
+    var lista = Object.keys(gg).map(function (k) {
       var cod = DIC.rec[k];
-      return {nom:(MAPA_UE[cod] || cod || '(sin destino)'), v:fluVal(g[k]), n:g[k].length};
-    }).sort(function (a, b) { return b.v - a.v; });
+      return {nom:(MAPA_UE[cod] || cod || '(sin destino)'), v:Math.abs(fluNeto(gg[k])), n:gg[k].length};
+    }).filter(function (x) { return x.v > 0; }).sort(function (a, b) { return b.v - a.v; });
     ue = lista.slice(0, topN);
     var resto = lista.slice(topN);
-    if (resto.length) {
-      ue.push({nom:'Otras ' + resto.length + ' UE', v:suma(resto, function (x) { return x.v; }),
-               n:suma(resto, function (x) { return x.n; })});
-    }
+    if (resto.length) ue.push({nom:'Otras ' + resto.length + ' UE', v:suma(resto, function (x) { return x.v; }),
+      n:suma(resto, function (x) { return x.n; })});
   }
 
-  $('sankey').innerHTML = fluSVG(ent, sal, ue, tE, tS);
+  $('sankey').innerHTML = fluSVG(izq, der, ue, nDesp, total);
   fluEnlazarTip();
-
-  /* tabla del balance */
-  var filas = [];
-  var clasesDe = function (lado, nom) {
-    var cs = [];
-    for (var m in FLU) if (FLU[m][0] === lado && FLU[m][1] === nom) cs.push(m);
-    return cs.sort().join(' ');
-  };
-  for (i = 0; i < ent.length; i++) {
-    filas.push(['ENTRADA', ent[i].nom, clasesDe('E', ent[i].nom), ent[i].n,
-      suma(ent[i].arr, entrada) - suma(ent[i].arr, salida),
-      suma(ent[i].arr, function (r) { return Math.abs(valor(r)); }),
-      tE ? (ent[i].v / tE * 100).toFixed(1) + '%' : '0%',
-      uniq(ent[i].arr, function (r) { return r[cMAT]; }),
-      uniq(ent[i].arr, function (r) { return r[cDOC]; })]);
-  }
-  for (i = 0; i < sal.length; i++) {
-    filas.push(['SALIDA', sal[i].nom, clasesDe('S', sal[i].nom), sal[i].n,
-      suma(sal[i].arr, salida) - suma(sal[i].arr, entrada),
-      suma(sal[i].arr, function (r) { return Math.abs(valor(r)); }),
-      tS ? (sal[i].v / tS * 100).toFixed(1) + '%' : '0%',
-      uniq(sal[i].arr, function (r) { return r[cMAT]; }),
-      uniq(sal[i].arr, function (r) { return r[cDOC]; })]);
-  }
-  tabla('tFlu', [
-    {h:'Lado', t:'c', f:function (v) { return '<span class="chip ' + (v === 'ENTRADA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
-    {h:'Boca', t:'t'}, {h:'Clases que la componen', t:'c'},
-    {h:'L\u00edneas', t:'n', f:nf}, {h:'Unidades netas', t:'n', f:nf},
-    {h:'Valor B/.', t:'n', f:nf2}, {h:'% de su lado', t:'n'},
-    {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}
-  ], filas, {i:5, d:-1});
-
-  /* lo que queda fuera, declarado */
-  var L = [];
-  var fk = Object.keys(A.fuera).sort();
-  if (fk.length) {
-    L.push('<div class="nota"><b>Clases sin catalogar, fuera del balance.</b> ' +
-      'No se sabe si entran o salen, as\u00ed que no se les asigna una boca en vez de ' +
-      'meterlas donde parezca. Vale preguntarle a la Jefatura de Facturaci\u00f3n qu\u00e9 registran: ' +
-      fk.map(function (m) {
-        return m + ' (' + nf(A.fuera[m].length) + ' l\u00edneas, B/. ' +
-          nf2(suma(A.fuera[m], function (r) { return Math.abs(valor(r)); })) + ')';
-      }).join(' \u00b7 ') + '.</div>');
-  }
-  var ik = Object.keys(A.internos).sort();
-  if (ik.length) {
-    var nInt = 0, vInt = 0;
-    for (i = 0; i < ik.length; i++) {
-      nInt += A.internos[ik[i]].length;
-      vInt += suma(A.internos[ik[i]], function (r) { return r[cV]; });
-    }
-    L.push('<div class="nota"><b>Traslado material a material (309 y 310).</b> ' +
-      nf(nInt) + ' l\u00edneas con impacto neto de B/. ' + nf2(vInt) + '. Reclasifican un ' +
-      'rengl\u00f3n en otro <b>dentro del mismo almac\u00e9n</b>: no cruzan la frontera del CEDIS, ' +
-      'as\u00ed que dibujarlas como entrada o salida inflar\u00eda los dos lados por igual.</div>');
-  }
-  L.push('<div class="nota"><b>El diagrama no cuadra a cero, y no debe.</b> ' +
-    'La diferencia entre lo que entra y lo que sale es la <b>variaci\u00f3n de existencia</b> ' +
-    'del per\u00edodo, que aqu\u00ed son ' + fluFmt(neto) + ' ' + U + '. Forzar el cuadre ser\u00eda ordenar ' +
-    'el dibujo a costa de la verdad.</div>');
-  if (fluMetrica() === 'bal') {
-    L.push('<div class="nota"><b>En balboas, parte del flujo es estimada.</b> ' +
-      'SAP no valoriza los traslados (313, 314, 315, 316): esas cintas se calculan con el ' +
-      'precio unitario del MB52. Las de compras, bajas y consumo llevan el importe propio de SAP. ' +
-      'Con la m\u00e9trica en l\u00edneas capturadas todo el diagrama es exacto.</div>');
-  }
-  $('fluFuera').innerHTML = L.join('');
+  fluEnlazarModal(A);
+  pintarBalanceTabla(izq, der, nCierre, A);
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
- *  El SVG. Cuatro columnas de nodos y cintas de Bezier entre ellas.
- *  El alto de cada nodo es proporcional a su valor; la escala la fija el lado
- *  mayor, para que los dos lados sean comparables a simple vista.
- * ────────────────────────────────────────────────────────────────────────── */
-function fluSVG(ent, sal, ue, tE, tS) {
-  var W = ue.length ? 1280 : 1000, H = 640;
-  var TOP = 46, ALTO = H - TOP - 40, GAP = 9;
-  var NW = 17, HUBW = 24;
-  var X0 = 250, X1 = 500, X2 = 760, X3 = 1000;
-  var esc = Math.max(tE, tS);
-  if (!esc) return '<div class="vacio">Sin movimientos que graficar con los filtros aplicados.</div>';
-  var alt = function (v) { return Math.max(2, (v / esc) * (ALTO - GAP * 3)); };
-  var U = fluUnidad();
-  var s = [];
-  var q = function (x) { return String(x).replace(/"/g, '&quot;'); };
+/* ── el diagrama ──────────────────────────────────────────────────────────
+ *  Compacto a proposito: 470 de alto para que entre en pantalla sin scroll.
+ *  Las etiquetas se separan con una pasada de relajacion y, cuando hay que
+ *  desplazarlas, se dibuja una linea guia hasta su nodo: sin eso los destinos
+ *  pequeños se pisaban unos con otros, que fue el reclamo.
+ * ─────────────────────────────────────────────────────────────────────────── */
+function fluSVG(izq, der, ue, nDesp, total) {
+  var W = ue.length ? 1240 : 940, H = 470;
+  var TOP = 44, ALTO = H - TOP - 26, GAP = 7, NW = 15, HUBW = 20;
+  var X0 = 236, X1 = 470, X2 = 700, X3 = 936;
+  if (!total) return '<div class="vacio">Sin movimientos que graficar con los filtros aplicados.</div>';
+  var U = fluUnidad(), i;
+  var alt = function (v) { return Math.max(2.5, (v / total) * (ALTO - GAP * 4)); };
+  var s = [], q = function (x) { return String(x).replace(/"/g, '&quot;'); };
+  var etqDe = function (d) { return d.etq || d.nom; };
 
-  /* posiciones verticales */
-  var y = TOP, i, nodosE = [], nodosS = [], nodosU = [];
-  for (i = 0; i < ent.length; i++) { var h = alt(ent[i].v); nodosE.push({d:ent[i], y:y, h:h}); y += h + GAP; }
-  var altoE = y - TOP - GAP;   /* alto de la columna, con sus separaciones */
+  var nI = [], nD = [], nU = [], y = TOP;
+  for (i = 0; i < izq.length; i++) { var h = alt(izq[i].v); nI.push({d:izq[i], y:y, h:h}); y += h + GAP; }
   y = TOP;
-  for (i = 0; i < sal.length; i++) { var h2 = alt(sal[i].v); nodosS.push({d:sal[i], y:y, h:h2}); y += h2 + GAP; }
-  var altoS = y - TOP - GAP;
-  /* Las cintas se apilan en el hub SIN separacion: el hueco entre nodos existe
-     para separar etiquetas, no para dejar aire dentro del flujo. Por eso el
-     alto del hub es la suma de los grosores, no el alto de la columna. */
-  var sumE = 0, sumS = 0;
-  for (i = 0; i < nodosE.length; i++) sumE += nodosE[i].h;
-  for (i = 0; i < nodosS.length; i++) sumS += nodosS[i].h;
-  var hubH = Math.max(sumE, sumS), hubY = TOP;
-  /* la rama de UE se escala al alto del nodo de Unidades Ejecutoras */
-  var nS_ue = null;
-  for (i = 0; i < nodosS.length; i++) if (nodosS[i].d.nom === 'Unidades Ejecutoras') nS_ue = nodosS[i];
-  if (ue.length && nS_ue) {
-    var tUE = suma(ue, function (x) { return x.v; }) || 1;
-    var gapU = ue.length > 1 ? Math.min(6, nS_ue.h / (ue.length * 4)) : 0;
-    var dispo = nS_ue.h - gapU * (ue.length - 1);
-    var yu = nS_ue.y;
+  for (i = 0; i < der.length; i++) { var h2 = alt(der[i].v); nD.push({d:der[i], y:y, h:h2}); y += h2 + GAP; }
+  var sumI = 0, sumD = 0;
+  for (i = 0; i < nI.length; i++) sumI += nI[i].h;
+  for (i = 0; i < nD.length; i++) sumD += nD[i].h;
+  var hubH = Math.max(sumI, sumD), hubY = TOP;
+
+  var nDespN = null;
+  for (i = 0; i < nD.length; i++) if (nD[i].d === nDesp) nDespN = nD[i];
+  if (ue.length && nDespN) {
+    var tU = suma(ue, function (x) { return x.v; }) || 1, yu = nDespN.y;
     for (i = 0; i < ue.length; i++) {
-      var hu = Math.max(2, dispo * (ue[i].v / tUE));
-      nodosU.push({d:ue[i], y:yu, h:hu}); yu += hu + gapU;
+      var hu = Math.max(2.5, nDespN.h * (ue[i].v / tU));
+      nU.push({d:ue[i], y:yu, h:hu}); yu += hu;
     }
   }
+
+  /* relajacion de etiquetas: minimo 27 px entre centros, dentro del lienzo */
+  var relajar = function (ns) {
+    var L = ns.map(function (n) { return {n:n, y:n.y + n.h / 2}; });
+    L.sort(function (a, b) { return a.y - b.y; });
+    var MIN = 27;
+    for (var k = 1; k < L.length; k++) if (L[k].y - L[k-1].y < MIN) L[k].y = L[k-1].y + MIN;
+    var exceso = L.length ? (L[L.length-1].y - (H - 16)) : 0;
+    if (exceso > 0) for (k = L.length - 1; k >= 0; k--) {
+      L[k].y -= exceso;
+      if (k > 0 && L[k].y - L[k-1].y < MIN) exceso = L[k-1].y - (L[k].y - MIN); else break;
+    }
+    for (k = 0; k < L.length; k++) if (L[k].y < TOP - 4) L[k].y = TOP - 4 + k * MIN;
+    L.forEach(function (x) { x.n.ly = x.y; });
+  };
+  relajar(nI); relajar(nD); if (nU.length) relajar(nU);
 
   s.push('<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img">');
-  s.push('<text x="' + X0 + '" y="24" text-anchor="end" font-size="11.5" font-weight="700" fill="#3d4a5a">ENTRA AL CEDIS</text>');
-  s.push('<text x="' + (X1 + HUBW / 2) + '" y="24" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3d4a5a">CEDIS PANAM\u00c1</text>');
-  s.push('<text x="' + (X2 + NW + 8) + '" y="24" font-size="11.5" font-weight="700" fill="#3d4a5a">SALE DEL CEDIS</text>');
-  if (nodosU.length) s.push('<text x="' + (X3 + NW + 8) + '" y="24" font-size="11.5" font-weight="700" fill="#3d4a5a">DESTINO</text>');
+  s.push('<text x="' + X0 + '" y="22" text-anchor="end" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">APORTA A EXISTENCIA</text>');
+  s.push('<text x="' + (X1 + HUBW / 2) + '" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">CEDIS PANAM\u00c1</text>');
+  s.push('<text x="' + (X2 + NW + 8) + '" y="22" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">CONSUME DE EXISTENCIA</text>');
+  if (nU.length) s.push('<text x="' + (X3 + NW + 8) + '" y="22" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">DESTINO</text>');
 
-  /* cintas entrada -> hub */
   var yh = hubY;
-  for (i = 0; i < nodosE.length; i++) {
-    var n = nodosE[i], c = FLU_COL[n.d.nom] || PAL[7];
-    s.push(cinta(X0 + NW, n.y, X1, yh, n.h, c[0],
-      n.d.nom + ' \u2192 CEDIS', n.d.v, n.d.n, U));
-    yh += n.h;
+  for (i = 0; i < nI.length; i++) {
+    s.push(cinta(X0 + NW, nI[i].y, X1, yh, nI[i].h, colDe(nI[i].d, i)[0],
+      etqDe(nI[i].d) + ' \u2192 CEDIS', nI[i].d));
+    yh += nI[i].h;
   }
-  /* cintas hub -> salida */
   var yh2 = hubY;
-  for (i = 0; i < nodosS.length; i++) {
-    var m = nodosS[i], c2 = FLU_COL[m.d.nom] || PAL[7];
-    s.push(cinta(X1 + HUBW, yh2, X2, m.y, m.h, c2[0],
-      'CEDIS \u2192 ' + m.d.nom, m.d.v, m.d.n, U));
-    yh2 += m.h;
+  for (i = 0; i < nD.length; i++) {
+    s.push(cinta(X1 + HUBW, yh2, X2, nD[i].y, nD[i].h, colDe(nD[i].d, i)[0],
+      'CEDIS \u2192 ' + etqDe(nD[i].d), nD[i].d));
+    yh2 += nD[i].h;
   }
-  /* cintas salida UE -> destinos */
-  if (nodosU.length && nS_ue) {
-    var yv = nS_ue.y;
-    for (i = 0; i < nodosU.length; i++) {
-      var u = nodosU[i], cu = PAL[i % PAL.length];
-      s.push(cinta(X2 + NW, yv, X3, u.y, u.h, cu[0],
-        'UE \u2192 ' + u.d.nom, u.d.v, u.d.n, U));
-      yv += u.h;
+  if (nU.length && nDespN) {
+    var yv = nDespN.y;
+    for (i = 0; i < nU.length; i++) {
+      s.push(cinta(X2 + NW, yv, X3, nU[i].y, nU[i].h, PAL[i % PAL.length][0],
+        'UE \u2192 ' + nU[i].d.nom, nU[i].d));
+      yv += nU[i].h;
     }
   }
 
-  /* nodo del hub */
-  s.push('<g class="boca" data-tip="' + q('<b>CEDIS Panam\u00e1</b><br>Entra <span class=\'v\'>' +
-    fluFmt(tE) + '</span><br>Sale <span class=\'v\'>' + fluFmt(tS) + '</span><br>' + U) + '">');
+  s.push('<g class="boca" data-tip="' + q('<b>CEDIS Panam\u00e1</b><br>Aporta <span class=\'v\'>' +
+    fluFmt(sumaV(izq)) + '</span><br>Consume <span class=\'v\'>' + fluFmt(sumaV(der)) + '</span><br>' + U) + '">');
   s.push('<rect x="' + X1 + '" y="' + hubY + '" width="' + HUBW + '" height="' + hubH +
     '" fill="#b6cbe6" stroke="#0C447C" stroke-width="2" rx="2"/></g>');
 
-  /* nodos de entrada, etiqueta a la izquierda */
-  for (i = 0; i < nodosE.length; i++) {
-    var ne = nodosE[i], ce = FLU_COL[ne.d.nom] || PAL[7];
-    s.push(nodo(X0, ne.y, NW, ne.h, ce, ne.d, U, 'fin'));
-  }
-  /* nodos de salida, etiqueta a la derecha */
-  for (i = 0; i < nodosS.length; i++) {
-    var ns = nodosS[i], cs = FLU_COL[ns.d.nom] || PAL[7];
-    s.push(nodo(X2, ns.y, NW, ns.h, cs, ns.d, U, 'ini'));
-  }
-  /* destinos */
-  for (i = 0; i < nodosU.length; i++) {
-    var nu = nodosU[i];
-    s.push(nodo(X3, nu.y, NW, nu.h, PAL[i % PAL.length], nu.d, U, 'ini'));
-  }
+  for (i = 0; i < nI.length; i++) s.push(nodo(X0, nI[i], NW, colDe(nI[i].d, i), 'fin'));
+  for (i = 0; i < nD.length; i++) s.push(nodo(X2, nD[i], NW, colDe(nD[i].d, i), 'ini'));
+  for (i = 0; i < nU.length; i++) s.push(nodo(X3, nU[i], NW, PAL[i % PAL.length], 'ini'));
   s.push('</svg>');
   return s.join('');
 
-  function cinta(x0, y0, x1, y1, h, color, nom, v, n, un) {
-    var xm = (x0 + x1) / 2;
-    var d = 'M' + x0 + ',' + y0 +
-            ' C' + xm + ',' + y0 + ' ' + xm + ',' + y1 + ' ' + x1 + ',' + y1 +
-            ' L' + x1 + ',' + (y1 + h) +
-            ' C' + xm + ',' + (y1 + h) + ' ' + xm + ',' + (y0 + h) + ' ' + x0 + ',' + (y0 + h) + ' Z';
-    var tip = '<b>' + nom + '</b><br><span class="v">' + fluFmt(v) + '</span> ' + un +
-              '<br>' + nf(n) + ' l\u00edneas de documento';
-    return '<path class="cinta" d="' + d + '" fill="' + color + '" opacity="0.62" data-tip="' + q(tip) + '"/>';
+  function sumaV(a) { return suma(a, function (x) { return x.v; }); }
+  function colDe(d, i) {
+    if (d.nom === CIERRE) return ['#e3e3e3', '#5c5c5c'];
+    return PAL[i % PAL.length];
   }
-  function nodo(x, y0, w, h, col, d, un, lado) {
-    var cy = y0 + h / 2;
-    var tip = '<b>' + d.nom + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + un +
-              '<br>' + nf(d.n) + ' l\u00edneas de documento';
-    var g = ['<g class="boca" data-tip="' + q(tip) + '">'];
-    g.push('<rect x="' + x + '" y="' + y0 + '" width="' + w + '" height="' + h +
-      '" fill="' + col[0] + '" stroke="' + col[1] + '" stroke-width="1.5" rx="2"/>');
-    if (lado === 'fin') {
-      g.push('<text x="' + (x - 10) + '" y="' + (cy - 1) + '" text-anchor="end" font-size="12" fill="#22303c">' + esct(d.nom) + '</text>');
-      g.push('<text class="n-val" x="' + (x - 10) + '" y="' + (cy + 13) + '" text-anchor="end" font-size="11" fill="' + col[1] + '">' + fluFmt(d.v) + '</text>');
-    } else {
-      g.push('<text x="' + (x + w + 10) + '" y="' + (cy - 1) + '" font-size="12" fill="#22303c">' + esct(d.nom) + '</text>');
-      g.push('<text class="n-val" x="' + (x + w + 10) + '" y="' + (cy + 13) + '" font-size="11" fill="' + col[1] + '">' + fluFmt(d.v) + '</text>');
+  function cinta(x0, y0, x1, y1, h, color, nom, d) {
+    var xm = (x0 + x1) / 2;
+    var p = 'M' + x0 + ',' + y0 + ' C' + xm + ',' + y0 + ' ' + xm + ',' + y1 + ' ' + x1 + ',' + y1 +
+            ' L' + x1 + ',' + (y1 + h) + ' C' + xm + ',' + (y1 + h) + ' ' + xm + ',' + (y0 + h) + ' ' + x0 + ',' + (y0 + h) + ' Z';
+    var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
+      (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance');
+    return '<path class="cinta" d="' + p + '" fill="' + color + '" opacity="0.6" data-tip="' + q(tip) + '"/>';
+  }
+  function nodo(x, n, w, col, lado) {
+    var d = n.d, cy = n.y + n.h / 2, ly = n.ly === undefined ? cy : n.ly;
+    var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
+      (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance') +
+      '<br><i>clic para la explicaci\u00f3n</i>';
+    var g = ['<g class="boca" data-tip="' + q(tip) + '" data-doc="' + q(d.nom) + '" style="cursor:pointer">'];
+    /* linea guia cuando la etiqueta tuvo que desplazarse */
+    if (Math.abs(ly - cy) > 5) {
+      var xa = lado === 'fin' ? x - 6 : x + w + 6;
+      var xb = lado === 'fin' ? x - 1 : x + w + 1;
+      g.push('<path d="M' + xb + ',' + cy + ' L' + xa + ',' + ly + '" stroke="' + col[1] +
+        '" stroke-width="0.9" fill="none" opacity="0.5"/>');
     }
+    g.push('<rect x="' + x + '" y="' + n.y + '" width="' + w + '" height="' + n.h +
+      '" fill="' + col[0] + '" stroke="' + col[1] + '" stroke-width="1.5" rx="2"/>');
+    var tx = lado === 'fin' ? (x - 10) : (x + w + 10);
+    var an = lado === 'fin' ? ' text-anchor="end"' : '';
+    g.push('<text x="' + tx + '" y="' + (ly - 1) + '"' + an + ' font-size="11.5" fill="#22303c">' + esct(d.etq || d.nom) + '</text>');
+    g.push('<text class="n-val" x="' + tx + '" y="' + (ly + 12) + '"' + an + ' font-size="10.5" fill="' + col[1] + '">' + fluFmt(d.v) + '</text>');
     g.push('</g>');
     return g.join('');
   }
   function esct(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 }
+
+function pintarBalanceTabla(izq, der, nCierre, A) {
+  var clasesDe = function (nom) {
+    if (nom === CIERRE) return '\u2014';
+    if (nom === SIN_CAT) return Object.keys(A.clasesSin).sort().join(' ');
+    var cs = [];
+    for (var m in CONCEPTO) if (CONCEPTO[m] === nom) cs.push(m);
+    return cs.sort().join(' ');
+  };
+  var fila = function (x, lado) {
+    return [lado, x.etq || x.nom, clasesDe(x.nom), x.n,
+      suma(x.arr, function (r) { return r[cQ]; }),
+      suma(x.arr, function (r) { return valor(r); }),
+      x.nom === CIERRE ? '' : uniq(x.arr, function (r) { return r[cMAT]; }),
+      x.nom === CIERRE ? '' : uniq(x.arr, function (r) { return r[cDOC]; })];
+  };
+  var filas = [];
+  var i;
+  for (i = 0; i < izq.length; i++) filas.push(fila(izq[i], izq[i].nom === CIERRE ? 'CIERRE' : 'APORTA'));
+  for (i = 0; i < der.length; i++) filas.push(fila(der[i], der[i].nom === CIERRE ? 'CIERRE' : 'CONSUME'));
+  /* El cierre no tiene lineas ni documentos detras, y su cifra va con el SIGNO
+     CONTRARIO a la variacion de existencia: es la partida que equilibra, no la
+     variacion misma. Con +307,075 del lado que consume, la columna no sumaba
+     cero y el balance no se leia como balance. Con -307,075 si:
+        movimientos (+307,075) + partida de cierre (-307,075) = 0
+     La tarjeta de arriba sigue mostrando +307,075, que es la lectura natural
+     de "cuanto crecio la existencia". */
+  if (nCierre) {
+    for (i = 0; i < filas.length; i++) {
+      if (filas[i][1] === (nCierre.etq || nCierre.nom)) {
+        filas[i][4] = fluMetrica() === 'uni' ? -nCierre.neto : '';
+        filas[i][5] = fluMetrica() === 'uni' ? '' : -nCierre.neto;
+      }
+    }
+  }
+  /* fila de comprobacion: la suma de la columna con signo debe ser cero */
+  var sumQ = 0, sumV = 0;
+  for (i = 0; i < filas.length; i++) {
+    if (typeof filas[i][4] === 'number') sumQ += filas[i][4];
+    if (typeof filas[i][5] === 'number') sumV += filas[i][5];
+  }
+  filas.push(['CIERRE', 'TOTAL · debe ser cero', '', 0,
+    fluMetrica() === 'uni' ? sumQ : '', fluMetrica() === 'uni' ? '' : sumV, '', '']);
+  var CH3 = {APORTA:'ok', CONSUME:'wa', CIERRE:'nu'};
+  tabla('tFlu', [
+    {h:'Efecto', t:'c', f:function (v) { return '<span class="chip ' + CH3[v] + '">' + v + '</span>'; }},
+    {h:'Concepto', t:'t'}, {h:'Clases de movimiento', t:'c'},
+    {h:'L\u00edneas', t:'n', f:function (v) { return v ? nf(v) : '\u2014'; }},
+    {h:'Cantidad neta', t:'n', f:function (v) { return v === '' ? '\u2014' : nf(v); }},
+    {h:'Valor neto B/.', t:'n', f:function (v) { return v === '' ? '\u2014' : nf2(v); }},
+    {h:'Rengl\u00f3nes', t:'n', f:function (v) { return v === '' ? '\u2014' : nf(v); }},
+    {h:'Doc. SAP', t:'n', f:function (v) { return v === '' ? '\u2014' : nf(v); }}
+  ], filas, {i:5, d:-1});
+}
+
+/* ── modal generico ──────────────────────────────────────────────────────
+ *  Lo usan el diagrama de flujo y la ayuda de las columnas. Cualquier cifra
+ *  que pueda leerse de dos maneras lleva una (i) que abre esto: una columna
+ *  con la que se va a medir a una persona no puede depender de que el nombre
+ *  sea autoexplicativo.
+ * ────────────────────────────────────────────────────────────────────────── */
+function modalAbrir(titulo, html) {
+  $('modTit').textContent = titulo;
+  $('modBody').innerHTML = html;
+  $('modal').style.display = 'flex';
+}
+
+/* ── modal de concepto ── */
+function fluEnlazarModal(A) {
+  var cont = $('sankey');
+  if (!cont) return;
+  cont.onclick = function (e) {
+    var el = e.target.closest ? e.target.closest('[data-doc]') : null;
+    if (!el) return;
+    fluModal(el.getAttribute('data-doc'), A);
+  };
+}
+function fluModal(nom, A) {
+  var doc = CONCEPTO_DOC[nom];
+  var tit = nom === CIERRE ? 'Variaci\u00f3n de existencia' : nom;
+  var cuerpo;
+  if (!doc) {
+    cuerpo = '<p>Destino de despacho. El valor es el neto del movimiento 313 menos sus anulaciones ' +
+      'hacia esa unidad, tomado del campo estructurado <b>Almac\u00e9n receptor</b> del reporte.</p>';
+  } else {
+    var cl = doc.cl;
+    if (nom === SIN_CAT) {
+      cl = Object.keys(A.clasesSin).sort().map(function (m) {
+        return m + ' (' + nf(A.clasesSin[m]) + ' l\u00edneas)';
+      }).join(' \u00b7 ');
+    }
+    cuerpo = '<p><b>Clases de movimiento:</b> ' + cl + '</p>' +
+             '<p>' + doc.qe + '</p>' +
+             '<p class="ojo"><b>A tener en cuenta.</b> ' + doc.oj + '</p>';
+  }
+  modalAbrir(tit, cuerpo);
+}
+function fluCerrarModal() { $('modal').style.display = 'none'; }
 
 /* El tooltip es un div y no un <title> del SVG: el nativo tarda un segundo en
    aparecer y no admite formato. */
@@ -2114,7 +2318,7 @@ function fluEnlazarTip() {
     tip.style.display = 'block';
     var x = e.clientX + 14, yy = e.clientY + 14;
     if (x + 330 > window.innerWidth) x = e.clientX - 330;
-    if (yy + 110 > window.innerHeight) yy = e.clientY - 110;
+    if (yy + 120 > window.innerHeight) yy = e.clientY - 120;
     tip.style.left = x + 'px'; tip.style.top = yy + 'px';
   };
   cont.onmouseleave = function () { tip.style.display = 'none'; };
@@ -2168,21 +2372,30 @@ function pintarProd() {
       borderColor:ukP.map(function (k, i) { return PAL[i % PAL.length][1]; })}]},
     options:optH(U_LIN)});
 
+  /* Los nombres de las tres columnas de hora se cambiaron: decian "Inicio
+     habitual" y "Cierre habitual", y eso se lee como hora de entrada y salida
+     de la jornada. Son la mediana de la primera y la ultima CAPTURA EN SAP, que
+     es otra cosa. Con estas columnas se mide a personas, asi que llevan (i). */
   var COLS = [
     {h:'Usuario SAP', t:'t'},
     {h:'Equipo', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CEDIS PANAMA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
-    {h:'D\u00edas activos', t:'n', f:nf}, {h:'L\u00edneas', t:'n', f:nf}, {h:'L\u00edneas por d\u00eda', t:'n', f:nf},
+    {h:'D\u00edas activos', t:'n', f:nf, doc:'diasAct'},
+    {h:'L\u00edneas', t:'n', f:nf},
+    {h:'L\u00edneas por d\u00eda', t:'n', f:nf, doc:'linDia'},
     {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
     {h:'L\u00edneas 313', t:'n', f:nf}, {h:'L\u00edneas 101', t:'n', f:nf}, {h:'Anulaciones', t:'n', f:nf},
     {h:'Clases operadas', t:'t'},
-    {h:'Inicio habitual', t:'c'}, {h:'Cierre habitual', t:'c'}, {h:'Jornada (h)', t:'n'},
-    {h:'Mide desempe\u00f1o', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
+    {h:'1.\u00aa captura \u00b7 mediana', t:'c', doc:'captIni'},
+    {h:'\u00daltima captura \u00b7 mediana', t:'c', doc:'captFin'},
+    {h:'Ventana de captura (h)', t:'n', doc:'captVen'},
+    {h:'Mide desempe\u00f1o', t:'c', doc:'mideDes', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
   ];
-  /* 'Inicio habitual' y 'Cierre habitual' son la MEDIANA de la primera y la
-     ultima captura de cada dia, no el minimo y el maximo de todo el periodo.
-     El minimo y el maximo sobre cinco meses no dicen nada: un solo dia raro
-     los mueve y quedan como si la persona trabajara de 10 a 23 todos los dias.
-     La mediana describe la jornada tipica. */
+  /* MEDIANA de la primera y la ultima captura de cada dia, no el minimo y el
+     maximo del periodo: esos los mueve un solo dia atipico y dejaban a la
+     persona como si capturara de 10 a 23 todos los dias.
+     Es la hora de CAPTURA EN SAP, no la de entrada y salida del turno. La
+     diferencia esta explicada en la (i) de cada columna, porque con estas
+     cifras se mide a gente y un nombre corto no alcanza. */
   function filaUsr(k, x, equipo) {
     var porDia = {};
     for (var i2 = 0; i2 < x.length; i2++) {
@@ -2218,7 +2431,9 @@ function pintarProd() {
 
   $('prodNota').innerHTML = 'Los indicadores de arriba se calculan sobre <b>' + nf(pan.length) +
     ' l\u00edneas de CEDIS Panam\u00e1</b> (' + pctPan.toFixed(1) + '% del kardex). Las ' + nf(otr.length) +
-    ' l\u00edneas de otras sedes se listan abajo pero no entran en ning\u00fan promedio.';
+    ' l\u00edneas de otras sedes se listan abajo pero no entran en ning\u00fan promedio. ' +
+    '<b>Las columnas con (i) explican qu\u00e9 miden y qu\u00e9 no</b>: conviene leerlas antes de usar ' +
+    'estas cifras para evaluar a alguien.';
 
   var movs = {};
   for (var n = 0; n < pan.length; n++) movs[pan[n][cM]] = 1;
@@ -2409,8 +2624,8 @@ var TOUR = [
     txt:'Cada pesta\u00f1a responde una pregunta distinta sobre los mismos movimientos. Solo se dibuja la que est\u00e9 abierta, por eso el tablero responde r\u00e1pido aunque tenga casi cincuenta mil l\u00edneas.' },
   { sel:'#kResumen', tab:'resumen', tit:'4. El pulso del per\u00edodo',
     txt:'Unidades despachadas a Unidades Ejecutoras, valor recibido en compras y el ajuste neto de inventario. El valor despachado es un <b>estimado</b>: SAP no valoriza los traslados y el precio sale del MB52.' },
-  { sel:'#sankey', tab:'flujo', tit:'5. El balance completo, de un vistazo',
-    txt:'El kardex es un balance: todo lo que entra al CEDIS sale por alguna boca o se queda en existencia. Las dem\u00e1s pesta\u00f1as lo muestran por partes; aqu\u00ed se ve el conjunto. Pase el cursor sobre una cinta para ver su cifra, y cambie la m\u00e9trica entre balboas y l\u00edneas de documento. <b>El diagrama no cuadra a cero a prop\u00f3sito</b>: la diferencia es la variaci\u00f3n de existencia del per\u00edodo.' },
+  { sel:'#sankey', tab:'flujo', tit:'5. El balance completo, y cierra',
+    txt:'Lo que aporta existencia suma exactamente lo mismo que lo que la consume, porque la <b>variaci\u00f3n de existencia</b> se dibuja como un concepto m\u00e1s. Toda clase de movimiento est\u00e1 dentro, incluso las que no est\u00e1n catalogadas. Pase el cursor sobre una cinta para su cifra y <b>haga clic en un concepto</b> para ver qu\u00e9 registra y qu\u00e9 tener en cuenta. La m\u00e9trica cambia entre balboas y unidades.' },
   { sel:'#kFact', tab:'fact', tit:'6. La facturaci\u00f3n a las UE',
     txt:'Movimientos 313 y 314. El destino sale del campo estructurado <b>Almac\u00e9n receptor</b>, que siempre viene lleno, no del texto libre. Vigile la tasa de anulaci\u00f3n y las l\u00edneas sin precio.' },
   { sel:'#tF8', tab:'fact', tit:'7. La Forma 8, una por una',
