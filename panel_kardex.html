@@ -54,9 +54,16 @@ button.btn:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
 @media(max-width:1000px){.grid2{grid-template-columns:1fr}}
 .chartbox{position:relative;height:280px}
 table{width:100%;border-collapse:collapse;font-size:12px}
+/* Los encabezados PARTEN en dos lineas. Con nowrap, 14 columnas forzaban
+   scroll lateral en la tabla de productividad y habia que arrastrar para
+   ver las horas. vertical-align:bottom alinea los de una linea con los de
+   dos por abajo, contra los datos, en vez de dejarlos flotando arriba. */
 th{background:#0C447C;color:#fff;padding:5px 7px;text-align:left;font-weight:600;font-size:11px;position:sticky;top:0;cursor:pointer;user-select:none;white-space:normal;line-height:1.3;vertical-align:bottom}
 th:hover{background:#1E5A9E}
 th .ar{font-size:9px;opacity:.55;margin-left:3px}
+/* la celda de mediana y rango no se parte: '11:00 · 10:07' en una linea y
+   '–11:49' en la otra no se entiende */
+td.nb{white-space:nowrap}
 .th-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;
   margin-left:5px;border:1px solid rgba(255,255,255,.7);border-radius:50%;font-size:9px;
   font-style:italic;font-weight:700;line-height:1;cursor:help;vertical-align:middle}
@@ -1091,7 +1098,8 @@ function render(id) {
   }).join('');
   var tb = fs.map(function (f) {
     return '<tr>' + t.cols.map(function (c, i) {
-      return '<td class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) + '">' + (c.f ? c.f(f[i], f) : esc(f[i])) + '</td>';
+      return '<td class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) +
+        (c.nb ? ' nb' : '') + '">' + (c.f ? c.f(f[i], f) : esc(f[i])) + '</td>';
     }).join('') + '</tr>';
   }).join('');
   var pie = recorte ? '<tfoot><tr><td colspan="' + t.cols.length + '" style="background:#faf0d7;' +
@@ -2519,8 +2527,8 @@ function pintarProd() {
        reclamo desaparece y el lector juzga por si mismo la dispersion.
        'Mide desempeño' se retiro: el rotulo del bloque ya dice a quien se mide,
        y repetir un SI en las nueve filas no aportaba nada. */
-    {h:'1.\u00aa captura \u00b7 mediana y rango', t:'c', doc:'captIni'},
-    {h:'\u00daltima captura \u00b7 mediana y rango', t:'c', doc:'captFin'},
+    {h:'1.\u00aa captura \u00b7 mediana y rango', t:'c', doc:'captIni', nb:true},
+    {h:'\u00daltima captura \u00b7 mediana y rango', t:'c', doc:'captFin', nb:true},
     {h:'Ventana de captura (h)', t:'n', doc:'captVen'}
   ];
   /* MEDIANA de la primera y la ultima captura de cada dia, no el minimo y el
