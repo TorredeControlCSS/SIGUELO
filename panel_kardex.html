@@ -9,6 +9,10 @@
 <link rel="icon" href="./favicon.ico">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<!-- ExcelJS y no SheetJS: es el unico que soporta imagenes, y el logo
+     institucional va incrustado en cada exportacion. -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:#ececec;color:#222;font-size:13px}
@@ -172,7 +176,7 @@ td.c,th.c{text-align:center}
     <div class="card"><h3>Composici&oacute;n por clase de movimiento<span class="per">Acumulado del rango</span></h3><div class="body"><div class="chartbox"><canvas id="chMov"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Cierre por d&iacute;a<span class="per">Diario &middot; acumulable</span></h3>
-    <div class="tabla-h"><span>Una fila por fecha de contabilizaci&oacute;n. Clic en el encabezado para ordenar.</span><div class="der"><button class="btn sec" data-csv="tDia">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>Una fila por fecha de contabilizaci&oacute;n. Clic en el encabezado para ordenar.</span><div class="der"><button class="btn sec" data-csv="tDia">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tDia"></table></div></div>
   <div class="grid2">
     <div class="card"><h3>Destinos con mayor despacho<span class="per">Acumulado &middot; unidades</span></h3><div class="body"><div class="chartbox"><canvas id="chUE"></canvas></div></div></div>
@@ -184,10 +188,10 @@ td.c,th.c{text-align:center}
   <div class="sub">Movimientos <b>313</b> (salida por traslado a Unidad Ejecutora) y <b>314</b> (anulaci&oacute;n). Es la evidencia sist&eacute;mica de facturaci&oacute;n del pedido. SAP no valoriza estos traslados &mdash; llegan con importe en cero &mdash; as&iacute; que el valor se calcula con el precio unitario del MB52, que es el mismo procedimiento que usa la Jefatura de Facturaci&oacute;n para el cierre contable.</div>
   <div class="kpis" id="kFact"></div>
   <div class="card"><h3>Despacho por Unidad Ejecutora<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>El destino proviene del campo estructurado <b>Almac&eacute;n receptor</b> de SAP, no del texto libre.</span><div class="der"><button class="btn sec" data-csv="tUE">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>El destino proviene del campo estructurado <b>Almac&eacute;n receptor</b> de SAP, no del texto libre.</span><div class="der"><button class="btn sec" data-csv="tUE">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tUE"></table></div></div>
   <div class="card"><h3>Detalle por Forma 8 / referencia<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>La Forma 8 se lee del campo libre <b>Texto cab.documento</b>, que el capturador escribe a mano; su legibilidad se audita en Cobertura y calidad.</span><div class="der"><button class="btn sec" data-csv="tF8">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>La Forma 8 se lee del campo libre <b>Texto cab.documento</b>, que el capturador escribe a mano; su legibilidad se audita en Cobertura y calidad.</span><div class="der"><button class="btn sec" data-csv="tF8">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tF8"></table></div></div>
 </div>
 
@@ -196,10 +200,10 @@ td.c,th.c{text-align:center}
   <div class="kpis" id="kRec"></div>
   <div class="card"><h3>Valor recibido<span class="per" id="perRec">&mdash;</span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
   <div class="card"><h3>Recepci&oacute;n por proveedor<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>El c&oacute;digo de proveedor es el de SAP; el nombre no viaja en el MB51.</span><div class="der"><button class="btn sec" data-csv="tProv">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>El c&oacute;digo de proveedor es el de SAP; el nombre no viaja en el MB51.</span><div class="der"><button class="btn sec" data-csv="tProv">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tProv"></table></div></div>
   <div class="card"><h3>Recepci&oacute;n por pedido de compra<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>Cruzable con el m&oacute;dulo de &Oacute;rdenes de Compra en Tr&aacute;nsito.</span><div class="der"><button class="btn sec" data-csv="tPed">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>Cruzable con el m&oacute;dulo de &Oacute;rdenes de Compra en Tr&aacute;nsito.</span><div class="der"><button class="btn sec" data-csv="tPed">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tPed"></table></div></div>
 </div>
 
@@ -208,7 +212,7 @@ td.c,th.c{text-align:center}
   <div class="kpis" id="kAju"></div>
   <div class="card"><h3>Motivos de mayor impacto en valor<span class="per">Acumulado &middot; B/.</span></h3><div class="body"><div class="chartbox"><canvas id="chAju"></canvas></div></div></div>
   <div class="card"><h3>Ajustes por motivo declarado<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>El motivo es el texto libre de cabecera del documento, tal como lo escribi&oacute; el usuario.</span><div class="der"><button class="btn sec" data-csv="tAju">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>El motivo es el texto libre de cabecera del documento, tal como lo escribi&oacute; el usuario.</span><div class="der"><button class="btn sec" data-csv="tAju">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tAju"></table></div></div>
 </div>
 
@@ -219,7 +223,7 @@ td.c,th.c{text-align:center}
     <div class="card"><h3>Grupo anat&oacute;mico ATC<span class="per">Solo medicamentos &middot; l&iacute;neas</span></h3><div class="body"><div class="chartbox"><canvas id="chAtc"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Movimiento por rengl&oacute;n<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>Entradas y salidas en unidades. El neto es entradas menos salidas dentro del rango filtrado.</span><div class="der"><button class="btn sec" data-csv="tReng">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>Entradas y salidas en unidades. El neto es entradas menos salidas dentro del rango filtrado.</span><div class="der"><button class="btn sec" data-csv="tReng">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tReng"></table></div></div>
 </div>
 
@@ -228,7 +232,7 @@ td.c,th.c{text-align:center}
   <div class="kpis" id="kLot"></div>
   <div class="card"><h3>Lotes movidos por ventana de vencimiento<span class="per">Acumulado &middot; lotes</span></h3><div class="body"><div class="chartbox"><canvas id="chVenc"></canvas></div></div></div>
   <div class="card"><h3>Lotes movidos en el rango<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>Un lote puede aparecer en varias clases de movimiento.</span><div class="der"><button class="btn sec" data-csv="tLot">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>Un lote puede aparecer en varias clases de movimiento.</span><div class="der"><button class="btn sec" data-csv="tLot">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tLot"></table></div></div>
 </div>
 
@@ -240,10 +244,10 @@ td.c,th.c{text-align:center}
     <div class="card"><h3>Concentraci&oacute;n del valor<span class="per">Foto vigente &middot; top 12 rengl&oacute;nes</span></h3><div class="body"><div class="chartbox"><canvas id="chInvTop"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Existencia por categor&iacute;a<span class="per">Foto vigente</span></h3>
-    <div class="tabla-h"><span>La categor&iacute;a es la llave con que Contabilidad asigna la cuenta financiera.</span><div class="der"><button class="btn sec" data-csv="tInvCat">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>La categor&iacute;a es la llave con que Contabilidad asigna la cuenta financiera.</span><div class="der"><button class="btn sec" data-csv="tInvCat">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tInvCat"></table></div></div>
   <div class="card"><h3>Existencia por rengl&oacute;n y lote<span class="per">Foto vigente</span></h3>
-    <div class="tabla-h"><span id="invNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tInv">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span id="invNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tInv">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tInv"></table></div></div>
 </div>
 
@@ -255,10 +259,10 @@ td.c,th.c{text-align:center}
     <div class="card"><h3>Latencia mediana por clase<span class="per">Acumulado &middot; d&iacute;as</span></h3><div class="body"><div class="chartbox"><canvas id="chLatM"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Latencia por clase de movimiento<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>La mediana es m&aacute;s representativa que el promedio: unos pocos documentos muy antiguos distorsionan la media.</span><div class="der"><button class="btn sec" data-csv="tLatM">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>La mediana es m&aacute;s representativa que el promedio: unos pocos documentos muy antiguos distorsionan la media.</span><div class="der"><button class="btn sec" data-csv="tLatM">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tLatM"></table></div></div>
   <div class="card"><h3>Documentos con mayor rezago<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span>Una fila por documento SAP, ordenado por latencia descendente.</span><div class="der"><button class="btn sec" data-csv="tLatD">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span>Una fila por documento SAP, ordenado por latencia descendente.</span><div class="der"><button class="btn sec" data-csv="tLatD">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tLatD"></table></div></div>
 </div>
 
@@ -270,7 +274,7 @@ td.c,th.c{text-align:center}
     <div class="card"><h3>L&iacute;neas por usuario<span class="per">CEDIS Panam&aacute; &middot; acumulado</span></h3><div class="body"><div class="chartbox"><canvas id="chUsr"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Actividad por usuario<span class="per">Acumulado del rango</span></h3>
-    <div class="tabla-h"><span id="prodNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tProd">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span id="prodNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tProd">Exportar Excel</button></div></div>
     <div class="bloque">CEDIS Panam&aacute; &middot; bajo la Jefatura de Facturaci&oacute;n</div>
     <div class="scroll"><table id="tProd"></table></div>
     <div class="bloque otras">Otras sedes &middot; fuera de esa jefatura &middot; no atribuible a CEDIS Panam&aacute;</div>
@@ -282,7 +286,7 @@ td.c,th.c{text-align:center}
 <div class="panel" id="p-cal">
   <div class="kpis" id="kCal"></div>
   <div class="card"><h3>Cobertura del hist&oacute;rico<span class="per">D&iacute;as calendario del rango</span></h3>
-    <div class="tabla-h"><span id="cobNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tCob">Exportar CSV</button></div></div>
+    <div class="tabla-h"><span id="cobNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tCob">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tCob"></table></div></div>
   <div class="grid2">
     <div class="card"><h3>Legibilidad de la Forma 8<span class="per">Movimientos 313 y 314</span></h3><div class="scroll"><table id="tF8cal"></table></div></div>
@@ -296,7 +300,7 @@ td.c,th.c{text-align:center}
 
 <div class="panel" id="p-det">
   <div class="card"><h3>Detalle de l&iacute;neas<span class="per">Una fila por l&iacute;nea de documento SAP</span></h3>
-    <div class="tabla-h"><span id="detInfo">&mdash;</span><div class="der"><button class="btn sec" id="btnMas">Ver 200 m&aacute;s</button><button class="btn sec" data-csv="tDet">Exportar CSV (todo lo filtrado)</button></div></div>
+    <div class="tabla-h"><span id="detInfo">&mdash;</span><div class="der"><button class="btn sec" id="btnMas">Ver 200 m&aacute;s</button><button class="btn sec" data-csv="tDet">Exportar Excel (todo lo filtrado)</button></div></div>
     <div class="scroll"><table id="tDet"></table></div></div>
 </div>
 
@@ -335,11 +339,6 @@ var KDX_BASE = './kardex';
    no está bajo su mando. Actualícelo cuando cambie el personal. */
 var PADRON = ['FFLORES','GQUIJADA','LBROWN','MBROCE','AMILLER',
               'RODGOMEZ','CAFORERO','RICAUNUNEZ','RURRIOLA'];
-
-/* Fuera de toda medición de desempeño: son eventos puntuales, no captura
-   diaria. YASSJIMENEZ registró 2,466 líneas de inventario físico (701/702)
-   en un solo día; promediarlo distorsionaría cualquier indicador. */
-var NO_MIDE = ['YASSJIMENEZ'];
 
 /* 0=domingo. El sábado es día laborable OPCIONAL en el CEDIS: se trabaja a
    requerimiento, así que un sábado sin carga no cuenta como falta. */
@@ -391,7 +390,14 @@ var $ = function (id) { return document.getElementById(id); };
 var nf  = function (n) { return (n === null || n === undefined || isNaN(n)) ? '' : Number(n).toLocaleString('es-PA', {maximumFractionDigits:0}); };
 var nf2 = function (n) { return (n === null || n === undefined || isNaN(n)) ? '' : Number(n).toLocaleString('es-PA', {minimumFractionDigits:2, maximumFractionDigits:2}); };
 var esc = function (s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
-var AZ = ['#0C447C','#1E5A9E','#4A7FB5','#7FA3C8','#b5820a','#1b7a34','#b31b1b','#5c5c5c','#8a6207','#2e6b8a','#9a6fb0','#c26a4a'];
+/* Paleta con contraste. Antes las cuatro naturalezas usaban cuatro azules
+   consecutivos y en pantalla eran indistinguibles: el mensaje del grafico se
+   perdia. Ahora cada naturaleza tiene su propio color y su significado:
+   entrada suma (verde), salida resta (azul), ajuste corrige (ambar),
+   sin catalogar avisa (gris). */
+var COL_NAT = { ENTRADA:'#1b7a34', SALIDA:'#0C447C', AJUSTE:'#d97706', OTRO:'#8a8a8a' };
+var AZ = ['#0C447C','#1b7a34','#d97706','#9a6fb0','#b31b1b','#2e6b8a','#c26a4a','#5c5c5c',
+          '#b5820a','#1E5A9E','#6b7a2a','#8a6207'];
 
 var TABS = [['resumen','Resumen'],['fact','Facturaci\u00f3n a UE'],['recep','Recepci\u00f3n y compras'],
   ['ajuste','Ajustes y bajas'],['reng','Rengl\u00f3nes'],['lotes','Lotes y vencimientos'],
@@ -403,6 +409,16 @@ var TABS = [['resumen','Resumen'],['fact','Facturaci\u00f3n a UE'],['recep','Rec
 function norm(s) {
   return String(s === null || s === undefined ? '' : s)
     .toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+/* 'HH:MM:SS' -> minutos del dia, y de vuelta. Se promedia en minutos porque
+   promediar cadenas de hora no tiene sentido. */
+function hhmmMin(s) {
+  var m = String(s || '').match(/^(\d{1,2}):(\d{2})/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+}
+function minHHMM(v) {
+  var t = Math.round(v), p = function (x) { return (x < 10 ? '0' : '') + x; };
+  return p(Math.floor(t / 60)) + ':' + p(t % 60);
 }
 function mediana(a) {
   if (!a.length) return 0;
@@ -585,6 +601,9 @@ function valorEstimado(r) { return !r[cV] && valor(r) !== 0; }
  * ────────────────────────────────────────────────────────────────────────── */
 
 function init() {
+  /* El plugin de etiquetas se registra aqui: si el CDN no cargo, el tablero
+     funciona igual, solo sin numeros sobre las barras. */
+  try { if (window.ChartDataLabels) Chart.register(window.ChartDataLabels); } catch (e) {}
   $('mCorte').textContent = IDX._meta.hasta;
   $('mGen').textContent = IDX._meta.generado;
   $('eTot').textContent = nf(ROWS.length);
@@ -892,19 +911,150 @@ function render(id) {
   });
   t.orden = fs;
 }
-function csv(id) {
+/* ──────────────────────────────────────────────────────────────────────────
+ *  EXPORTACION A EXCEL CON ENCABEZADO INSTITUCIONAL
+ *  ExcelJS y no SheetJS porque es el unico que admite imagenes, y el logo va
+ *  incrustado. Mismo formato que el pre-pedido de la Calculadora de
+ *  Reposicion: logo, tres lineas de identidad, la nota de contexto de la
+ *  tabla, y los filtros con que se genero — un Excel que sale de un tablero
+ *  filtrado y no dice con que filtros salio no se puede auditar despues.
+ * ────────────────────────────────────────────────────────────────────────── */
+var LOGO_URL = 'https://raw.githubusercontent.com/TorredeControlCSS/SIGUELO/main/icons/icon-192.png';
+var AZUL = 'FF0C447C', AZUL2 = 'FF1E5A9E', GRIS = 'FF555555';
+
+/* Descripcion legible de los filtros activos, para el encabezado del Excel. */
+function filtrosTexto() {
+  var p = [];
+  p.push('Rango: ' + ($('fDesde').value || '?') + ' a ' + ($('fHasta').value || '?'));
+  if ($('fMov').value)  p.push('Clase: ' + $('fMov').value);
+  if ($('fUE').value)   p.push('Destino: ' + (MAPA_UE[$('fUE').value] || $('fUE').value));
+  if ($('fTipo').value) p.push('Tipo: ' + $('fTipo').value);
+  if ($('fUsr').value)  p.push('Usuario: ' + $('fUsr').value);
+  if ($('fRen').value)  p.push('Rengl\u00f3n: ' + $('fRen').value);
+  return p.join('  \u00b7  ');
+}
+function tituloTabla(id) {
+  var card = $(id) ? $(id).closest('.card') : null;
+  var h3 = card ? card.querySelector('h3') : null;
+  if (!h3) return 'Kardex SAP-SAFIRO';
+  return h3.textContent.replace(/Exportar.*/, '').replace(/\s+/g, ' ').trim();
+}
+function notaTabla(id) {
+  var card = $(id) ? $(id).closest('.card') : null;
+  var th = card ? card.querySelector('.tabla-h span') : null;
+  return th ? th.textContent.trim() : '';
+}
+
+function csv(id) { excel(id); }        /* los botones antiguos siguen sirviendo */
+
+function excel(id) {
   var t = TBL[id]; if (!t) return;
-  /* 'full' puede ser una funcion: el detalle son 49,942 filas por 27 columnas y
-     materializarlas en cada cambio de filtro agotaba la memoria sin que nadie
-     hubiera pedido exportar. Se construyen solo al pulsar el boton. */
+  if (typeof ExcelJS === 'undefined') {
+    alert('No se pudo cargar el generador de Excel. Revise su conexi\u00f3n e intente de nuevo.');
+    return;
+  }
+  /* 'full' puede ser una funcion: el detalle son casi 50,000 filas por 27
+     columnas y materializarlas en cada cambio de filtro agotaba la memoria sin
+     que nadie hubiera pedido exportar. Se construyen solo al pulsar. */
   var completo = (typeof t.full === 'function') ? t.full() : t.full;
   var fs = completo ? ordenar(t.cols, completo, t.sort) : (t.orden || t.filas);
-  var lim = function (s) { return '"' + String(s === null || s === undefined ? '' : s).replace(/<[^>]+>/g, '').replace(/"/g, '""') + '"'; };
-  var txt = '\uFEFF' + [t.cols.map(function (c) { return lim(c.h); }).join(';')]
-    .concat(fs.map(function (f) { return f.map(lim).join(';'); })).join('\r\n');
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'}));
-  a.download = 'KARDEX_' + id + '_' + IDX._meta.hasta + '.csv'; a.click();
+  var limpio = function (s) {
+    return String(s === null || s === undefined ? '' : s).replace(/<[^>]+>/g, '').trim();
+  };
+  var titulo = tituloTabla(id), nota = notaTabla(id), nc = t.cols.length;
+  var colFin = String.fromCharCode(64 + Math.min(nc, 26));
+
+  var wb = new ExcelJS.Workbook();
+  wb.creator = 'Torre de Control \u00b7 CEDIS Panam\u00e1';
+  wb.created = new Date();
+  var ws = wb.addWorksheet('Kardex', {views:[{showGridLines:false, state:'frozen', ySplit:8}]});
+  ws.columns = t.cols.map(function (c) {
+    return {width: c.t === 'n' ? 15 : Math.min(46, Math.max(12, c.h.length + 4))};
+  });
+
+  ws.mergeCells('A1:B4');                          /* hueco para el logo */
+  ws.mergeCells('C1:' + colFin + '1'); ws.getCell('C1').value = 'CAJA DE SEGURO SOCIAL';
+  ws.mergeCells('C2:' + colFin + '2');
+  ws.getCell('C2').value = 'Direcci\u00f3n Nacional de Log\u00edstica \u00b7 CEDIS Panam\u00e1 \u00b7 Torre de Control';
+  ws.mergeCells('C3:' + colFin + '3');
+  ws.getCell('C3').value = 'KARDEX SAP-SAFIRO \u00b7 ' + titulo.toUpperCase();
+  ws.mergeCells('C4:' + colFin + '4');
+  ws.getCell('C4').value = filtrosTexto() + '   \u00b7   Corte de datos: ' + IDX._meta.hasta +
+    '   \u00b7   Generado: ' + new Date().toLocaleString('es-PA');
+  ws.getCell('C1').font = {bold:true, size:13, color:{argb:AZUL}};
+  ws.getCell('C2').font = {size:9, color:{argb:GRIS}};
+  ws.getCell('C3').font = {bold:true, size:12, color:{argb:AZUL2}};
+  ws.getCell('C4').font = {size:9, italic:true, color:{argb:GRIS}};
+
+  if (nota) {
+    ws.mergeCells('A6:' + colFin + '6');
+    ws.getCell('A6').value = nota;
+    ws.getCell('A6').font = {size:9, color:{argb:GRIS}};
+    ws.getCell('A6').alignment = {wrapText:true, vertical:'middle'};
+    ws.getRow(6).height = 26;
+  }
+
+  var hr = ws.getRow(8);
+  t.cols.forEach(function (c, i) { hr.getCell(i + 1).value = limpio(c.h); });
+  hr.eachCell(function (cell) {
+    cell.font = {bold:true, size:10, color:{argb:'FFFFFFFF'}};
+    cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:AZUL2}};
+    cell.alignment = {vertical:'middle', horizontal:'center', wrapText:true};
+    cell.border = {bottom:{style:'thin', color:{argb:'FFA8A8A8'}}};
+  });
+  hr.height = 28;
+
+  var r = 9;
+  for (var i = 0; i < fs.length; i++) {
+    var row = ws.getRow(r);
+    for (var j = 0; j < nc; j++) {
+      var v = fs[i][j], cell = row.getCell(j + 1);
+      /* los numeros van como NUMERO, no como texto: si no, Excel no suma ni
+         ordena y el archivo sirve para mirar pero no para trabajar */
+      if (t.cols[j].t === 'n' && v !== '' && v !== null && v !== undefined && !isNaN(Number(v))) {
+        cell.value = Number(v);
+        cell.numFmt = '#,##0.00';
+        cell.alignment = {horizontal:'right'};
+        cell.font = {name:'Consolas', size:10};
+      } else {
+        cell.value = limpio(v);
+        cell.font = {size:10};
+      }
+      cell.border = {bottom:{style:'hair', color:{argb:'FFDDDDDD'}}};
+    }
+    if (i % 2 === 1) row.eachCell(function (cell) {
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFAFA'}};
+    });
+    r++;
+  }
+  ws.autoFilter = {from:{row:8, column:1}, to:{row:Math.max(8, r - 1), column:nc}};
+
+  ws.mergeCells('A' + (r + 1) + ':' + colFin + (r + 1));
+  ws.getCell('A' + (r + 1)).value = 'Total de filas exportadas: ' + nf(fs.length) +
+    (completo ? '  (todo lo filtrado, no solo lo visible en pantalla)' : '');
+  ws.getCell('A' + (r + 1)).font = {bold:true, size:10, color:{argb:AZUL2}};
+
+  var nombre = 'KARDEX_' + titulo.replace(/[^A-Za-z0-9]+/g, '_').slice(0, 40) +
+               '_' + IDX._meta.hasta + '.xlsx';
+  var bajar = function () {
+    wb.xlsx.writeBuffer().then(function (buf) {
+      var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = nombre;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  };
+  /* si el logo no carga, el Excel se genera igual: nadie se queda sin su
+     reporte porque GitHub tardo en responder una imagen */
+  fetch(LOGO_URL).then(function (res) { return res.ok ? res.arrayBuffer() : Promise.reject(); })
+    .then(function (ab) {
+      var img = wb.addImage({buffer:ab, extension:'png'});
+      ws.addImage(img, {tl:{col:0.3, row:0.3}, ext:{width:70, height:70}});
+      bajar();
+    })
+    .catch(bajar);
 }
 function chart(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart($(id).getContext('2d'), cfg); }
 /* GRANULARIDAD AUTOMATICA DE LAS SERIES TEMPORALES
@@ -915,9 +1065,9 @@ function chart(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart($(id)
    semanal como si fuera de un dia. */
 function granular(dias) {
   var n = dias.length;
-  if (n <= 62)  return {u:'dia',    clave:function(f){ return f; },            nom:'Diario'};
-  if (n <= 400) return {u:'semana', clave:semanaDe,                            nom:'Semanal · lunes de cada semana'};
-  return              {u:'mes',    clave:function(f){ return f.slice(0,7); }, nom:'Mensual'};
+  if (n <= 62)  return {u:'dia',    clave:function(f){ return f; },            nom:'Un dia por barra'};
+  if (n <= 400) return {u:'semana', clave:semanaDe,                            nom:'Agrupado por semana'};
+  return              {u:'mes',    clave:function(f){ return f.slice(0,7); }, nom:'Agrupado por mes'};
 }
 /* Lunes de la semana de esa fecha, en ISO. */
 function semanaDe(f) {
@@ -930,23 +1080,98 @@ function semanaDe(f) {
 /* Agrupa un mapa dia->filas en el paso que corresponda. */
 function serieTemporal(porDia) {
   var dias = Object.keys(porDia).sort();
-  var g = granular(dias), cubos = {}, orden = [];
+  var g = granular(dias), cubos = {}, orden = [], rango = {};
   for (var i = 0; i < dias.length; i++) {
     var k = g.clave(dias[i]);
-    if (!cubos[k]) { cubos[k] = []; orden.push(k); }
+    if (!cubos[k]) { cubos[k] = []; orden.push(k); rango[k] = [dias[i], dias[i]]; }
+    if (dias[i] < rango[k][0]) rango[k][0] = dias[i];
+    if (dias[i] > rango[k][1]) rango[k][1] = dias[i];
     var a = porDia[dias[i]];
     for (var j = 0; j < a.length; j++) cubos[k].push(a[j]);
   }
   orden.sort();
-  return {claves:orden, cubos:cubos, nom:g.nom, u:g.u, ndias:dias.length};
+  /* La etiqueta dice los DIAS QUE CONTIENE, no la clave del cubo. Rotular la
+     semana con su lunes hacia creer que faltaba el ultimo dia: el 9 de
+     septiembre es miercoles y quedaba dentro de una barra llamada 2026-09-07. */
+  var etq = orden.map(function (k) {
+    if (g.u === 'dia') return k;
+    if (g.u === 'mes') return MES_NOM[Number(k.slice(5, 7)) - 1] + ' ' + k.slice(0, 4);
+    var a2 = rango[k][0], b2 = rango[k][1];
+    var ma = MES_AB[Number(a2.slice(5, 7)) - 1], mb = MES_AB[Number(b2.slice(5, 7)) - 1];
+    if (a2 === b2) return a2.slice(8) + ' ' + ma;
+    return ma === mb ? (a2.slice(8) + '-' + b2.slice(8) + ' ' + ma)
+                     : (a2.slice(8) + ' ' + ma + ' - ' + b2.slice(8) + ' ' + mb);
+  });
+  return {claves:orden, etq:etq, cubos:cubos, nom:g.nom, u:g.u, ndias:dias.length, rango:rango};
 }
+var MES_AB = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+var MES_NOM = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
+               'Septiembre','Octubre','Noviembre','Diciembre'];
 
-var OPT = {responsive:true, maintainAspectRatio:false,
-  plugins:{legend:{labels:{font:{size:11}, boxWidth:12}}},
-  scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas', size:10}}}, x:{ticks:{font:{size:10}}}}};
-var OPTH = {responsive:true, maintainAspectRatio:false, indexAxis:'y',
-  plugins:{legend:{display:false}},
-  scales:{x:{beginAtZero:true, ticks:{font:{family:'Consolas', size:10}}}, y:{ticks:{font:{size:10}}}}};
+/* ──────────────────────────────────────────────────────────────────────────
+ *  ESCALAS Y ETIQUETAS DE DATOS
+ *  Todo grafico declara QUE mide en el titulo del eje. Un 3,500 sin unidad no
+ *  dice si son lineas, unidades o balboas, y el lector completa el hueco con
+ *  lo que supone. Las unidades son siempre una de estas seis.
+ * ────────────────────────────────────────────────────────────────────────── */
+var U_LIN = 'L\u00edneas capturadas', U_UNI = 'Unidades', U_BAL = 'Balboas (B/.)',
+    U_LOT = 'Lotes', U_DIA = 'D\u00edas', U_REN = 'Rengl\u00f3nes';
+
+/* Abrevia en los ejes: 12,500,000 ocupa mas que el propio grafico. */
+function ejeCorto(v) {
+  var a = Math.abs(v);
+  if (a >= 1e6) return (v / 1e6).toLocaleString('es-PA', {maximumFractionDigits:1}) + ' M';
+  if (a >= 1e3) return (v / 1e3).toLocaleString('es-PA', {maximumFractionDigits:0}) + ' k';
+  return nf(v);
+}
+/* La etiqueta se oculta cuando la barra es demasiado corta para que el numero
+   quepa sin encimarse con el de al lado. */
+function etqDato(extra) {
+  var o = {
+    display:function (c) {
+      var v = c.dataset.data[c.dataIndex];
+      if (!v) return false;
+      var max = 0, d = c.chart.data.datasets;
+      for (var i = 0; i < d.length; i++) {
+        for (var j = 0; j < d[i].data.length; j++) {
+          var x = Math.abs(Number(d[i].data[j]) || 0);
+          if (x > max) max = x;
+        }
+      }
+      return max ? (Math.abs(v) / max) > 0.06 : false;
+    },
+    color:'#22303c', font:{family:'Consolas', size:10, weight:'700'},
+    formatter:function (v) { return ejeCorto(v); }
+  };
+  if (extra) for (var k in extra) o[k] = extra[k];
+  return o;
+}
+function optV(u, apilado) {
+  return {responsive:true, maintainAspectRatio:false,
+    layout:{padding:{top:18}},
+    plugins:{ legend:{labels:{font:{size:11}, boxWidth:12}},
+      datalabels: etqDato({anchor:'end', align:'top', offset:-2}),
+      tooltip:{callbacks:{label:function (c) {
+        return (c.dataset.label ? c.dataset.label + ': ' : '') + nf2(c.parsed.y) + ' ' + (u || ''); }}}},
+    scales:{
+      y:{beginAtZero:true, stacked:!!apilado,
+         title:{display:true, text:u || '', font:{size:11, weight:'700'}, color:'#3d4a5a'},
+         ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}},
+      x:{stacked:!!apilado, ticks:{font:{size:10}, maxRotation:60}}}};
+}
+function optH(u) {
+  return {responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    layout:{padding:{right:54}},
+    plugins:{ legend:{display:false},
+      datalabels: etqDato({anchor:'end', align:'right', offset:4}),
+      tooltip:{callbacks:{label:function (c) { return nf2(c.parsed.x) + ' ' + (u || ''); }}}},
+    scales:{
+      x:{beginAtZero:true,
+         title:{display:true, text:u || '', font:{size:11, weight:'700'}, color:'#3d4a5a'},
+         ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}},
+      y:{ticks:{font:{size:10}}}}};
+}
+var OPT = optV(''), OPTH = optH('');
 
 /* ══════════════════════════ RESUMEN ══════════════════════════ */
 function pintarResumen() {
@@ -968,20 +1193,22 @@ function pintarResumen() {
   var pd = agrupar(F, function (r) { return r[cF]; });
   var dias = Object.keys(pd).sort();
   var st = serieTemporal(pd);
-  $('perDia').textContent = st.nom + ' · líneas';
+  $('perDia').textContent = st.nom + ' · ' + U_LIN.toLowerCase();
   var nat = function (c) { return MOVS[c] ? MOVS[c][1] : 'OTRO'; };
-  chart('chDia', {type:'bar', data:{labels:st.claves, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n, i) {
-      return {label:n, backgroundColor:AZ[i], data:st.claves.map(function (d) {
+  chart('chDia', {type:'bar', data:{labels:st.etq, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n) {
+      return {label:n, backgroundColor:COL_NAT[n], data:st.claves.map(function (d) {
         var c = 0, a = st.cubos[d]; for (var k = 0; k < a.length; k++) if (nat(a[k][cM]) === n) c++; return c; })};
     })},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
-      scales:{x:{stacked:true, ticks:{font:{size:9}, maxRotation:90}},
-              y:{stacked:true, beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+    options:optV(U_LIN, true)});
 
   var pm = agrupar(F, function (r) { return r[cM]; });
   var mk = Object.keys(pm).sort(function (a, b) { return pm[b].length - pm[a].length; });
+  /* cada clase pintada por su naturaleza: se lee de un golpe que la salida
+     domina el kardex, que con una sola tinta no se veia */
   chart('chMov', {type:'bar', data:{labels:mk.map(function (c) { return c + ' ' + (MOVS[c] ? MOVS[c][0] : 'Sin catalogar'); }),
-    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:mk.map(function (c) { return pm[c].length; })}]}, options:OPTH});
+    datasets:[{label:U_LIN, data:mk.map(function (c) { return pm[c].length; }),
+      backgroundColor:mk.map(function (c) { return COL_NAT[MOVS[c] ? MOVS[c][1] : 'OTRO']; })}]},
+    options:optH(U_LIN)});
 
   tabla('tDia', [
     {h:'Fecha contab.', t:'t'}, {h:'Fuente', t:'c', f:function (v) { return '<span class="chip ' + (v === 'diario' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
@@ -1005,13 +1232,15 @@ function pintarResumen() {
   var uk = Object.keys(pu).map(function (k) { return [k, neto(pu[k])]; })
     .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
   chart('chUE', {type:'bar', data:{labels:uk.map(function (x) { var c = DIC.rec[x[0]]; return (MAPA_UE[c] || c || 'SIN DESTINO').slice(0, 34); }),
-    datasets:[{label:'Unidades', backgroundColor:'#0C447C', data:uk.map(function (x) { return x[1]; })}]}, options:OPTH});
+    datasets:[{label:U_UNI, backgroundColor:'#0C447C', data:uk.map(function (x) { return x[1]; })}]},
+    options:optH(U_UNI)});
 
   var pr = agrupar(porClase(F, ['313']), function (r) { return r[cMAT]; });
   var rk = Object.keys(pr).map(function (k) { return [k, suma(pr[k], salida)]; })
     .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
   chart('chRen', {type:'bar', data:{labels:rk.map(function (x) { return (DIC.ds[x[0]] || DIC.mat[x[0]]).slice(0, 34); }),
-    datasets:[{label:'Unidades', backgroundColor:'#4A7FB5', data:rk.map(function (x) { return x[1]; })}]}, options:OPTH});
+    datasets:[{label:U_UNI, backgroundColor:'#1b7a34', data:rk.map(function (x) { return x[1]; })}]},
+    options:optH(U_UNI)});
 }
 function fuenteDia(d) { return FUENTES[d] || ''; }
 
@@ -1089,11 +1318,10 @@ function pintarRecep() {
 
   var pdr = agrupar(ab, function (r) { return r[cF]; });
   var str = serieTemporal(pdr);
-  $('perRec').textContent = str.nom + ' · B/. (101 neto de 102)';
-  chart('chRec', {type:'bar', data:{labels:str.claves, datasets:[{label:'Valor recibido B/.', backgroundColor:'#1b7a34',
+  $('perRec').textContent = str.nom + ' · ' + U_BAL + ' · 101 neto de 102';
+  chart('chRec', {type:'bar', data:{labels:str.etq, datasets:[{label:U_BAL, backgroundColor:'#1b7a34',
     data:str.claves.map(function (d) { return suma(str.cubos[d], function (r) { return r[cV]; }); })}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:9}, maxRotation:90}}, y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+    options:optV(U_BAL)});
 
   var gp = agrupar(ab, function (r) { return r[cPROV]; });
   tabla('tProv', [
@@ -1195,8 +1423,7 @@ function pintarAjuste() {
   chart('chAju', {type:'bar', data:{labels:top.map(function (x) { return (x[0] + ' [' + x[1] + ']').slice(0, 42); }),
     datasets:[{label:'Valor B/.', data:top.map(function (x) { return x[6]; }),
       backgroundColor:top.map(function (x) { return x[6] < 0 ? '#b31b1b' : '#1b7a34'; })}]},
-    options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{family:'Consolas',size:10}}}, y:{ticks:{font:{size:10}}}}}});
+    options:optH(U_BAL)});
 }
 
 /* ══════════════════════════ RENGLONES ══════════════════════════ */
@@ -1219,15 +1446,25 @@ function pintarReng() {
   ]);
 
   var gt = agrupar(F, function (r) { return D_TP[r[cMAT]] || 'SIN TIPO'; });
-  chart('chTipo', {type:'doughnut', data:{labels:Object.keys(gt),
-    datasets:[{data:Object.keys(gt).map(function (k) { return gt[k].length; }), backgroundColor:AZ}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{font:{size:11}}}}}});
+  var COL_TP = {MEDICAMENTO:'#0C447C', INSUMO:'#1b7a34', OTRO:'#d97706', 'SIN TIPO':'#8a8a8a'};
+  var tk = Object.keys(gt);
+  chart('chTipo', {type:'doughnut', data:{labels:tk,
+    datasets:[{data:tk.map(function (k) { return gt[k].length; }),
+      backgroundColor:tk.map(function (k) { return COL_TP[k] || '#8a8a8a'; })}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right', labels:{font:{size:11}}},
+        datalabels:{color:'#fff', font:{family:'Consolas', size:11, weight:'700'},
+          formatter:function (v, c) {
+            var t = c.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+            return t ? (v / t * 100).toFixed(0) + '%' : ''; }},
+        tooltip:{callbacks:{label:function (c) { return c.label + ': ' + nf(c.parsed) + ' ' + U_LIN.toLowerCase(); }}}}}});
 
   var ga = {};
   for (var j = 0; j < F.length; j++) { var at = D_AT[F[j][cMAT]]; if (at) ga[at] = (ga[at] || 0) + 1; }
   var ak = Object.keys(ga).sort(function (a, b) { return ga[b] - ga[a]; });
   chart('chAtc', {type:'bar', data:{labels:ak.map(function (k) { return k + ' - ' + (ATC[k] || '').slice(0, 30); }),
-    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:ak.map(function (k) { return ga[k]; })}]}, options:OPTH});
+    datasets:[{label:U_LIN, backgroundColor:'#0C447C', data:ak.map(function (k) { return ga[k]; })}]},
+    options:optH(U_LIN)});
 
   var g = agrupar(F, function (r) { return r[cMAT]; });
   tabla('tReng', [
@@ -1274,10 +1511,9 @@ function pintarLotes() {
     ['Valor en lotes vencidos B/.', nf2(Math.abs(suma(filas.filter(function (f) { return f[5] === 'VENCIDO'; }), function (f) { return f[9]; }))), 'rojo', 'Acumulado del rango']
   ]);
   var cats = ['VENCIDO','CRITICO','ALERTA','VIGENTE','SIN FECHA'];
-  chart('chVenc', {type:'bar', data:{labels:cats, datasets:[{label:'Lotes', data:cats.map(cnt),
-    backgroundColor:['#b31b1b','#d97706','#b5820a','#1b7a34','#5c5c5c']}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+  chart('chVenc', {type:'bar', data:{labels:cats, datasets:[{label:U_LOT, data:cats.map(cnt),
+    backgroundColor:['#b31b1b','#d97706','#b5820a','#1b7a34','#8a8a8a']}]},
+    options:optV(U_LOT)});
   var CH2 = {VENCIDO:'er', CRITICO:'er', ALERTA:'wa', VIGENTE:'ok', 'SIN FECHA':'nu'};
   tabla('tLot', [
     {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Lote', t:'t'}, {h:'Vence', t:'c'},
@@ -1323,13 +1559,15 @@ function pintarInventario() {
   var gc = agrupar(filas, function (f) { return f[3] || '(sin categoria)'; });
   var ck = Object.keys(gc).sort(function (a, b) { return suma(gc[b], function (f) { return f[6]; }) - suma(gc[a], function (f) { return f[6]; }); });
   chart('chInvCat', {type:'bar', data:{labels:ck, datasets:[{label:'Valor libre B/.', backgroundColor:'#0C447C',
-    data:ck.map(function (k) { return suma(gc[k], function (f) { return f[6]; }); })}]}, options:OPTH});
+    data:ck.map(function (k) { return suma(gc[k], function (f) { return f[6]; }); })}]},
+    options:optH(U_BAL)});
 
   var gm = agrupar(filas, function (f) { return f[0]; });
   var mk = Object.keys(gm).map(function (k) { return [k, suma(gm[k], function (f) { return f[6]; }), gm[k][0][1]]; })
     .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
   chart('chInvTop', {type:'bar', data:{labels:mk.map(function (x) { return (x[2] || x[0]).slice(0, 34); }),
-    datasets:[{label:'Valor B/.', backgroundColor:'#1b7a34', data:mk.map(function (x) { return x[1]; })}]}, options:OPTH});
+    datasets:[{label:U_BAL, backgroundColor:'#1b7a34', data:mk.map(function (x) { return x[1]; })}]},
+    options:optH(U_BAL)});
 
   tabla('tInvCat', [
     {h:'Categor\u00eda de valoraci\u00f3n', t:'c'}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Lotes', t:'n', f:nf},
@@ -1380,11 +1618,10 @@ function pintarLat() {
     ['Mediana en facturaci\u00f3n (313)', fac.length ? nf(mediana(fac)) + ' d' : '\u2014', mediana(fac) > 3 ? 'amb' : 'verde', nf(fac.length) + ' l\u00edneas'],
     ['Documento m\u00e1s rezagado', peor ? nf(peor[0]) + ' d' : '\u2014', 'rojo', peor ? peor[1][cFD] + ' \u2192 ' + peor[1][cF] : '']
   ]);
-  chart('chLatT', {type:'bar', data:{labels:TRAMOS, datasets:[{label:'L\u00edneas',
+  chart('chLatT', {type:'bar', data:{labels:TRAMOS, datasets:[{label:U_LIN,
     data:TRAMOS.map(function (t) { return vs.filter(function (v) { return tramo(v) === t; }).length; }),
-    backgroundColor:['#1b7a34','#4A7FB5','#1E5A9E','#b5820a','#d97706','#b31b1b']}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+    backgroundColor:['#1b7a34','#6b9e3a','#b5820a','#d97706','#c2410c','#b31b1b']}]},
+    options:optV(U_LIN)});
 
   var g = agrupar(L, function (p) { return p[1][cM]; });
   var filas = Object.keys(g).map(function (k) {
@@ -1396,8 +1633,9 @@ function pintarLat() {
       (v.filter(function (z) { return z > 30; }).length / v.length * 100).toFixed(1) + '%'];
   }).sort(function (a, b) { return b[3] - a[3]; });
   chart('chLatM', {type:'bar', data:{labels:filas.map(function (f) { return f[0] + ' ' + f[1].slice(0, 28); }),
-    datasets:[{label:'D\u00edas (mediana)', data:filas.map(function (f) { return f[3]; }),
-      backgroundColor:filas.map(function (f) { return f[3] > 90 ? '#b31b1b' : (f[3] > 30 ? '#d97706' : (f[3] > 7 ? '#b5820a' : '#1b7a34')); })}]}, options:OPTH});
+    datasets:[{label:U_DIA + ' (mediana)', data:filas.map(function (f) { return f[3]; }),
+      backgroundColor:filas.map(function (f) { return f[3] > 90 ? '#b31b1b' : (f[3] > 30 ? '#d97706' : (f[3] > 7 ? '#b5820a' : '#1b7a34')); })}]},
+    options:optH(U_DIA)});
   tabla('tLatM', [
     {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'}, {h:'L\u00edneas', t:'n', f:nf},
     {h:'Mediana (d)', t:'n', f:nf}, {h:'Promedio (d)', t:'n', f:nf},
@@ -1451,19 +1689,20 @@ function pintarProd() {
     ['L\u00edneas por d\u00eda', nf(Math.round(pan.length / nDias)), '', 'CEDIS Panam\u00e1, d\u00edas con carga'],
     ['L\u00edneas por persona', nU ? nf(Math.round(pan.length / nU)) : '0', '', 'CEDIS Panam\u00e1, del rango'],
     ['Documentos SAP', nf(uniq(pan, function (r) { return r[cDOC]; })), '', 'CEDIS Panam\u00e1'],
-    ['Hora pico de captura', pico ? pico + ':00' : '\u2014', '', horas[pico] ? nf(horas[pico]) + ' l\u00edneas' : 'sin hora en la fuente'],
+    ['Hora pico de captura', pico ? pico + ':00' : '\u2014', '', horas[pico] ? nf(horas[pico]) + ' l\u00edneas capturadas' : 'sin hora en la fuente'],
     ['Usuarios fuera del padr\u00f3n', nf(uniq(otr, function (r) { return r[cUSR]; })), '', 'Ver Cobertura y calidad']
   ]);
 
   chart('chHora', {type:'bar', data:{labels:hk.map(function (x) { return x + ':00'; }),
-    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:hk.map(function (x) { return horas[x]; })}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+    datasets:[{label:U_LIN, backgroundColor:'#0C447C', data:hk.map(function (x) { return horas[x]; })}]},
+    options:optV(U_LIN)});
 
   var gP = agrupar(pan, function (r) { return r[cUSR]; });
   var ukP = Object.keys(gP).sort(function (a, b) { return gP[b].length - gP[a].length; });
   chart('chUsr', {type:'bar', data:{labels:ukP.map(function (k) { return DIC.usr[k]; }),
-    datasets:[{label:'L\u00edneas', backgroundColor:'#0C447C', data:ukP.map(function (k) { return gP[k].length; })}]}, options:OPTH});
+    datasets:[{label:U_LIN, data:ukP.map(function (k) { return gP[k].length; }),
+      backgroundColor:ukP.map(function (k, i) { return AZ[i % AZ.length]; })}]},
+    options:optH(U_LIN)});
 
   var COLS = [
     {h:'Usuario SAP', t:'t'},
@@ -1471,20 +1710,41 @@ function pintarProd() {
     {h:'D\u00edas activos', t:'n', f:nf}, {h:'L\u00edneas', t:'n', f:nf}, {h:'L\u00edneas por d\u00eda', t:'n', f:nf},
     {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
     {h:'L\u00edneas 313', t:'n', f:nf}, {h:'L\u00edneas 101', t:'n', f:nf}, {h:'Anulaciones', t:'n', f:nf},
-    {h:'Clases operadas', t:'t'}, {h:'Primera hora', t:'c'}, {h:'\u00daltima hora', t:'c'}, {h:'Mide desempe\u00f1o', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
+    {h:'Clases operadas', t:'t'},
+    {h:'Inicio habitual', t:'c'}, {h:'Cierre habitual', t:'c'}, {h:'Jornada (h)', t:'n'},
+    {h:'Mide desempe\u00f1o', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
   ];
+  /* 'Inicio habitual' y 'Cierre habitual' son la MEDIANA de la primera y la
+     ultima captura de cada dia, no el minimo y el maximo de todo el periodo.
+     El minimo y el maximo sobre cinco meses no dicen nada: un solo dia raro
+     los mueve y quedan como si la persona trabajara de 10 a 23 todos los dias.
+     La mediana describe la jornada tipica. */
   function filaUsr(k, x, equipo) {
-    var dd2 = {}; for (var i2 = 0; i2 < x.length; i2++) dd2[x[i2][cF]] = 1;
-    var nd = Object.keys(dd2).length;
-    var hs = x.map(function (r) { return r[cH]; }).filter(Boolean).sort();
+    var porDia = {};
+    for (var i2 = 0; i2 < x.length; i2++) {
+      var d2 = x[i2][cF], h2 = x[i2][cH];
+      if (!d2) continue;
+      if (!porDia[d2]) porDia[d2] = [];
+      if (h2) porDia[d2].push(h2);
+    }
+    var dias2 = Object.keys(porDia), nd = dias2.length;
+    var ini = [], fin = [];
+    for (var j2 = 0; j2 < dias2.length; j2++) {
+      var hh = porDia[dias2[j2]].slice().sort();
+      if (!hh.length) continue;
+      ini.push(hhmmMin(hh[0]));
+      fin.push(hhmmMin(hh[hh.length - 1]));
+    }
+    var mi = ini.length ? mediana(ini) : null, mf = fin.length ? mediana(fin) : null;
     var cls = {}; for (var i3 = 0; i3 < x.length; i3++) cls[x[i3][cM]] = 1;
-    var u = DIC.usr[k];
-    return [u, equipo, nd, x.length, Math.round(x.length / (nd || 1)),
+    return [DIC.usr[k], equipo, nd, x.length, Math.round(x.length / (nd || 1)),
       uniq(x, function (r) { return r[cDOC]; }), uniq(x, function (r) { return r[cMAT]; }),
       porClase(x, ['313']).length, porClase(x, ['101']).length,
       porClase(x, ['102','314','310','202','316']).length,
-      Object.keys(cls).sort().join(' '), hs[0] || '', hs[hs.length - 1] || '',
-      (equipo === 'CEDIS PANAMA' && NO_MIDE.indexOf(u) < 0) ? 'SI' : 'NO'];
+      Object.keys(cls).sort().join(' '),
+      mi === null ? '' : minHHMM(mi), mf === null ? '' : minHHMM(mf),
+      (mi === null || mf === null) ? '' : ((mf - mi) / 60).toFixed(1),
+      equipo === 'CEDIS PANAMA' ? 'SI' : 'NO'];
   }
   tabla('tProd', COLS, ukP.map(function (k) { return filaUsr(k, gP[k], 'CEDIS PANAMA'); }), {i:3, d:-1});
 
@@ -1494,8 +1754,7 @@ function pintarProd() {
 
   $('prodNota').innerHTML = 'Los indicadores de arriba se calculan sobre <b>' + nf(pan.length) +
     ' l\u00edneas de CEDIS Panam\u00e1</b> (' + pctPan.toFixed(1) + '% del kardex). Las ' + nf(otr.length) +
-    ' l\u00edneas de otras sedes se listan abajo pero no entran en ning\u00fan promedio.' +
-    (NO_MIDE.length ? ' Excluido de la medici\u00f3n: ' + NO_MIDE.join(', ') + ' (inventario f\u00edsico, evento puntual).' : '');
+    ' l\u00edneas de otras sedes se listan abajo pero no entran en ning\u00fan promedio.';
 
   var movs = {};
   for (var n = 0; n < pan.length; n++) movs[pan[n][cM]] = 1;
