@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kardex SAP-SAFIRO &middot; CEDIS Panam&aacute;</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:#ececec;color:#222;font-size:13px}
+.num{font-family:Consolas,"Courier New",monospace}
+header{background:#0C447C;padding:10px 16px;display:flex;align-items:center;gap:14px;border-bottom:3px solid #1E5A9E}
+header img{height:42px;width:42px}
+header h1{font-size:16px;font-weight:600;letter-spacing:.2px;color:#fff}
+header .sub{font-size:11.5px;margin-top:2px;color:#dfe8f3}
+header .meta{margin-left:auto;text-align:right;font-size:11.5px;line-height:1.5;color:#dfe8f3}
+.wrap{padding:12px 16px 48px}
+.filtros{background:#fff;border:1px solid #a8a8a8;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#555;font-weight:600}
+.f select,.f input{border:1px solid #a8a8a8;padding:4px 6px;font-size:12px;font-family:inherit;background:#fff;min-width:150px;border-radius:2px}
+.f input.wide{min-width:280px}
+button.btn{border:1px solid #0C447C;background:#0C447C;color:#fff;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px}
+button.btn.sec{background:#fff;color:#0C447C}
+button.btn:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
+.barra-estado{background:#eaf0f7;border:1px solid #a8a8a8;padding:7px 12px;margin-bottom:10px;font-size:12px;display:flex;flex-wrap:wrap;gap:18px}
+.barra-estado b{font-family:Consolas,monospace}
+.sin-res{background:#f7e3e3;border:1px solid #d9a8a8;color:#7a2020;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.6;display:none}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid #0C447C;margin-bottom:12px}
+.tab{background:#dfdfdf;border:1px solid #a8a8a8;border-bottom:none;padding:7px 13px;cursor:pointer;font-size:12px;font-weight:600;color:#444}
+.tab.on{background:#0C447C;color:#fff;border-color:#0C447C}
+.panel{display:none}.panel.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:#e6edf6;border:1px solid #a8a8a8;padding:8px 10px}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#3d4a5a;font-weight:600;line-height:1.3;min-height:26px}
+.kpi .v{font-family:Consolas,monospace;font-size:20px;font-weight:700;color:#0C447C;margin-top:2px}
+.kpi .s{font-size:10px;color:#5a6472;margin-top:1px}
+.kpi.rojo{background:#f7e3e3}.kpi.rojo .v{color:#b31b1b}.kpi.rojo .l{color:#6b3535}
+.kpi.amb{background:#faf0d7}.kpi.amb .v{color:#8a6207}.kpi.amb .l{color:#5f4a1c}
+.kpi.verde{background:#e2f0e6}.kpi.verde .v{color:#1b7a34}.kpi.verde .l{color:#2f5138}
+.card{background:#fff;border:1px solid #a8a8a8;margin-bottom:12px}
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;background:#f4f4f4;border-bottom:1px solid #a8a8a8;color:#0C447C;font-weight:700;display:flex;align-items:center;gap:10px}
+.card h3 .per{font-weight:400;text-transform:none;letter-spacing:0;color:#666;font-size:11px;margin-left:auto}
+.card .body{padding:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+.chartbox{position:relative;height:280px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0C447C;color:#fff;padding:5px 7px;text-align:left;font-weight:600;font-size:11px;position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{background:#1E5A9E}
+th .ar{font-size:9px;opacity:.55;margin-left:3px}
+th.act .ar{opacity:1}
+td{padding:4px 7px;border-bottom:1px solid #e0e0e0}
+tbody tr:nth-child(even){background:#fafafa}
+tbody tr:hover{background:#e8eef6}
+td.n,th.n{text-align:right;font-family:Consolas,monospace}
+td.c,th.c{text-align:center}
+.scroll{max-height:520px;overflow:auto;border:1px solid #d0d0d0}
+.chip{display:inline-block;padding:1px 6px;font-size:10px;font-weight:700;border:1px solid;border-radius:2px}
+.chip.ok{color:#1b7a34;border-color:#1b7a34;background:#eaf6ed}
+.chip.wa{color:#8a6207;border-color:#b5820a;background:#fdf6e3}
+.chip.er{color:#b31b1b;border-color:#b31b1b;background:#fbecec}
+.chip.nu{color:#3a3a3a;border-color:#9a9a9a;background:#f0f0f0}
+.nota{font-size:11.5px;color:#4a4a4a;padding:9px 11px;background:#faf0d7;border:1px solid #d9c48a;margin:8px 0;line-height:1.6}
+.vacio{padding:24px;text-align:center;color:#888;font-size:12px}
+.tabla-h{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f9f9f9;border-bottom:1px solid #ddd;font-size:11px;color:#555}
+.tabla-h .der{margin-left:auto;display:flex;gap:6px}
+.sub{font-size:11.5px;color:#666;margin-bottom:8px;line-height:1.6}
+.bloque{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:#0C447C;padding:7px 10px;background:#eaf0f7;border-top:1px solid #a8a8a8;border-bottom:1px solid #a8a8a8}
+.bloque.otras{color:#5f4a1c;background:#faf0d7}
+#carga{padding:40px;text-align:center;color:#555;font-size:13px;line-height:2}
+#carga .bar{height:6px;background:#dfdfdf;margin:12px auto;max-width:420px;border:1px solid #a8a8a8}
+#carga .bar i{display:block;height:100%;background:#1E5A9E;width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<header>
+<img src="./icons/icon-192.png" alt="CSS">
+<div>
+<h1>Kardex SAP-SAFIRO &middot; Movimientos e inventario</h1>
+<div class="sub">Direcci&oacute;n Nacional de Log&iacute;stica &middot; CEDIS Panam&aacute; &middot; Torre de Control</div>
+</div>
+<div class="meta">
+<div>Corte de datos: <b id="mCorte">&mdash;</b></div>
+<div>Publicado: <span id="mGen">&mdash;</span></div>
+</div>
+</header>
+
+<div id="carga">Cargando el kardex publicado&hellip;<div class="bar"><i id="cbar"></i></div><div id="cmsg">&nbsp;</div></div>
+
+<div class="wrap" id="app" style="display:none">
+
+<div class="filtros">
+<div class="f"><label>Desde</label><input type="date" id="fDesde"></div>
+<div class="f"><label>Hasta</label><input type="date" id="fHasta"></div>
+<div class="f"><label>Clase de movimiento</label><select id="fMov"></select></div>
+<div class="f"><label>Unidad Ejecutora / Destino</label><select id="fUE"></select></div>
+<div class="f"><label>Rengl&oacute;n (c&oacute;digo o descripci&oacute;n)</label><input type="text" id="fRen" class="wide" list="dlRen" autocomplete="off" placeholder="Escriba parte del nombre o del c&oacute;digo"><datalist id="dlRen"></datalist></div>
+<div class="f"><label>Tipo de rengl&oacute;n</label><select id="fTipo"><option value="">Todos</option><option>MEDICAMENTO</option><option>INSUMO</option><option>OTRO</option></select></div>
+<div class="f"><label>Equipo de captura</label><select id="fEquipo"><option value="">Todos</option><option value="1">CEDIS Panam&aacute;</option><option value="0">Otras sedes</option></select></div>
+<div class="f"><label>Usuario SAP</label><select id="fUsr"></select></div>
+<div class="f"><label>&nbsp;</label><button class="btn sec" id="btnLimpiar">Limpiar filtros</button></div>
+</div>
+
+<div class="barra-estado">
+<span>L&iacute;neas en vista: <b id="eLin">0</b></span>
+<span>de <b id="eTot">0</b> publicadas</span>
+<span>Rango: <b id="eRango">&mdash;</b></span>
+<span>D&iacute;as con carga: <b id="eDias">0</b></span>
+<span>Rengl&oacute;nes en cat&aacute;logo: <b id="eRen">0</b></span>
+<span>Inventario MB52: <b id="eInv">&mdash;</b></span>
+</div>
+
+<div class="sin-res" id="sinRes"></div>
+
+<div class="tabs" id="tabs"></div>
+<div class="panel on" id="p-resumen">
+  <div class="kpis" id="kResumen"></div>
+  <div class="grid2">
+    <div class="card"><h3>Movimiento diario por naturaleza<span class="per">Diario &middot; l&iacute;neas</span></h3><div class="body"><div class="chartbox"><canvas id="chDia"></canvas></div></div></div>
+    <div class="card"><h3>Composici&oacute;n por clase de movimiento<span class="per">Acumulado del rango</span></h3><div class="body"><div class="chartbox"><canvas id="chMov"></canvas></div></div></div>
+  </div>
+  <div class="card"><h3>Cierre por d&iacute;a<span class="per">Diario &middot; acumulable</span></h3>
+    <div class="tabla-h"><span>Una fila por fecha de contabilizaci&oacute;n. Clic en el encabezado para ordenar.</span><div class="der"><button class="btn sec" data-csv="tDia">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tDia"></table></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Destinos con mayor despacho<span class="per">Acumulado &middot; unidades</span></h3><div class="body"><div class="chartbox"><canvas id="chUE"></canvas></div></div></div>
+    <div class="card"><h3>Rengl&oacute;nes con mayor despacho<span class="per">Acumulado &middot; unidades</span></h3><div class="body"><div class="chartbox"><canvas id="chRen"></canvas></div></div></div>
+  </div>
+</div>
+
+<div class="panel" id="p-fact">
+  <div class="sub">Movimientos <b>313</b> (salida por traslado a Unidad Ejecutora) y <b>314</b> (anulaci&oacute;n). Es la evidencia sist&eacute;mica de facturaci&oacute;n del pedido. SAP no valoriza estos traslados &mdash; llegan con importe en cero &mdash; as&iacute; que el valor se calcula con el precio unitario del MB52, que es el mismo procedimiento que usa la Jefatura de Facturaci&oacute;n para el cierre contable.</div>
+  <div class="kpis" id="kFact"></div>
+  <div class="card"><h3>Despacho por Unidad Ejecutora<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>El destino proviene del campo estructurado <b>Almac&eacute;n receptor</b> de SAP, no del texto libre.</span><div class="der"><button class="btn sec" data-csv="tUE">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tUE"></table></div></div>
+  <div class="card"><h3>Detalle por Forma 8 / referencia<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>La Forma 8 se lee del campo libre <b>Texto cab.documento</b>, que el capturador escribe a mano; su legibilidad se audita en Cobertura y calidad.</span><div class="der"><button class="btn sec" data-csv="tF8">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tF8"></table></div></div>
+</div>
+
+<div class="panel" id="p-recep">
+  <div class="sub">Movimientos <b>101</b> (entrada de mercanc&iacute;a contra pedido de compra) y <b>102</b> (anulaci&oacute;n). Es lo &uacute;nico del MB51 que trae valorizaci&oacute;n propia de SAP.</div>
+  <div class="kpis" id="kRec"></div>
+  <div class="card"><h3>Valor recibido por d&iacute;a<span class="per">Diario &middot; B/. (101 neto de 102)</span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
+  <div class="card"><h3>Recepci&oacute;n por proveedor<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>El c&oacute;digo de proveedor es el de SAP; el nombre no viaja en el MB51.</span><div class="der"><button class="btn sec" data-csv="tProv">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tProv"></table></div></div>
+  <div class="card"><h3>Recepci&oacute;n por pedido de compra<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>Cruzable con el m&oacute;dulo de &Oacute;rdenes de Compra en Tr&aacute;nsito.</span><div class="der"><button class="btn sec" data-csv="tPed">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tPed"></table></div></div>
+</div>
+
+<div class="panel" id="p-ajuste">
+  <div class="sub">Movimientos <b>561/562</b> (entrada y salida inicial de existencias), <b>201</b> (consumo a centro de coste), <b>309/310</b> (traslado material a material) y <b>701/702</b> (inventario f&iacute;sico). Modifican inventario sin pedido ni despacho, y es donde se registran las bajas por vigencia.</div>
+  <div class="kpis" id="kAju"></div>
+  <div class="card"><h3>Motivos de mayor impacto en valor<span class="per">Acumulado &middot; B/.</span></h3><div class="body"><div class="chartbox"><canvas id="chAju"></canvas></div></div></div>
+  <div class="card"><h3>Ajustes por motivo declarado<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>El motivo es el texto libre de cabecera del documento, tal como lo escribi&oacute; el usuario.</span><div class="der"><button class="btn sec" data-csv="tAju">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tAju"></table></div></div>
+</div>
+
+<div class="panel" id="p-reng">
+  <div class="kpis" id="kReng"></div>
+  <div class="grid2">
+    <div class="card"><h3>Distribuci&oacute;n por tipo de rengl&oacute;n<span class="per">Acumulado &middot; l&iacute;neas</span></h3><div class="body"><div class="chartbox"><canvas id="chTipo"></canvas></div></div></div>
+    <div class="card"><h3>Grupo anat&oacute;mico ATC<span class="per">Solo medicamentos &middot; l&iacute;neas</span></h3><div class="body"><div class="chartbox"><canvas id="chAtc"></canvas></div></div></div>
+  </div>
+  <div class="card"><h3>Movimiento por rengl&oacute;n<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>Entradas y salidas en unidades. El neto es entradas menos salidas dentro del rango filtrado.</span><div class="der"><button class="btn sec" data-csv="tReng">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tReng"></table></div></div>
+</div>
+
+<div class="panel" id="p-lotes">
+  <div class="sub">Semaforizaci&oacute;n calculada contra la fecha del &uacute;ltimo corte publicado, no contra la fecha del navegador.</div>
+  <div class="kpis" id="kLot"></div>
+  <div class="card"><h3>Lotes movidos por ventana de vencimiento<span class="per">Acumulado &middot; lotes</span></h3><div class="body"><div class="chartbox"><canvas id="chVenc"></canvas></div></div></div>
+  <div class="card"><h3>Lotes movidos en el rango<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>Un lote puede aparecer en varias clases de movimiento.</span><div class="der"><button class="btn sec" data-csv="tLot">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tLot"></table></div></div>
+</div>
+
+<div class="panel" id="p-inv">
+  <div class="sub">Foto del MB52 &mdash; existencia por lote al corte indicado. <b>No la filtra el rango de fechas</b> porque es una foto, no una serie. El precio unitario es <b>Valor libre util. &divide; Libre utilizaci&oacute;n</b>, la misma f&oacute;rmula del cierre contable, y la <b>Categor&iacute;a de valoraci&oacute;n</b> es el <b>Grupo de art&iacute;culos</b> del propio MB52.</div>
+  <div class="kpis" id="kInv"></div>
+  <div class="grid2">
+    <div class="card"><h3>Valor por categor&iacute;a de valoraci&oacute;n<span class="per">Foto vigente &middot; B/.</span></h3><div class="body"><div class="chartbox"><canvas id="chInvCat"></canvas></div></div></div>
+    <div class="card"><h3>Concentraci&oacute;n del valor<span class="per">Foto vigente &middot; top 12 rengl&oacute;nes</span></h3><div class="body"><div class="chartbox"><canvas id="chInvTop"></canvas></div></div></div>
+  </div>
+  <div class="card"><h3>Existencia por categor&iacute;a<span class="per">Foto vigente</span></h3>
+    <div class="tabla-h"><span>La categor&iacute;a es la llave con que Contabilidad asigna la cuenta financiera.</span><div class="der"><button class="btn sec" data-csv="tInvCat">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tInvCat"></table></div></div>
+  <div class="card"><h3>Existencia por rengl&oacute;n y lote<span class="per">Foto vigente</span></h3>
+    <div class="tabla-h"><span id="invNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tInv">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tInv"></table></div></div>
+</div>
+
+<div class="panel" id="p-lat">
+  <div class="sub">Latencia = d&iacute;as entre la <b>fecha del documento</b> (cu&aacute;ndo ocurri&oacute; el hecho) y la <b>fecha de contabilizaci&oacute;n</b> (cu&aacute;ndo qued&oacute; registrado en SAP). Mide el rezago entre la operaci&oacute;n y su reflejo contable, no la velocidad del almac&eacute;n.</div>
+  <div class="kpis" id="kLat"></div>
+  <div class="grid2">
+    <div class="card"><h3>Distribuci&oacute;n de la latencia<span class="per">Acumulado &middot; l&iacute;neas por tramo</span></h3><div class="body"><div class="chartbox"><canvas id="chLatT"></canvas></div></div></div>
+    <div class="card"><h3>Latencia mediana por clase<span class="per">Acumulado &middot; d&iacute;as</span></h3><div class="body"><div class="chartbox"><canvas id="chLatM"></canvas></div></div></div>
+  </div>
+  <div class="card"><h3>Latencia por clase de movimiento<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>La mediana es m&aacute;s representativa que el promedio: unos pocos documentos muy antiguos distorsionan la media.</span><div class="der"><button class="btn sec" data-csv="tLatM">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tLatM"></table></div></div>
+  <div class="card"><h3>Documentos con mayor rezago<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span>Una fila por documento SAP, ordenado por latencia descendente.</span><div class="der"><button class="btn sec" data-csv="tLatD">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tLatD"></table></div></div>
+</div>
+
+<div class="panel" id="p-prod">
+  <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.</div>
+  <div class="kpis" id="kProd"></div>
+  <div class="grid2">
+    <div class="card"><h3>Curva horaria de captura<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas por hora</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
+    <div class="card"><h3>L&iacute;neas por usuario<span class="per">CEDIS Panam&aacute; &middot; acumulado</span></h3><div class="body"><div class="chartbox"><canvas id="chUsr"></canvas></div></div></div>
+  </div>
+  <div class="card"><h3>Actividad por usuario<span class="per">Acumulado del rango</span></h3>
+    <div class="tabla-h"><span id="prodNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tProd">Exportar CSV</button></div></div>
+    <div class="bloque">CEDIS Panam&aacute; &middot; bajo la Jefatura de Facturaci&oacute;n</div>
+    <div class="scroll"><table id="tProd"></table></div>
+    <div class="bloque otras">Otras sedes &middot; fuera de esa jefatura &middot; no atribuible a CEDIS Panam&aacute;</div>
+    <div class="scroll"><table id="tProdOtras"></table></div></div>
+  <div class="card"><h3>Matriz usuario x clase de movimiento<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas</span></h3>
+    <div class="scroll"><table id="tMatriz"></table></div></div>
+</div>
+
+<div class="panel" id="p-cal">
+  <div class="kpis" id="kCal"></div>
+  <div class="card"><h3>Cobertura del hist&oacute;rico<span class="per">D&iacute;as calendario del rango</span></h3>
+    <div class="tabla-h"><span id="cobNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tCob">Exportar CSV</button></div></div>
+    <div class="scroll"><table id="tCob"></table></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Legibilidad de la Forma 8<span class="per">Movimientos 313 y 314</span></h3><div class="scroll"><table id="tF8cal"></table></div></div>
+    <div class="card"><h3>Destinos sin correspondencia en el maestro<span class="per">Acumulado del rango</span></h3><div class="scroll"><table id="tSinMap"></table></div></div>
+  </div>
+  <div class="card"><h3>Meses publicados y esquema de origen<span class="per">Bit&aacute;cora de ingesta</span></h3>
+    <div class="scroll"><table id="tMeses"></table></div></div>
+  <div class="card"><h3>Completitud de campos<span class="per">Sobre las l&iacute;neas en vista</span></h3><div class="scroll"><table id="tCampos"></table></div></div>
+  <div class="card"><h3>Advertencias estructurales del reporte</h3><div class="body" id="advertencias"></div></div>
+</div>
+
+<div class="panel" id="p-det">
+  <div class="card"><h3>Detalle de l&iacute;neas<span class="per">Una fila por l&iacute;nea de documento SAP</span></h3>
+    <div class="tabla-h"><span id="detInfo">&mdash;</span><div class="der"><button class="btn sec" id="btnMas">Ver 500 m&aacute;s</button><button class="btn sec" data-csv="tDet">Exportar CSV (todo lo filtrado)</button></div></div>
+    <div class="scroll"><table id="tDet"></table></div></div>
+</div>
+
+</div>
+<script>
+/* ============================================================================
+ *  panel_kardex.html  ·  Torre de Control · CEDIS Panamá
+ *  Lee lo que publica KARDEX_SAP.gs en el repo SIGUELO, bajo kardex/.
+ *
+ *  ORIGEN DE LOS DATOS
+ *    kardex/indice.json      manifiesto: meses, días cargados, esquemas, MB52
+ *    kardex/<AAAA-MM>.json   movimientos del MB51 de ese mes
+ *    kardex/inventario.json  foto vigente del MB52 con precio unitario
+ *
+ *  El ?t= por minuto es OBLIGATORIO: el service worker de SÍGUELO sirve los
+ *  assets cache-first y sin eso el tablero muestra los datos de ayer.
+ *
+ *  FORMATO COMPACTO
+ *  Cada mes trae diccionarios y filas como arreglos posicionales (125-141
+ *  bytes por línea contra 416 del formato con nombres de campo). El orden de
+ *  los campos viaja DENTRO de cada archivo, en _meta.orden, porque cambió el
+ *  14-sep al agregarse 'alm': los meses viejos traen 18 campos y los nuevos
+ *  19, y los dos se leen bien.
+ *
+ *  RENDIMIENTO
+ *  Los campos derivados —Forma 8 normalizada, tipo de renglón, grupo ATC,
+ *  equipo de captura, precio— se calculan sobre los DICCIONARIOS y no sobre
+ *  las filas: unos 15,000 textos de cabecera distintos contra 49,942 líneas.
+ * ========================================================================== */
+
+var KDX_BASE = './kardex';
+
+/* Personal de CEDIS Panamá bajo la Jefatura de Facturación. El MB51 es un
+   reporte nacional y muestra a todos los capturadores del país, así que sin
+   este padrón la medición de desempeño atribuiría a esta jefatura trabajo que
+   no está bajo su mando. Actualícelo cuando cambie el personal. */
+var PADRON = ['FFLORES','GQUIJADA','LBROWN','MBROCE','AMILLER',
+              'RODGOMEZ','CAFORERO','RICAUNUNEZ','RURRIOLA'];
+
+/* Fuera de toda medición de desempeño: son eventos puntuales, no captura
+   diaria. YASSJIMENEZ registró 2,466 líneas de inventario físico (701/702)
+   en un solo día; promediarlo distorsionaría cualquier indicador. */
+var NO_MIDE = ['YASSJIMENEZ'];
+
+/* 0=domingo. El sábado es día laborable OPCIONAL en el CEDIS: se trabaja a
+   requerimiento, así que un sábado sin carga no cuenta como falta. */
+var NO_LABORABLES = [0];
+var SABADO_OPCIONAL = true;
+
+var MOVS = {
+  '101':['Entrada por pedido de compra','ENTRADA'],
+  '102':['Anulacion de entrada por pedido','ENTRADA'],
+  '201':['Consumo a centro de coste','SALIDA'],
+  '202':['Anulacion de consumo a centro de coste','ENTRADA'],
+  '309':['Traslado material a material','AJUSTE'],
+  '310':['Anulacion de traslado material a material','AJUSTE'],
+  '313':['Salida por traslado a UE (etapa 1)','SALIDA'],
+  '314':['Anulacion de salida por traslado','SALIDA'],
+  '315':['Entrada por traslado (etapa 2)','ENTRADA'],
+  '316':['Anulacion de entrada por traslado','ENTRADA'],
+  '561':['Entrada inicial de existencias','AJUSTE'],
+  '562':['Salida inicial de existencias / baja','AJUSTE'],
+  '641':['Traslado con salida inmediata','SALIDA'],
+  '701':['Entrada por inventario fisico','AJUSTE'],
+  '702':['Salida por inventario fisico','AJUSTE'],
+  '901':['Sin catalogar (aparecio el 09-sep-2026)','OTRO'],
+  '905':['Sin catalogar','OTRO'],
+  '906':['Sin catalogar (contrapartida de 905)','OTRO'],
+  '909':['Sin catalogar','OTRO']
+};
+var ATC = {A:'Tracto alimentario y metabolismo',B:'Sangre y organos hematopoyeticos',
+  C:'Sistema cardiovascular',D:'Dermatologicos',G:'Sistema genitourinario y hormonas sexuales',
+  H:'Preparados hormonales sistemicos',J:'Antiinfecciosos via general',
+  L:'Antineoplasicos e inmunomoduladores',M:'Sistema musculoesqueletico',N:'Sistema nervioso',
+  P:'Antiparasitarios',R:'Sistema respiratorio',S:'Organos de los sentidos',V:'Varios'};
+
+/* posiciones en la fila normalizada */
+var cF=0,cFD=1,cH=2,cM=3,cMAT=4,cDS=5,cLOTE=6,cFV=7,cDOC=8,cTX=9,
+    cQ=10,cV=11,cUSR=12,cREC=13,cCC=14,cRF=15,cPROV=16,cPED=17,cALM=18;
+var NCOL = 19;
+
+var IDX = null, ROWS = [], INV = null, F = [], CH = {}, DET_N = 500;
+var DIC = {}, D_F8 = [], D_E8 = [], D_TP = [], D_AT = [], D_EQ = [], PRECIO = {};
+var FUENTES = {}, MESCAMPOS = {};
+/* Codigo de almacen receptor de SAP -> Unidad Ejecutora. Derivado del empate
+   real entre MB51_ENTRADA y SEGUIMIENTO_PEDIDOS del Motor, no inventado. Los
+   codigos que no esten aqui salen como SIN MAPEAR y se listan en la pestana
+   de Cobertura y calidad para que este mapa se mantenga en vez de envejecer. */
+var MAPA_UE = {"2017": "RAFAEL ESTEVEZ","3002": "HOSP. MANUEL AMADOR G.","3003": "POL. HUGO SPADAFORA","3004": "POL. DE SABANITAS","3007": "POL. DE NUEVO SAN JUAN","3009": "ULAPS PORTOBELO","6001": "HOSP G N COLLADO","8028": "POL. DR. BLAS D. GOMEZ CHETRO","8029": "POL. GENEROSO GUARDIA (STA. LIBRADA)","8030": "HOSP H ESPERANZA","8031": "C. H. M. DR. ARNULFO ARIAS MADRID","8034": "ULAPS MAXIMO HERRERA (HIPODROMO)","8035": "POL. MANUEL FERRER VALDES (PEDIATRICA)","8036": "POL. PRESIDENTE REMON (CALLE 17)","8037": "POL. CARLOS N. BRIN (SAN FRANCISCO)","8039": "POL. MANUEL MARIA VALDES (SAN MIGUELITO)","8040": "POL. ALEJANDRO DE LA GUARDIA (BETHANIA)","8045": "POL. SANTIAGO BARRAZA (CHORRERA)","8046": "POL. JUAN VEGA M. (SAN CARLOS)","8047": "HOSP. DE CHEPO","8056": "POL. JOAQUIN J. VALLARINO (JUAN DIAZ)","8058": "POL. DE CAÑITA","8063": "ULAPS - SAN CRISTOBAL (PROF. CARLOS VELARDE)","8066": "CAPPS TORRIJOS CARTER","8068": "ULAPS - LAS CUMBRES (DR. EDILBERTO CULIOLIS)","8071": "ULAPS- GUADALUPE","8072": "ULAPS SAN JOSE","8073": "ULAPS VISTA ALEGRE (ARRAIJAN)","8082": "CAPPS PEDREGAL","8083": "CAPPS LAS ACACIAS (PLAZA TOCUMEN)","8084": "CAPPS MAÑANITAS (LOS NOGALES)","8085": "CAPPS DE CAPIRA","8088": "CAPPS EL TECAL","8093": "HOSP. DRA. SUSANA JONES CANO","8094": "ESPECIALIDADES PEDIATRICAS (HEPOTH)","8099": "CAPPS VACAMONTE","8105": "POLICLINICA DE SAN ANTONIO","8106": "HOSP. IRMA DE LOURDES TZANETATOS","8107": "CIUDAD DE LA SALUD","CDCH": "CEDIS CHIRIQUI","CDDI": "CEDIS DIVISA","CDPA": "CEDIS PANAMA"};
+
+var $ = function (id) { return document.getElementById(id); };
+var nf  = function (n) { return (n === null || n === undefined || isNaN(n)) ? '' : Number(n).toLocaleString('es-PA', {maximumFractionDigits:0}); };
+var nf2 = function (n) { return (n === null || n === undefined || isNaN(n)) ? '' : Number(n).toLocaleString('es-PA', {minimumFractionDigits:2, maximumFractionDigits:2}); };
+var esc = function (s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var AZ = ['#0C447C','#1E5A9E','#4A7FB5','#7FA3C8','#b5820a','#1b7a34','#b31b1b','#5c5c5c','#8a6207','#2e6b8a','#9a6fb0','#c26a4a'];
+
+var TABS = [['resumen','Resumen'],['fact','Facturaci\u00f3n a UE'],['recep','Recepci\u00f3n y compras'],
+  ['ajuste','Ajustes y bajas'],['reng','Rengl\u00f3nes'],['lotes','Lotes y vencimientos'],
+  ['inv','Inventario MB52'],['lat','Latencia de registro'],['prod','Productividad SAP'],
+  ['cal','Cobertura y calidad'],['det','Detalle']];
+
+/* Normaliza sin diacríticos: las descripciones del MB51 traen tildes
+   (CÁPS, ANTISÉPTIC) y nadie las escribe al buscar. */
+function norm(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function mediana(a) {
+  if (!a.length) return 0;
+  var s = a.slice().sort(function (x, y) { return x - y; });
+  var m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2;
+}
+var TRAMOS = ['Mismo d\u00eda','1 a 3 d\u00edas','4 a 7 d\u00edas','8 a 30 d\u00edas','31 a 90 d\u00edas','M\u00e1s de 90 d\u00edas'];
+function tramo(v) { return v <= 0 ? TRAMOS[0] : (v <= 3 ? TRAMOS[1] : (v <= 7 ? TRAMOS[2] : (v <= 30 ? TRAMOS[3] : (v <= 90 ? TRAMOS[4] : TRAMOS[5])))); }
+function dias_(a, b) { return Math.round((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000); }
+
+/* Forma 8: normalización conservadora, con el estado de lectura explícito.
+   Medido sobre 27,674 líneas 313/314 del histórico: 36% empata directo con
+   SEGUIMIENTO_PEDIDOS y 54% con la regla del ciclo. El resto son errores de
+   digitación en SAP, así que el estado se muestra en vez de esconderse. */
+function clasifF8(raw) {
+  var s = norm(raw).trim();
+  if (!s) return ['', 'VACIO'];
+  s = s.replace(/\(.*?\)/g, '').trim().replace(/[\s./\\]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (/^[A-Z0-9]{3,5}-20\d{2}-/.test(s) || /^[A-Z0-9]{3,5}-20\d{2}$/.test(s)) return [s, 'ESTANDAR'];
+  var m = s.match(/^([A-Z0-9]{3,5})-(\d{3,5})-(.+)$/);
+  if (m && ['226','2126','20226','026','2026'].indexOf(m[2]) >= 0) return [m[1] + '-2026-' + m[3], 'ANIO_CORREGIDO'];
+  if (/^[A-Z0-9]{3,5}-[A-Z0-9]{2,6}-\d{2,6}$/.test(s)) return [s, 'REF_SIN_ANIO'];
+  return [s, 'OTRO'];
+}
+var RE_ATC = /^[A-Z]\d{2}[A-Z]{2}\d{5}$/;
+
+/* ──────────────────────────────────────────────────────────────────────────
+ *  CARGA
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function prog(p, msj) { $('cbar').style.width = p + '%'; if (msj) $('cmsg').textContent = msj; }
+
+function traer(archivo) {
+  return fetch(KDX_BASE + '/' + archivo + '?t=' + Math.floor(Date.now() / 60000), {cache:'no-cache'})
+    .then(function (r) { if (!r.ok) throw new Error(archivo + ' respondio ' + r.status); return r.json(); });
+}
+
+function cargar() {
+  prog(5, 'Leyendo el manifiesto\u2026');
+  traer('indice.json').then(function (idx) {
+    IDX = idx;
+    var meses = (idx.meses || []).map(function (m) { return m.archivo; });
+    var paso = 70 / Math.max(meses.length, 1);
+    var acum = Promise.resolve();
+    var cargados = [];
+    meses.forEach(function (a, i) {
+      acum = acum.then(function () {
+        prog(10 + paso * i, 'Cargando ' + a + '\u2026');
+        return traer(a).then(function (p) { cargados.push(p); });
+      });
+    });
+    return acum.then(function () {
+      prog(85, 'Cargando el inventario MB52\u2026');
+      return traer('inventario.json').catch(function () { return null; });
+    }).then(function (inv) {
+      INV = inv;
+      prog(92, 'Normalizando ' + nf(idx._meta.filas) + ' l\u00edneas\u2026');
+      unificar(cargados);
+      prog(98, 'Preparando el tablero\u2026');
+      init();
+      $('carga').style.display = 'none';
+      $('app').style.display = '';
+    });
+  }).catch(function (e) {
+    $('carga').innerHTML = '<div style="color:#b31b1b;font-weight:600">No se pudo cargar el kardex</div>' +
+      '<div style="margin-top:10px">' + esc(e.message) + '</div>' +
+      '<div style="margin-top:14px;font-size:12px;color:#666">Verifique que KARDEX_SAP.gs haya publicado ' +
+      'en <b>' + KDX_BASE + '/</b> y que el repo de Pages ya haya propagado los archivos.</div>';
+  });
+}
+
+/* Remapea los índices de diccionario de cada mes a un diccionario global y
+   deja las filas en un orden de campos único. Los meses publicados antes del
+   14-sep traen 18 campos; se leen por su propio _meta.orden. */
+function unificar(paquetes) {
+  var campos = ['mat','ds','lote','tx','usr','rec','prov','ped','alm'];
+  campos.forEach(function (k) { DIC[k] = []; });
+  var mapaG = {};
+  campos.forEach(function (k) { mapaG[k] = {}; });
+  function ix(k, valor) {
+    var s = String(valor === null || valor === undefined ? '' : valor);
+    if (mapaG[k][s] === undefined) { mapaG[k][s] = DIC[k].length; DIC[k].push(s); }
+    return mapaG[k][s];
+  }
+  campos.forEach(function (k) { ix(k, ''); });   /* el índice 0 siempre es vacío */
+
+  ROWS = [];
+  paquetes.forEach(function (p) {
+    var orden = (p._meta && p._meta.orden) || [];
+    /* la fuente por dia y el numero de campos por mes alimentan las columnas
+       de trazabilidad de Resumen y de Cobertura: de que archivo salio cada dia
+       y si ese mes ya trae el campo Almacen */
+    if (p.fuentes) Object.keys(p.fuentes).forEach(function (d) { FUENTES[d] = p.fuentes[d]; });
+    if (p._meta && p._meta.mes) MESCAMPOS[p._meta.mes] = orden.length;
+    var pos = {}, esDic = {};
+    orden.forEach(function (c, i) {
+      var k = c.replace('*', '');
+      pos[k] = i; esDic[k] = c.indexOf('*') >= 0;
+    });
+    /* tablas de traducción por diccionario, una vez por mes */
+    var tr = {};
+    campos.forEach(function (k) {
+      var loc = (p.dic && p.dic[k]) || [];
+      tr[k] = loc.map(function (v) { return ix(k, v); });
+    });
+    var rows = p.rows || [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], o = new Array(NCOL);
+      o[cF]   = pos.f    !== undefined ? r[pos.f]  : '';
+      o[cFD]  = pos.fd   !== undefined ? r[pos.fd] : '';
+      o[cH]   = pos.h    !== undefined ? r[pos.h]  : '';
+      o[cM]   = pos.m    !== undefined ? String(r[pos.m]) : '';
+      o[cFV]  = pos.fv   !== undefined ? r[pos.fv] : '';
+      o[cDOC] = pos.doc  !== undefined ? String(r[pos.doc]) : '';
+      o[cQ]   = pos.q    !== undefined ? (Number(r[pos.q]) || 0) : 0;
+      o[cV]   = pos.v    !== undefined ? (Number(r[pos.v]) || 0) : 0;
+      o[cCC]  = pos.cc   !== undefined ? r[pos.cc] : '';
+      o[cRF]  = pos.rf   !== undefined ? r[pos.rf] : '';
+      o[cMAT] = pos.mat  !== undefined ? tr.mat[r[pos.mat]]   : 0;
+      o[cDS]  = pos.ds   !== undefined ? tr.ds[r[pos.ds]]     : 0;
+      o[cLOTE]= pos.lote !== undefined ? tr.lote[r[pos.lote]] : 0;
+      o[cTX]  = pos.tx   !== undefined ? tr.tx[r[pos.tx]]     : 0;
+      o[cUSR] = pos.usr  !== undefined ? tr.usr[r[pos.usr]]   : 0;
+      o[cREC] = pos.rec  !== undefined ? tr.rec[r[pos.rec]]   : 0;
+      o[cPROV]= pos.prov !== undefined ? tr.prov[r[pos.prov]] : 0;
+      o[cPED] = pos.ped  !== undefined ? tr.ped[r[pos.ped]]   : 0;
+      o[cALM] = pos.alm  !== undefined ? tr.alm[r[pos.alm]]   : 0;
+      ROWS.push(o);
+    }
+  });
+
+  /* derivados sobre los diccionarios, no sobre las filas */
+  D_F8 = []; D_E8 = [];
+  for (var t = 0; t < DIC.tx.length; t++) { var c = clasifF8(DIC.tx[t]); D_F8.push(c[0]); D_E8.push(c[1]); }
+  D_TP = []; D_AT = [];
+  for (var mm = 0; mm < DIC.mat.length; mm++) {
+    var cod = DIC.mat[mm];
+    var atc = RE_ATC.test(cod);
+    D_TP.push(atc ? 'MEDICAMENTO' : (/^[A-Z]{2}/.test(cod) ? 'INSUMO' : (cod ? 'OTRO' : '')));
+    D_AT.push(atc ? cod.charAt(0) : '');
+  }
+  D_EQ = [];
+  for (var uu = 0; uu < DIC.usr.length; uu++) D_EQ.push(PADRON.indexOf(DIC.usr[uu]) >= 0 ? 1 : 0);
+
+  /* precio del MB52 por Material + Almacén + Lote, y de respaldo por
+     Material + Lote, porque los meses viejos no publicaron el almacén */
+  PRECIO = {};
+  if (INV && INV.rows) {
+    var io = {}, ordI = INV._meta.orden;
+    ordI.forEach(function (cc2, i2) { io[cc2.replace('*','')] = i2; });
+    for (var q = 0; q < INV.rows.length; q++) {
+      var ri = INV.rows[q];
+      var mat = INV.dic.mat[ri[io.mat]], alm = INV.dic.alm[ri[io.alm]], lo = INV.dic.lote[ri[io.lote]];
+      var pr = Number(ri[io.precio]) || 0;
+      if (!pr) continue;
+      PRECIO[mat + '|' + alm + '|' + lo] = pr;
+      var k2 = mat + '|' + lo;
+      if (PRECIO[k2] === undefined) PRECIO[k2] = pr;
+      if (PRECIO[mat] === undefined) PRECIO[mat] = pr;
+    }
+  }
+}
+
+/* Valor de la línea: si SAP la valorizó, ese importe manda. Si llegó en cero
+   —313, 314, 315, 316— se calcula con el precio del MB52. Es el mismo
+   procedimiento del cierre contable que envía la Jefatura a Contabilidad. */
+function valor(r) {
+  if (r[cV]) return r[cV];
+  var mat = DIC.mat[r[cMAT]], alm = DIC.alm[r[cALM]], lo = DIC.lote[r[cLOTE]];
+  var p = PRECIO[mat + '|' + alm + '|' + lo];
+  if (p === undefined) p = PRECIO[mat + '|' + lo];
+  if (p === undefined) p = PRECIO[mat];
+  return p === undefined ? 0 : r[cQ] * p;
+}
+function valorEstimado(r) { return !r[cV] && valor(r) !== 0; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ *  INICIALIZACION Y FILTROS
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function init() {
+  $('mCorte').textContent = IDX._meta.hasta;
+  $('mGen').textContent = IDX._meta.generado;
+  $('eTot').textContent = nf(ROWS.length);
+  $('eInv').textContent = INV ? (INV._meta.fecha + ' · ' + nf(INV._meta.filas) + ' lotes') : 'no publicado';
+
+  $('tabs').innerHTML = TABS.map(function (t, i) {
+    return '<div class="tab' + (i === 0 ? ' on' : '') + '" data-t="' + t[0] + '">' + t[1] + '</div>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (el) {
+    el.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) { x.classList.remove('on'); });
+      Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (x) { x.classList.remove('on'); });
+      el.classList.add('on'); $('p-' + el.dataset.t).classList.add('on');
+      Object.keys(CH).forEach(function (k) { try { CH[k].resize(); } catch (e) {} });
+    };
+  });
+
+  var movs = {};
+  for (var i = 0; i < ROWS.length; i++) movs[ROWS[i][cM]] = true;
+  $('fMov').innerHTML = '<option value="">Todas</option>' + Object.keys(movs).sort().map(function (c) {
+    return '<option value="' + c + '">' + c + ' - ' + (MOVS[c] ? MOVS[c][0] : 'Sin catalogar') + '</option>';
+  }).join('');
+
+  var ues = [];
+  for (var r = 1; r < DIC.rec.length; r++) if (DIC.rec[r]) ues.push(DIC.rec[r]);
+  ues.sort(function (a, b) { return (MAPA_UE[a] || a).localeCompare(MAPA_UE[b] || b, 'es'); });
+  $('fUE').innerHTML = '<option value="">Todos</option>' + ues.map(function (c) {
+    return '<option value="' + c + '">' + esc(MAPA_UE[c] || ('SIN MAPEAR - ' + c)) + ' (' + c + ')</option>';
+  }).join('');
+
+  var usrs = DIC.usr.slice(1).filter(Boolean).sort();
+  $('fUsr').innerHTML = '<option value="">Todos</option>' + usrs.map(function (u) {
+    return '<option value="' + esc(u) + '">' + esc(u) + (D_EQ[DIC.usr.indexOf(u)] ? ' · CEDIS PANAMA' : '') + '</option>';
+  }).join('');
+
+  var rens = [];
+  for (var m = 1; m < DIC.mat.length; m++) if (DIC.mat[m]) rens.push([DIC.mat[m], DIC.ds[m] || '']);
+  rens.sort(function (a, b) { return a[1].localeCompare(b[1], 'es'); });
+  $('dlRen').innerHTML = rens.map(function (x) { return '<option value="' + esc(x[1]) + '">' + esc(x[0]) + '</option>'; }).join('');
+  $('eRen').textContent = nf(rens.length);
+
+  $('fDesde').value = IDX._meta.desde;
+  $('fHasta').value = IDX._meta.hasta;
+  ['fDesde','fHasta','fMov','fUE','fTipo','fUsr','fEquipo'].forEach(function (id) { $(id).onchange = aplicar; });
+  $('fRen').oninput = debounce(aplicar, 250);
+  $('btnLimpiar').onclick = function () {
+    $('fDesde').value = IDX._meta.desde; $('fHasta').value = IDX._meta.hasta;
+    $('fMov').value = ''; $('fUE').value = ''; $('fTipo').value = '';
+    $('fUsr').value = ''; $('fEquipo').value = ''; $('fRen').value = '';
+    aplicar();
+  };
+  $('btnMas').onclick = function () { DET_N += 500; pintarDetalle(); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-csv]'), function (b) {
+    b.onclick = function () { csv(b.dataset.csv); };
+  });
+  pintarInventario();
+  aplicar();
+}
+function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
+
+function aplicar() {
+  var d = $('fDesde').value, h = $('fHasta').value, mv = $('fMov').value,
+      ue = $('fUE').value, tp = $('fTipo').value, us = $('fUsr').value, eq = $('fEquipo').value;
+  var terms = norm($('fRen').value.trim()).split(/\s+/).filter(Boolean);
+  /* la búsqueda se resuelve sobre el diccionario: un set de índices de
+     material, en vez de comparar texto en las 49,942 filas */
+  var matOK = null;
+  if (terms.length) {
+    matOK = {};
+    for (var m = 0; m < DIC.mat.length; m++) {
+      var a = norm(DIC.mat[m]), b = norm(DIC.ds[m]);
+      var todos = true;
+      for (var t = 0; t < terms.length; t++) {
+        if (a.indexOf(terms[t]) < 0 && b.indexOf(terms[t]) < 0) { todos = false; break; }
+      }
+      if (todos) matOK[m] = 1;
+    }
+  }
+  var ueIdx = ue ? DIC.rec.indexOf(ue) : -1;
+  var usIdx = us ? DIC.usr.indexOf(us) : -1;
+
+  F = [];
+  for (var i = 0; i < ROWS.length; i++) {
+    var r = ROWS[i];
+    if (d && r[cF] < d) continue;
+    if (h && r[cF] > h) continue;
+    if (mv && r[cM] !== mv) continue;
+    if (ueIdx >= 0 && r[cREC] !== ueIdx) continue;
+    if (usIdx >= 0 && r[cUSR] !== usIdx) continue;
+    if (tp && D_TP[r[cMAT]] !== tp) continue;
+    if (eq !== '' && D_EQ[r[cUSR]] !== Number(eq)) continue;
+    if (matOK && !matOK[r[cMAT]]) continue;
+    F.push(r);
+  }
+  DET_N = 500;
+  $('eLin').textContent = nf(F.length);
+  $('eRango').textContent = (d || '?') + ' a ' + (h || '?');
+  var dd = {}; for (var j = 0; j < F.length; j++) dd[F[j][cF]] = true;
+  $('eDias').textContent = Object.keys(dd).length;
+
+  var sr = $('sinRes');
+  if (!F.length) {
+    sr.style.display = '';
+    sr.innerHTML = 'Ning\u00fan movimiento cumple los filtros aplicados. ' + (terms.length ?
+      'El t\u00e9rmino se compara contra el <b>c\u00f3digo SAP</b> y la <b>descripci\u00f3n</b> del rengl\u00f3n. ' +
+      'Recuerde que SAP trunca la descripci\u00f3n a 40 caracteres, as\u00ed que conviene escribir fragmentos cortos, ' +
+      'y que el MB51 no usa el C\u00f3digo Abasto num\u00e9rico de SALMI sino la codificaci\u00f3n de SAP.' : '');
+  } else { sr.style.display = 'none'; }
+
+  pintarResumen(); pintarFact(); pintarRecep(); pintarAjuste(); pintarReng();
+  pintarLotes(); pintarLat(); pintarProd(); pintarCalidad(); pintarDetalle();
+}
+
+/* ── utilidades de agregación ── */
+function suma(a, f) { var s = 0; for (var i = 0; i < a.length; i++) s += f(a[i]); return s; }
+function uniq(a, f) { var o = {}, n = 0; for (var i = 0; i < a.length; i++) { var v = f(a[i]); if (v !== '' && v !== undefined && !o[v]) { o[v] = 1; n++; } } return n; }
+function agrupar(a, f) { var m = {}; for (var i = 0; i < a.length; i++) { var k = f(a[i]); if (!m[k]) m[k] = []; m[k].push(a[i]); } return m; }
+function salida(r) { return r[cQ] < 0 ? -r[cQ] : 0; }
+function entrada(r) { return r[cQ] > 0 ? r[cQ] : 0; }
+function neto(a) { return -suma(a, function (r) { return r[cQ]; }); }
+function porClase(a, cl) { var o = []; for (var i = 0; i < a.length; i++) if (cl.indexOf(a[i][cM]) >= 0) o.push(a[i]); return o; }
+function kpis(cont, items) {
+  $(cont).innerHTML = items.map(function (k) {
+    return '<div class="kpi ' + (k[2] || '') + '"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div>' +
+      (k[3] ? '<div class="s">' + k[3] + '</div>' : '') + '</div>';
+  }).join('');
+}
+
+/* ── tabla ordenable ── */
+var TBL = {};
+function tabla(id, cols, filas, orden, full) {
+  var s = (TBL[id] && TBL[id].sort) || orden || null;
+  if (s && (s.i < 0 || s.i >= cols.length)) s = (orden && orden.i < cols.length) ? orden : null;
+  TBL[id] = {cols:cols, filas:filas, full:full || null, sort:s};
+  render(id);
+}
+function ordenar(cols, filas, sort) {
+  if (!sort) return filas.slice();
+  var i = sort.i, dir = sort.d, tipo = cols[i].t;
+  return filas.slice().sort(function (a, b) {
+    var x = a[i], y = b[i];
+    if (tipo === 'n') { x = Number(x) || 0; y = Number(y) || 0; return dir * (x - y); }
+    return dir * String(x === null || x === undefined ? '' : x).localeCompare(String(y === null || y === undefined ? '' : y), 'es');
+  });
+}
+function render(id) {
+  var t = TBL[id], el = $(id);
+  if (!t.filas.length) { el.innerHTML = '<tbody><tr><td class="vacio">Sin datos para los filtros aplicados.</td></tr></tbody>'; return; }
+  var fs = ordenar(t.cols, t.filas, t.sort);
+  var th = t.cols.map(function (c, i) {
+    var act = t.sort && t.sort.i === i;
+    var ar = act ? (t.sort.d === 1 ? '&#9650;' : '&#9660;') : '&#9670;';
+    return '<th class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) + (act ? ' act' : '') +
+      '" data-i="' + i + '" title="Ordenar">' + c.h + '<span class="ar">' + ar + '</span></th>';
+  }).join('');
+  var tb = fs.map(function (f) {
+    return '<tr>' + t.cols.map(function (c, i) {
+      return '<td class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) + '">' + (c.f ? c.f(f[i], f) : esc(f[i])) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  el.innerHTML = '<thead><tr>' + th + '</tr></thead><tbody>' + tb + '</tbody>';
+  Array.prototype.forEach.call(el.querySelectorAll('th'), function (h) {
+    h.onclick = function () {
+      var i = +h.dataset.i;
+      t.sort = (t.sort && t.sort.i === i) ? {i:i, d:-t.sort.d} : {i:i, d:t.cols[i].t === 'n' ? -1 : 1};
+      render(id);
+    };
+  });
+  t.orden = fs;
+}
+function csv(id) {
+  var t = TBL[id]; if (!t) return;
+  /* 'full' puede ser una funcion: el detalle son 49,942 filas por 27 columnas y
+     materializarlas en cada cambio de filtro agotaba la memoria sin que nadie
+     hubiera pedido exportar. Se construyen solo al pulsar el boton. */
+  var completo = (typeof t.full === 'function') ? t.full() : t.full;
+  var fs = completo ? ordenar(t.cols, completo, t.sort) : (t.orden || t.filas);
+  var lim = function (s) { return '"' + String(s === null || s === undefined ? '' : s).replace(/<[^>]+>/g, '').replace(/"/g, '""') + '"'; };
+  var txt = '\uFEFF' + [t.cols.map(function (c) { return lim(c.h); }).join(';')]
+    .concat(fs.map(function (f) { return f.map(lim).join(';'); })).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'}));
+  a.download = 'KARDEX_' + id + '_' + IDX._meta.hasta + '.csv'; a.click();
+}
+function chart(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart($(id).getContext('2d'), cfg); }
+var OPT = {responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{labels:{font:{size:11}, boxWidth:12}}},
+  scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas', size:10}}}, x:{ticks:{font:{size:10}}}}};
+var OPTH = {responsive:true, maintainAspectRatio:false, indexAxis:'y',
+  plugins:{legend:{display:false}},
+  scales:{x:{beginAtZero:true, ticks:{font:{family:'Consolas', size:10}}}, y:{ticks:{font:{size:10}}}}};
+
+/* ══════════════════════════ RESUMEN ══════════════════════════ */
+function pintarResumen() {
+  var fac = porClase(F, ['313','314']), rec = porClase(F, ['101','102']), baja = porClase(F, ['562']);
+  var dd = {}; for (var i = 0; i < F.length; i++) dd[F[i][cF]] = true;
+  var vFac = suma(fac, function (r) { return Math.abs(valor(r)); });
+  kpis('kResumen', [
+    ['D\u00edas con carga', nf(Object.keys(dd).length), '', 'Fuente diaria'],
+    ['L\u00edneas de movimiento', nf(F.length), '', 'Acumulado del rango'],
+    ['Documentos SAP', nf(uniq(F, function (r) { return r[cDOC]; })), '', 'Acumulado del rango'],
+    ['Rengl\u00f3nes movidos', nf(uniq(F, function (r) { return r[cMAT]; })), '', 'Acumulado del rango'],
+    ['Unidades despachadas a UE', nf(neto(fac)), '', '313 neto de 314'],
+    ['Valor despachado B/.', nf2(vFac), 'amb', 'Estimado con precio MB52'],
+    ['Valor recibido B/.', nf2(suma(rec, function (r) { return r[cV]; })), 'verde', '101 neto de 102'],
+    ['Ajuste neto 561 + 562 B/.', nf2(suma(porClase(F, ['561','562']), function (r) { return r[cV]; })), 'rojo',
+      'Bruto 562: ' + nf2(Math.abs(suma(baja, function (r) { return r[cV]; })))]
+  ]);
+
+  var pd = agrupar(F, function (r) { return r[cF]; });
+  var dias = Object.keys(pd).sort();
+  var nat = function (c) { return MOVS[c] ? MOVS[c][1] : 'OTRO'; };
+  chart('chDia', {type:'bar', data:{labels:dias, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n, i) {
+      return {label:n, backgroundColor:AZ[i], data:dias.map(function (d) {
+        var c = 0, a = pd[d]; for (var k = 0; k < a.length; k++) if (nat(a[k][cM]) === n) c++; return c; })};
+    })},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{x:{stacked:true, ticks:{font:{size:9}, maxRotation:90}},
+              y:{stacked:true, beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+
+  var pm = agrupar(F, function (r) { return r[cM]; });
+  var mk = Object.keys(pm).sort(function (a, b) { return pm[b].length - pm[a].length; });
+  chart('chMov', {type:'bar', data:{labels:mk.map(function (c) { return c + ' ' + (MOVS[c] ? MOVS[c][0] : 'Sin catalogar'); }),
+    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:mk.map(function (c) { return pm[c].length; })}]}, options:OPTH});
+
+  tabla('tDia', [
+    {h:'Fecha contab.', t:'t'}, {h:'Fuente', t:'c', f:function (v) { return '<span class="chip ' + (v === 'diario' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
+    {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
+    {h:'Valor despachado B/.', t:'n', f:nf2}, {h:'Valor recibido B/.', t:'n', f:nf2}, {h:'Valor baja B/.', t:'n', f:nf2},
+    {h:'UE atendidas', t:'n', f:nf}, {h:'Usuarios', t:'n', f:nf}, {h:'Latencia mediana (d)', t:'n', f:nf}
+  ], dias.map(function (d) {
+    var a = pd[d];
+    var lats = []; for (var k = 0; k < a.length; k++) if (a[k][cFD] && a[k][cF]) lats.push(dias_(a[k][cF], a[k][cFD]));
+    return [d, fuenteDia(d), a.length, uniq(a, function (r) { return r[cDOC]; }), uniq(a, function (r) { return r[cMAT]; }),
+      suma(a, salida), suma(a, entrada),
+      suma(porClase(a, ['313','314']), function (r) { return Math.abs(valor(r)); }),
+      suma(porClase(a, ['101','102']), function (r) { return r[cV]; }),
+      Math.abs(suma(porClase(a, ['562']), function (r) { return r[cV]; })),
+      uniq(porClase(a, ['313']), function (r) { return r[cREC]; }), uniq(a, function (r) { return r[cUSR]; }),
+      mediana(lats)];
+  }), {i:0, d:-1});
+
+  var pu = agrupar(fac, function (r) { return r[cREC]; });
+  var uk = Object.keys(pu).map(function (k) { return [k, neto(pu[k])]; })
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
+  chart('chUE', {type:'bar', data:{labels:uk.map(function (x) { var c = DIC.rec[x[0]]; return (MAPA_UE[c] || c || 'SIN DESTINO').slice(0, 34); }),
+    datasets:[{label:'Unidades', backgroundColor:'#0C447C', data:uk.map(function (x) { return x[1]; })}]}, options:OPTH});
+
+  var pr = agrupar(porClase(F, ['313']), function (r) { return r[cMAT]; });
+  var rk = Object.keys(pr).map(function (k) { return [k, suma(pr[k], salida)]; })
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
+  chart('chRen', {type:'bar', data:{labels:rk.map(function (x) { return (DIC.ds[x[0]] || DIC.mat[x[0]]).slice(0, 34); }),
+    datasets:[{label:'Unidades', backgroundColor:'#4A7FB5', data:rk.map(function (x) { return x[1]; })}]}, options:OPTH});
+}
+function fuenteDia(d) { return FUENTES[d] || ''; }
+
+/* ══════════════════════════ FACTURACION A UE ══════════════════════════ */
+function pintarFact() {
+  var a = porClase(F, ['313']), b = porClase(F, ['314']);
+  var ab = a.concat(b);
+  var pct = a.length ? (b.length / a.length * 100) : 0;
+  var conPrecio = 0;
+  for (var i = 0; i < ab.length; i++) if (valor(ab[i]) !== 0) conPrecio++;
+  kpis('kFact', [
+    ['L\u00edneas 313 (salida)', nf(a.length), '', 'Acumulado del rango'],
+    ['L\u00edneas 314 (anulaci\u00f3n)', nf(b.length), b.length ? 'amb' : 'verde', 'Acumulado del rango'],
+    ['Tasa de anulaci\u00f3n', pct.toFixed(1) + '%', pct > 3 ? 'rojo' : 'verde', '314 sobre 313'],
+    ['Unidades despachadas', nf(neto(ab)), '', 'Neto del rango'],
+    ['Valor despachado B/.', nf2(suma(ab, function (r) { return Math.abs(valor(r)); })), 'amb', 'Precio del MB52'],
+    ['L\u00edneas sin precio', nf(ab.length - conPrecio), (ab.length - conPrecio) ? 'rojo' : 'verde',
+      ab.length ? ((ab.length - conPrecio) / ab.length * 100).toFixed(1) + '% sin valorizar' : ''],
+    ['UE / destinos atendidos', nf(uniq(a, function (r) { return r[cREC]; })), '', 'Acumulado del rango'],
+    ['Formas 8 / referencias', nf(uniq(ab, function (r) { return D_F8[r[cTX]]; })), '', 'Acumulado del rango']
+  ]);
+
+  var g = agrupar(ab, function (r) { return r[cREC]; });
+  tabla('tUE', [
+    {h:'C\u00f3digo', t:'c'}, {h:'Unidad Ejecutora / destino', t:'t'},
+    {h:'L\u00edneas 313', t:'n', f:nf}, {h:'L\u00edneas 314', t:'n', f:nf},
+    {h:'Unidades netas', t:'n', f:nf}, {h:'Valor B/.', t:'n', f:nf2},
+    {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Formas 8', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf},
+    {h:'D\u00edas con despacho', t:'n', f:nf}, {h:'\u00daltimo despacho', t:'c'},
+    {h:'Maestro', t:'c', f:function (v) { return '<span class="chip ' + (v === 'MAPEADO' ? 'ok' : 'er') + '">' + v + '</span>'; }}
+  ], Object.keys(g).map(function (k) {
+    var x = g[k], cod = DIC.rec[k];
+    var s3 = porClase(x, ['313']), s4 = porClase(x, ['314']);
+    var fs = x.map(function (r) { return r[cF]; }).sort();
+    var dias = {}; for (var i2 = 0; i2 < x.length; i2++) dias[x[i2][cF]] = 1;
+    return [cod || '(sin destino)', MAPA_UE[cod] || 'SIN CORRESPONDENCIA EN MAESTRO',
+      s3.length, s4.length, neto(x), suma(x, function (r) { return Math.abs(valor(r)); }),
+      uniq(x, function (r) { return r[cMAT]; }), uniq(x, function (r) { return D_F8[r[cTX]]; }),
+      uniq(x, function (r) { return r[cDOC]; }), Object.keys(dias).length, fs[fs.length - 1] || '',
+      MAPA_UE[cod] ? 'MAPEADO' : 'SIN MAPEAR'];
+  }), {i:4, d:-1});
+
+  var EST = {ESTANDAR:['ok','Est\u00e1ndar'], ANIO_CORREGIDO:['wa','A\u00f1o corregido'],
+    REF_SIN_ANIO:['wa','Otro formato'], OTRO:['er','No interpretable'], VACIO:['er','Vac\u00edo']};
+  var g8 = agrupar(ab, function (r) { return D_F8[r[cTX]] || '(sin referencia)'; });
+  tabla('tF8', [
+    {h:'Forma 8 / referencia', t:'t'}, {h:'Destino', t:'t'}, {h:'Fecha', t:'c'},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Unidades netas', t:'n', f:nf},
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Anulaciones', t:'n', f:nf},
+    {h:'Lectura', t:'c', f:function (v) { return '<span class="chip ' + (EST[v] ? EST[v][0] : 'nu') + '">' + (EST[v] ? EST[v][1] : v) + '</span>'; }},
+    {h:'Texto original en SAP', t:'t'}, {h:'Usuario', t:'c'}
+  ], Object.keys(g8).map(function (k) {
+    var x = g8[k], fs = x.map(function (r) { return r[cF]; }).sort();
+    var cod = DIC.rec[x[0][cREC]];
+    return [k, MAPA_UE[cod] || cod || '', fs[0] || '', x.length, uniq(x, function (r) { return r[cMAT]; }),
+      neto(x), suma(x, function (r) { return Math.abs(valor(r)); }), porClase(x, ['314']).length,
+      D_E8[x[0][cTX]], DIC.tx[x[0][cTX]], DIC.usr[x[0][cUSR]]];
+  }), {i:5, d:-1});
+}
+
+/* ══════════════════════════ RECEPCION ══════════════════════════ */
+function pintarRecep() {
+  var a = porClase(F, ['101']), b = porClase(F, ['102']), ab = a.concat(b);
+  kpis('kRec', [
+    ['L\u00edneas 101 (entrada)', nf(a.length), '', 'Acumulado del rango'],
+    ['L\u00edneas 102 (anulaci\u00f3n)', nf(b.length), b.length ? 'amb' : 'verde', 'Acumulado del rango'],
+    ['Unidades recibidas', nf(suma(ab, entrada) - suma(ab, salida)), '', 'Neto del rango'],
+    ['Valor recibido B/.', nf2(suma(ab, function (r) { return r[cV]; })), 'verde', 'Valorizado por SAP'],
+    ['Pedidos de compra', nf(uniq(ab, function (r) { return r[cPED]; })), '', 'Acumulado del rango'],
+    ['Proveedores', nf(uniq(ab, function (r) { return r[cPROV]; })), '', 'Acumulado del rango'],
+    ['Rengl\u00f3nes recibidos', nf(uniq(a, function (r) { return r[cMAT]; })), '', 'Acumulado del rango'],
+    ['Latencia mediana (d)', nf(mediana(a.filter(function (r) { return r[cFD] && r[cF]; }).map(function (r) { return dias_(r[cF], r[cFD]); }))),
+      'rojo', 'Documento a contabilizaci\u00f3n']
+  ]);
+
+  var pd = agrupar(ab, function (r) { return r[cF]; });
+  var dias = Object.keys(pd).sort();
+  chart('chRec', {type:'bar', data:{labels:dias, datasets:[{label:'Valor recibido B/.', backgroundColor:'#1b7a34',
+    data:dias.map(function (d) { return suma(pd[d], function (r) { return r[cV]; }); })}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:9}, maxRotation:90}}, y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+
+  var gp = agrupar(ab, function (r) { return r[cPROV]; });
+  tabla('tProv', [
+    {h:'Proveedor SAP', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Unidades', t:'n', f:nf},
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Pedidos', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
+    {h:'D\u00edas con entrega', t:'n', f:nf}, {h:'Latencia mediana (d)', t:'n', f:nf}, {h:'\u00daltima entrada', t:'c'}
+  ], Object.keys(gp).map(function (k) {
+    var x = gp[k], fs = x.map(function (r) { return r[cF]; }).sort();
+    var dd2 = {}; for (var i = 0; i < x.length; i++) dd2[x[i][cF]] = 1;
+    var lats = x.filter(function (r) { return r[cFD] && r[cF]; }).map(function (r) { return dias_(r[cF], r[cFD]); });
+    return [DIC.prov[k] || '(sin proveedor)', x.length, suma(x, entrada) - suma(x, salida),
+      suma(x, function (r) { return r[cV]; }), uniq(x, function (r) { return r[cPED]; }),
+      uniq(x, function (r) { return r[cMAT]; }), Object.keys(dd2).length, mediana(lats), fs[fs.length - 1] || ''];
+  }), {i:3, d:-1});
+
+  var gd = agrupar(ab, function (r) { return r[cPED]; });
+  tabla('tPed', [
+    {h:'Pedido de compra', t:'t'}, {h:'Proveedor', t:'c'}, {h:'Fecha entrada', t:'c'},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Unidades', t:'n', f:nf},
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Referencia', t:'t'}, {h:'Usuario', t:'c'}
+  ], Object.keys(gd).map(function (k) {
+    var x = gd[k], fs = x.map(function (r) { return r[cF]; }).sort();
+    return [DIC.ped[k] || '(sin pedido)', DIC.prov[x[0][cPROV]], fs[fs.length - 1] || '', x.length,
+      uniq(x, function (r) { return r[cMAT]; }), suma(x, entrada) - suma(x, salida),
+      suma(x, function (r) { return r[cV]; }), x[0][cRF], DIC.usr[x[0][cUSR]]];
+  }), {i:6, d:-1});
+}
+
+/* ══════════════════════════ AJUSTES Y BAJAS ══════════════════════════ */
+/* Analiza si cada motivo aparece a la vez en 561 y 562. Se midio sobre los
+   cinco meses: 246 motivos estan en las dos clases y muchos se anulan al
+   centavo — por ejemplo 1001110090-SIN PRESUPUEST entra por 2,772,400 y sale
+   por -2,772,400. Son RECLASIFICACIONES, no bajas. Sin esto, el tablero
+   titularia 61 millones en bajas cuando el neto real es otra cosa. */
+function contrapartidas() {
+  var g = {};
+  var A = porClase(F, ['561','562']);
+  for (var i = 0; i < A.length; i++) {
+    var r = A[i], k = DIC.tx[r[cTX]] || '(sin motivo declarado)';
+    if (!g[k]) g[k] = {e:0, s:0, ne:0, ns:0};
+    if (r[cM] === '561') { g[k].e += r[cV]; g[k].ne++; } else { g[k].s += r[cV]; g[k].ns++; }
+  }
+  return g;
+}
+function estadoContra(x) {
+  if (!x.ne || !x.ns) return 'SIN CONTRAPARTIDA';
+  var neto = x.e + x.s, bruto = Math.abs(x.s);
+  if (!bruto) return 'SIN CONTRAPARTIDA';
+  var comp = 1 - Math.abs(neto) / bruto;
+  return comp > 0.99 ? 'COMPENSA TOTAL' : (comp > 0.01 ? 'COMPENSA PARCIAL' : 'SIN CONTRAPARTIDA');
+}
+
+function pintarAjuste() {
+  var A = porClase(F, ['561','562','201','202','309','310','701','702']);
+  var v562 = Math.abs(suma(porClase(F, ['562']), function (r) { return r[cV]; }));
+  var CP = contrapartidas();
+  var compensado = 0, sinCP = 0;
+  Object.keys(CP).forEach(function (k) {
+    var x = CP[k], est = estadoContra(x);
+    if (est === 'SIN CONTRAPARTIDA') sinCP += x.s;
+    else compensado += Math.min(Math.abs(x.s), Math.abs(x.e));
+  });
+  var conCP = 0;
+  Object.keys(CP).forEach(function (k) { if (estadoContra(CP[k]) !== 'SIN CONTRAPARTIDA') conCP++; });
+  kpis('kAju', [
+    ['Salidas 562 brutas B/.', nf2(v562), 'rojo', 'Antes de contrapartidas'],
+    ['Entradas 561 brutas B/.', nf2(suma(porClase(F, ['561']), function (r) { return r[cV]; })), 'verde', 'Acumulado del rango'],
+    ['Valor que se compensa B/.', nf2(compensado), 'amb', nf(conCP) + ' motivos en ambas clases'],
+    ['Bajas SIN contrapartida B/.', nf2(Math.abs(sinCP)), 'rojo', 'La baja real'],
+    ['Neto 561 + 562 B/.', nf2(suma(porClase(F, ['561','562']), function (r) { return r[cV]; })), 'rojo', 'Acumulado del rango'],
+    ['Consumo 201 B/.', nf2(Math.abs(suma(porClase(F, ['201','202']), function (r) { return r[cV]; }))), 'amb', 'Centro de coste'],
+    ['Inventario f\u00edsico 701/702 B/.', nf2(suma(porClase(F, ['701','702']), function (r) { return r[cV]; })), '', 'Conteo'],
+    ['Motivos declarados', nf(uniq(A, function (r) { return r[cTX]; })), '', 'Texto libre de cabecera']
+  ]);
+
+  var g = agrupar(A, function (r) { return r[cTX] + '|' + r[cM]; });
+  var filas = Object.keys(g).map(function (k) {
+    var x = g[k], fs = x.map(function (r) { return r[cF]; }).sort();
+    var mot = DIC.tx[x[0][cTX]] || '(sin motivo declarado)';
+    var cp = CP[mot], cls = x[0][cM];
+    var esIni = (cls === '561' || cls === '562');
+    return [mot, cls, MOVS[cls] ? MOVS[cls][0] : 'Sin catalogar',
+      x.length, uniq(x, function (r) { return r[cMAT]; }), suma(x, function (r) { return r[cQ]; }),
+      suma(x, function (r) { return r[cV]; }),
+      esIni && cp ? (cp.e + cp.s) : '', esIni && cp ? estadoContra(cp) : 'NO APLICA',
+      uniq(x, function (r) { return r[cDOC]; }), DIC.usr[x[0][cUSR]], fs[0] || '', fs[fs.length - 1] || ''];
+  });
+  var CCP = {'COMPENSA TOTAL':'nu', 'COMPENSA PARCIAL':'wa', 'SIN CONTRAPARTIDA':'er', 'NO APLICA':'nu'};
+  tabla('tAju', [
+    {h:'Motivo declarado en SAP', t:'t'}, {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Cantidad', t:'n', f:nf},
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Neto del motivo B/.', t:'n', f:function (v) { return v === '' ? '' : nf2(v); }},
+    {h:'Contrapartida', t:'c', f:function (v) { return '<span class="chip ' + (CCP[v] || 'nu') + '">' + v + '</span>'; }},
+    {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuario', t:'c'},
+    {h:'Primera fecha', t:'c'}, {h:'\u00daltima fecha', t:'c'}
+  ], filas, {i:6, d:1});
+
+  var top = filas.slice().sort(function (a, b) { return Math.abs(b[6]) - Math.abs(a[6]); }).slice(0, 12);
+  chart('chAju', {type:'bar', data:{labels:top.map(function (x) { return (x[0] + ' [' + x[1] + ']').slice(0, 42); }),
+    datasets:[{label:'Valor B/.', data:top.map(function (x) { return x[6]; }),
+      backgroundColor:top.map(function (x) { return x[6] < 0 ? '#b31b1b' : '#1b7a34'; })}]},
+    options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{family:'Consolas',size:10}}}, y:{ticks:{font:{size:10}}}}}});
+}
+
+/* ══════════════════════════ RENGLONES ══════════════════════════ */
+function pintarReng() {
+  var med = {}, ins = {}, otr = {};
+  for (var i = 0; i < F.length; i++) {
+    var m = F[i][cMAT], t = D_TP[m];
+    if (t === 'MEDICAMENTO') med[m] = 1; else if (t === 'INSUMO') ins[m] = 1; else otr[m] = 1;
+  }
+  var nMat = uniq(F, function (r) { return r[cMAT]; });
+  kpis('kReng', [
+    ['Rengl\u00f3nes distintos', nf(nMat), '', 'Acumulado del rango'],
+    ['Medicamentos', nf(Object.keys(med).length), '', 'C\u00f3digo con estructura ATC'],
+    ['Insumos', nf(Object.keys(ins).length), '', 'C\u00f3digo alfab\u00e9tico no ATC'],
+    ['Otros c\u00f3digos', nf(Object.keys(otr).length), '', 'C\u00f3digo num\u00e9rico'],
+    ['Unidades en salida', nf(suma(F, salida)), '', 'Acumulado del rango'],
+    ['Unidades en entrada', nf(suma(F, entrada)), '', 'Acumulado del rango'],
+    ['Rengl\u00f3nes con anulaci\u00f3n', nf(uniq(porClase(F, ['102','314','310','202','316']), function (r) { return r[cMAT]; })), '', 'Acumulado del rango'],
+    ['L\u00edneas por rengl\u00f3n', nMat ? (F.length / nMat).toFixed(1) : '0', '', 'Promedio del rango']
+  ]);
+
+  var gt = agrupar(F, function (r) { return D_TP[r[cMAT]] || 'SIN TIPO'; });
+  chart('chTipo', {type:'doughnut', data:{labels:Object.keys(gt),
+    datasets:[{data:Object.keys(gt).map(function (k) { return gt[k].length; }), backgroundColor:AZ}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{font:{size:11}}}}}});
+
+  var ga = {};
+  for (var j = 0; j < F.length; j++) { var at = D_AT[F[j][cMAT]]; if (at) ga[at] = (ga[at] || 0) + 1; }
+  var ak = Object.keys(ga).sort(function (a, b) { return ga[b] - ga[a]; });
+  chart('chAtc', {type:'bar', data:{labels:ak.map(function (k) { return k + ' - ' + (ATC[k] || '').slice(0, 30); }),
+    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:ak.map(function (k) { return ga[k]; })}]}, options:OPTH});
+
+  var g = agrupar(F, function (r) { return r[cMAT]; });
+  tabla('tReng', [
+    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'}, {h:'Grupo ATC', t:'t'},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
+    {h:'Neto', t:'n', f:nf}, {h:'Valor B/.', t:'n', f:nf2}, {h:'Precio MB52 B/.', t:'n', f:nf2},
+    {h:'Destinos', t:'n', f:nf}, {h:'Lotes', t:'n', f:nf}, {h:'Clases mov.', t:'t'}, {h:'\u00daltimo mov.', t:'c'}
+  ], Object.keys(g).map(function (k) {
+    var x = g[k], fs = x.map(function (r) { return r[cF]; }).sort();
+    var cls = {}; for (var i2 = 0; i2 < x.length; i2++) cls[x[i2][cM]] = 1;
+    var cod = DIC.mat[k];
+    return [cod, DIC.ds[x[0][cDS]] || '', D_TP[k], D_AT[k] ? (D_AT[k] + ' - ' + (ATC[D_AT[k]] || '')) : '',
+      x.length, suma(x, salida), suma(x, entrada), suma(x, entrada) - suma(x, salida),
+      suma(x, function (r) { return valor(r); }), PRECIO[cod] || 0,
+      uniq(porClase(x, ['313']), function (r) { return r[cREC]; }), uniq(x, function (r) { return r[cLOTE]; }),
+      Object.keys(cls).sort().join(' '), fs[fs.length - 1] || ''];
+  }), {i:5, d:-1});
+}
+
+/* ══════════════════════════ LOTES Y VENCIMIENTOS ══════════════════════════ */
+function pintarLotes() {
+  var corte = IDX._meta.hasta;
+  var conLote = F.filter(function (r) { return r[cLOTE]; });
+  var g = agrupar(conLote, function (r) { return r[cMAT] + '|' + r[cLOTE]; });
+  var filas = Object.keys(g).map(function (k) {
+    var x = g[k], fv = x[0][cFV];
+    var d = fv ? dias_(fv, corte) : null;
+    var est = d === null ? 'SIN FECHA' : (d < 0 ? 'VENCIDO' : (d <= 90 ? 'CRITICO' : (d <= 180 ? 'ALERTA' : 'VIGENTE')));
+    var cls = {}; for (var i = 0; i < x.length; i++) cls[x[i][cM]] = 1;
+    return [DIC.mat[x[0][cMAT]], DIC.ds[x[0][cDS]] || '', DIC.lote[x[0][cLOTE]], fv || '',
+      d === null ? '' : d, est, x.length, suma(x, salida), suma(x, entrada),
+      suma(x, function (r) { return valor(r); }), Object.keys(cls).sort().join(' '),
+      uniq(porClase(x, ['313']), function (r) { return r[cREC]; })];
+  });
+  var cnt = function (e) { var n = 0; for (var i = 0; i < filas.length; i++) if (filas[i][5] === e) n++; return n; };
+  kpis('kLot', [
+    ['Lotes distintos movidos', nf(filas.length), '', 'Acumulado del rango'],
+    ['Vencidos con movimiento', nf(cnt('VENCIDO')), cnt('VENCIDO') ? 'rojo' : 'verde', 'Contra el corte ' + corte],
+    ['A 90 d\u00edas o menos', nf(cnt('CRITICO')), cnt('CRITICO') ? 'rojo' : 'verde', 'Contra el corte ' + corte],
+    ['Entre 91 y 180 d\u00edas', nf(cnt('ALERTA')), cnt('ALERTA') ? 'amb' : 'verde', 'Contra el corte ' + corte],
+    ['Sin fecha de vencimiento', nf(cnt('SIN FECHA')), cnt('SIN FECHA') ? 'amb' : 'verde', 'Campo vac\u00edo en SAP'],
+    ['L\u00edneas sin lote', nf(F.length - conLote.length), (F.length - conLote.length) ? 'amb' : 'verde', 'Acumulado del rango'],
+    ['Unidades en lotes cr\u00edticos', nf(suma(filas.filter(function (f) { return f[5] === 'CRITICO' || f[5] === 'VENCIDO'; }), function (f) { return f[7]; })), 'rojo', 'Salidas del rango'],
+    ['Valor en lotes vencidos B/.', nf2(Math.abs(suma(filas.filter(function (f) { return f[5] === 'VENCIDO'; }), function (f) { return f[9]; }))), 'rojo', 'Acumulado del rango']
+  ]);
+  var cats = ['VENCIDO','CRITICO','ALERTA','VIGENTE','SIN FECHA'];
+  chart('chVenc', {type:'bar', data:{labels:cats, datasets:[{label:'Lotes', data:cats.map(cnt),
+    backgroundColor:['#b31b1b','#d97706','#b5820a','#1b7a34','#5c5c5c']}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+  var CH2 = {VENCIDO:'er', CRITICO:'er', ALERTA:'wa', VIGENTE:'ok', 'SIN FECHA':'nu'};
+  tabla('tLot', [
+    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Lote', t:'t'}, {h:'Vence', t:'c'},
+    {h:'D\u00edas al corte', t:'n', f:nf},
+    {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + CH2[v] + '">' + v + '</span>'; }},
+    {h:'L\u00edneas', t:'n', f:nf}, {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Clases mov.', t:'t'}, {h:'Destinos', t:'n', f:nf}
+  ], filas, {i:4, d:1});
+}
+
+/* ══════════════════════════ INVENTARIO MB52 ══════════════════════════ */
+/* No depende de los filtros de fecha: es una foto, no una serie. */
+function pintarInventario() {
+  if (!INV || !INV.rows || !INV.rows.length) {
+    kpis('kInv', [['Sin foto publicada', '\u2014', 'amb', 'Cargue un MB52 por el panel']]);
+    $('invNota').textContent = 'No hay inventario.json publicado todavia.';
+    return;
+  }
+  var io = {}; INV._meta.orden.forEach(function (c, i) { io[c.replace('*','')] = i; });
+  var R = INV.rows;
+  var filas = R.map(function (r) {
+    var mat = INV.dic.mat[r[io.mat]];
+    return [mat, INV.dic.ds[r[io.ds]] || '', INV.dic.alm[r[io.alm]], INV.dic.gr[r[io.gr]],
+      INV.dic.lote[r[io.lote]] || '', r[io.lib], r[io.vlib], r[io.tr], r[io.vtr], r[io.blq],
+      r[io.precio], RE_ATC.test(mat) ? 'MEDICAMENTO' : (/^[A-Z]{2}/.test(mat) ? 'INSUMO' : 'OTRO')];
+  });
+  var vLib = suma(filas, function (f) { return f[6]; });
+  var vTr  = suma(filas, function (f) { return f[8]; });
+  var mats = {}; for (var i = 0; i < filas.length; i++) mats[filas[i][0]] = 1;
+  var conBloq = filas.filter(function (f) { return f[9] > 0; });
+  var sinExist = filas.filter(function (f) { return f[5] === 0; });
+  kpis('kInv', [
+    ['Fecha de la foto', INV._meta.fecha, '', INV._meta.archivo || ''],
+    ['Rengl\u00f3nes en existencia', nf(Object.keys(mats).length), '', nf(filas.length) + ' lotes'],
+    ['Valor libre utilizaci\u00f3n B/.', nf2(vLib), 'verde', 'Disponible'],
+    ['Valor en tr\u00e1nsito B/.', nf2(vTr), 'amb', 'Traslados en curso'],
+    ['Valor total B/.', nf2(vLib + vTr), '', 'Libre + tr\u00e1nsito'],
+    ['Lotes bloqueados', nf(conBloq.length), conBloq.length ? 'rojo' : 'verde', 'Con cantidad bloqueada'],
+    ['Lotes sin existencia', nf(sinExist.length), sinExist.length ? 'amb' : 'verde', 'Libre utilizaci\u00f3n en cero'],
+    ['Lotes sin precio', nf(INV._meta.sin_precio || 0), (INV._meta.sin_precio ? 'amb' : 'verde'), 'No valorizables']
+  ]);
+
+  var gc = agrupar(filas, function (f) { return f[3] || '(sin categoria)'; });
+  var ck = Object.keys(gc).sort(function (a, b) { return suma(gc[b], function (f) { return f[6]; }) - suma(gc[a], function (f) { return f[6]; }); });
+  chart('chInvCat', {type:'bar', data:{labels:ck, datasets:[{label:'Valor libre B/.', backgroundColor:'#0C447C',
+    data:ck.map(function (k) { return suma(gc[k], function (f) { return f[6]; }); })}]}, options:OPTH});
+
+  var gm = agrupar(filas, function (f) { return f[0]; });
+  var mk = Object.keys(gm).map(function (k) { return [k, suma(gm[k], function (f) { return f[6]; }), gm[k][0][1]]; })
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
+  chart('chInvTop', {type:'bar', data:{labels:mk.map(function (x) { return (x[2] || x[0]).slice(0, 34); }),
+    datasets:[{label:'Valor B/.', backgroundColor:'#1b7a34', data:mk.map(function (x) { return x[1]; })}]}, options:OPTH});
+
+  tabla('tInvCat', [
+    {h:'Categor\u00eda de valoraci\u00f3n', t:'c'}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Lotes', t:'n', f:nf},
+    {h:'Unid. libres', t:'n', f:nf}, {h:'Valor libre B/.', t:'n', f:nf2},
+    {h:'Unid. tr\u00e1nsito', t:'n', f:nf}, {h:'Valor tr\u00e1nsito B/.', t:'n', f:nf2},
+    {h:'Unid. bloqueadas', t:'n', f:nf}, {h:'Participaci\u00f3n del valor', t:'n'}
+  ], ck.map(function (k) {
+    var x = gc[k], mm = {};
+    for (var i2 = 0; i2 < x.length; i2++) mm[x[i2][0]] = 1;
+    var v = suma(x, function (f) { return f[6]; });
+    return [k, Object.keys(mm).length, x.length, suma(x, function (f) { return f[5]; }), v,
+      suma(x, function (f) { return f[7]; }), suma(x, function (f) { return f[8]; }),
+      suma(x, function (f) { return f[9]; }), vLib ? (v / vLib * 100).toFixed(1) + '%' : '0%'];
+  }), {i:4, d:-1});
+
+  $('invNota').textContent = 'Foto del ' + INV._meta.fecha + ' con ' + nf(filas.length) +
+    ' lotes. No la afectan los filtros de fecha del tablero.';
+  tabla('tInv', [
+    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Almac\u00e9n', t:'c'},
+    {h:'Categor\u00eda', t:'c'}, {h:'Lote', t:'t'}, {h:'Libre utilizaci\u00f3n', t:'n', f:nf},
+    {h:'Valor libre B/.', t:'n', f:nf2}, {h:'Tr\u00e1nsito', t:'n', f:nf},
+    {h:'Valor tr\u00e1nsito B/.', t:'n', f:nf2}, {h:'Bloqueado', t:'n', f:nf},
+    {h:'Precio unitario B/.', t:'n', f:nf2}, {h:'Tipo', t:'c'}
+  ], filas, {i:6, d:-1});
+}
+
+/* ══════════════════════════ LATENCIA ══════════════════════════ */
+function pintarLat() {
+  var L = [];
+  for (var i = 0; i < F.length; i++) {
+    var r = F[i];
+    if (r[cF] && r[cFD]) L.push([dias_(r[cF], r[cFD]), r]);
+  }
+  var vs = L.map(function (p) { return p[0]; });
+  var pctv = function (n) { return vs.length ? (n / vs.length * 100).toFixed(1) + '%' : '0%'; };
+  var mismo = vs.filter(function (v) { return v <= 0; }).length;
+  var m30 = vs.filter(function (v) { return v > 30; }).length, m90 = vs.filter(function (v) { return v > 90; }).length;
+  var rec = L.filter(function (p) { return p[1][cM] === '101'; }).map(function (p) { return p[0]; });
+  var fac = L.filter(function (p) { return p[1][cM] === '313'; }).map(function (p) { return p[0]; });
+  var peor = L.slice().sort(function (a, b) { return b[0] - a[0]; })[0];
+  kpis('kLat', [
+    ['L\u00edneas con ambas fechas', nf(vs.length), '', pctv(vs.length) + ' de las l\u00edneas'],
+    ['Latencia mediana global', nf(mediana(vs)) + ' d', mediana(vs) > 7 ? 'rojo' : 'verde', 'Acumulado del rango'],
+    ['Contabilizado el mismo d\u00eda', pctv(mismo), (mismo / (vs.length || 1)) < 0.7 ? 'amb' : 'verde', nf(mismo) + ' l\u00edneas'],
+    ['M\u00e1s de 30 d\u00edas', nf(m30), m30 ? 'amb' : 'verde', pctv(m30)],
+    ['M\u00e1s de 90 d\u00edas', nf(m90), m90 ? 'rojo' : 'verde', pctv(m90)],
+    ['Mediana en recepci\u00f3n (101)', rec.length ? nf(mediana(rec)) + ' d' : '\u2014', mediana(rec) > 30 ? 'rojo' : 'verde', nf(rec.length) + ' l\u00edneas'],
+    ['Mediana en facturaci\u00f3n (313)', fac.length ? nf(mediana(fac)) + ' d' : '\u2014', mediana(fac) > 3 ? 'amb' : 'verde', nf(fac.length) + ' l\u00edneas'],
+    ['Documento m\u00e1s rezagado', peor ? nf(peor[0]) + ' d' : '\u2014', 'rojo', peor ? peor[1][cFD] + ' \u2192 ' + peor[1][cF] : '']
+  ]);
+  chart('chLatT', {type:'bar', data:{labels:TRAMOS, datasets:[{label:'L\u00edneas',
+    data:TRAMOS.map(function (t) { return vs.filter(function (v) { return tramo(v) === t; }).length; }),
+    backgroundColor:['#1b7a34','#4A7FB5','#1E5A9E','#b5820a','#d97706','#b31b1b']}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+
+  var g = agrupar(L, function (p) { return p[1][cM]; });
+  var filas = Object.keys(g).map(function (k) {
+    var x = g[k], v = x.map(function (p) { return p[0]; });
+    return [k, MOVS[k] ? MOVS[k][0] : 'Sin catalogar', x.length, mediana(v),
+      Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length),
+      Math.min.apply(null, v), Math.max.apply(null, v),
+      (v.filter(function (z) { return z <= 0; }).length / v.length * 100).toFixed(1) + '%',
+      (v.filter(function (z) { return z > 30; }).length / v.length * 100).toFixed(1) + '%'];
+  }).sort(function (a, b) { return b[3] - a[3]; });
+  chart('chLatM', {type:'bar', data:{labels:filas.map(function (f) { return f[0] + ' ' + f[1].slice(0, 28); }),
+    datasets:[{label:'D\u00edas (mediana)', data:filas.map(function (f) { return f[3]; }),
+      backgroundColor:filas.map(function (f) { return f[3] > 90 ? '#b31b1b' : (f[3] > 30 ? '#d97706' : (f[3] > 7 ? '#b5820a' : '#1b7a34')); })}]}, options:OPTH});
+  tabla('tLatM', [
+    {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'}, {h:'L\u00edneas', t:'n', f:nf},
+    {h:'Mediana (d)', t:'n', f:nf}, {h:'Promedio (d)', t:'n', f:nf},
+    {h:'M\u00ednimo (d)', t:'n', f:nf}, {h:'M\u00e1ximo (d)', t:'n', f:nf},
+    {h:'Mismo d\u00eda', t:'n'}, {h:'M\u00e1s de 30 d', t:'n'}
+  ], filas, {i:3, d:-1});
+
+  var gd = agrupar(L, function (p) { return p[1][cDOC]; });
+  var CL = function (v) { return v > 90 ? 'er' : (v > 7 ? 'wa' : 'ok'); };
+  tabla('tLatD', [
+    {h:'Doc. SAP', t:'t'}, {h:'Clase', t:'c'}, {h:'Fecha documento', t:'c'}, {h:'Fecha contabilizaci\u00f3n', t:'c'},
+    {h:'Latencia (d)', t:'n', f:function (v) { return '<span class="chip ' + CL(v) + '">' + nf(v) + '</span>'; }},
+    {h:'Tramo', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Texto cabecera', t:'t'},
+    {h:'Destino / proveedor', t:'t'}, {h:'Usuario', t:'c'}
+  ], Object.keys(gd).map(function (k) {
+    var x = gd[k], r = x[0][1], v = x[0][0];
+    var cod = DIC.rec[r[cREC]];
+    return [r[cDOC], r[cM], r[cFD], r[cF], v, tramo(v), x.length, DIC.tx[r[cTX]],
+      MAPA_UE[cod] || cod || DIC.prov[r[cPROV]] || '', DIC.usr[r[cUSR]]];
+  }), {i:4, d:-1});
+}
+
+/* ══════════════════════════ PRODUCTIVIDAD SAP ══════════════════════════
+ * El MB51 es nacional. Los indicadores de desempeño se calculan SOLO sobre
+ * el personal de CEDIS Panamá (PADRON); el resto se muestra rotulado y
+ * aparte, porque no está bajo la Jefatura de Facturación y atribuirle ese
+ * trabajo sería un error de medición, no una precaución.
+ * ══════════════════════════════════════════════════════════════════════ */
+function pintarProd() {
+  var pan = [], otr = [];
+  for (var i = 0; i < F.length; i++) {
+    if (D_EQ[F[i][cUSR]]) pan.push(F[i]); else otr.push(F[i]);
+  }
+  var horas = {};
+  for (var j = 0; j < pan.length; j++) {
+    var h = String(pan[j][cH] || '').slice(0, 2);
+    if (h) horas[h] = (horas[h] || 0) + 1;
+  }
+  var hk = Object.keys(horas).sort();
+  var pico = hk.slice().sort(function (a, b) { return horas[b] - horas[a]; })[0] || '';
+  var ddP = {}; for (var k = 0; k < pan.length; k++) ddP[pan[k][cF]] = 1;
+  var nDias = Object.keys(ddP).length || 1;
+  var uP = {}; for (var m = 0; m < pan.length; m++) uP[pan[m][cUSR]] = 1;
+  var nU = Object.keys(uP).length;
+  var pctPan = F.length ? (pan.length / F.length * 100) : 0;
+
+  kpis('kProd', [
+    ['Personal de CEDIS Panam\u00e1', nf(nU), '', 'De ' + PADRON.length + ' en el padr\u00f3n'],
+    ['L\u00edneas de CEDIS Panam\u00e1', nf(pan.length), 'verde', pctPan.toFixed(1) + '% del kardex'],
+    ['L\u00edneas de otras sedes', nf(otr.length), 'amb', (100 - pctPan).toFixed(1) + '% \u00b7 no atribuible'],
+    ['L\u00edneas por d\u00eda', nf(Math.round(pan.length / nDias)), '', 'CEDIS Panam\u00e1, d\u00edas con carga'],
+    ['L\u00edneas por persona', nU ? nf(Math.round(pan.length / nU)) : '0', '', 'CEDIS Panam\u00e1, del rango'],
+    ['Documentos SAP', nf(uniq(pan, function (r) { return r[cDOC]; })), '', 'CEDIS Panam\u00e1'],
+    ['Hora pico de captura', pico ? pico + ':00' : '\u2014', '', horas[pico] ? nf(horas[pico]) + ' l\u00edneas' : 'sin hora en la fuente'],
+    ['Usuarios fuera del padr\u00f3n', nf(uniq(otr, function (r) { return r[cUSR]; })), '', 'Ver Cobertura y calidad']
+  ]);
+
+  chart('chHora', {type:'bar', data:{labels:hk.map(function (x) { return x + ':00'; }),
+    datasets:[{label:'L\u00edneas', backgroundColor:'#1E5A9E', data:hk.map(function (x) { return horas[x]; })}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
+
+  var gP = agrupar(pan, function (r) { return r[cUSR]; });
+  var ukP = Object.keys(gP).sort(function (a, b) { return gP[b].length - gP[a].length; });
+  chart('chUsr', {type:'bar', data:{labels:ukP.map(function (k) { return DIC.usr[k]; }),
+    datasets:[{label:'L\u00edneas', backgroundColor:'#0C447C', data:ukP.map(function (k) { return gP[k].length; })}]}, options:OPTH});
+
+  var COLS = [
+    {h:'Usuario SAP', t:'t'},
+    {h:'Equipo', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CEDIS PANAMA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
+    {h:'D\u00edas activos', t:'n', f:nf}, {h:'L\u00edneas', t:'n', f:nf}, {h:'L\u00edneas por d\u00eda', t:'n', f:nf},
+    {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
+    {h:'L\u00edneas 313', t:'n', f:nf}, {h:'L\u00edneas 101', t:'n', f:nf}, {h:'Anulaciones', t:'n', f:nf},
+    {h:'Clases operadas', t:'t'}, {h:'Primera hora', t:'c'}, {h:'\u00daltima hora', t:'c'}, {h:'Mide desempe\u00f1o', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
+  ];
+  function filaUsr(k, x, equipo) {
+    var dd2 = {}; for (var i2 = 0; i2 < x.length; i2++) dd2[x[i2][cF]] = 1;
+    var nd = Object.keys(dd2).length;
+    var hs = x.map(function (r) { return r[cH]; }).filter(Boolean).sort();
+    var cls = {}; for (var i3 = 0; i3 < x.length; i3++) cls[x[i3][cM]] = 1;
+    var u = DIC.usr[k];
+    return [u, equipo, nd, x.length, Math.round(x.length / (nd || 1)),
+      uniq(x, function (r) { return r[cDOC]; }), uniq(x, function (r) { return r[cMAT]; }),
+      porClase(x, ['313']).length, porClase(x, ['101']).length,
+      porClase(x, ['102','314','310','202','316']).length,
+      Object.keys(cls).sort().join(' '), hs[0] || '', hs[hs.length - 1] || '',
+      (equipo === 'CEDIS PANAMA' && NO_MIDE.indexOf(u) < 0) ? 'SI' : 'NO'];
+  }
+  tabla('tProd', COLS, ukP.map(function (k) { return filaUsr(k, gP[k], 'CEDIS PANAMA'); }), {i:3, d:-1});
+
+  var gO = agrupar(otr, function (r) { return r[cUSR]; });
+  var ukO = Object.keys(gO).sort(function (a, b) { return gO[b].length - gO[a].length; });
+  tabla('tProdOtras', COLS, ukO.map(function (k) { return filaUsr(k, gO[k], 'OTRA SEDE'); }), {i:3, d:-1});
+
+  $('prodNota').innerHTML = 'Los indicadores de arriba se calculan sobre <b>' + nf(pan.length) +
+    ' l\u00edneas de CEDIS Panam\u00e1</b> (' + pctPan.toFixed(1) + '% del kardex). Las ' + nf(otr.length) +
+    ' l\u00edneas de otras sedes se listan abajo pero no entran en ning\u00fan promedio.' +
+    (NO_MIDE.length ? ' Excluido de la medici\u00f3n: ' + NO_MIDE.join(', ') + ' (inventario f\u00edsico, evento puntual).' : '');
+
+  var movs = {};
+  for (var n = 0; n < pan.length; n++) movs[pan[n][cM]] = 1;
+  var mk2 = Object.keys(movs).sort();
+  tabla('tMatriz',
+    [{h:'Usuario SAP', t:'t'}].concat(mk2.map(function (c) { return {h:c, t:'n', f:nf}; })).concat([{h:'Total', t:'n', f:nf}]),
+    ukP.map(function (k) {
+      var x = gP[k];
+      return [DIC.usr[k]].concat(mk2.map(function (c) { return porClase(x, [c]).length; })).concat([x.length]);
+    }), {i:mk2.length + 1, d:-1});
+}
+
+/* ══════════════════════════ COBERTURA Y CALIDAD ══════════════════════════ */
+function pintarCalidad() {
+  var d0 = $('fDesde').value || IDX._meta.desde, d1 = $('fHasta').value || IDX._meta.hasta;
+  var cargados = {}; (IDX._meta.dias || []).forEach(function (d) { cargados[d] = 1; });
+  var DOW = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
+  var cal = [], domingos = 0, habiles = 0, falt = 0, sabOp = 0;
+  var cur = new Date(d0 + 'T00:00:00'), fin = new Date(d1 + 'T00:00:00');
+  while (cur <= fin) {
+    var iso = cur.toISOString().slice(0, 10), dw = cur.getDay();
+    cur.setDate(cur.getDate() + 1);
+    if (NO_LABORABLES.indexOf(dw) >= 0) { domingos++; continue; }
+    var hay = !!cargados[iso];
+    var sab = (dw === 6);
+    var est = hay ? 'CARGADO' : (sab && SABADO_OPCIONAL ? 'OPCIONAL' : 'FALTANTE');
+    if (est === 'FALTANTE') falt++;
+    if (est === 'OPCIONAL') sabOp++;
+    if (!sab || hay) habiles++;
+    var dia = [];
+    for (var i = 0; i < ROWS.length; i++) if (ROWS[i][cF] === iso) dia.push(ROWS[i]);
+    cal.push([iso, DOW[dw], sab ? 'Opcional' : 'S\u00ed', est, FUENTES[iso] || (hay ? 'diario' : ''),
+      dia.length, uniq(dia, function (r) { return r[cDOC]; }), uniq(dia, function (r) { return r[cUSR]; })]);
+  }
+  var cob = habiles ? ((habiles - falt) / habiles * 100) : 0;
+
+  var ab = porClase(F, ['313','314']);
+  var e8 = {};
+  for (var q = 0; q < ab.length; q++) { var e = D_E8[ab[q][cTX]]; e8[e] = (e8[e] || 0) + 1; }
+  var tot8 = ab.length || 1;
+  var legibles = (e8.ESTANDAR || 0) + (e8.ANIO_CORREGIDO || 0);
+  var sinMap = {};
+  for (var w = 0; w < F.length; w++) {
+    var cod = DIC.rec[F[w][cREC]];
+    if (cod && !MAPA_UE[cod]) sinMap[cod] = (sinMap[cod] || 0) + 1;
+  }
+  var lineasSinMap = 0; Object.keys(sinMap).forEach(function (k) { lineasSinMap += sinMap[k]; });
+
+  kpis('kCal', [
+    ['Cobertura de d\u00edas laborables', cob.toFixed(1) + '%', cob < 90 ? 'rojo' : 'verde', nf(habiles - falt) + ' de ' + nf(habiles)],
+    ['D\u00edas laborables sin carga', nf(falt), falt ? 'rojo' : 'verde', 'Insumo no recibido'],
+    ['S\u00e1bados sin carga', nf(sabOp), '', 'D\u00eda opcional, no cuenta'],
+    ['D\u00edas cargados en total', nf((IDX._meta.dias || []).length), '', 'Hist\u00f3rico publicado'],
+    ['Forma 8 legible', (legibles / tot8 * 100).toFixed(1) + '%', (legibles / tot8) < 0.9 ? 'amb' : 'verde', 'Sobre 313 y 314'],
+    ['Destinos sin mapear', nf(Object.keys(sinMap).length), Object.keys(sinMap).length ? 'amb' : 'verde', 'C\u00f3digos SAP sin UE'],
+    ['L\u00edneas sin destino mapeado', nf(lineasSinMap), 'amb', F.length ? (lineasSinMap / F.length * 100).toFixed(1) + '%' : ''],
+    ['Meses publicados', nf((IDX.meses || []).length), '', nf(IDX._meta.filas) + ' l\u00edneas']
+  ]);
+
+  $('cobNota').innerHTML = 'Se excluyen los domingos por no ser d\u00eda laborable (' + nf(domingos) +
+    ' en el rango). El <b>s\u00e1bado es opcional</b>: se trabaja a requerimiento, as\u00ed que un s\u00e1bado ' +
+    'sin carga no cuenta contra la cobertura. Un d\u00eda FALTANTE no significa que no hubo movimiento: ' +
+    'significa que el reporte no se carg\u00f3.';
+  var C = {CARGADO:'ok', FALTANTE:'er', OPCIONAL:'nu'};
+  tabla('tCob', [
+    {h:'Fecha', t:'t'}, {h:'D\u00eda', t:'c'}, {h:'Laborable', t:'c'},
+    {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + C[v] + '">' + v + '</span>'; }},
+    {h:'Fuente', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuarios', t:'n', f:nf}
+  ], cal, {i:0, d:-1});
+
+  var NOM = {ESTANDAR:'Formato est\u00e1ndar UE-AAAA-CICLO-N', ANIO_CORREGIDO:'A\u00f1o mal escrito, corregido',
+    REF_SIN_ANIO:'Referencia sin a\u00f1o (UE-almac\u00e9n-consecutivo)', OTRO:'No interpretable', VACIO:'Campo vac\u00edo'};
+  tabla('tF8cal', [
+    {h:'Lectura del Texto cab.documento', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Participaci\u00f3n', t:'n'}
+  ], Object.keys(e8).map(function (k) { return [NOM[k] || k, e8[k], (e8[k] / tot8 * 100).toFixed(1) + '%']; }), {i:1, d:-1});
+
+  tabla('tSinMap', [
+    {h:'C\u00f3digo de almac\u00e9n receptor', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Acci\u00f3n requerida', t:'t'}
+  ], Object.keys(sinMap).map(function (k) { return [k, sinMap[k], 'Agregar al mapa de UE del tablero']; }), {i:1, d:-1});
+
+  var esq = {};
+  ((IDX._meta.esquemas) || []).forEach(function (e) { esq[e.tipo] = (esq[e.tipo] || 0) + 1; });
+  tabla('tMeses', [
+    {h:'Mes', t:'t'}, {h:'Archivo', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'D\u00edas', t:'n', f:nf},
+    {h:'Campos por fila', t:'n', f:nf},
+    {h:'Formato', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CON ALMACEN' ? 'ok' : 'wa') + '">' + v + '</span>'; }}
+  ], (IDX.meses || []).map(function (m) {
+    var nc = MESCAMPOS[m.mes] || 0;
+    return [m.mes, m.archivo, m.filas, (m.dias || []).length, nc, nc >= 19 ? 'CON ALMACEN' : 'SIN ALMACEN'];
+  }), {i:0, d:1});
+
+  var CAMPOS = [['Lote', cLOTE, 1],['Fecha de vencimiento', cFV, 0],['Almac\u00e9n receptor', cREC, 1],
+    ['Texto cab.documento', cTX, 1],['Proveedor', cPROV, 1],['Pedido de compra', cPED, 1],
+    ['Centro de coste', cCC, 0],['Referencia', cRF, 0],['Usuario', cUSR, 1],
+    ['Hora de entrada', cH, 0],['Almac\u00e9n', cALM, 1],['Fecha de documento', cFD, 0]];
+  tabla('tCampos', [
+    {h:'Campo del MB51', t:'t'}, {h:'L\u00edneas con dato', t:'n', f:nf}, {h:'L\u00edneas vac\u00edas', t:'n', f:nf},
+    {h:'Completitud', t:'n'},
+    {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + (v === 'COMPLETO' ? 'ok' : (v === 'PARCIAL' ? 'wa' : 'er')) + '">' + v + '</span>'; }}
+  ], CAMPOS.map(function (c) {
+    var con = 0;
+    for (var i = 0; i < F.length; i++) { var v = F[i][c[1]]; if (c[2] ? v : (v !== '' && v !== undefined)) con++; }
+    var p = F.length ? con / F.length * 100 : 0;
+    return [c[0], con, F.length - con, p.toFixed(1) + '%',
+      p >= 99 ? 'COMPLETO' : (p >= 50 ? 'PARCIAL' : 'MAYORMENTE VAC\u00cdO')];
+  }), {i:1, d:-1});
+
+  $('advertencias').innerHTML =
+  '<div class="nota"><b>Los movimientos 313, 314, 315 y 316 llegan con Importe ML en cero.</b> ' +
+  'SAP no valoriza el traslado entre almacenes. El valor que muestra este tablero para esos movimientos ' +
+  'se calcula con el <b>precio unitario del MB52</b> (Valor libre util. \u00f7 Libre utilizaci\u00f3n), que es el ' +
+  'mismo procedimiento que la Jefatura de Facturaci\u00f3n aplica para el cierre contable. Es un <b>estimado</b>, ' +
+  'no un dato de SAP, y depende de que la foto del MB52 cubra el rengl\u00f3n y el lote.</div>' +
+  '<div class="nota"><b>El precio proviene de una sola foto del MB52, la del ' +
+  (INV ? INV._meta.fecha : 'sin publicar') + '.</b> Para el tablero operativo eso da una referencia v\u00e1lida. ' +
+  'Para valorizaci\u00f3n hist\u00f3rica no alcanza: el cierre contable valoriza los movimientos de cada mes con el ' +
+  'MB52 de ese mes, y aqu\u00ed se est\u00e1n valorizando todos los meses con la \u00fanica foto disponible.</div>' +
+  '<div class="nota"><b>El c\u00f3digo de material del MB51 no es el C\u00f3digo Abasto de SALMI.</b> ' +
+  'SAP identifica medicamentos con estructura ATC (A02BC00003) e insumos con prefijo alfab\u00e9tico ' +
+  '(MN02010598), mientras el resto del ecosistema DINALOG usa el num\u00e9rico de nueve d\u00edgitos. La tabla de ' +
+  'equivalencia existe en BASE DE DATOS DE CITAS y cubre 89.8% de los rengl\u00f3nes del MB51, pero este ' +
+  'tablero a\u00fan no la cruza.</div>' +
+  '<div class="nota"><b>SAP trunca la descripci\u00f3n del rengl\u00f3n a 40 caracteres.</b> Muchas l\u00edneas llegan ' +
+  'con la palabra final cortada (ANTIS\u00c9PTIC en lugar de ANTIS\u00c9PTICO). Al buscar conviene escribir ' +
+  'fragmentos cortos; el buscador ignora tildes y admite varios t\u00e9rminos separados por espacio.</div>' +
+  '<div class="nota"><b>La Forma 8 la escribe a mano el capturador en SAP-SAFIRO.</b> ' +
+  'De las l\u00edneas 313 y 314 en vista, ' + (legibles / tot8 * 100).toFixed(1) + '% trae un formato interpretable. ' +
+  'Medido contra el hist\u00f3rico completo de SEGUIMIENTO_PEDIDOS, solo 54% de las Formas 8 del kardex empata ' +
+  'con un pedido del Motor. Esa brecha es de digitaci\u00f3n, no del tablero.</div>' +
+  '<div class="nota"><b>Buena parte de los movimientos 561 y 562 son reclasificaciones, no bajas.</b> ' +
+  'Se midio sobre los cinco meses publicados: 246 motivos aparecen en las dos clases a la vez y muchos se ' +
+  'anulan al centavo (1001110090-SIN PRESUPUEST entra por 2,772,400 y sale por -2,772,400). Por eso la ' +
+  'pesta\u00f1a de Ajustes muestra el <b>neto por motivo</b> y marca cu\u00e1les tienen contrapartida: leer el bruto ' +
+  'del 562 como p\u00e9rdida sobreestima el da\u00f1o varias veces. La baja real es la que NO tiene contrapartida.</div>' +
+  '<div class="nota"><b>Las cantidades de salida vienen negativas en el origen.</b> Se conserva el signo en ' +
+  'el detalle y se presenta el valor absoluto en los agregados de despacho, para poder cotejar l\u00ednea a ' +
+  'l\u00ednea contra el Excel de SAP.</div>';
+}
+
+/* ══════════════════════════ DETALLE ══════════════════════════ */
+function pintarDetalle() {
+  var vis = F.slice(0, DET_N);
+  $('detInfo').textContent = 'Mostrando ' + nf(vis.length) + ' de ' + nf(F.length) +
+    ' l\u00edneas filtradas. La exportaci\u00f3n CSV incluye todas.';
+  $('btnMas').style.display = F.length > vis.length ? '' : 'none';
+  var fila = function (r) {
+    var cod = DIC.rec[r[cREC]];
+    return [r[cF], r[cH], r[cM], MOVS[r[cM]] ? MOVS[r[cM]][0] : 'Sin catalogar',
+      DIC.mat[r[cMAT]], DIC.ds[r[cDS]], D_TP[r[cMAT]], DIC.lote[r[cLOTE]], r[cFV],
+      r[cQ], r[cV], valor(r), valorEstimado(r) ? 'ESTIMADO' : (r[cV] ? 'SAP' : 'SIN PRECIO'),
+      r[cDOC], DIC.tx[r[cTX]], D_F8[r[cTX]], D_E8[r[cTX]],
+      MAPA_UE[cod] || cod, DIC.alm[r[cALM]], DIC.usr[r[cUSR]],
+      D_EQ[r[cUSR]] ? 'CEDIS PANAMA' : 'OTRA SEDE',
+      DIC.prov[r[cPROV]], DIC.ped[r[cPED]], r[cRF], r[cCC], r[cFD],
+      (r[cF] && r[cFD]) ? dias_(r[cF], r[cFD]) : ''];
+  };
+  tabla('tDet', [
+    {h:'Fecha contab.', t:'t'}, {h:'Hora', t:'c'}, {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'},
+    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'},
+    {h:'Lote', t:'t'}, {h:'Vence', t:'c'}, {h:'Cantidad', t:'n', f:nf},
+    {h:'Importe SAP B/.', t:'n', f:nf2}, {h:'Valor usado B/.', t:'n', f:nf2},
+    {h:'Origen del valor', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SAP' ? 'ok' : (v === 'ESTIMADO' ? 'wa' : 'er')) + '">' + v + '</span>'; }},
+    {h:'Doc. SAP', t:'t'}, {h:'Texto cabecera', t:'t'}, {h:'Forma 8', t:'t'}, {h:'Lectura F8', t:'c'},
+    {h:'Destino', t:'t'}, {h:'Almac\u00e9n', t:'c'}, {h:'Usuario', t:'c'}, {h:'Equipo', t:'c'},
+    {h:'Proveedor', t:'c'}, {h:'Pedido', t:'t'}, {h:'Referencia', t:'t'}, {h:'Centro de coste', t:'t'},
+    {h:'Fecha documento', t:'c'}, {h:'Latencia (d)', t:'n', f:nf}
+  ], vis.map(fila), {i:0, d:-1}, function () { return F.map(fila); });
+}
+
+/* arranque */
+cargar();
+</script>
+</body>
+</html>
