@@ -75,6 +75,37 @@ td.c,th.c{text-align:center}
 #carga{padding:40px;text-align:center;color:#555;font-size:13px;line-height:2}
 #carga .bar{height:6px;background:#dfdfdf;margin:12px auto;max-width:420px;border:1px solid #a8a8a8}
 #carga .bar i{display:block;height:100%;background:#1E5A9E;width:0;transition:width .2s}
+/* Desplegable propio del buscador. El datalist nativo lo dibuja el sistema
+   operativo, no acepta estilo y no puede mostrar el tipo de cada renglon.
+   Mismo lenguaje visual que Curvas de Inventario y el Tablero de Cobertura. */
+.ac-wrap{position:relative}
+.ac-panel{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:60;
+  background:#fff;border:1px solid #b0c8e8;border-radius:6px;
+  box-shadow:0 10px 28px rgba(10,42,90,.18);max-height:330px;overflow-y:auto;display:none}
+.ac-panel.open{display:block}
+.ac-item{padding:8px 12px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:13px;line-height:1.35;color:#0f172a}
+.ac-item:last-child{border-bottom:0}
+.ac-item:hover,.ac-item.sel{background:#e7f1fb}
+.ac-item .ac-cod{font-family:Consolas,"Courier New",monospace;font-weight:700;color:#0b5fff}
+.ac-item .ac-grp{display:block;font-size:11px;color:#6b7a88;margin-top:1px}
+.ac-vacio{padding:10px 12px;font-size:12px;color:#6b7a88}
+/* Tutorial guiado. Mismo patron de reposicion_ue.html. */
+#tourOverlay{position:fixed;inset:0;z-index:1000}
+#tourBackdrop{position:absolute;inset:0;background:rgba(15,25,40,.55)}
+.tour-spot{position:absolute;border:3px solid #1E5A9E;border-radius:4px;
+  box-shadow:0 0 0 9999px rgba(15,25,40,.55);z-index:1001;pointer-events:none;transition:all .25s ease}
+#tourBox{position:absolute;z-index:1002;background:#fff;border:1px solid #a8a8a8;
+  max-width:380px;width:calc(100% - 32px);padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#tourTitulo{font-size:14px;font-weight:700;color:#0C447C;margin-bottom:6px}
+#tourTexto{font-size:12.5px;line-height:1.55;color:#333}
+#tourNav{display:flex;align-items:center;gap:8px;margin-top:12px}
+#tourPaso{font-size:11px;color:#666;font-family:Consolas,monospace}
+.btn-plano{background:transparent;border:none;color:#666;text-decoration:underline;padding:6px 4px;cursor:pointer;font-family:inherit;font-size:12px}
+.btn-plano:hover{color:#0C447C}
+#tourNext{background:#0C447C;color:#fff;font-weight:700;border:1px solid #0C447C;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px}
+#btnTour{margin-left:auto;background:#fff;color:#0C447C;border:1px solid #0C447C;padding:5px 12px;
+  font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px;font-weight:700}
+#btnTour:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
 </style>
 </head>
 <body>
@@ -88,6 +119,7 @@ td.c,th.c{text-align:center}
 <div>Corte de datos: <b id="mCorte">&mdash;</b></div>
 <div>Publicado: <span id="mGen">&mdash;</span></div>
 </div>
+<button id="btnTour" title="Recorrido guiado por el tablero">&#9654; Ver tutorial guiado</button>
 </header>
 
 <div id="carga">Cargando el kardex publicado&hellip;<div class="bar"><i id="cbar"></i></div><div id="cmsg">&nbsp;</div></div>
@@ -99,9 +131,8 @@ td.c,th.c{text-align:center}
 <div class="f"><label>Hasta</label><input type="date" id="fHasta"></div>
 <div class="f"><label>Clase de movimiento</label><select id="fMov"></select></div>
 <div class="f"><label>Unidad Ejecutora / Destino</label><select id="fUE"></select></div>
-<div class="f"><label>Rengl&oacute;n (c&oacute;digo o descripci&oacute;n)</label><input type="text" id="fRen" class="wide" list="dlRen" autocomplete="off" placeholder="Escriba parte del nombre o del c&oacute;digo"><datalist id="dlRen"></datalist></div>
+<div class="f ac-wrap"><label>Rengl&oacute;n (c&oacute;digo o descripci&oacute;n)</label><input type="text" id="fRen" class="wide" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="renAC" placeholder="Escriba parte del nombre o del c&oacute;digo"><div class="ac-panel" id="renAC" role="listbox"></div></div>
 <div class="f"><label>Tipo de rengl&oacute;n</label><select id="fTipo"><option value="">Todos</option><option>MEDICAMENTO</option><option>INSUMO</option><option>OTRO</option></select></div>
-<div class="f"><label>Equipo de captura</label><select id="fEquipo"><option value="">Todos</option><option value="1">CEDIS Panam&aacute;</option><option value="0">Otras sedes</option></select></div>
 <div class="f"><label>Usuario SAP</label><select id="fUsr"></select></div>
 <div class="f"><label>&nbsp;</label><button class="btn sec" id="btnLimpiar">Limpiar filtros</button></div>
 </div>
@@ -119,10 +150,25 @@ td.c,th.c{text-align:center}
 <div class="sin-res" id="sinRes"></div>
 
 <div class="tabs" id="tabs"></div>
+
+<div id="tourOverlay" style="display:none">
+  <div id="tourBackdrop"></div>
+  <div id="tourBox">
+    <div id="tourTitulo"></div>
+    <div id="tourTexto"></div>
+    <div id="tourNav">
+      <span id="tourPaso"></span>
+      <span style="flex:1"></span>
+      <button id="tourSkip" class="btn-plano">Saltar</button>
+      <button id="tourPrev" class="btn-plano">&#9666; Atr&aacute;s</button>
+      <button id="tourNext">Siguiente &#9656;</button>
+    </div>
+  </div>
+</div>
 <div class="panel on" id="p-resumen">
   <div class="kpis" id="kResumen"></div>
   <div class="grid2">
-    <div class="card"><h3>Movimiento diario por naturaleza<span class="per">Diario &middot; l&iacute;neas</span></h3><div class="body"><div class="chartbox"><canvas id="chDia"></canvas></div></div></div>
+    <div class="card"><h3>Movimiento por naturaleza<span class="per" id="perDia">&mdash;</span></h3><div class="body"><div class="chartbox"><canvas id="chDia"></canvas></div></div></div>
     <div class="card"><h3>Composici&oacute;n por clase de movimiento<span class="per">Acumulado del rango</span></h3><div class="body"><div class="chartbox"><canvas id="chMov"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Cierre por d&iacute;a<span class="per">Diario &middot; acumulable</span></h3>
@@ -148,7 +194,7 @@ td.c,th.c{text-align:center}
 <div class="panel" id="p-recep">
   <div class="sub">Movimientos <b>101</b> (entrada de mercanc&iacute;a contra pedido de compra) y <b>102</b> (anulaci&oacute;n). Es lo &uacute;nico del MB51 que trae valorizaci&oacute;n propia de SAP.</div>
   <div class="kpis" id="kRec"></div>
-  <div class="card"><h3>Valor recibido por d&iacute;a<span class="per">Diario &middot; B/. (101 neto de 102)</span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
+  <div class="card"><h3>Valor recibido<span class="per" id="perRec">&mdash;</span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
   <div class="card"><h3>Recepci&oacute;n por proveedor<span class="per">Acumulado del rango</span></h3>
     <div class="tabla-h"><span>El c&oacute;digo de proveedor es el de SAP; el nombre no viaja en el MB51.</span><div class="der"><button class="btn sec" data-csv="tProv">Exportar CSV</button></div></div>
     <div class="scroll"><table id="tProv"></table></div></div>
@@ -584,26 +630,32 @@ function init() {
     '<optgroup label="CEDIS Panam\u00e1 (' + pan.length + ')">' + opt(pan) + '</optgroup>' +
     '<optgroup label="Otras sedes (' + otr.length + ')">' + opt(otr) + '</optgroup>';
 
-  var rens = [];
-  for (var m = 1; m < DIC.mat.length; m++) if (DIC.mat[m]) rens.push([DIC.mat[m], DIC.ds[m] || '']);
-  rens.sort(function (a, b) { return a[1].localeCompare(b[1], 'es'); });
-  $('dlRen').innerHTML = rens.map(function (x) { return '<option value="' + esc(x[1]) + '">' + esc(x[0]) + '</option>'; }).join('');
-  $('eRen').textContent = nf(rens.length);
+  CAT = [];
+  for (var m = 1; m < DIC.mat.length; m++) {
+    if (!DIC.mat[m]) continue;
+    CAT.push({ i:m, cod:DIC.mat[m], ds:DIC.ds[m] || '', tp:D_TP[m] || '',
+               at:D_AT[m] ? (D_AT[m] + ' · ' + (ATC[D_AT[m]] || '')) : '',
+               nc:norm(DIC.mat[m]), nd:norm(DIC.ds[m] || '') });
+  }
+  CAT.sort(function (a, b) { return a.ds.localeCompare(b.ds, 'es'); });
+  $('eRen').textContent = nf(CAT.length);
+  acEnlazar();
 
   $('fDesde').value = IDX._meta.desde;
   $('fHasta').value = IDX._meta.hasta;
-  ['fDesde','fHasta','fMov','fUE','fTipo','fUsr','fEquipo'].forEach(function (id) { $(id).onchange = aplicar; });
-  $('fRen').oninput = debounce(aplicar, 250);
+  ['fDesde','fHasta','fMov','fUE','fTipo','fUsr'].forEach(function (id) { $(id).onchange = aplicar; });
+  $('fRen').oninput = function (e) { acSugerir(e.target.value || ''); acFiltrar(); };
   $('btnLimpiar').onclick = function () {
     $('fDesde').value = IDX._meta.desde; $('fHasta').value = IDX._meta.hasta;
     $('fMov').value = ''; $('fUE').value = ''; $('fTipo').value = '';
-    $('fUsr').value = ''; $('fEquipo').value = ''; $('fRen').value = '';
+    $('fUsr').value = ''; $('fRen').value = ''; AC_ULT = '';
     aplicar();
   };
   $('btnMas').onclick = function () { DET_N += 200; pintarDetalle(); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-csv]'), function (b) {
     b.onclick = function () { csv(b.dataset.csv); };
   });
+  tourEnlazar();
   pintarInventario();   /* es una foto: no depende de los filtros, se dibuja una vez */
   aplicar();
 }
@@ -631,9 +683,89 @@ function Logger_(m) { if (window.console && console.log) console.log('[kardex] '
 function ensuciarTodo() { Object.keys(RENDER).forEach(function (k) { SUCIO[k] = 1; }); }
 function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ *  BUSCADOR DE RENGLON CON PANEL PROPIO
+ *  El <datalist> nativo lo dibuja el sistema operativo: panel negro, sin
+ *  estilo posible, y no puede mostrar el tipo de cada renglon ni su grupo
+ *  ATC. Este panel es HTML normal, se ve como el de Curvas de Inventario y
+ *  el Tablero de Cobertura, y responde al teclado.
+ * ────────────────────────────────────────────────────────────────────────── */
+var CAT = [], AC_HITS = [], AC_SEL = -1, AC_ULT = '';
+var acFiltrar = debounce(aplicar, 250);
+
+function acPanel() { return $('renAC'); }
+function acCerrar() {
+  var p = acPanel();
+  if (p) { p.classList.remove('open'); p.innerHTML = ''; }
+  $('fRen').setAttribute('aria-expanded', 'false');
+  AC_HITS = []; AC_SEL = -1;
+}
+function acPintarSel() {
+  var p = acPanel(); if (!p) return;
+  var it = p.querySelectorAll('.ac-item');
+  for (var k = 0; k < it.length; k++) {
+    if (k === AC_SEL) { it[k].classList.add('sel'); it[k].scrollIntoView({block:'nearest'}); }
+    else it[k].classList.remove('sel');
+  }
+}
+function acElegir(o) {
+  /* Se escribe el CODIGO, no la descripcion: SAP la trunca a 40 caracteres y
+     dos renglones pueden compartir el texto visible. El codigo es unico. */
+  $('fRen').value = o.cod;
+  AC_ULT = o.cod;
+  acCerrar();
+  aplicar();
+}
+function acSugerir(q) {
+  var p = acPanel(); if (!p) return;
+  var t = norm(q).trim();
+  if (!t || !CAT.length) { acCerrar(); return; }
+  var tp = $('fTipo').value;
+  var pool = tp ? CAT.filter(function (o) { return o.tp === tp; }) : CAT;
+  /* Primero lo que EMPIEZA por lo escrito y despues lo que lo contiene: quien
+     teclea un codigo espera verlo arriba, no sepultado entre coincidencias
+     parciales de las descripciones. */
+  var empieza = [], dentro = [];
+  for (var i = 0; i < pool.length; i++) {
+    var o = pool[i];
+    if (o.nc.indexOf(t) === 0 || o.nd.indexOf(t) === 0) empieza.push(o);
+    else if (o.nc.indexOf(t) >= 0 || o.nd.indexOf(t) >= 0) dentro.push(o);
+  }
+  AC_HITS = empieza.concat(dentro).slice(0, 40);
+  AC_SEL = -1;
+  p.innerHTML = AC_HITS.length
+    ? AC_HITS.map(function (o2, k) {
+        return '<div class="ac-item" role="option" data-k="' + k + '">' +
+          '<span class="ac-cod">' + esc(o2.cod) + '</span> &mdash; ' + esc(o2.ds) +
+          '<span class="ac-grp">' + esc(o2.tp) + (o2.at ? ' &middot; ' + esc(o2.at) : '') + '</span></div>';
+      }).join('')
+    : '<div class="ac-vacio">Sin coincidencias' + (tp ? (' en ' + esc(tp)) : '') +
+      '. SAP trunca la descripci\u00f3n a 40 caracteres, pruebe con un fragmento m\u00e1s corto.</div>';
+  p.classList.add('open');
+  $('fRen').setAttribute('aria-expanded', 'true');
+}
+function acEnlazar() {
+  var inp = $('fRen');
+  acPanel().addEventListener('mousedown', function (e) {
+    var it = e.target.closest ? e.target.closest('.ac-item') : null;
+    if (!it) return;
+    e.preventDefault();                     /* no quitar el foco antes del clic */
+    var o = AC_HITS[Number(it.dataset.k)];
+    if (o) acElegir(o);
+  });
+  inp.addEventListener('keydown', function (e) {
+    if (!AC_HITS.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); AC_SEL = (AC_SEL + 1) % AC_HITS.length; acPintarSel(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); AC_SEL = (AC_SEL <= 0 ? AC_HITS.length : AC_SEL) - 1; acPintarSel(); }
+    else if (e.key === 'Enter' && AC_SEL >= 0) { e.preventDefault(); acElegir(AC_HITS[AC_SEL]); }
+    else if (e.key === 'Escape') { acCerrar(); }
+  });
+  inp.addEventListener('blur', function () { setTimeout(acCerrar, 140); });
+}
+
 function aplicar() {
   var d = $('fDesde').value, h = $('fHasta').value, mv = $('fMov').value,
-      ue = $('fUE').value, tp = $('fTipo').value, us = $('fUsr').value, eq = $('fEquipo').value;
+      ue = $('fUE').value, tp = $('fTipo').value, us = $('fUsr').value;
   var terms = norm($('fRen').value.trim()).split(/\s+/).filter(Boolean);
   /* la búsqueda se resuelve sobre el diccionario: un set de índices de
      material, en vez de comparar texto en las 49,942 filas */
@@ -661,7 +793,6 @@ function aplicar() {
     if (ueIdx >= 0 && r[cREC] !== ueIdx) continue;
     if (usIdx >= 0 && r[cUSR] !== usIdx) continue;
     if (tp && D_TP[r[cMAT]] !== tp) continue;
-    if (eq !== '' && D_EQ[r[cUSR]] !== Number(eq)) continue;
     if (matOK && !matOK[r[cMAT]]) continue;
     F.push(r);
   }
@@ -776,6 +907,40 @@ function csv(id) {
   a.download = 'KARDEX_' + id + '_' + IDX._meta.hasta + '.csv'; a.click();
 }
 function chart(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart($(id).getContext('2d'), cfg); }
+/* GRANULARIDAD AUTOMATICA DE LAS SERIES TEMPORALES
+   Una barra por dia es legible hasta unos dos meses. Con 93 dias ya van 19 px
+   por barra y las fechas rotadas a 90 grados; a 250 dias laborables al año
+   serian 7 px. Por eso la serie se agrupa sola segun el rango: dia, semana o
+   mes. El rotulo dice siempre en que unidad esta, para que nadie lea una barra
+   semanal como si fuera de un dia. */
+function granular(dias) {
+  var n = dias.length;
+  if (n <= 62)  return {u:'dia',    clave:function(f){ return f; },            nom:'Diario'};
+  if (n <= 400) return {u:'semana', clave:semanaDe,                            nom:'Semanal · lunes de cada semana'};
+  return              {u:'mes',    clave:function(f){ return f.slice(0,7); }, nom:'Mensual'};
+}
+/* Lunes de la semana de esa fecha, en ISO. */
+function semanaDe(f) {
+  var d = new Date(f + 'T00:00:00');
+  var dw = d.getDay();                       /* 0=domingo */
+  d.setDate(d.getDate() - ((dw + 6) % 7));   /* retrocede al lunes */
+  var p = function (x) { return (x < 10 ? '0' : '') + x; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+/* Agrupa un mapa dia->filas en el paso que corresponda. */
+function serieTemporal(porDia) {
+  var dias = Object.keys(porDia).sort();
+  var g = granular(dias), cubos = {}, orden = [];
+  for (var i = 0; i < dias.length; i++) {
+    var k = g.clave(dias[i]);
+    if (!cubos[k]) { cubos[k] = []; orden.push(k); }
+    var a = porDia[dias[i]];
+    for (var j = 0; j < a.length; j++) cubos[k].push(a[j]);
+  }
+  orden.sort();
+  return {claves:orden, cubos:cubos, nom:g.nom, u:g.u, ndias:dias.length};
+}
+
 var OPT = {responsive:true, maintainAspectRatio:false,
   plugins:{legend:{labels:{font:{size:11}, boxWidth:12}}},
   scales:{y:{beginAtZero:true, ticks:{font:{family:'Consolas', size:10}}}, x:{ticks:{font:{size:10}}}}};
@@ -802,10 +967,12 @@ function pintarResumen() {
 
   var pd = agrupar(F, function (r) { return r[cF]; });
   var dias = Object.keys(pd).sort();
+  var st = serieTemporal(pd);
+  $('perDia').textContent = st.nom + ' · líneas';
   var nat = function (c) { return MOVS[c] ? MOVS[c][1] : 'OTRO'; };
-  chart('chDia', {type:'bar', data:{labels:dias, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n, i) {
-      return {label:n, backgroundColor:AZ[i], data:dias.map(function (d) {
-        var c = 0, a = pd[d]; for (var k = 0; k < a.length; k++) if (nat(a[k][cM]) === n) c++; return c; })};
+  chart('chDia', {type:'bar', data:{labels:st.claves, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n, i) {
+      return {label:n, backgroundColor:AZ[i], data:st.claves.map(function (d) {
+        var c = 0, a = st.cubos[d]; for (var k = 0; k < a.length; k++) if (nat(a[k][cM]) === n) c++; return c; })};
     })},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
       scales:{x:{stacked:true, ticks:{font:{size:9}, maxRotation:90}},
@@ -920,10 +1087,11 @@ function pintarRecep() {
       'rojo', 'Documento a contabilizaci\u00f3n']
   ]);
 
-  var pd = agrupar(ab, function (r) { return r[cF]; });
-  var dias = Object.keys(pd).sort();
-  chart('chRec', {type:'bar', data:{labels:dias, datasets:[{label:'Valor recibido B/.', backgroundColor:'#1b7a34',
-    data:dias.map(function (d) { return suma(pd[d], function (r) { return r[cV]; }); })}]},
+  var pdr = agrupar(ab, function (r) { return r[cF]; });
+  var str = serieTemporal(pdr);
+  $('perRec').textContent = str.nom + ' · B/. (101 neto de 102)';
+  chart('chRec', {type:'bar', data:{labels:str.claves, datasets:[{label:'Valor recibido B/.', backgroundColor:'#1b7a34',
+    data:str.claves.map(function (d) { return suma(str.cubos[d], function (r) { return r[cV]; }); })}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
       scales:{x:{ticks:{font:{size:9}, maxRotation:90}}, y:{beginAtZero:true, ticks:{font:{family:'Consolas',size:10}}}}}});
 
@@ -1495,6 +1663,135 @@ function pintarDetalle() {
     {h:'Proveedor', t:'c'}, {h:'Pedido', t:'t'}, {h:'Referencia', t:'t'}, {h:'Centro de coste', t:'t'},
     {h:'Fecha documento', t:'c'}, {h:'Latencia (d)', t:'n', f:nf}
   ], vis.map(fila), {i:0, d:-1}, function () { return F.map(fila); });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  TUTORIAL GUIADO
+ *  Mismo patron de reposicion_ue.html: foco sobre el elemento real, recuadro
+ *  explicativo y navegacion paso a paso. Corre sobre los datos publicados, no
+ *  sobre una maqueta, asi que el usuario aprende viendo su propia operacion.
+ *  'tab' abre la pestaña del paso antes de posicionar el foco.
+ * ══════════════════════════════════════════════════════════════════════════ */
+var TOUR = [
+  { sel:'.filtros', tab:'resumen', tit:'1. Los filtros manda sobre todo el tablero',
+    txt:'Lo que elija aqu\u00ed se aplica a las once pesta\u00f1as a la vez. El rango de fechas arranca en todo el hist\u00f3rico publicado. En el campo de Rengl\u00f3n escriba parte del nombre o del c\u00f3digo y aparecer\u00e1 una lista con el tipo de cada uno; se navega con las flechas y se elige con Enter.' },
+  { sel:'.barra-estado', tab:'resumen', tit:'2. Qu\u00e9 est\u00e1 viendo, en una l\u00ednea',
+    txt:'Cu\u00e1ntas l\u00edneas quedaron en vista de las publicadas, el rango activo, los d\u00edas con carga y la fecha de la foto del inventario. Cuando cambia un filtro, aqu\u00ed aparece la confirmaci\u00f3n.' },
+  { sel:'#tabs', tab:'resumen', tit:'3. Once vistas del mismo kardex',
+    txt:'Cada pesta\u00f1a responde una pregunta distinta sobre los mismos movimientos. Solo se dibuja la que est\u00e9 abierta, por eso el tablero responde r\u00e1pido aunque tenga casi cincuenta mil l\u00edneas.' },
+  { sel:'#kResumen', tab:'resumen', tit:'4. El pulso del per\u00edodo',
+    txt:'Unidades despachadas a Unidades Ejecutoras, valor recibido en compras y el ajuste neto de inventario. El valor despachado es un <b>estimado</b>: SAP no valoriza los traslados y el precio sale del MB52.' },
+  { sel:'#kFact', tab:'fact', tit:'5. La facturaci\u00f3n a las UE',
+    txt:'Movimientos 313 y 314. El destino sale del campo estructurado <b>Almac\u00e9n receptor</b>, que siempre viene lleno, no del texto libre. Vigile la tasa de anulaci\u00f3n y las l\u00edneas sin precio.' },
+  { sel:'#tF8', tab:'fact', tit:'6. La Forma 8, una por una',
+    txt:'La Forma 8 la escribe a mano el capturador en SAP-SAFIRO. La columna <b>Lectura</b> dice si el formato es interpretable, y la \u00faltima columna muestra el texto original tal como lo digitaron. Ah\u00ed ve exactamente d\u00f3nde se pierde la trazabilidad.' },
+  { sel:'#kRec', tab:'recep', tit:'7. Recepci\u00f3n y su rezago',
+    txt:'Movimientos 101 y 102, lo \u00fanico que SAP valoriza por su cuenta. Mire la <b>latencia mediana</b>: son los d\u00edas entre la fecha del documento y la de contabilizaci\u00f3n.' },
+  { sel:'#kAju', tab:'ajuste', tit:'8. Bajas reales y reclasificaciones',
+    txt:'El bruto del movimiento 562 sobreestima el da\u00f1o: muchos motivos aparecen tambi\u00e9n en el 561 y se anulan al centavo. La tarjeta <b>Bajas SIN contrapartida</b> es la cifra que importa, y la tabla marca cada motivo.' },
+  { sel:'#kInv', tab:'inv', tit:'9. El inventario del MB52',
+    txt:'Es una <b>foto</b>, no una serie: <b>no la filtra el rango de fechas</b>. De aqu\u00ed sale el precio unitario con que se valorizan los traslados, con la misma f\u00f3rmula del cierre contable.' },
+  { sel:'#kLat', tab:'lat', tit:'10. Cu\u00e1nto tarda SAP en reflejar lo que pas\u00f3',
+    txt:'Mide el rezago entre la operaci\u00f3n y su registro contable, no la velocidad del almac\u00e9n. La facturaci\u00f3n se contabiliza el mismo d\u00eda; la recepci\u00f3n, bastante despu\u00e9s.' },
+  { sel:'#kProd', tab:'prod', tit:'11. Captura en SAP, con atribuci\u00f3n correcta',
+    txt:'El MB51 es un reporte <b>nacional</b>. Los indicadores se calculan solo sobre el personal de CEDIS Panam\u00e1; el resto aparece en un bloque aparte, rotulado y fuera de todo promedio. Mide actividad de captura, no productividad f\u00edsica.' },
+  { sel:'#kCal', tab:'cal', tit:'12. Qu\u00e9 falta y qu\u00e9 no se puede confiar',
+    txt:'Antes de usar una cifra, venga aqu\u00ed. Cobertura de d\u00edas cargados, legibilidad de la Forma 8, destinos sin mapear y las advertencias estructurales del reporte. Un d\u00eda FALTANTE no significa que no hubo movimiento: significa que el reporte no se carg\u00f3.' },
+  { sel:'#p-det .tabla-h', tab:'det', tit:'13. El detalle y el respaldo',
+    txt:'Una fila por l\u00ednea de documento SAP, con la columna <b>Origen del valor</b> que dice si el importe lo puso SAP o si es un estimado del MB52. El bot\u00f3n de CSV exporta <b>todo lo filtrado</b>, no solo lo que se ve en pantalla.' }
+];
+var TOUR_I = 0;
+
+function tourAbrirTab(k) {
+  var t = document.querySelector('.tab[data-t="' + k + '"]');
+  if (t && !t.classList.contains('on')) t.click();
+}
+function tourIniciar() {
+  TOUR_I = 0;
+  $('tourOverlay').style.display = 'block';
+  tourPaso();
+}
+function tourCerrar() {
+  $('tourOverlay').style.display = 'none';
+  var sp = document.querySelector('.tour-spot');
+  if (sp) sp.style.display = 'none';
+}
+function tourPaso() {
+  var st = TOUR[TOUR_I];
+  if (!st) { tourCerrar(); return; }
+  /* El contenido se escribe YA, sincronico. Antes iba dentro del setTimeout que
+     espera al cambio de pestaña y el recuadro aparecia vacio una fraccion de
+     segundo al abrir el tour. La geometria si se difiere, porque necesita que
+     la pestaña ya este dibujada para medir. */
+  tourContenido(st);
+  if (st.tab) tourAbrirTab(st.tab);
+  setTimeout(function () { tourPosicionar(st); }, st.tab ? 220 : 0);
+}
+
+function tourContenido(st) {
+  $('tourTitulo').textContent = st.tit;
+  $('tourTexto').innerHTML = st.txt;
+  $('tourPaso').textContent = 'Paso ' + (TOUR_I + 1) + ' de ' + TOUR.length;
+  $('tourPrev').style.visibility = TOUR_I === 0 ? 'hidden' : 'visible';
+  $('tourNext').textContent = TOUR_I === TOUR.length - 1 ? 'Terminar' : 'Siguiente \u25B8';
+  if (!document.querySelector('.tour-spot')) {
+    var sp = document.createElement('div');
+    sp.className = 'tour-spot';
+    $('tourOverlay').appendChild(sp);
+  }
+}
+function tourPosicionar(st) {
+  var target = document.querySelector(st.sel);
+  var box = $('tourBox');
+  var sp = document.querySelector('.tour-spot');
+  if (!sp) { sp = document.createElement('div'); sp.className = 'tour-spot'; $('tourOverlay').appendChild(sp); }
+
+  if (target) {
+    try { target.scrollIntoView({block:'center', behavior:'smooth'}); } catch (e) {}
+    setTimeout(function () {
+      var r = target.getBoundingClientRect();
+      sp.style.top = (r.top - 6) + 'px'; sp.style.left = (r.left - 6) + 'px';
+      sp.style.width = (r.width + 12) + 'px'; sp.style.height = (r.height + 12) + 'px';
+      sp.style.display = 'block';
+      /* el recuadro va debajo si cabe, y si no arriba */
+      var bh = box.offsetHeight || 180, bw = box.offsetWidth || 360;
+      var top = r.bottom + 14;
+      if (top + bh > window.innerHeight - 10) top = Math.max(10, r.top - bh - 14);
+      var left = Math.min(Math.max(10, r.left), window.innerWidth - bw - 10);
+      box.style.transform = ''; box.style.top = top + 'px'; box.style.left = left + 'px';
+    }, 300);
+    /* el foco se dibuja ya, sin esperar el desplazamiento */
+    try {
+      var r0 = target.getBoundingClientRect();
+      sp.style.top = (r0.top - 6) + 'px'; sp.style.left = (r0.left - 6) + 'px';
+      sp.style.width = (r0.width + 12) + 'px'; sp.style.height = (r0.height + 12) + 'px';
+      sp.style.display = 'block';
+    } catch (e2) {}
+  } else {
+    /* Un selector que ya no exista no rompe el tour: el recuadro se centra y
+       el paso se lee igual. */
+    sp.style.display = 'none';
+    box.style.top = '50%'; box.style.left = '50%'; box.style.transform = 'translate(-50%,-50%)';
+  }
+}
+function tourEnlazar() {
+  $('btnTour').onclick = tourIniciar;
+  $('tourNext').onclick = function () {
+    if (TOUR_I === TOUR.length - 1) { tourCerrar(); return; }
+    TOUR_I++; tourPaso();
+  };
+  $('tourPrev').onclick = function () { if (TOUR_I > 0) { TOUR_I--; tourPaso(); } };
+  $('tourSkip').onclick = tourCerrar;
+  $('tourBackdrop').onclick = tourCerrar;
+  document.addEventListener('keydown', function (e) {
+    if ($('tourOverlay').style.display !== 'block') return;
+    if (e.key === 'Escape') tourCerrar();
+    else if (e.key === 'ArrowRight') $('tourNext').click();
+    else if (e.key === 'ArrowLeft') $('tourPrev').click();
+  });
+  window.addEventListener('resize', function () {
+    if ($('tourOverlay').style.display === 'block') tourPosicionar(TOUR[TOUR_I]);
+  });
 }
 
 /* arranque */
