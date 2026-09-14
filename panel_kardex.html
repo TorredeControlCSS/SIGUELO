@@ -73,6 +73,12 @@ td.c,th.c{text-align:center}
 .chip.wa{color:#8a6207;border-color:#b5820a;background:#fdf6e3}
 .chip.er{color:#b31b1b;border-color:#b31b1b;background:#fbecec}
 .chip.nu{color:#3a3a3a;border-color:#9a9a9a;background:#f0f0f0}
+/* Misma convencion que el diagrama: verde aporta, azul consume, gris el
+   residuo. El chip de la tabla y el nodo del Sankey no pueden decir lo mismo
+   con colores distintos. */
+.chip.apo{color:#1b7a34;border-color:#1b7a34;background:#eaf6ed}
+.chip.con{color:#0C447C;border-color:#0C447C;background:#e6edf6}
+.chip.cie{color:#5c5c5c;border-color:#5c5c5c;background:#eeeeee}
 .nota{font-size:11.5px;color:#4a4a4a;padding:9px 11px;background:#faf0d7;border:1px solid #d9c48a;margin:8px 0;line-height:1.6}
 .vacio{padding:24px;text-align:center;color:#888;font-size:12px}
 .tabla-h{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f9f9f9;border-bottom:1px solid #ddd;font-size:11px;color:#555}
@@ -235,7 +241,7 @@ td.c,th.c{text-align:center}
 </div>
 
 <div class="panel" id="p-flujo">
-  <div class="sub">El kardex es un <b>balance</b> y aqu&iacute; cierra: lo que aporta existencia suma exactamente lo mismo que lo que la consume, porque la <b>variaci&oacute;n de existencia</b> se dibuja como un concepto m&aacute;s. <b>Toda clase de movimiento est&aacute; dentro</b>, incluidas las que a&uacute;n no est&aacute;n catalogadas. Los netos van <b>con signo</b>: una anulaci&oacute;n descuenta su movimiento en vez de sumarse como uno nuevo. <b>Haga clic en cualquier concepto</b> para ver qu&eacute; registra y qu&eacute; tener en cuenta al leerlo.</div>
+  <div class="sub">El kardex es un <b>balance</b> y aqu&iacute; cierra: lo que aporta existencia suma exactamente lo mismo que lo que la consume, porque la <b>variaci&oacute;n de existencia</b> se dibuja como un concepto m&aacute;s. <b>Toda clase de movimiento est&aacute; dentro</b>, incluidas las que a&uacute;n no est&aacute;n catalogadas. Los netos van <b>con signo</b>: una anulaci&oacute;n descuenta su movimiento en vez de sumarse como uno nuevo, y las clases que se usan <b>en pareja</b> &mdash;561 con 562, y 701 con 702&mdash; van como un solo concepto, porque son entrada y salida del mismo hecho. El color dice el efecto: <b style="color:#1b7a34">verde aporta</b>, <b style="color:#0C447C">azul consume</b>, gris el residuo. <b>Haga clic en cualquier concepto</b> para ver qu&eacute; registra y qu&eacute; tener en cuenta al leerlo.</div>
   <div class="aviso-bal" id="avisoBal"></div>
   <div class="kpis" id="kFlu"></div>
   <div class="card"><h3>Balance de existencias<span class="per" id="perFlu">&mdash;</span></h3>
@@ -534,14 +540,6 @@ var FLU = {
   '313':['S','Unidades Ejecutoras'],'314':['S','Unidades Ejecutoras'],
   '201':['S','Consumo interno'],    '202':['S','Consumo interno'],
   '562':['S','Bajas y vigencia'],   '702':['S','Inventario f\u00edsico -']
-};
-var FLU_ENT = ['Compras','Traslados recibidos','Ajuste de entrada','Inventario f\u00edsico +'];
-var FLU_SAL = ['Unidades Ejecutoras','Consumo interno','Bajas y vigencia','Inventario f\u00edsico -'];
-/* color de cada boca: pastel de relleno, borde pleno */
-var FLU_COL = {
-  'Compras':PAL[1], 'Traslados recibidos':PAL[5], 'Ajuste de entrada':PAL[2],
-  'Inventario f\u00edsico +':PAL[10], 'Unidades Ejecutoras':PAL[0],
-  'Consumo interno':PAL[3], 'Bajas y vigencia':PAL[4], 'Inventario f\u00edsico -':PAL[7]
 };
 
 /* Normaliza sin diacríticos: las descripciones del MB51 traen tildes
@@ -1897,15 +1895,41 @@ function pintarLat() {
 
 /* Cada clase de movimiento a su concepto. Las que no estan catalogadas caen
    en 'Sin catalogar' y el modal enumera cuales son: no se esconden. */
+/* Cada clase de movimiento a su EVENTO ECONOMICO, no a su direccion.
+   561 y 562 van juntos, y 701 con 702, porque son pares: se usan como entrada
+   y salida del mismo hecho. Medido sobre el historico, 246 motivos aparecen en
+   561 Y en 562 y muchos se anulan al centavo. Dibujarlos como dos corrientes
+   independientes inflaba los dos lados del balance en 50.8 millones sobre
+   170.8 —casi un tercio del diagrama era la misma plata entrando y saliendo—
+   sin cambiar el cierre ni un centavo. Con el par neteado, lo que queda es el
+   efecto real sobre la existencia. */
 var CONCEPTO = {
   '101':'Compras a proveedor',        '102':'Compras a proveedor',
   '315':'Traslados entre almacenes',  '316':'Traslados entre almacenes',
-  '561':'Ajuste de entrada',          '562':'Baja de existencias',
-  '701':'Sobrante de inventario',     '702':'Faltante de inventario',
+  '561':'Ajuste de existencias',      '562':'Ajuste de existencias',
+  '701':'Ajuste por inventario f\u00edsico', '702':'Ajuste por inventario f\u00edsico',
   '313':'Despacho a Unidades Ejecutoras', '314':'Despacho a Unidades Ejecutoras',
   '201':'Consumo a centro de coste',  '202':'Consumo a centro de coste',
   '309':'Reclasificaci\u00f3n interna',    '310':'Reclasificaci\u00f3n interna'
 };
+
+/* ──────────────────────────────────────────────────────────────────────────
+ *  CONVENCION DE COLOR POR EFECTO
+ *  Lo que aporta existencia en verde, lo que la consume en azul, y el residuo
+ *  en gris. El tono dentro de cada familia distingue los conceptos entre si,
+ *  pero la familia se lee de un golpe: no hay que recordar que color era cada
+ *  cosa para saber de que lado esta.
+ * ────────────────────────────────────────────────────────────────────────── */
+var FAM_APORTA = [
+  ['#bcdfc8','#1b7a34'], ['#d3e0b0','#5f7a2a'], ['#cde8d5','#2e8b57'],
+  ['#e2ecc6','#7a8f3a'], ['#c6e6d2','#1f6b4a'], ['#dceac4','#6b8f2e']
+];
+var FAM_CONSUME = [
+  ['#b6cbe6','#0C447C'], ['#c8d8f0','#1E5A9E'], ['#bfdbe6','#2e6b8a'],
+  ['#a9c2e0','#164a7a'], ['#cfdcec','#3a5f8a'], ['#bcd4ea','#22558f'],
+  ['#d5e2f2','#456a9e'], ['#aec9e2','#12507f']
+];
+var COL_CIERRE = ['#e3e3e3','#5c5c5c'];
 var SIN_CAT = 'Sin catalogar';
 var CIERRE  = '__cierre__';
 
@@ -1921,14 +1945,14 @@ var CONCEPTO_DOC = {
     cl:'315 entrada por traslado \u00b7 316 anulaci\u00f3n',
     qe:'Mercanc\u00eda que llega desde otro almac\u00e9n de la red, no desde un proveedor. Es la segunda etapa de un traslado que empez\u00f3 con un 313 en el almac\u00e9n de origen.',
     oj:'Llega con Importe ML en cero: SAP no valoriza el traslado. El valor que se muestra es un estimado con el precio del MB52.' },
-  'Ajuste de entrada': {
-    cl:'561 entrada inicial de existencias',
-    qe:'Carga de existencia sin pedido de compra detr\u00e1s. Se usa para regularizaciones y para la carga inicial de un rengl\u00f3n.',
-    oj:'Muchos de estos motivos aparecen tambi\u00e9n en el 562 y se anulan al centavo: son reclasificaciones, no entradas reales de mercanc\u00eda. La pesta\u00f1a de Ajustes y bajas lo marca por motivo.' },
-  'Sobrante de inventario': {
-    cl:'701 entrada por inventario f\u00edsico',
-    qe:'Existencia que apareci\u00f3 en el conteo f\u00edsico y no estaba en el sistema. Corrige el registro hacia arriba.',
-    oj:'Se concentra en los d\u00edas de toma de inventario, as\u00ed que distorsiona cualquier promedio diario si no se aisla.' },
+  'Ajuste de existencias': {
+    cl:'561 entrada inicial \u00b7 562 salida inicial / baja',
+    qe:'Los dos van juntos porque son un <b>par</b>: 561 y 562 se usan como entrada y salida del mismo hecho contable —regularizaciones, carga inicial de un rengl\u00f3n, bajas por vigencia o deterioro. La cifra que se muestra es el <b>neto</b> de los dos.',
+    oj:'Medido sobre el hist\u00f3rico, <b>246 motivos aparecen en 561 y en 562 a la vez</b> y muchos se anulan al centavo: por ejemplo 1001110090-SIN PRESUPUESTO entra por 2,772,400 y sale por la misma cifra. Dibujarlos como dos corrientes separadas inflaba los dos lados del balance con plata que nunca se movi\u00f3. La baja real, la que no tiene contrapartida, est\u00e1 desglosada por motivo en la pesta\u00f1a de Ajustes y bajas.' },
+  'Ajuste por inventario f\u00edsico': {
+    cl:'701 sobrante \u00b7 702 faltante',
+    qe:'Es el resultado del <b>conteo f\u00edsico</b>, que es un solo evento y produce las dos direcciones: lo que apareci\u00f3 y no estaba en el sistema, y lo que el sistema ten\u00eda y no se encontr\u00f3. Se muestra el neto.',
+    oj:'Se concentra en los d\u00edas de toma de inventario, as\u00ed que distorsiona cualquier promedio diario si no se a\u00edsla. Un neto negativo significa que el conteo encontr\u00f3 menos de lo que el sistema declaraba.' },
   'Despacho a Unidades Ejecutoras': {
     cl:'313 salida por traslado \u00b7 314 anulaci\u00f3n',
     qe:'Salida de mercanc\u00eda hacia una policl\u00ednica, hospital u otro CEDIS. Es la evidencia sist\u00e9mica de que el pedido se factur\u00f3.',
@@ -1937,14 +1961,7 @@ var CONCEPTO_DOC = {
     cl:'201 consumo \u00b7 202 anulaci\u00f3n',
     qe:'Mercanc\u00eda consumida por un centro de coste del propio CEDIS, no despachada a una unidad externa.',
     oj:'Es el flujo m\u00e1s peque\u00f1o del balance; conviene revisarlo solo cuando aparece un salto.' },
-  'Baja de existencias': {
-    cl:'562 salida inicial de existencias',
-    qe:'Salida sin destino: vencimiento, deterioro, regularizaci\u00f3n contable.',
-    oj:'El bruto de esta clase sobreestima el da\u00f1o. Medido sobre el hist\u00f3rico, buena parte se anula contra un 561 con el mismo motivo, y solo una fracci\u00f3n m\u00ednima declara vigencia. La cifra que importa es la que no tiene contrapartida, y est\u00e1 en la pesta\u00f1a de Ajustes y bajas.' },
-  'Faltante de inventario': {
-    cl:'702 salida por inventario f\u00edsico',
-    qe:'Existencia que el sistema ten\u00eda y el conteo f\u00edsico no encontr\u00f3. Corrige el registro hacia abajo.',
-    oj:'Igual que el sobrante: se concentra en los d\u00edas de conteo.' },
+
   'Reclasificaci\u00f3n interna': {
     cl:'309 traslado material a material \u00b7 310 anulaci\u00f3n',
     qe:'Mueve existencia de un rengl\u00f3n a otro dentro del mismo almac\u00e9n. No entra ni sale mercanc\u00eda del CEDIS.',
@@ -2089,31 +2106,61 @@ function pintarFlujo() {
  * ─────────────────────────────────────────────────────────────────────────── */
 function fluSVG(izq, der, ue, nDesp, total) {
   var W = ue.length ? 1240 : 940, H = 470;
-  var TOP = 44, ALTO = H - TOP - 26, GAP = 7, NW = 15, HUBW = 20;
+  var TOP = 44, ALTO = H - TOP - 26, NW = 15, HUBW = 20;
   var X0 = 236, X1 = 470, X2 = 700, X3 = 936;
   if (!total) return '<div class="vacio">Sin movimientos que graficar con los filtros aplicados.</div>';
   var U = fluUnidad(), i;
-  var alt = function (v) { return Math.max(2.5, (v / total) * (ALTO - GAP * 4)); };
+
+  /* ── DE DONDE SALE EL DINAMISMO ─────────────────────────────────────────
+     Una corriente arquea cuando sus dos extremos estan a distinta altura. En
+     la version anterior cada nodo se apilaba consecutivo y entraba al hub a la
+     misma altura de la que salia: la cinta mas gruesa quedaba como una banda
+     recta y el conjunto parecia un bloque, no un flujo.
+     Ahora los nodos ocupan solo el 58% del alto y el 42% restante se reparte
+     como aire entre ellos, mientras que en el hub las cintas se apilan SIN
+     aire y el hub va centrado. El grosor de cada cinta no cambia —la
+     proporcion se conserva— pero sus extremos quedan a distinta altura, y de
+     ahi salen las curvas. Visualmente dice lo que de verdad pasa: las
+     corrientes convergen en el CEDIS y despues divergen.
+     ────────────────────────────────────────────────────────────────────────── */
+  var FRAC = 0.58;
+  var altoNodos = ALTO * FRAC;
+  var alt = function (v) { return Math.max(2.5, (v / total) * altoNodos); };
+
+  /* Apila una columna repartiendo el aire disponible y centrando el conjunto.
+     El tope de 52 px por hueco evita que una columna de dos nodos quede con
+     medio lienzo de separacion. */
+  var apilar = function (ns) {
+    var S = 0, k;
+    for (k = 0; k < ns.length; k++) S += ns[k].h;
+    var hueco = ns.length > 1 ? Math.min(52, (ALTO - S) / (ns.length - 1)) : 0;
+    var span = S + hueco * (ns.length - 1);
+    var y0 = TOP + Math.max(0, (ALTO - span) / 2);
+    for (k = 0; k < ns.length; k++) { ns[k].y = y0; y0 += ns[k].h + hueco; }
+  };
   var s = [], q = function (x) { return String(x).replace(/"/g, '&quot;'); };
   var etqDe = function (d) { return d.etq || d.nom; };
 
-  var nI = [], nD = [], nU = [], y = TOP;
-  for (i = 0; i < izq.length; i++) { var h = alt(izq[i].v); nI.push({d:izq[i], y:y, h:h}); y += h + GAP; }
-  y = TOP;
-  for (i = 0; i < der.length; i++) { var h2 = alt(der[i].v); nD.push({d:der[i], y:y, h:h2}); y += h2 + GAP; }
+  var nI = [], nD = [], nU = [];
+  for (i = 0; i < izq.length; i++) nI.push({d:izq[i], y:0, h:alt(izq[i].v)});
+  for (i = 0; i < der.length; i++) nD.push({d:der[i], y:0, h:alt(der[i].v)});
+  apilar(nI); apilar(nD);
   var sumI = 0, sumD = 0;
   for (i = 0; i < nI.length; i++) sumI += nI[i].h;
   for (i = 0; i < nD.length; i++) sumD += nD[i].h;
-  var hubH = Math.max(sumI, sumD), hubY = TOP;
+  /* El hub va compacto y centrado: es el punto en que todo converge. */
+  var hubH = Math.max(sumI, sumD), hubY = TOP + Math.max(0, (ALTO - hubH) / 2);
 
   var nDespN = null;
   for (i = 0; i < nD.length; i++) if (nD[i].d === nDesp) nDespN = nD[i];
   if (ue.length && nDespN) {
-    var tU = suma(ue, function (x) { return x.v; }) || 1, yu = nDespN.y;
+    /* Los destinos conservan el grosor proporcional al nodo de despacho, pero
+       se reparten por todo el alto: por eso esas cintas abren en abanico. */
+    var tU = suma(ue, function (x) { return x.v; }) || 1;
     for (i = 0; i < ue.length; i++) {
-      var hu = Math.max(2.5, nDespN.h * (ue[i].v / tU));
-      nU.push({d:ue[i], y:yu, h:hu}); yu += hu;
+      nU.push({d:ue[i], y:0, h:Math.max(2.5, nDespN.h * (ue[i].v / tU))});
     }
+    apilar(nU);
   }
 
   /* relajacion de etiquetas: minimo 27 px entre centros, dentro del lienzo */
@@ -2154,9 +2201,9 @@ function fluSVG(izq, der, ue, nDesp, total) {
      que pasan por encima. */
   var etqs = [];
   s.push('<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img">');
-  s.push('<text x="' + X0 + '" y="22" text-anchor="end" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">APORTA A EXISTENCIA</text>');
+  s.push('<text x="' + X0 + '" y="22" text-anchor="end" font-size="11" font-weight="700" fill="#1b7a34" letter-spacing="0.4">APORTA A EXISTENCIA</text>');
   s.push('<text x="' + (X1 + HUBW / 2) + '" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">CEDIS PANAM\u00c1</text>');
-  s.push('<text x="' + (X2 + NW + 8) + '" y="22" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">CONSUME DE EXISTENCIA</text>');
+  s.push('<text x="' + (X2 + NW + 8) + '" y="22" font-size="11" font-weight="700" fill="#0C447C" letter-spacing="0.4">CONSUME DE EXISTENCIA</text>');
   if (nU.length) s.push('<text x="' + (X3 + NW + 8) + '" y="22" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">DESTINO</text>');
 
   var yh = hubY;
@@ -2176,7 +2223,7 @@ function fluSVG(izq, der, ue, nDesp, total) {
     var yv = nDespN.y;
     for (i = 0; i < nU.length; i++) {
       s.push(cinta(X2 + NW, yv, X3, nU[i].y, nU[i].h,
-        grad(cDesp, PAL[i % PAL.length][0]), 'UE \u2192 ' + nU[i].d.nom, nU[i].d));
+        grad(cDesp, FAM_CONSUME[i % FAM_CONSUME.length][0]), 'UE \u2192 ' + nU[i].d.nom, nU[i].d));
       yv += nU[i].h;
     }
   }
@@ -2195,16 +2242,19 @@ function fluSVG(izq, der, ue, nDesp, total) {
     var conRama = (nD[i] === nDespN) && nU.length > 0;
     s.push(nodo(X2, nD[i], NW, colDe(nD[i].d, i), conRama ? 'fin' : 'ini', conRama));
   }
-  for (i = 0; i < nU.length; i++) s.push(nodo(X3, nU[i], NW, PAL[i % PAL.length], 'ini', false));
+  /* los destinos son subflujos de un consumo: van en la familia azul */
+  for (i = 0; i < nU.length; i++) s.push(nodo(X3, nU[i], NW, FAM_CONSUME[i % FAM_CONSUME.length], 'ini', false));
   if (defs.length) s.push('<defs>' + defs.join('') + '</defs>');
   s.push(etqs.join(''));          /* las etiquetas, al final y encima de todo */
   s.push('</svg>');
   return s.join('');
 
   function sumaV(a) { return suma(a, function (x) { return x.v; }); }
+  /* El color lo decide el EFECTO, no la posicion: verde aporta, azul consume,
+     gris el residuo. El tono dentro de la familia distingue los conceptos. */
   function colDe(d, i) {
-    if (d.nom === CIERRE) return ['#e3e3e3', '#5c5c5c'];
-    return PAL[i % PAL.length];
+    if (d.nom === CIERRE) return COL_CIERRE;
+    return d.neto > 0 ? FAM_APORTA[i % FAM_APORTA.length] : FAM_CONSUME[i % FAM_CONSUME.length];
   }
   function cinta(x0, y0, x1, y1, h, relleno, nom, d) {
     var xm = (x0 + x1) / 2;
@@ -2295,7 +2345,7 @@ function pintarBalanceTabla(izq, der, nCierre, A) {
   }
   filas.push(['CIERRE', 'TOTAL · debe ser cero', '', 0,
     fluMetrica() === 'uni' ? sumQ : '', fluMetrica() === 'uni' ? '' : sumV, '', '']);
-  var CH3 = {APORTA:'ok', CONSUME:'wa', CIERRE:'nu'};
+  var CH3 = {APORTA:'apo', CONSUME:'con', CIERRE:'cie'};
   tabla('tFlu', [
     {h:'Efecto', t:'c', f:function (v) { return '<span class="chip ' + CH3[v] + '">' + v + '</span>'; }},
     {h:'Concepto', t:'t'}, {h:'Clases de movimiento', t:'c'},
