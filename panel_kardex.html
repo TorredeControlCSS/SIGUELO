@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kardex SAP-SAFIRO &middot; CEDIS Panam&aacute;</title>
+<!-- ruta relativa: sin esto el navegador pide /favicon.ico en la raiz del
+     dominio y no en /SIGUELO/, y devuelve 404 -->
+<link rel="icon" href="./favicon.ico">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -109,6 +113,7 @@ td.c,th.c{text-align:center}
 <span>D&iacute;as con carga: <b id="eDias">0</b></span>
 <span>Rengl&oacute;nes en cat&aacute;logo: <b id="eRen">0</b></span>
 <span>Inventario MB52: <b id="eInv">&mdash;</b></span>
+<span id="eEstado" style="margin-left:auto;font-weight:700;color:#1b7a34">&nbsp;</span>
 </div>
 
 <div class="sin-res" id="sinRes"></div>
@@ -245,7 +250,7 @@ td.c,th.c{text-align:center}
 
 <div class="panel" id="p-det">
   <div class="card"><h3>Detalle de l&iacute;neas<span class="per">Una fila por l&iacute;nea de documento SAP</span></h3>
-    <div class="tabla-h"><span id="detInfo">&mdash;</span><div class="der"><button class="btn sec" id="btnMas">Ver 500 m&aacute;s</button><button class="btn sec" data-csv="tDet">Exportar CSV (todo lo filtrado)</button></div></div>
+    <div class="tabla-h"><span id="detInfo">&mdash;</span><div class="der"><button class="btn sec" id="btnMas">Ver 200 m&aacute;s</button><button class="btn sec" data-csv="tDet">Exportar CSV (todo lo filtrado)</button></div></div>
     <div class="scroll"><table id="tDet"></table></div></div>
 </div>
 
@@ -327,7 +332,7 @@ var cF=0,cFD=1,cH=2,cM=3,cMAT=4,cDS=5,cLOTE=6,cFV=7,cDOC=8,cTX=9,
     cQ=10,cV=11,cUSR=12,cREC=13,cCC=14,cRF=15,cPROV=16,cPED=17,cALM=18;
 var NCOL = 19;
 
-var IDX = null, ROWS = [], INV = null, F = [], CH = {}, DET_N = 500;
+var IDX = null, ROWS = [], INV = null, F = [], CH = {}, DET_N = 200;
 var DIC = {}, D_F8 = [], D_E8 = [], D_TP = [], D_AT = [], D_EQ = [], PRECIO = {};
 var FUENTES = {}, MESCAMPOS = {};
 /* Codigo de almacen receptor de SAP -> Unidad Ejecutora. Derivado del empate
@@ -547,6 +552,8 @@ function init() {
       Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) { x.classList.remove('on'); });
       Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (x) { x.classList.remove('on'); });
       el.classList.add('on'); $('p-' + el.dataset.t).classList.add('on');
+      ACTIVA = el.dataset.t;
+      pintarActiva();
       Object.keys(CH).forEach(function (k) { try { CH[k].resize(); } catch (e) {} });
     };
   });
@@ -564,10 +571,18 @@ function init() {
     return '<option value="' + c + '">' + esc(MAPA_UE[c] || ('SIN MAPEAR - ' + c)) + ' (' + c + ')</option>';
   }).join('');
 
-  var usrs = DIC.usr.slice(1).filter(Boolean).sort();
-  $('fUsr').innerHTML = '<option value="">Todos</option>' + usrs.map(function (u) {
-    return '<option value="' + esc(u) + '">' + esc(u) + (D_EQ[DIC.usr.indexOf(u)] ? ' · CEDIS PANAMA' : '') + '</option>';
-  }).join('');
+  /* CEDIS Panama va primero y en su propio grupo: son el 93.6% de la captura
+     y son los que se consultan a diario. */
+  var pan = [], otr = [];
+  for (var u = 1; u < DIC.usr.length; u++) {
+    if (!DIC.usr[u]) continue;
+    (D_EQ[u] ? pan : otr).push(DIC.usr[u]);
+  }
+  pan.sort(); otr.sort();
+  var opt = function (a) { return a.map(function (x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join(''); };
+  $('fUsr').innerHTML = '<option value="">Todos</option>' +
+    '<optgroup label="CEDIS Panam\u00e1 (' + pan.length + ')">' + opt(pan) + '</optgroup>' +
+    '<optgroup label="Otras sedes (' + otr.length + ')">' + opt(otr) + '</optgroup>';
 
   var rens = [];
   for (var m = 1; m < DIC.mat.length; m++) if (DIC.mat[m]) rens.push([DIC.mat[m], DIC.ds[m] || '']);
@@ -585,13 +600,35 @@ function init() {
     $('fUsr').value = ''; $('fEquipo').value = ''; $('fRen').value = '';
     aplicar();
   };
-  $('btnMas').onclick = function () { DET_N += 500; pintarDetalle(); };
+  $('btnMas').onclick = function () { DET_N += 200; pintarDetalle(); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-csv]'), function (b) {
     b.onclick = function () { csv(b.dataset.csv); };
   });
-  pintarInventario();
+  pintarInventario();   /* es una foto: no depende de los filtros, se dibuja una vez */
   aplicar();
 }
+
+/* Solo se dibuja la pestana visible. Las demas quedan marcadas como sucias y
+   se dibujan al abrirlas. Antes se redibujaban las once en cada cambio de
+   filtro, que es de donde venia toda la lentitud. */
+var ACTIVA = 'resumen';
+var SUCIO = {};
+var RENDER = {
+  resumen: pintarResumen, fact: pintarFact, recep: pintarRecep, ajuste: pintarAjuste,
+  reng: pintarReng, lotes: pintarLotes, lat: pintarLat, prod: pintarProd,
+  cal: pintarCalidad, det: pintarDetalle
+};
+function pintarActiva() {
+  if (!RENDER[ACTIVA]) return;          /* 'inv' no se refiltra */
+  if (!SUCIO[ACTIVA]) return;
+  var t0 = Date.now();
+  RENDER[ACTIVA]();
+  SUCIO[ACTIVA] = 0;
+  var ms = Date.now() - t0;
+  if (ms > 400) Logger_(ACTIVA + ' tardo ' + ms + ' ms');
+}
+function Logger_(m) { if (window.console && console.log) console.log('[kardex] ' + m); }
+function ensuciarTodo() { Object.keys(RENDER).forEach(function (k) { SUCIO[k] = 1; }); }
 function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
 function aplicar() {
@@ -628,7 +665,7 @@ function aplicar() {
     if (matOK && !matOK[r[cMAT]]) continue;
     F.push(r);
   }
-  DET_N = 500;
+  DET_N = 200;
   $('eLin').textContent = nf(F.length);
   $('eRango').textContent = (d || '?') + ' a ' + (h || '?');
   var dd = {}; for (var j = 0; j < F.length; j++) dd[F[j][cF]] = true;
@@ -643,8 +680,19 @@ function aplicar() {
       'y que el MB51 no usa el C\u00f3digo Abasto num\u00e9rico de SALMI sino la codificaci\u00f3n de SAP.' : '');
   } else { sr.style.display = 'none'; }
 
-  pintarResumen(); pintarFact(); pintarRecep(); pintarAjuste(); pintarReng();
-  pintarLotes(); pintarLat(); pintarProd(); pintarCalidad(); pintarDetalle();
+  ensuciarTodo();
+  pintarActiva();
+  senal();
+}
+
+/* Confirmacion visible de que el filtro se aplico: sin esto el boton de
+   limpiar parecia no responder. */
+var TSEN = null;
+function senal() {
+  var e = $('eEstado');
+  e.textContent = 'Filtro aplicado \u00b7 ' + nf(F.length) + ' l\u00edneas';
+  clearTimeout(TSEN);
+  TSEN = setTimeout(function () { e.textContent = '\u00a0'; }, 2200);
 }
 
 /* ── utilidades de agregación ── */
@@ -664,10 +712,13 @@ function kpis(cont, items) {
 
 /* ── tabla ordenable ── */
 var TBL = {};
-function tabla(id, cols, filas, orden, full) {
+/* tope = cuantas filas se DIBUJAN. El CSV sigue llevando todo. Sin esto la
+   tabla de latencia dibujaba 17,136 filas y la de Formas 8 otras 11,237 en
+   cada cambio de filtro: 45,453 filas de DOM por tecla. */
+function tabla(id, cols, filas, orden, full, tope) {
   var s = (TBL[id] && TBL[id].sort) || orden || null;
   if (s && (s.i < 0 || s.i >= cols.length)) s = (orden && orden.i < cols.length) ? orden : null;
-  TBL[id] = {cols:cols, filas:filas, full:full || null, sort:s};
+  TBL[id] = {cols:cols, filas:filas, full:full || null, sort:s, tope:tope || 0};
   render(id);
 }
 function ordenar(cols, filas, sort) {
@@ -683,6 +734,8 @@ function render(id) {
   var t = TBL[id], el = $(id);
   if (!t.filas.length) { el.innerHTML = '<tbody><tr><td class="vacio">Sin datos para los filtros aplicados.</td></tr></tbody>'; return; }
   var fs = ordenar(t.cols, t.filas, t.sort);
+  var recorte = 0;
+  if (t.tope && fs.length > t.tope) { recorte = fs.length; fs = fs.slice(0, t.tope); }
   var th = t.cols.map(function (c, i) {
     var act = t.sort && t.sort.i === i;
     var ar = act ? (t.sort.d === 1 ? '&#9650;' : '&#9660;') : '&#9670;';
@@ -694,7 +747,11 @@ function render(id) {
       return '<td class="' + (c.t === 'n' ? 'n' : (c.t === 'c' ? 'c' : '')) + '">' + (c.f ? c.f(f[i], f) : esc(f[i])) + '</td>';
     }).join('') + '</tr>';
   }).join('');
-  el.innerHTML = '<thead><tr>' + th + '</tr></thead><tbody>' + tb + '</tbody>';
+  var pie = recorte ? '<tfoot><tr><td colspan="' + t.cols.length + '" style="background:#faf0d7;' +
+    'font-size:11px;color:#5f4a1c;padding:7px 10px">Se muestran las ' + nf(t.tope) + ' primeras de ' +
+    nf(recorte) + ' filas seg\u00fan el orden actual. Cambie el orden para ver otras, o exporte el CSV, ' +
+    'que incluye todas.</td></tr></tfoot>' : '';
+  el.innerHTML = '<thead><tr>' + th + '</tr></thead><tbody>' + tb + '</tbody>' + pie;
   Array.prototype.forEach.call(el.querySelectorAll('th'), function (h) {
     h.onclick = function () {
       var i = +h.dataset.i;
@@ -845,7 +902,7 @@ function pintarFact() {
     return [k, MAPA_UE[cod] || cod || '', fs[0] || '', x.length, uniq(x, function (r) { return r[cMAT]; }),
       neto(x), suma(x, function (r) { return Math.abs(valor(r)); }), porClase(x, ['314']).length,
       D_E8[x[0][cTX]], DIC.tx[x[0][cTX]], DIC.usr[x[0][cUSR]]];
-  }), {i:5, d:-1});
+  }), {i:5, d:-1}, null, 400);
 }
 
 /* ══════════════════════════ RECEPCION ══════════════════════════ */
@@ -964,7 +1021,7 @@ function pintarAjuste() {
     {h:'Contrapartida', t:'c', f:function (v) { return '<span class="chip ' + (CCP[v] || 'nu') + '">' + v + '</span>'; }},
     {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuario', t:'c'},
     {h:'Primera fecha', t:'c'}, {h:'\u00daltima fecha', t:'c'}
-  ], filas, {i:6, d:1});
+  ], filas, {i:6, d:1}, null, 300);
 
   var top = filas.slice().sort(function (a, b) { return Math.abs(b[6]) - Math.abs(a[6]); }).slice(0, 12);
   chart('chAju', {type:'bar', data:{labels:top.map(function (x) { return (x[0] + ' [' + x[1] + ']').slice(0, 42); }),
@@ -1019,7 +1076,7 @@ function pintarReng() {
       suma(x, function (r) { return valor(r); }), PRECIO[cod] || 0,
       uniq(porClase(x, ['313']), function (r) { return r[cREC]; }), uniq(x, function (r) { return r[cLOTE]; }),
       Object.keys(cls).sort().join(' '), fs[fs.length - 1] || ''];
-  }), {i:5, d:-1});
+  }), {i:5, d:-1}, null, 400);
 }
 
 /* ══════════════════════════ LOTES Y VENCIMIENTOS ══════════════════════════ */
@@ -1060,7 +1117,7 @@ function pintarLotes() {
     {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + CH2[v] + '">' + v + '</span>'; }},
     {h:'L\u00edneas', t:'n', f:nf}, {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
     {h:'Valor B/.', t:'n', f:nf2}, {h:'Clases mov.', t:'t'}, {h:'Destinos', t:'n', f:nf}
-  ], filas, {i:4, d:1});
+  ], filas, {i:4, d:1}, null, 400);
 }
 
 /* ══════════════════════════ INVENTARIO MB52 ══════════════════════════ */
@@ -1128,7 +1185,7 @@ function pintarInventario() {
     {h:'Valor libre B/.', t:'n', f:nf2}, {h:'Tr\u00e1nsito', t:'n', f:nf},
     {h:'Valor tr\u00e1nsito B/.', t:'n', f:nf2}, {h:'Bloqueado', t:'n', f:nf},
     {h:'Precio unitario B/.', t:'n', f:nf2}, {h:'Tipo', t:'c'}
-  ], filas, {i:6, d:-1});
+  ], filas, {i:6, d:-1}, null, 400);
 }
 
 /* ══════════════════════════ LATENCIA ══════════════════════════ */
@@ -1192,7 +1249,7 @@ function pintarLat() {
     var cod = DIC.rec[r[cREC]];
     return [r[cDOC], r[cM], r[cFD], r[cF], v, tramo(v), x.length, DIC.tx[r[cTX]],
       MAPA_UE[cod] || cod || DIC.prov[r[cPROV]] || '', DIC.usr[r[cUSR]]];
-  }), {i:4, d:-1});
+  }), {i:4, d:-1}, null, 400);
 }
 
 /* ══════════════════════════ PRODUCTIVIDAD SAP ══════════════════════════
