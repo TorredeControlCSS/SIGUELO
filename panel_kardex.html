@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kardex SAP-SAFIRO &middot; CEDI Panam&aacute;</title>
+<title>Kardex SAP-SAFIRO &middot; CEDIS Panam&aacute;</title>
 <!-- ruta relativa: sin esto el navegador pide /favicon.ico en la raiz del
      dominio y no en /SIGUELO/, y devuelve 404 -->
 <link rel="icon" href="./favicon.ico">
@@ -134,6 +134,8 @@ td.c,th.c{text-align:center}
   line-height:1.5;pointer-events:none;display:none;max-width:320px}
 .flu-tip b{color:#0C447C}
 .flu-tip .v{font-family:Consolas,monospace;font-weight:700}
+.flu-tip .mov{display:inline-block;font-family:Consolas,monospace;font-size:11px;font-weight:700;
+  background:#eaf0f7;border:1px solid #b0c8e8;color:#0C447C;padding:1px 6px;border-radius:2px;margin:2px 0}
 /* Aviso de lectura del balance. Los filtros de clase, destino y usuario
    recortan UN SOLO lado, asi que el residuo absorbe la diferencia y el
    diagrama sigue cerrando pero la variacion de existencia deja de ser
@@ -1015,11 +1017,11 @@ function kpis(cont, items) {
  *  hora de entrada y salida de la jornada.
  * ────────────────────────────────────────────────────────────────────────── */
 var COL_DOC = {
-  captIni: {t:'Primera captura \u00b7 mediana',
-    es:'Es la <b>mediana</b> —no el promedio— de la hora de la <b>primera captura en SAP de cada d\u00eda</b>, tomada sobre todos los d\u00edas en que la persona registr\u00f3 movimientos. Se usa la mediana porque el promedio lo mueve un solo d\u00eda at\u00edpico, y el m\u00ednimo del per\u00edodo lo mueve uno solo del todo.',
+  captIni: {t:'Primera captura \u00b7 mediana y rango',
+    es:'La celda muestra <b>dos cosas</b>: primero la <b>mediana</b> y despu\u00e9s, separadas por un punto, <b>la m\u00e1s temprana y la m\u00e1s tard\u00eda</b> de todo el per\u00edodo.<br><br>La mediana se obtiene as\u00ed: se toma la hora de la primera captura de cada d\u00eda, se <b>ordenan de m\u00e1s temprano a m\u00e1s tarde</b>, y se elige la del centro. En la mitad de los d\u00edas la persona empez\u00f3 antes de esa hora y en la otra mitad despu\u00e9s. No es un promedio: al promedio lo arrastra un solo d\u00eda at\u00edpico y la mediana no se mueve.<br><br>El rango est\u00e1 a la vista <b>a prop\u00f3sito</b>: as\u00ed se juzga la dispersi\u00f3n sin tener que confiar en un solo n\u00famero.',
     no:'<b>No es la hora de entrada a trabajar.</b> Es la hora en que la persona toc\u00f3 SAP por primera vez ese d\u00eda. Alguien puede llegar a las 7:00 y trabajar en el almac\u00e9n cuatro horas antes de capturar su primer movimiento. La asistencia real est\u00e1 en el reloj biom\u00e9trico, que es otro reporte y otro tablero: no se deben confundir.'},
-  captFin: {t:'\u00daltima captura \u00b7 mediana',
-    es:'La <b>mediana</b> de la hora de la <b>\u00faltima captura en SAP de cada d\u00eda</b>, sobre los d\u00edas activos de la persona.',
+  captFin: {t:'\u00daltima captura \u00b7 mediana y rango',
+    es:'La <b>mediana</b> de la hora de la \u00faltima captura de cada d\u00eda, y al lado <b>la m\u00e1s temprana y la m\u00e1s tard\u00eda</b> del per\u00edodo. Se calcula igual que la primera captura: ordenando los d\u00edas y tomando el del centro.',
     no:'<b>No es la hora de salida.</b> Es cu\u00e1ndo dej\u00f3 de capturar, no cu\u00e1ndo dej\u00f3 de trabajar. El cierre de turno puede ocurrir despu\u00e9s de la \u00faltima captura, y tambi\u00e9n antes, si el resto del turno fue trabajo f\u00edsico.'},
   captVen: {t:'Ventana de captura',
     es:'Las horas transcurridas entre la primera y la \u00faltima captura medianas. Describe el <b>tramo del d\u00eda en que la persona estuvo registrando en SAP</b>.',
@@ -1027,9 +1029,6 @@ var COL_DOC = {
   linDia: {t:'L\u00edneas por d\u00eda',
     es:'L\u00edneas capturadas divididas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
     no:'No es una meta ni un est\u00e1ndar. Una l\u00ednea de un pedido grande cuesta lo mismo que la de uno peque\u00f1o, as\u00ed que el n\u00famero mide <b>volumen de captura</b>, no esfuerzo ni dificultad.'},
-  mideDes: {t:'Mide desempe\u00f1o',
-    es:'Dice si esa persona entra en los indicadores de arriba. Solo entra el <b>personal de CEDIS Panam\u00e1</b> que dirige la Jefatura de Facturaci\u00f3n, seg\u00fan el padr\u00f3n configurado en el tablero.',
-    no:'El MB51 es un reporte <b>nacional</b>: muestra capturadores de todo el pa\u00eds. Los de otras sedes se listan aparte porque no est\u00e1n bajo esa jefatura, y atribuirle su trabajo ser\u00eda un error de medici\u00f3n, no una cortes\u00eda.'},
   diasAct: {t:'D\u00edas activos',
     es:'D\u00edas distintos, dentro del rango filtrado, en que esa persona registr\u00f3 al menos un movimiento en SAP.',
     no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un d\u00eda cuyo reporte no se carg\u00f3. El tablero no puede distinguirlos.'}
@@ -1042,7 +1041,20 @@ function modalColumna(k) {
     '<p class="ojo"><b>Qu\u00e9 NO es.</b> ' + d.no + '</p>');
 }
 
-/* ── tabla ordenable ── */
+/* ── tabla ordenable ──────────────────────────────────────────────────────
+ *  NORMA DE ALINEACION, una sola para todas las tablas del ecosistema:
+ *
+ *    t:'n'  numeros           -> DERECHA, en Consolas
+ *    t:'c'  fecha, hora, codigo corto, categoria, chip de estado -> CENTRO
+ *    t:'t'  texto libre que se lee de corrido                    -> IZQUIERDA
+ *
+ *  Los numeros van a la derecha y no centrados por una razon, no por gusto:
+ *  alineados por la unidad, las cifras se comparan de un vistazo y se ve cual
+ *  tiene un digito mas. Centrados, 1,908 y 9,993 quedan descolocados y hay que
+ *  leerlos uno por uno.
+ *  El texto de largo variable va a la izquierda porque centrado deja el borde
+ *  izquierdo dentado y obliga a buscar donde empieza cada fila.
+ * ────────────────────────────────────────────────────────────────────────── */
 var TBL = {};
 /* tope = cuantas filas se DIBUJAN. El CSV sigue llevando todo. Sin esto la
    tabla de latencia dibujaba 17,136 filas y la de Formas 8 otras 11,237 en
@@ -1339,13 +1351,17 @@ function etqDato(extra) {
 }
 function optV(u, apilado) {
   return {responsive:true, maintainAspectRatio:false,
-    layout:{padding:{top:18}},
+    layout:{padding:{top:10}},
     elements:{bar:{borderWidth:1.5, borderSkipped:false}},
     plugins:{ legend:{labels:{font:{size:11}, boxWidth:12, padding:16}},
       datalabels: etqDato({anchor:'end', align:'top', offset:-2}),
       tooltip:{callbacks:{label:function (c) {
         return (c.dataset.label ? c.dataset.label + ': ' : '') + nf2(c.parsed.y) + ' ' + (u || ''); }}}},
     scales:{
+      /* 'grace' reserva un 14% por encima del maximo. Sin eso la etiqueta de
+         la barra mas alta choca con la leyenda, y mover la leyenda no lo
+         resuelve: con otro rango de datos el choque vuelve. El aire hay que
+         dejarlo en la escala, no en el dibujo. */
       y:{beginAtZero:true, stacked:!!apilado, grace:'14%',
          title:{display:true, text:u || '', font:{size:11, weight:'700'}, color:'#3d4a5a'},
          ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}},
@@ -1359,7 +1375,7 @@ function optH(u) {
       datalabels: etqDato({anchor:'end', align:'right', offset:4}),
       tooltip:{callbacks:{label:function (c) { return nf2(c.parsed.x) + ' ' + (u || ''); }}}},
     scales:{
-      x:{beginAtZero:true,
+      x:{beginAtZero:true, grace:'6%',
          title:{display:true, text:u || '', font:{size:11, weight:'700'}, color:'#3d4a5a'},
          ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}},
       y:{ticks:{font:{size:10}}}}};
@@ -1406,7 +1422,7 @@ function pintarResumen() {
     options:optH(U_LIN)});
 
   tabla('tDia', [
-    {h:'Fecha contab.', t:'t'}, {h:'Fuente', t:'c', f:function (v) { return '<span class="chip ' + (v === 'diario' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
+    {h:'Fecha contab.', t:'c'}, {h:'Fuente', t:'c', f:function (v) { return '<span class="chip ' + (v === 'diario' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
     {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
     {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
     {h:'Valor despachado B/.', t:'n', f:nf2}, {h:'Valor recibido B/.', t:'n', f:nf2}, {h:'Valor baja B/.', t:'n', f:nf2},
@@ -1537,9 +1553,9 @@ function pintarRecep() {
 
   var gd = agrupar(ab, function (r) { return r[cPED]; });
   tabla('tPed', [
-    {h:'Pedido de compra', t:'t'}, {h:'Proveedor', t:'c'}, {h:'Fecha entrada', t:'c'},
+    {h:'Pedido de compra', t:'c'}, {h:'Proveedor', t:'c'}, {h:'Fecha entrada', t:'c'},
     {h:'L\u00edneas', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf}, {h:'Unidades', t:'n', f:nf},
-    {h:'Valor B/.', t:'n', f:nf2}, {h:'Referencia', t:'t'}, {h:'Usuario', t:'c'}
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Referencia', t:'c'}, {h:'Usuario', t:'c'}
   ], Object.keys(gd).map(function (k) {
     var x = gd[k], fs = x.map(function (r) { return r[cF]; }).sort();
     return [DIC.ped[k] || '(sin pedido)', DIC.prov[x[0][cPROV]], fs[fs.length - 1] || '', x.length,
@@ -1669,10 +1685,10 @@ function pintarReng() {
 
   var g = agrupar(F, function (r) { return r[cMAT]; });
   tabla('tReng', [
-    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'}, {h:'Grupo ATC', t:'t'},
+    {h:'C\u00f3digo SAP', t:'c'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'}, {h:'Grupo ATC', t:'c'},
     {h:'L\u00edneas', t:'n', f:nf}, {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
     {h:'Neto', t:'n', f:nf}, {h:'Valor B/.', t:'n', f:nf2}, {h:'Precio MB52 B/.', t:'n', f:nf2},
-    {h:'Destinos', t:'n', f:nf}, {h:'Lotes', t:'n', f:nf}, {h:'Clases mov.', t:'t'}, {h:'\u00daltimo mov.', t:'c'}
+    {h:'Destinos', t:'n', f:nf}, {h:'Lotes', t:'n', f:nf}, {h:'Clases mov.', t:'c'}, {h:'\u00daltimo mov.', t:'c'}
   ], Object.keys(g).map(function (k) {
     var x = g[k], fs = x.map(function (r) { return r[cF]; }).sort();
     var cls = {}; for (var i2 = 0; i2 < x.length; i2++) cls[x[i2][cM]] = 1;
@@ -1719,11 +1735,11 @@ function pintarLotes() {
     options:optV(U_LOT)});
   var CH2 = {VENCIDO:'er', CRITICO:'er', ALERTA:'wa', VIGENTE:'ok', 'SIN FECHA':'nu'};
   tabla('tLot', [
-    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Lote', t:'t'}, {h:'Vence', t:'c'},
+    {h:'C\u00f3digo SAP', t:'c'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Lote', t:'c'}, {h:'Vence', t:'c'},
     {h:'D\u00edas al corte', t:'n', f:nf},
     {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + CH2[v] + '">' + v + '</span>'; }},
     {h:'L\u00edneas', t:'n', f:nf}, {h:'Unid. salida', t:'n', f:nf}, {h:'Unid. entrada', t:'n', f:nf},
-    {h:'Valor B/.', t:'n', f:nf2}, {h:'Clases mov.', t:'t'}, {h:'Destinos', t:'n', f:nf}
+    {h:'Valor B/.', t:'n', f:nf2}, {h:'Clases mov.', t:'c'}, {h:'Destinos', t:'n', f:nf}
   ], filas, {i:4, d:1}, null, 400);
 }
 
@@ -1798,8 +1814,8 @@ function pintarInventario() {
     'porque el MB52 no trae ninguna columna de fecha: si se carga con la fecha equivocada, ' +
     'el tablero valoriza con precios de otro mes sin poder detectarlo.';
   tabla('tInv', [
-    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Almac\u00e9n', t:'c'},
-    {h:'Categor\u00eda', t:'c'}, {h:'Lote', t:'t'}, {h:'Libre utilizaci\u00f3n', t:'n', f:nf},
+    {h:'C\u00f3digo SAP', t:'c'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Almac\u00e9n', t:'c'},
+    {h:'Categor\u00eda', t:'c'}, {h:'Lote', t:'c'}, {h:'Libre utilizaci\u00f3n', t:'n', f:nf},
     {h:'Valor libre B/.', t:'n', f:nf2}, {h:'Tr\u00e1nsito', t:'n', f:nf},
     {h:'Valor tr\u00e1nsito B/.', t:'n', f:nf2}, {h:'Bloqueado', t:'n', f:nf},
     {h:'Precio unitario B/.', t:'n', f:nf2}, {h:'Tipo', t:'c'}
@@ -1862,9 +1878,9 @@ function pintarLat() {
   var gd = agrupar(L, function (p) { return p[1][cDOC]; });
   var CL = function (v) { return v > 90 ? 'er' : (v > 7 ? 'wa' : 'ok'); };
   tabla('tLatD', [
-    {h:'Doc. SAP', t:'t'}, {h:'Clase', t:'c'}, {h:'Fecha documento', t:'c'}, {h:'Fecha contabilizaci\u00f3n', t:'c'},
+    {h:'N.\u00ba documento', t:'c'}, {h:'Clase', t:'c'}, {h:'Fecha documento', t:'c'}, {h:'Fecha contabilizaci\u00f3n', t:'c'},
     {h:'Latencia (d)', t:'n', f:function (v) { return '<span class="chip ' + CL(v) + '">' + nf(v) + '</span>'; }},
-    {h:'Tramo', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Texto cabecera', t:'t'},
+    {h:'Tramo', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Texto cabecera', t:'t'},
     {h:'Destino / proveedor', t:'t'}, {h:'Usuario', t:'c'}
   ], Object.keys(gd).map(function (k) {
     var x = gd[k], r = x[0][1], v = x[0][0];
@@ -1980,6 +1996,16 @@ var CONCEPTO_DOC = {
 function fluParcial() {
   return !!($('fMov').value || $('fUE').value || $('fUsr').value);
 }
+/* Las clases de movimiento de un concepto. Se saca aparte porque ahora la
+   necesitan tres lugares: el tooltip flotante, el modal y la tabla. */
+function clasesDeConcepto(nom, clasesSin) {
+  if (nom === CIERRE) return '';
+  if (nom === SIN_CAT) return Object.keys(clasesSin || {}).sort().join(' ');
+  var cs = [];
+  for (var m in CONCEPTO) if (CONCEPTO[m] === nom) cs.push(m);
+  return cs.sort().join(' ');
+}
+
 function fluMetrica() { return ($('fluMet') && $('fluMet').value) || 'bal'; }
 function fluTopUE()   { return Number(($('fluUE') && $('fluUE').value) || 8); }
 function fluUnidad()  { return fluMetrica() === 'uni' ? U_UNI : U_BAL; }
@@ -2037,7 +2063,8 @@ function pintarFlujo() {
   for (c in A.g) {
     var v = fluNeto(A.g[c]);
     if (Math.abs(v) < 0.005) continue;                 /* un neto nulo no se dibuja */
-    var nodo = {nom:c, v:Math.abs(v), n:A.g[c].length, arr:A.g[c], neto:v};
+    var nodo = {nom:c, v:Math.abs(v), n:A.g[c].length, arr:A.g[c], neto:v,
+                cls:clasesDeConcepto(c, A.clasesSin)};
     (v > 0 ? izq : der).push(nodo);
   }
   var sIzq = suma(izq, function (x) { return x.v; });
@@ -2049,7 +2076,7 @@ function pintarFlujo() {
      tamaño y no explica por que. */
   var nCierre = null;
   if (Math.abs(cierre) >= 0.005) {
-    nCierre = {nom:CIERRE, v:Math.abs(cierre), n:0, arr:[], neto:cierre,
+    nCierre = {nom:CIERRE, v:Math.abs(cierre), n:0, arr:[], neto:cierre, cls:'',
       etq:(fluParcial() ? 'Residuo del recorte'
                         : (cierre > 0 ? 'Se acumula en existencia' : 'Sale de existencia'))};
     (cierre > 0 ? der : izq).push(nCierre);
@@ -2084,12 +2111,14 @@ function pintarFlujo() {
     var gg = agrupar(nDesp.arr, function (r) { return r[cREC]; });
     var lista = Object.keys(gg).map(function (k) {
       var cod = DIC.rec[k];
-      return {nom:(MAPA_UE[cod] || cod || '(sin destino)'), v:Math.abs(fluNeto(gg[k])), n:gg[k].length};
+      /* los destinos son subflujos del despacho: sus clases son 313 y 314 */
+      return {nom:(MAPA_UE[cod] || cod || '(sin destino)'), v:Math.abs(fluNeto(gg[k])),
+              n:gg[k].length, cls:clasesDeConcepto('Despacho a Unidades Ejecutoras'), ue:cod};
     }).filter(function (x) { return x.v > 0; }).sort(function (a, b) { return b.v - a.v; });
     ue = lista.slice(0, topN);
     var resto = lista.slice(topN);
     if (resto.length) ue.push({nom:'Otras ' + resto.length + ' UE', v:suma(resto, function (x) { return x.v; }),
-      n:suma(resto, function (x) { return x.n; })});
+      n:suma(resto, function (x) { return x.n; }), cls:clasesDeConcepto('Despacho a Unidades Ejecutoras')});
   }
 
   $('sankey').innerHTML = fluSVG(izq, der, ue, nDesp, total);
@@ -2229,7 +2258,9 @@ function fluSVG(izq, der, ue, nDesp, total) {
   }
 
   s.push('<g class="boca" data-tip="' + q('<b>CEDIS Panam\u00e1</b><br>Aporta <span class=\'v\'>' +
-    fluFmt(sumaV(izq)) + '</span><br>Consume <span class=\'v\'>' + fluFmt(sumaV(der)) + '</span><br>' + U) + '">');
+    fluFmt(sumaV(izq)) + '</span><br>Consume <span class=\'v\'>' + fluFmt(sumaV(der)) +
+    '</span><br>' + U + '<br><span class="mov">' + uniq(F, function (r) { return r[cM]; }) +
+    ' clases de movimiento</span>') + '">');
   s.push('<rect x="' + X1 + '" y="' + hubY + '" width="' + HUBW + '" height="' + hubH +
     '" fill="' + HUBC + '" stroke="' + HUBB + '" stroke-width="2" rx="2"/></g>');
 
@@ -2260,13 +2291,20 @@ function fluSVG(izq, der, ue, nDesp, total) {
     var xm = (x0 + x1) / 2;
     var p = 'M' + x0 + ',' + y0 + ' C' + xm + ',' + y0 + ' ' + xm + ',' + y1 + ' ' + x1 + ',' + y1 +
             ' L' + x1 + ',' + (y1 + h) + ' C' + xm + ',' + (y1 + h) + ' ' + xm + ',' + (y0 + h) + ' ' + x0 + ',' + (y0 + h) + ' Z';
-    var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
+    /* El movimiento de SAP va en el tooltip y no solo en el modal: es el
+       lenguaje en que la Jefatura de Facturacion habla del kardex, asi que
+       tiene que estar donde primero se pasa el cursor. */
+    var tip = '<b>' + (d.etq || d.nom) + '</b>' +
+      (d.cls ? '<br><span class="mov">Movimiento ' + d.cls + '</span>' : '') +
+      '<br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
       (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance');
     return '<path class="cinta" d="' + p + '" fill="' + relleno + '" opacity="0.65" data-tip="' + q(tip) + '"/>';
   }
   function nodo(x, n, w, col, lado, sobreCintas) {
     var d = n.d, cy = n.y + n.h / 2, ly = n.ly === undefined ? cy : n.ly;
-    var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
+    var tip = '<b>' + (d.etq || d.nom) + '</b>' +
+      (d.cls ? '<br><span class="mov">Movimiento ' + d.cls + '</span>' : '') +
+      '<br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
       (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance') +
       '<br><i>clic para la explicaci\u00f3n</i>';
     var g = ['<g class="boca" data-tip="' + q(tip) + '" data-doc="' + q(d.nom) + '" style="cursor:pointer">'];
@@ -2305,11 +2343,7 @@ function fluSVG(izq, der, ue, nDesp, total) {
 
 function pintarBalanceTabla(izq, der, nCierre, A) {
   var clasesDe = function (nom) {
-    if (nom === CIERRE) return '\u2014';
-    if (nom === SIN_CAT) return Object.keys(A.clasesSin).sort().join(' ');
-    var cs = [];
-    for (var m in CONCEPTO) if (CONCEPTO[m] === nom) cs.push(m);
-    return cs.sort().join(' ');
+    return nom === CIERRE ? '\u2014' : clasesDeConcepto(nom, A.clasesSin);
   };
   var fila = function (x, lado) {
     return [lado, x.etq || x.nom, clasesDe(x.nom), x.n,
@@ -2472,18 +2506,22 @@ function pintarProd() {
      de la jornada. Son la mediana de la primera y la ultima CAPTURA EN SAP, que
      es otra cosa. Con estas columnas se mide a personas, asi que llevan (i). */
   var COLS = [
-    {h:'Usuario SAP', t:'t'},
+    {h:'Usuario SAP', t:'c'},
     {h:'Equipo', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CEDIS PANAMA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
     {h:'D\u00edas activos', t:'n', f:nf, doc:'diasAct'},
     {h:'L\u00edneas', t:'n', f:nf},
     {h:'L\u00edneas por d\u00eda', t:'n', f:nf, doc:'linDia'},
     {h:'Doc. SAP', t:'n', f:nf}, {h:'Rengl\u00f3nes', t:'n', f:nf},
     {h:'L\u00edneas 313', t:'n', f:nf}, {h:'L\u00edneas 101', t:'n', f:nf}, {h:'Anulaciones', t:'n', f:nf},
-    {h:'Clases operadas', t:'t'},
-    {h:'1.\u00aa captura \u00b7 mediana', t:'c', doc:'captIni'},
-    {h:'\u00daltima captura \u00b7 mediana', t:'c', doc:'captFin'},
-    {h:'Ventana de captura (h)', t:'n', doc:'captVen'},
-    {h:'Mide desempe\u00f1o', t:'c', doc:'mideDes', f:function (v) { return '<span class="chip ' + (v === 'SI' ? 'ok' : 'nu') + '">' + v + '</span>'; }}
+    {h:'Clases operadas', t:'c'},
+    /* Mediana Y rango en la misma celda. Mostrar solo la mediana invita a que
+       digan que se escondio lo demas; con el minimo y el maximo a la vista el
+       reclamo desaparece y el lector juzga por si mismo la dispersion.
+       'Mide desempeño' se retiro: el rotulo del bloque ya dice a quien se mide,
+       y repetir un SI en las nueve filas no aportaba nada. */
+    {h:'1.\u00aa captura \u00b7 mediana y rango', t:'c', doc:'captIni'},
+    {h:'\u00daltima captura \u00b7 mediana y rango', t:'c', doc:'captFin'},
+    {h:'Ventana de captura (h)', t:'n', doc:'captVen'}
   ];
   /* MEDIANA de la primera y la ultima captura de cada dia, no el minimo y el
      maximo del periodo: esos los mueve un solo dia atipico y dejaban a la
@@ -2508,15 +2546,21 @@ function pintarProd() {
       fin.push(hhmmMin(hh[hh.length - 1]));
     }
     var mi = ini.length ? mediana(ini) : null, mf = fin.length ? mediana(fin) : null;
+    /* la mediana, y al lado el minimo y el maximo de la MISMA serie */
+    var conRango = function (med, serie) {
+      if (med === null || !serie.length) return '';
+      var a = Math.min.apply(null, serie), b = Math.max.apply(null, serie);
+      return a === b ? minHHMM(med)
+                     : minHHMM(med) + '  \u00b7  ' + minHHMM(a) + '\u2013' + minHHMM(b);
+    };
     var cls = {}; for (var i3 = 0; i3 < x.length; i3++) cls[x[i3][cM]] = 1;
     return [DIC.usr[k], equipo, nd, x.length, Math.round(x.length / (nd || 1)),
       uniq(x, function (r) { return r[cDOC]; }), uniq(x, function (r) { return r[cMAT]; }),
       porClase(x, ['313']).length, porClase(x, ['101']).length,
       porClase(x, ['102','314','310','202','316']).length,
       Object.keys(cls).sort().join(' '),
-      mi === null ? '' : minHHMM(mi), mf === null ? '' : minHHMM(mf),
-      (mi === null || mf === null) ? '' : ((mf - mi) / 60).toFixed(1),
-      equipo === 'CEDIS PANAMA' ? 'SI' : 'NO'];
+      conRango(mi, ini), conRango(mf, fin),
+      (mi === null || mf === null) ? '' : ((mf - mi) / 60).toFixed(1)];
   }
   tabla('tProd', COLS, ukP.map(function (k) { return filaUsr(k, gP[k], 'CEDIS PANAMA'); }), {i:3, d:-1});
 
@@ -2534,7 +2578,7 @@ function pintarProd() {
   for (var n = 0; n < pan.length; n++) movs[pan[n][cM]] = 1;
   var mk2 = Object.keys(movs).sort();
   tabla('tMatriz',
-    [{h:'Usuario SAP', t:'t'}].concat(mk2.map(function (c) { return {h:c, t:'n', f:nf}; })).concat([{h:'Total', t:'n', f:nf}]),
+    [{h:'Usuario SAP', t:'c'}].concat(mk2.map(function (c) { return {h:c, t:'n', f:nf}; })).concat([{h:'Total', t:'n', f:nf}]),
     ukP.map(function (k) {
       var x = gP[k];
       return [DIC.usr[k]].concat(mk2.map(function (c) { return porClase(x, [c]).length; })).concat([x.length]);
@@ -2594,7 +2638,7 @@ function pintarCalidad() {
     'significa que el reporte no se carg\u00f3.';
   var C = {CARGADO:'ok', FALTANTE:'er', OPCIONAL:'nu'};
   tabla('tCob', [
-    {h:'Fecha', t:'t'}, {h:'D\u00eda', t:'c'}, {h:'Laborable', t:'c'},
+    {h:'Fecha', t:'c'}, {h:'D\u00eda', t:'c'}, {h:'Laborable', t:'c'},
     {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + C[v] + '">' + v + '</span>'; }},
     {h:'Fuente', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuarios', t:'n', f:nf}
   ], cal, {i:0, d:-1});
@@ -2606,13 +2650,13 @@ function pintarCalidad() {
   ], Object.keys(e8).map(function (k) { return [NOM[k] || k, e8[k], (e8[k] / tot8 * 100).toFixed(1) + '%']; }), {i:1, d:-1});
 
   tabla('tSinMap', [
-    {h:'C\u00f3digo de almac\u00e9n receptor', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Acci\u00f3n requerida', t:'t'}
+    {h:'C\u00f3digo de almac\u00e9n receptor', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Acci\u00f3n requerida', t:'t'}
   ], Object.keys(sinMap).map(function (k) { return [k, sinMap[k], 'Agregar al mapa de UE del tablero']; }), {i:1, d:-1});
 
   var esq = {};
   ((IDX._meta.esquemas) || []).forEach(function (e) { esq[e.tipo] = (esq[e.tipo] || 0) + 1; });
   tabla('tMeses', [
-    {h:'Mes', t:'t'}, {h:'Archivo', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'D\u00edas', t:'n', f:nf},
+    {h:'Mes', t:'c'}, {h:'Archivo', t:'t'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'D\u00edas', t:'n', f:nf},
     {h:'Campos por fila', t:'n', f:nf},
     {h:'Formato', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CON ALMACEN' ? 'ok' : 'wa') + '">' + v + '</span>'; }}
   ], (IDX.meses || []).map(function (m) {
@@ -2691,14 +2735,14 @@ function pintarDetalle() {
       (r[cF] && r[cFD]) ? dias_(r[cF], r[cFD]) : ''];
   };
   tabla('tDet', [
-    {h:'Fecha contab.', t:'t'}, {h:'Hora', t:'c'}, {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'},
-    {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'},
-    {h:'Lote', t:'t'}, {h:'Vence', t:'c'}, {h:'Cantidad', t:'n', f:nf},
+    {h:'Fecha contab.', t:'c'}, {h:'Hora', t:'c'}, {h:'Clase', t:'c'}, {h:'Movimiento', t:'t'},
+    {h:'C\u00f3digo SAP', t:'c'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'},
+    {h:'Lote', t:'c'}, {h:'Vence', t:'c'}, {h:'Cantidad', t:'n', f:nf},
     {h:'Importe SAP B/.', t:'n', f:nf2}, {h:'Valor usado B/.', t:'n', f:nf2},
     {h:'Origen del valor', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SAP' ? 'ok' : (v === 'ESTIMADO' ? 'wa' : 'er')) + '">' + v + '</span>'; }},
-    {h:'Doc. SAP', t:'t'}, {h:'Texto cabecera', t:'t'}, {h:'Forma 8', t:'t'}, {h:'Lectura F8', t:'c'},
+    {h:'N.\u00ba documento', t:'c'}, {h:'Texto cabecera', t:'t'}, {h:'Forma 8', t:'c'}, {h:'Lectura F8', t:'c'},
     {h:'Destino', t:'t'}, {h:'Almac\u00e9n', t:'c'}, {h:'Usuario', t:'c'}, {h:'Equipo', t:'c'},
-    {h:'Proveedor', t:'c'}, {h:'Pedido', t:'t'}, {h:'Referencia', t:'t'}, {h:'Centro de coste', t:'t'},
+    {h:'Proveedor', t:'c'}, {h:'Pedido', t:'c'}, {h:'Referencia', t:'c'}, {h:'Centro de coste', t:'c'},
     {h:'Fecha documento', t:'c'}, {h:'Latencia (d)', t:'n', f:nf}
   ], vis.map(fila), {i:0, d:-1}, function () { return F.map(fila); });
 }
