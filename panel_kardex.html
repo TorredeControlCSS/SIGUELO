@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kardex SAP-SAFIRO &middot; CEDI Panam&aacute;</title>
+<title>Kardex SAP-SAFIRO &middot; CEDIS Panam&aacute;</title>
 <!-- ruta relativa: sin esto el navegador pide /favicon.ico en la raiz del
      dominio y no en /SIGUELO/, y devuelve 404 -->
 <link rel="icon" href="./favicon.ico">
@@ -1669,7 +1669,11 @@ function pintarInventario() {
   var conBloq = filas.filter(function (f) { return f[9] > 0; });
   var sinExist = filas.filter(function (f) { return f[5] === 0; });
   kpis('kInv', [
-    ['Fecha de la foto', INV._meta.fecha, '', INV._meta.archivo || ''],
+    /* La fecha NO viene en el contenido del MB52: sus 10 columnas no traen
+       ninguna de fecha, asi que sale del nombre del archivo. Si alguien lo
+       carga con la fecha equivocada, el tablero valoriza con precios de otro
+       mes creyendo que son de este. Por eso la tarjeta dice de donde sale. */
+    ['Fecha de la foto', INV._meta.fecha, '', 'Del nombre del archivo'],
     ['Rengl\u00f3nes en existencia', nf(Object.keys(mats).length), '', nf(filas.length) + ' lotes'],
     ['Valor libre utilizaci\u00f3n B/.', nf2(vLib), 'verde', 'Disponible'],
     ['Valor en tr\u00e1nsito B/.', nf2(vTr), 'amb', 'Traslados en curso'],
@@ -1708,8 +1712,11 @@ function pintarInventario() {
       suma(x, function (f) { return f[9]; }), vLib ? (v / vLib * 100).toFixed(1) + '%' : '0%'];
   }), {i:4, d:-1});
 
-  $('invNota').textContent = 'Foto del ' + INV._meta.fecha + ' con ' + nf(filas.length) +
-    ' lotes. No la afectan los filtros de fecha del tablero.';
+  $('invNota').innerHTML = 'Foto del <b>' + INV._meta.fecha + '</b> con ' + nf(filas.length) +
+    ' lotes, de <code>' + esc(INV._meta.archivo || '(sin nombre)') + '</code>. ' +
+    'No la afectan los filtros de fecha del tablero. <b>La fecha sale del nombre del archivo</b>, ' +
+    'porque el MB52 no trae ninguna columna de fecha: si se carga con la fecha equivocada, ' +
+    'el tablero valoriza con precios de otro mes sin poder detectarlo.';
   tabla('tInv', [
     {h:'C\u00f3digo SAP', t:'t'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Almac\u00e9n', t:'c'},
     {h:'Categor\u00eda', t:'c'}, {h:'Lote', t:'t'}, {h:'Libre utilizaci\u00f3n', t:'n', f:nf},
@@ -2325,6 +2332,11 @@ function pintarCalidad() {
   'se calcula con el <b>precio unitario del MB52</b> (Valor libre util. \u00f7 Libre utilizaci\u00f3n), que es el ' +
   'mismo procedimiento que la Jefatura de Facturaci\u00f3n aplica para el cierre contable. Es un <b>estimado</b>, ' +
   'no un dato de SAP, y depende de que la foto del MB52 cubra el rengl\u00f3n y el lote.</div>' +
+  '<div class="nota"><b>La fecha del MB52 sale del nombre del archivo, no de su contenido.</b> ' +
+  'El reporte trae diez columnas y ninguna de fecha, as\u00ed que no hay forma de verificarla. ' +
+  'Un MB52 cargado con la fecha equivocada hace que el tablero valorice con precios de otro ' +
+  'mes sin que nada lo delate. Los MB52 de cierre antiguos deben ir a Drive a mano con su ' +
+  'fecha real, porque la ventana del panel es de 15 d\u00edas.</div>' +
   '<div class="nota"><b>El precio proviene de una sola foto del MB52, la del ' +
   (INV ? INV._meta.fecha : 'sin publicar') + '.</b> Para el tablero operativo eso da una referencia v\u00e1lida. ' +
   'Para valorizaci\u00f3n hist\u00f3rica no alcanza: el cierre contable valoriza los movimientos de cada mes con el ' +
