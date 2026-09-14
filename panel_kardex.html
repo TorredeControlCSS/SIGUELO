@@ -2132,6 +2132,27 @@ function fluSVG(izq, der, ue, nDesp, total) {
   };
   relajar(nI); relajar(nD); if (nU.length) relajar(nU);
 
+  /* Los degradados se declaran una vez. El color va del nodo de origen al de
+     destino: es lo que hace que la cinta se lea como corriente y no como
+     bloque. Se perdio al reescribir esta vista y estaba en el Sankey de
+     redistribucion entre CEDIS desde el principio. */
+  var defs = [], nDef = 0;
+  var grad = function (cA, cB) {
+    var id = 'kgr' + (nDef++);
+    defs.push('<linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0">' +
+      '<stop offset="0" stop-color="' + cA + '"/><stop offset="1" stop-color="' + cB + '"/></linearGradient>');
+    return 'url(#' + id + ')';
+  };
+  /* El hub tiene su propio neutro, distinto de toda la paleta. Con el color de
+     Compras (#b6cbe6) el primer degradado salia plano y la cinta volvia a
+     parecer un bloque. Y conceptualmente es mejor: las corrientes convergen en
+     un deposito comun y despues divergen, asi que el centro no debe ser del
+     color de ninguna de ellas. */
+  var HUBC = '#dbe3ea', HUBB = '#5c6b7a';
+  /* Las etiquetas se acumulan aparte y se pintan al FINAL, encima de todas las
+     corrientes. Antes se dibujaban con su nodo y quedaban debajo de las cintas
+     que pasan por encima. */
+  var etqs = [];
   s.push('<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img">');
   s.push('<text x="' + X0 + '" y="22" text-anchor="end" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">APORTA A EXISTENCIA</text>');
   s.push('<text x="' + (X1 + HUBW / 2) + '" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#3d4a5a" letter-spacing="0.4">CEDIS PANAM\u00c1</text>');
@@ -2140,21 +2161,22 @@ function fluSVG(izq, der, ue, nDesp, total) {
 
   var yh = hubY;
   for (i = 0; i < nI.length; i++) {
-    s.push(cinta(X0 + NW, nI[i].y, X1, yh, nI[i].h, colDe(nI[i].d, i)[0],
-      etqDe(nI[i].d) + ' \u2192 CEDIS', nI[i].d));
+    s.push(cinta(X0 + NW, nI[i].y, X1, yh, nI[i].h,
+      grad(colDe(nI[i].d, i)[0], HUBC), etqDe(nI[i].d) + ' \u2192 CEDIS', nI[i].d));
     yh += nI[i].h;
   }
   var yh2 = hubY;
   for (i = 0; i < nD.length; i++) {
-    s.push(cinta(X1 + HUBW, yh2, X2, nD[i].y, nD[i].h, colDe(nD[i].d, i)[0],
-      'CEDIS \u2192 ' + etqDe(nD[i].d), nD[i].d));
+    s.push(cinta(X1 + HUBW, yh2, X2, nD[i].y, nD[i].h,
+      grad(HUBC, colDe(nD[i].d, i)[0]), 'CEDIS \u2192 ' + etqDe(nD[i].d), nD[i].d));
     yh2 += nD[i].h;
   }
   if (nU.length && nDespN) {
+    var cDesp = colDe(nDespN.d, nD.indexOf(nDespN))[0];
     var yv = nDespN.y;
     for (i = 0; i < nU.length; i++) {
-      s.push(cinta(X2 + NW, yv, X3, nU[i].y, nU[i].h, PAL[i % PAL.length][0],
-        'UE \u2192 ' + nU[i].d.nom, nU[i].d));
+      s.push(cinta(X2 + NW, yv, X3, nU[i].y, nU[i].h,
+        grad(cDesp, PAL[i % PAL.length][0]), 'UE \u2192 ' + nU[i].d.nom, nU[i].d));
       yv += nU[i].h;
     }
   }
@@ -2162,11 +2184,20 @@ function fluSVG(izq, der, ue, nDesp, total) {
   s.push('<g class="boca" data-tip="' + q('<b>CEDIS Panam\u00e1</b><br>Aporta <span class=\'v\'>' +
     fluFmt(sumaV(izq)) + '</span><br>Consume <span class=\'v\'>' + fluFmt(sumaV(der)) + '</span><br>' + U) + '">');
   s.push('<rect x="' + X1 + '" y="' + hubY + '" width="' + HUBW + '" height="' + hubH +
-    '" fill="#b6cbe6" stroke="#0C447C" stroke-width="2" rx="2"/></g>');
+    '" fill="' + HUBC + '" stroke="' + HUBB + '" stroke-width="2" rx="2"/></g>');
 
-  for (i = 0; i < nI.length; i++) s.push(nodo(X0, nI[i], NW, colDe(nI[i].d, i), 'fin'));
-  for (i = 0; i < nD.length; i++) s.push(nodo(X2, nD[i], NW, colDe(nD[i].d, i), 'ini'));
-  for (i = 0; i < nU.length; i++) s.push(nodo(X3, nU[i], NW, PAL[i % PAL.length], 'ini'));
+  for (i = 0; i < nI.length; i++) s.push(nodo(X0, nI[i], NW, colDe(nI[i].d, i), 'fin', false));
+  for (i = 0; i < nD.length; i++) {
+    /* El nodo con rama a los destinos lleva su etiqueta a la IZQUIERDA: a su
+       derecha pasan las corrientes hacia las UE, y ahi el texto competia con
+       los nombres de los destinos. Los demas nodos de esta columna no tienen
+       nada a su derecha, asi que van como siempre. */
+    var conRama = (nD[i] === nDespN) && nU.length > 0;
+    s.push(nodo(X2, nD[i], NW, colDe(nD[i].d, i), conRama ? 'fin' : 'ini', conRama));
+  }
+  for (i = 0; i < nU.length; i++) s.push(nodo(X3, nU[i], NW, PAL[i % PAL.length], 'ini', false));
+  if (defs.length) s.push('<defs>' + defs.join('') + '</defs>');
+  s.push(etqs.join(''));          /* las etiquetas, al final y encima de todo */
   s.push('</svg>');
   return s.join('');
 
@@ -2175,21 +2206,20 @@ function fluSVG(izq, der, ue, nDesp, total) {
     if (d.nom === CIERRE) return ['#e3e3e3', '#5c5c5c'];
     return PAL[i % PAL.length];
   }
-  function cinta(x0, y0, x1, y1, h, color, nom, d) {
+  function cinta(x0, y0, x1, y1, h, relleno, nom, d) {
     var xm = (x0 + x1) / 2;
     var p = 'M' + x0 + ',' + y0 + ' C' + xm + ',' + y0 + ' ' + xm + ',' + y1 + ' ' + x1 + ',' + y1 +
             ' L' + x1 + ',' + (y1 + h) + ' C' + xm + ',' + (y1 + h) + ' ' + xm + ',' + (y0 + h) + ' ' + x0 + ',' + (y0 + h) + ' Z';
     var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
       (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance');
-    return '<path class="cinta" d="' + p + '" fill="' + color + '" opacity="0.6" data-tip="' + q(tip) + '"/>';
+    return '<path class="cinta" d="' + p + '" fill="' + relleno + '" opacity="0.65" data-tip="' + q(tip) + '"/>';
   }
-  function nodo(x, n, w, col, lado) {
+  function nodo(x, n, w, col, lado, sobreCintas) {
     var d = n.d, cy = n.y + n.h / 2, ly = n.ly === undefined ? cy : n.ly;
     var tip = '<b>' + (d.etq || d.nom) + '</b><br><span class="v">' + fluFmt(d.v) + '</span> ' + U +
       (d.n ? '<br>' + nf(d.n) + ' l\u00edneas de documento' : '<br>residuo del balance') +
       '<br><i>clic para la explicaci\u00f3n</i>';
     var g = ['<g class="boca" data-tip="' + q(tip) + '" data-doc="' + q(d.nom) + '" style="cursor:pointer">'];
-    /* linea guia cuando la etiqueta tuvo que desplazarse */
     if (Math.abs(ly - cy) > 5) {
       var xa = lado === 'fin' ? x - 6 : x + w + 6;
       var xb = lado === 'fin' ? x - 1 : x + w + 1;
@@ -2198,11 +2228,26 @@ function fluSVG(izq, der, ue, nDesp, total) {
     }
     g.push('<rect x="' + x + '" y="' + n.y + '" width="' + w + '" height="' + n.h +
       '" fill="' + col[0] + '" stroke="' + col[1] + '" stroke-width="1.5" rx="2"/>');
+    g.push('</g>');
+
+    /* La etiqueta no va dentro del <g> del nodo: se guarda y se pinta al final
+       para quedar por encima de las corrientes. */
+    var nom = d.etq || d.nom, val = fluFmt(d.v);
     var tx = lado === 'fin' ? (x - 10) : (x + w + 10);
     var an = lado === 'fin' ? ' text-anchor="end"' : '';
-    g.push('<text x="' + tx + '" y="' + (ly - 1) + '"' + an + ' font-size="11.5" fill="#22303c">' + esct(d.etq || d.nom) + '</text>');
-    g.push('<text class="n-val" x="' + tx + '" y="' + (ly + 12) + '"' + an + ' font-size="10.5" fill="' + col[1] + '">' + fluFmt(d.v) + '</text>');
-    g.push('</g>');
+    var e = ['<g pointer-events="none">'];
+    /* recuadro blanco solo donde la etiqueta cae sobre corrientes; en las
+       columnas de los extremos el fondo esta limpio y un recuadro ensuciaria */
+    if (sobreCintas) {
+      var an2 = Math.max(nom.length, val.length) * 6.1 + 14;
+      var rx2 = lado === 'fin' ? (tx - an2 + 4) : (tx - 4);
+      e.push('<rect x="' + rx2 + '" y="' + (ly - 13) + '" width="' + an2 + '" height="29" rx="3" ' +
+        'fill="#ffffff" opacity="0.92" stroke="' + col[1] + '" stroke-width="0.6"/>');
+    }
+    e.push('<text x="' + tx + '" y="' + (ly - 1) + '"' + an + ' font-size="11.5" fill="#22303c">' + esct(nom) + '</text>');
+    e.push('<text class="n-val" x="' + tx + '" y="' + (ly + 12) + '"' + an + ' font-size="10.5" fill="' + col[1] + '">' + val + '</text>');
+    e.push('</g>');
+    etqs.push(e.join(''));
     return g.join('');
   }
   function esct(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
