@@ -1024,11 +1024,11 @@ function kpis(cont, items) {
  *  hora de entrada y salida de la jornada.
  * ────────────────────────────────────────────────────────────────────────── */
 var COL_DOC = {
-  captIni: {t:'Primera captura \u00b7 mediana y rango',
-    es:'La celda muestra <b>dos cosas</b>: primero la <b>mediana</b> y despu\u00e9s, separadas por un punto, <b>la m\u00e1s temprana y la m\u00e1s tard\u00eda</b> de todo el per\u00edodo.<br><br>La mediana se obtiene as\u00ed: se toma la hora de la primera captura de cada d\u00eda, se <b>ordenan de m\u00e1s temprano a m\u00e1s tarde</b>, y se elige la del centro. En la mitad de los d\u00edas la persona empez\u00f3 antes de esa hora y en la otra mitad despu\u00e9s. No es un promedio: al promedio lo arrastra un solo d\u00eda at\u00edpico y la mediana no se mueve.<br><br>El rango est\u00e1 a la vista <b>a prop\u00f3sito</b>: as\u00ed se juzga la dispersi\u00f3n sin tener que confiar en un solo n\u00famero.',
+  captIni: {t:'Primera captura',
+    es:'La celda muestra <b>dos horas</b>. La primera es la <b>mediana</b>; la segunda, precedida por <i>desde</i>, es la <b>m\u00e1s temprana de todo el per\u00edodo</b>.<br><br>La mediana se obtiene as\u00ed: se toma la hora en que la persona hizo su primera captura cada d\u00eda, se <b>ordenan esos d\u00edas de m\u00e1s temprano a m\u00e1s tarde</b>, y se elige el del centro. En la mitad de los d\u00edas empez\u00f3 antes de esa hora y en la otra mitad despu\u00e9s. No es un promedio: al promedio lo arrastra un solo d\u00eda at\u00edpico y la mediana no se mueve.<br><br>Ejemplo real: si el d\u00eda m\u00e1s tardio de alguien fue a las 11:49 y hubiera capturado a las 23:00 \u2014un cierre de inventario, una emergencia\u2014 el promedio se corr\u00eda 16 minutos y la mediana no se mov\u00eda nada.<br><br>El <i>desde</i> est\u00e1 a la vista <b>a prop\u00f3sito</b>, para que se vea el caso m\u00e1s temprano y no haya que confiar en un solo n\u00famero.',
     no:'<b>No es la hora de entrada a trabajar.</b> Es la hora en que la persona toc\u00f3 SAP por primera vez ese d\u00eda. Alguien puede llegar a las 7:00 y trabajar en el almac\u00e9n cuatro horas antes de capturar su primer movimiento. La asistencia real est\u00e1 en el reloj biom\u00e9trico, que es otro reporte y otro tablero: no se deben confundir.'},
-  captFin: {t:'\u00daltima captura \u00b7 mediana y rango',
-    es:'La <b>mediana</b> de la hora de la \u00faltima captura de cada d\u00eda, y al lado <b>la m\u00e1s temprana y la m\u00e1s tard\u00eda</b> del per\u00edodo. Se calcula igual que la primera captura: ordenando los d\u00edas y tomando el del centro.',
+  captFin: {t:'\u00daltima captura',
+    es:'Igual que la primera captura, pero de la \u00faltima de cada d\u00eda: primero la <b>mediana</b> y despu\u00e9s, precedida por <i>hasta</i>, la <b>m\u00e1s tard\u00eda de todo el per\u00edodo</b>.<br><br>Le\u00eddas juntas, las dos columnas dicen: t\u00edpicamente esta persona captur\u00f3 entre tal hora y tal otra, y en todo el per\u00edodo nunca antes de la primera ni despu\u00e9s de la segunda.',
     no:'<b>No es la hora de salida.</b> Es cu\u00e1ndo dej\u00f3 de capturar, no cu\u00e1ndo dej\u00f3 de trabajar. El cierre de turno puede ocurrir despu\u00e9s de la \u00faltima captura, y tambi\u00e9n antes, si el resto del turno fue trabajo f\u00edsico.'},
   captVen: {t:'Ventana de captura',
     es:'Las horas transcurridas entre la primera y la \u00faltima captura medianas. Describe el <b>tramo del d\u00eda en que la persona estuvo registrando en SAP</b>.',
@@ -2527,8 +2527,17 @@ function pintarProd() {
        reclamo desaparece y el lector juzga por si mismo la dispersion.
        'Mide desempeño' se retiro: el rotulo del bloque ya dice a quien se mide,
        y repetir un SI en las nueve filas no aportaba nada. */
-    {h:'1.\u00aa captura \u00b7 mediana y rango', t:'c', doc:'captIni', nb:true},
-    {h:'\u00daltima captura \u00b7 mediana y rango', t:'c', doc:'captFin', nb:true},
+    /* Un solo extremo por columna, y el que significa algo: la mas temprana de
+       todas para la primera captura, la mas tardia de todas para la ultima.
+       Antes se mostraban los DOS extremos de cada serie y el resultado
+       confundia: en la columna de primera captura, un 19:51 es "hubo un dia en
+       que no toco SAP hasta las 19:51" —cierto, pero se lee como otra cosa—, y
+       en la de ultima captura un 12:37 es "hubo un dia en que dejo de capturar
+       a mediodia". Datos reales que no aportan y abren discusion.
+       Asi el par de columnas se lee de corrido: tipicamente de 11:32 a 17:35,
+       y en todo el periodo nunca antes de 10:43 ni despues de 22:10. */
+    {h:'Primera captura \u00b7 mediana y m\u00e1s temprana', t:'c', doc:'captIni', nb:true},
+    {h:'\u00daltima captura \u00b7 mediana y m\u00e1s tard\u00eda', t:'c', doc:'captFin', nb:true},
     {h:'Ventana de captura (h)', t:'n', doc:'captVen'}
   ];
   /* MEDIANA de la primera y la ultima captura de cada dia, no el minimo y el
@@ -2554,12 +2563,14 @@ function pintarProd() {
       fin.push(hhmmMin(hh[hh.length - 1]));
     }
     var mi = ini.length ? mediana(ini) : null, mf = fin.length ? mediana(fin) : null;
-    /* la mediana, y al lado el minimo y el maximo de la MISMA serie */
-    var conRango = function (med, serie) {
+    /* La mediana y UN extremo, con la palabra que dice cual es. 'desde' y
+       'hasta' hacen innecesaria cualquier explicacion: un guion entre dos
+       horas obliga a adivinar de que serie viene cada una. */
+    var conExtremo = function (med, serie, lado) {
       if (med === null || !serie.length) return '';
-      var a = Math.min.apply(null, serie), b = Math.max.apply(null, serie);
-      return a === b ? minHHMM(med)
-                     : minHHMM(med) + '  \u00b7  ' + minHHMM(a) + '\u2013' + minHHMM(b);
+      var e = lado === 'desde' ? Math.min.apply(null, serie) : Math.max.apply(null, serie);
+      return e === med ? minHHMM(med)
+                       : minHHMM(med) + '  \u00b7  ' + lado + ' ' + minHHMM(e);
     };
     var cls = {}; for (var i3 = 0; i3 < x.length; i3++) cls[x[i3][cM]] = 1;
     return [DIC.usr[k], equipo, nd, x.length, Math.round(x.length / (nd || 1)),
@@ -2567,7 +2578,7 @@ function pintarProd() {
       porClase(x, ['313']).length, porClase(x, ['101']).length,
       porClase(x, ['102','314','310','202','316']).length,
       Object.keys(cls).sort().join(' '),
-      conRango(mi, ini), conRango(mf, fin),
+      conExtremo(mi, ini, 'desde'), conExtremo(mf, fin, 'hasta'),
       (mi === null || mf === null) ? '' : ((mf - mi) / 60).toFixed(1)];
   }
   tabla('tProd', COLS, ukP.map(function (k) { return filaUsr(k, gP[k], 'CEDIS PANAMA'); }), {i:3, d:-1});
