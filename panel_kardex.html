@@ -1025,20 +1025,20 @@ function kpis(cont, items) {
  * ────────────────────────────────────────────────────────────────────────── */
 var COL_DOC = {
   captIni: {t:'Primera captura',
-    es:'La celda muestra <b>dos horas</b>. La primera es la <b>mediana</b>; la segunda, precedida por <i>desde</i>, es la <b>m\u00e1s temprana de todo el per\u00edodo</b>.<br><br>La mediana se obtiene as\u00ed: se toma la hora en que la persona hizo su primera captura cada d\u00eda, se <b>ordenan esos d\u00edas de m\u00e1s temprano a m\u00e1s tarde</b>, y se elige el del centro. En la mitad de los d\u00edas empez\u00f3 antes de esa hora y en la otra mitad despu\u00e9s. No es un promedio: al promedio lo arrastra un solo d\u00eda at\u00edpico y la mediana no se mueve.<br><br>Ejemplo real: si el d\u00eda m\u00e1s tardio de alguien fue a las 11:49 y hubiera capturado a las 23:00 \u2014un cierre de inventario, una emergencia\u2014 el promedio se corr\u00eda 16 minutos y la mediana no se mov\u00eda nada.<br><br>El <i>desde</i> est\u00e1 a la vista <b>a prop\u00f3sito</b>, para que se vea el caso m\u00e1s temprano y no haya que confiar en un solo n\u00famero.',
-    no:'<b>No es la hora de entrada a trabajar.</b> Es la hora en que la persona toc\u00f3 SAP por primera vez ese d\u00eda. Alguien puede llegar a las 7:00 y trabajar en el almac\u00e9n cuatro horas antes de capturar su primer movimiento. La asistencia real est\u00e1 en el reloj biom\u00e9trico, que es otro reporte y otro tablero: no se deben confundir.'},
+    es:'Dos horas: la <b>mediana</b> y, tras <i>desde</i>, la m\u00e1s temprana del per\u00edodo.<br><br>La mediana se saca ordenando los d\u00edas por la hora de su primera captura y tomando el del centro: la mitad de los d\u00edas empez\u00f3 antes, la mitad despu\u00e9s. No es un promedio, que lo arrastra un solo d\u00eda at\u00edpico.',
+    no:'<b>No es la hora de entrada a trabajar</b>, sino cu\u00e1ndo toc\u00f3 SAP por primera vez. Alguien puede llegar a las 7:00 y pasar la ma\u00f1ana en el almac\u00e9n. La asistencia se mide con el reloj biom\u00e9trico.'},
   captFin: {t:'\u00daltima captura',
-    es:'Igual que la primera captura, pero de la \u00faltima de cada d\u00eda: primero la <b>mediana</b> y despu\u00e9s, precedida por <i>hasta</i>, la <b>m\u00e1s tard\u00eda de todo el per\u00edodo</b>.<br><br>Le\u00eddas juntas, las dos columnas dicen: t\u00edpicamente esta persona captur\u00f3 entre tal hora y tal otra, y en todo el per\u00edodo nunca antes de la primera ni despu\u00e9s de la segunda.',
-    no:'<b>No es la hora de salida.</b> Es cu\u00e1ndo dej\u00f3 de capturar, no cu\u00e1ndo dej\u00f3 de trabajar. El cierre de turno puede ocurrir despu\u00e9s de la \u00faltima captura, y tambi\u00e9n antes, si el resto del turno fue trabajo f\u00edsico.'},
+    es:'La <b>mediana</b> de la \u00faltima captura de cada d\u00eda y, tras <i>hasta</i>, la m\u00e1s tard\u00eda del per\u00edodo.<br><br>Junto con la columna anterior: t\u00edpicamente captur\u00f3 en ese tramo, y nunca fuera de los dos extremos.',
+    no:'<b>No es la hora de salida</b>, sino cu\u00e1ndo dej\u00f3 de capturar. El turno puede seguir despu\u00e9s, o haber terminado antes si el resto fue trabajo f\u00edsico.'},
   captVen: {t:'Ventana de captura',
-    es:'Las horas transcurridas entre la primera y la \u00faltima captura medianas. Describe el <b>tramo del d\u00eda en que la persona estuvo registrando en SAP</b>.',
-    no:'<b>No son horas trabajadas ni horas extras.</b> No descuenta almuerzo ni pausas, no sabe si hubo trabajo fuera de esa ventana, y no sirve para calcular pago. Para eso est\u00e1 el biom\u00e9trico.'},
+    es:'Horas entre la primera y la \u00faltima captura medianas: el tramo del d\u00eda en que estuvo registrando en SAP.',
+    no:'<b>No son horas trabajadas ni extras.</b> No descuenta pausas ni ve el trabajo fuera de esa ventana, y no sirve para calcular pago.'},
   linDia: {t:'L\u00edneas por d\u00eda',
-    es:'L\u00edneas capturadas divididas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
-    no:'No es una meta ni un est\u00e1ndar. Una l\u00ednea de un pedido grande cuesta lo mismo que la de uno peque\u00f1o, as\u00ed que el n\u00famero mide <b>volumen de captura</b>, no esfuerzo ni dificultad.'},
+    es:'L\u00edneas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
+    no:'No es una meta. Una l\u00ednea de un pedido grande cuenta igual que la de uno peque\u00f1o: mide <b>volumen de captura</b>, no esfuerzo.'},
   diasAct: {t:'D\u00edas activos',
-    es:'D\u00edas distintos, dentro del rango filtrado, en que esa persona registr\u00f3 al menos un movimiento en SAP.',
-    no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un d\u00eda cuyo reporte no se carg\u00f3. El tablero no puede distinguirlos.'}
+    es:'D\u00edas distintos del rango en que registr\u00f3 al menos un movimiento en SAP.',
+    no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un reporte que no se carg\u00f3.'}
 };
 function modalColumna(k) {
   var d = COL_DOC[k];
