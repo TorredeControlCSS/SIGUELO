@@ -93,6 +93,11 @@ td.c,th.c{text-align:center}
 .sub{font-size:11.5px;color:#666;margin-bottom:8px;line-height:1.6}
 .bloque{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:#0C447C;padding:7px 10px;background:#eaf0f7;border-top:1px solid #a8a8a8;border-bottom:1px solid #a8a8a8}
 .bloque.otras{color:#5f4a1c;background:#faf0d7}
+/* Separador de subseccion dentro de una pestaña. La de horario mira a todo el
+   pais, no solo a CEDIS Panama, y mezclarla con lo de arriba sin marca visual
+   invitaria a leerla como si fuera del equipo. */
+.bloque-sec{font-size:13px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;
+  color:#fff;background:#0C447C;padding:9px 12px;margin:22px 0 10px;border-left:6px solid #b5820a}
 #carga{padding:40px;text-align:center;color:#555;font-size:13px;line-height:2}
 #carga .bar{height:6px;background:#dfdfdf;margin:12px auto;max-width:420px;border:1px solid #a8a8a8}
 #carga .bar i{display:block;height:100%;background:#1E5A9E;width:0;transition:width .2s}
@@ -374,6 +379,19 @@ td.c,th.c{text-align:center}
     <div class="scroll"><table id="tProdOtras"></table></div></div>
   <div class="card"><h3>Matriz usuario x clase de movimiento<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas</span></h3>
     <div class="scroll"><table id="tMatriz"></table></div></div>
+
+  <div class="bloque-sec">HORARIO DE CAPTURA EN SAP &middot; TODO EL PA&Iacute;S</div>
+  <div class="sub">Esta secci&oacute;n no mira solo a CEDIS Panam&aacute;: incluye a <b>todos los usuarios del MB51</b>, de todas las sedes. La pregunta que responde es a qu&eacute; hora el reporte empieza a registrar actividad, y la respuesta es la misma para todo el pa&iacute;s. Las cifras se calculan sobre las l&iacute;neas que <b>traen hora</b>: el campo <code>Hora de entrada</code> no viene en la disposici&oacute;n de 21 columnas, as&iacute; que mayo y junio quedan fuera de este an&aacute;lisis.</div>
+  <div class="kpis" id="kHora"></div>
+  <div class="card"><h3>Distribuci&oacute;n horaria de todas las capturas<span class="per" id="perHorN">&mdash;</span></h3>
+    <div class="tabla-h"><span>Las dos series usan la misma escala. La l&iacute;nea de referencia marca la hora de entrada del turno seg&uacute;n el reloj biom&eacute;trico.</span></div>
+    <div class="body"><div class="chartbox"><canvas id="chHoraNac"></canvas></div></div></div>
+  <div class="card"><h3>La captura m&aacute;s temprana de cada usuario<span class="per">Todo el pa&iacute;s &middot; acumulado del rango</span></h3>
+    <div class="tabla-h"><span>Una fila por usuario, con la hora m&aacute;s temprana que registr&oacute; en todo el per&iacute;odo y el d&iacute;a en que ocurri&oacute;.</span><div class="der"><button class="btn sec" data-csv="tTemprana">Exportar Excel</button></div></div>
+    <div class="scroll"><table id="tTemprana"></table></div></div>
+  <div class="card"><h3>Primera y &uacute;ltima captura, d&iacute;a por d&iacute;a<span class="per">Todo el pa&iacute;s &middot; detalle granular</span></h3>
+    <div class="tabla-h"><span>El detalle sin agregar: una fila por usuario y d&iacute;a. La exportaci&oacute;n incluye todas las filas, no solo las visibles.</span><div class="der"><button class="btn sec" data-csv="tDiaUsr">Exportar Excel</button></div></div>
+    <div class="scroll"><table id="tDiaUsr"></table></div></div>
 </div>
 
 <div class="panel" id="p-cal">
@@ -435,6 +453,39 @@ var PADRON = ['FFLORES','GQUIJADA','LBROWN','MBROCE','AMILLER',
 
 /* 0=domingo. El sábado es día laborable OPCIONAL en el CEDIS: se trabaja a
    requerimiento, así que un sábado sin carga no cuenta como falta. */
+/* ──────────────────────────────────────────────────────────────────────────
+ *  DIAS HABILES SIN MOVIMIENTOS EN SAP, CONFIRMADOS
+ *  No son dias sin cargar: no hay nada que cargar. Marcarlos FALTANTE en rojo
+ *  acusaba a alguien de no haber enviado un reporte que no existe.
+ *
+ *  Se confirman con evidencia, no por descarte: el archivo acumulativo del
+ *  4-jul cubre del 5-may al 4-jul de forma CONTINUA, y esos dias no traen ni
+ *  una linea. Un dia ausente dentro del tramo de un archivo que lo abarca es
+ *  un dia sin movimiento; uno ausente fuera de todo tramo es un dia sin cargar.
+ *
+ *  Dos causas medidas:
+ *   · Primer dia habil del mes — SAP-SAFIRO cierra para el cierre mensual.
+ *   · Toma de inventario fisico.
+ *
+ *  Se declara a mano a proposito: deducirlo del calendario esconderia un dia
+ *  que SI tuviera movimiento y cuyo reporte nunca llego.
+ * ────────────────────────────────────────────────────────────────────────── */
+var SIN_MOVIMIENTO = {
+  '2026-06-01':'Cierre mensual de SAP-SAFIRO',
+  '2026-06-16':'Toma de inventario f\u00edsico',
+  '2026-06-23':'Toma de inventario f\u00edsico',
+  '2026-06-24':'Toma de inventario f\u00edsico',
+  '2026-07-01':'Cierre mensual de SAP-SAFIRO',
+  '2026-08-03':'Cierre mensual de SAP-SAFIRO',
+  '2026-09-01':'Cierre mensual de SAP-SAFIRO'
+};
+
+/* Hora de entrada pactada del turno, tomada del reporte del reloj biometrico
+   (hoja CALC_HE_TXT_BEN, campo Hora_Entrada). Se declara aqui para que la
+   brecha contra la primera captura se calcule sola y para que quien la cambie
+   sepa de donde sale. */
+var TURNO_INICIO = '07:30';
+
 var NO_LABORABLES = [0];
 var SABADO_OPCIONAL = true;
 
@@ -1025,20 +1076,20 @@ function kpis(cont, items) {
  * ────────────────────────────────────────────────────────────────────────── */
 var COL_DOC = {
   captIni: {t:'Primera captura',
-    es:'Dos horas: la <b>mediana</b> y, tras <i>desde</i>, la m\u00e1s temprana del per\u00edodo.<br><br>La mediana se saca ordenando los d\u00edas por la hora de su primera captura y tomando el del centro: la mitad de los d\u00edas empez\u00f3 antes, la mitad despu\u00e9s. No es un promedio, que lo arrastra un solo d\u00eda at\u00edpico.',
-    no:'<b>No es la hora de entrada a trabajar</b>, sino cu\u00e1ndo toc\u00f3 SAP por primera vez. Alguien puede llegar a las 7:00 y pasar la ma\u00f1ana en el almac\u00e9n. La asistencia se mide con el reloj biom\u00e9trico.'},
+    es:'La celda muestra <b>dos horas</b>. La primera es la <b>mediana</b>; la segunda, precedida por <i>desde</i>, es la <b>m\u00e1s temprana de todo el per\u00edodo</b>.<br><br>La mediana se obtiene as\u00ed: se toma la hora en que la persona hizo su primera captura cada d\u00eda, se <b>ordenan esos d\u00edas de m\u00e1s temprano a m\u00e1s tarde</b>, y se elige el del centro. En la mitad de los d\u00edas empez\u00f3 antes de esa hora y en la otra mitad despu\u00e9s. No es un promedio: al promedio lo arrastra un solo d\u00eda at\u00edpico y la mediana no se mueve.<br><br>Ejemplo real: si el d\u00eda m\u00e1s tardio de alguien fue a las 11:49 y hubiera capturado a las 23:00 \u2014un cierre de inventario, una emergencia\u2014 el promedio se corr\u00eda 16 minutos y la mediana no se mov\u00eda nada.<br><br>El <i>desde</i> est\u00e1 a la vista <b>a prop\u00f3sito</b>, para que se vea el caso m\u00e1s temprano y no haya que confiar en un solo n\u00famero.',
+    no:'<b>No es la hora de entrada a trabajar.</b> Es la hora en que la persona toc\u00f3 SAP por primera vez ese d\u00eda. Alguien puede llegar a las 7:00 y trabajar en el almac\u00e9n cuatro horas antes de capturar su primer movimiento. La asistencia real est\u00e1 en el reloj biom\u00e9trico, que es otro reporte y otro tablero: no se deben confundir.'},
   captFin: {t:'\u00daltima captura',
-    es:'La <b>mediana</b> de la \u00faltima captura de cada d\u00eda y, tras <i>hasta</i>, la m\u00e1s tard\u00eda del per\u00edodo.<br><br>Junto con la columna anterior: t\u00edpicamente captur\u00f3 en ese tramo, y nunca fuera de los dos extremos.',
-    no:'<b>No es la hora de salida</b>, sino cu\u00e1ndo dej\u00f3 de capturar. El turno puede seguir despu\u00e9s, o haber terminado antes si el resto fue trabajo f\u00edsico.'},
+    es:'Igual que la primera captura, pero de la \u00faltima de cada d\u00eda: primero la <b>mediana</b> y despu\u00e9s, precedida por <i>hasta</i>, la <b>m\u00e1s tard\u00eda de todo el per\u00edodo</b>.<br><br>Le\u00eddas juntas, las dos columnas dicen: t\u00edpicamente esta persona captur\u00f3 entre tal hora y tal otra, y en todo el per\u00edodo nunca antes de la primera ni despu\u00e9s de la segunda.',
+    no:'<b>No es la hora de salida.</b> Es cu\u00e1ndo dej\u00f3 de capturar, no cu\u00e1ndo dej\u00f3 de trabajar. El cierre de turno puede ocurrir despu\u00e9s de la \u00faltima captura, y tambi\u00e9n antes, si el resto del turno fue trabajo f\u00edsico.'},
   captVen: {t:'Ventana de captura',
-    es:'Horas entre la primera y la \u00faltima captura medianas: el tramo del d\u00eda en que estuvo registrando en SAP.',
-    no:'<b>No son horas trabajadas ni extras.</b> No descuenta pausas ni ve el trabajo fuera de esa ventana, y no sirve para calcular pago.'},
+    es:'Las horas transcurridas entre la primera y la \u00faltima captura medianas. Describe el <b>tramo del d\u00eda en que la persona estuvo registrando en SAP</b>.',
+    no:'<b>No son horas trabajadas ni horas extras.</b> No descuenta almuerzo ni pausas, no sabe si hubo trabajo fuera de esa ventana, y no sirve para calcular pago. Para eso est\u00e1 el biom\u00e9trico.'},
   linDia: {t:'L\u00edneas por d\u00eda',
-    es:'L\u00edneas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
-    no:'No es una meta. Una l\u00ednea de un pedido grande cuenta igual que la de uno peque\u00f1o: mide <b>volumen de captura</b>, no esfuerzo.'},
+    es:'L\u00edneas capturadas divididas entre los <b>d\u00edas en que esa persona registr\u00f3 algo</b>, no entre los d\u00edas del rango. Quien trabaj\u00f3 20 d\u00edas se compara contra 20, no contra 93.',
+    no:'No es una meta ni un est\u00e1ndar. Una l\u00ednea de un pedido grande cuesta lo mismo que la de uno peque\u00f1o, as\u00ed que el n\u00famero mide <b>volumen de captura</b>, no esfuerzo ni dificultad.'},
   diasAct: {t:'D\u00edas activos',
-    es:'D\u00edas distintos del rango en que registr\u00f3 al menos un movimiento en SAP.',
-    no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un reporte que no se carg\u00f3.'}
+    es:'D\u00edas distintos, dentro del rango filtrado, en que esa persona registr\u00f3 al menos un movimiento en SAP.',
+    no:'No son d\u00edas laborados. Un d\u00eda sin captura puede ser vacaciones, incapacidad, trabajo f\u00edsico sin registro, o un d\u00eda cuyo reporte no se carg\u00f3. El tablero no puede distinguirlos.'}
 };
 function modalColumna(k) {
   var d = COL_DOC[k];
@@ -2596,6 +2647,7 @@ function pintarProd() {
   var movs = {};
   for (var n = 0; n < pan.length; n++) movs[pan[n][cM]] = 1;
   var mk2 = Object.keys(movs).sort();
+  pintarHorario();
   tabla('tMatriz',
     [{h:'Usuario SAP', t:'c'}].concat(mk2.map(function (c) { return {h:c, t:'n', f:nf}; })).concat([{h:'Total', t:'n', f:nf}]),
     ukP.map(function (k) {
@@ -2604,12 +2656,151 @@ function pintarProd() {
     }), {i:mk2.length + 1, d:-1});
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+ *  HORARIO DE CAPTURA EN SAP · TODO EL PAIS
+ *
+ *  Se construyo despues de que la Direccion de Logistica preguntara por que la
+ *  primera captura ocurre cerca de las 10:00 si el turno entra a las 7:30.
+ *
+ *  Mira a TODOS los usuarios del MB51, no solo a CEDIS Panama, porque esa es
+ *  la diferencia entre una pregunta sobre un equipo y una sobre el reporte.
+ *  No interpreta la causa: muestra a que hora el MB51 empieza a registrar y
+ *  deja la explicacion a quien opera el sistema.
+ *
+ *  Solo entran las lineas con hora. El campo 'Hora de entrada' no viene en la
+ *  disposicion de 21 columnas, asi que mayo y junio quedan fuera y la seccion
+ *  lo declara en vez de promediar sobre un universo distinto al de arriba.
+ * ══════════════════════════════════════════════════════════════════════════ */
+function pintarHorario() {
+  var conH = [], i;
+  for (i = 0; i < F.length; i++) if (String(F[i][cH] || '').indexOf(':') > 0) conH.push(F[i]);
+  var tot = F.length;
+
+  if (!conH.length) {
+    kpis('kHora', [['Sin horas en el rango', '\u2014', 'amb',
+      'Los meses filtrados llegaron sin el campo Hora de entrada']]);
+    tabla('tTemprana', [{h:'\u2014', t:'t'}], []);
+    tabla('tDiaUsr', [{h:'\u2014', t:'t'}], []);
+    if (CH['chHoraNac']) { CH['chHoraNac'].destroy(); delete CH['chHoraNac']; }
+    $('perHorN').textContent = 'sin datos de hora en el rango';
+    return;
+  }
+
+  /* primera y ultima captura de cada usuario en cada dia */
+  var pd = {};
+  for (i = 0; i < conH.length; i++) {
+    var r = conH[i], k = r[cUSR] + '|' + r[cF];
+    if (!pd[k]) pd[k] = {u:r[cUSR], f:r[cF], hs:[], n:0};
+    pd[k].hs.push(String(r[cH]).slice(0, 8));
+    pd[k].n++;
+  }
+  var dias = Object.keys(pd).map(function (k) {
+    var x = pd[k]; x.hs.sort();
+    return {u:x.u, f:x.f, ini:x.hs[0], fin:x.hs[x.hs.length - 1], n:x.n};
+  });
+
+  /* la mas temprana del historico, con su dueño y su dia */
+  var minGlob = null;
+  for (i = 0; i < dias.length; i++) if (!minGlob || dias[i].ini < minGlob.ini) minGlob = dias[i];
+
+  var antes8 = 0, antes10 = 0;
+  for (i = 0; i < conH.length; i++) {
+    var hh = hhmmMin(conH[i][cH]);
+    if (hh < 480) antes8++;
+    if (hh < 600) antes10++;
+  }
+  var pan = [], otr = [];
+  for (i = 0; i < dias.length; i++) (D_EQ[dias[i].u] ? pan : otr).push(hhmmMin(dias[i].ini));
+  var medPan = pan.length ? mediana(pan) : null, medOtr = otr.length ? mediana(otr) : null;
+  var turno = hhmmMin(TURNO_INICIO);
+
+  kpis('kHora', [
+    ['L\u00edneas con hora', nf(conH.length), '', tot ? (conH.length / tot * 100).toFixed(1) + '% de las ' + nf(tot) + ' en vista' : ''],
+    ['Usuarios en el an\u00e1lisis', nf(uniq(conH, function (r) { return r[cUSR]; })), '', 'De todas las sedes'],
+    ['Captura m\u00e1s temprana del hist\u00f3rico', minGlob ? minGlob.ini.slice(0, 5) : '\u2014', 'amb',
+      minGlob ? (minGlob.f + ' \u00b7 ' + DIC.usr[minGlob.u] + ' \u00b7 ' + (D_EQ[minGlob.u] ? 'CEDIS Panam\u00e1' : 'otra sede')) : ''],
+    ['Capturas antes de las 08:00', nf(antes8), antes8 ? '' : 'rojo',
+      'Turno declarado: entrada ' + TURNO_INICIO],
+    ['Capturas antes de las 10:00', nf(antes10), 'rojo',
+      conH.length ? (antes10 / conH.length * 100).toFixed(2) + '% del total' : ''],
+    ['1.\u00aa captura mediana \u00b7 CEDIS Panam\u00e1', medPan === null ? '\u2014' : minHHMM(medPan), '',
+      nf(pan.length) + ' d\u00edas-usuario'],
+    ['1.\u00aa captura mediana \u00b7 otras sedes', medOtr === null ? '\u2014' : minHHMM(medOtr), '',
+      nf(otr.length) + ' d\u00edas-usuario'],
+    ['Brecha contra el inicio de turno', medPan === null ? '\u2014' : ((medPan - turno) / 60).toFixed(1) + ' h', 'rojo',
+      'Entre las ' + TURNO_INICIO + ' y la 1.\u00aa captura mediana']
+  ]);
+
+  /* distribucion horaria, las dos poblaciones en la misma escala */
+  var hp = {}, ho = {};
+  for (i = 0; i < conH.length; i++) {
+    var hx = String(conH[i][cH]).slice(0, 2);
+    if (D_EQ[conH[i][cUSR]]) hp[hx] = (hp[hx] || 0) + 1; else ho[hx] = (ho[hx] || 0) + 1;
+  }
+  var hk = [];
+  for (i = 0; i <= 23; i++) { var p2 = (i < 10 ? '0' : '') + i; if (hp[p2] || ho[p2]) hk.push(p2); }
+  $('perHorN').textContent = 'Todas las sedes \u00b7 ' + U_LIN.toLowerCase();
+  chart('chHoraNac', {type:'bar', data:{labels:hk.map(function (x) { return x + ':00'; }),
+    datasets:[
+      {label:'CEDIS Panam\u00e1', backgroundColor:PAL[0][0], borderColor:PAL[0][1],
+       data:hk.map(function (x) { return hp[x] || 0; })},
+      {label:'Otras sedes', backgroundColor:PAL[2][0], borderColor:PAL[2][1],
+       data:hk.map(function (x) { return ho[x] || 0; })}
+    ]}, options:optV(U_LIN)});
+
+  /* la mas temprana de cada usuario */
+  var pu = {};
+  for (i = 0; i < dias.length; i++) {
+    var d2 = dias[i], q = pu[d2.u];
+    if (!q) { pu[d2.u] = {u:d2.u, min:d2.ini, minF:d2.f, max:d2.fin, maxF:d2.f, nd:1, ini:[hhmmMin(d2.ini)]}; }
+    else {
+      if (d2.ini < q.min) { q.min = d2.ini; q.minF = d2.f; }
+      if (d2.fin > q.max) { q.max = d2.fin; q.maxF = d2.f; }
+      q.nd++; q.ini.push(hhmmMin(d2.ini));
+    }
+  }
+  tabla('tTemprana', [
+    {h:'Usuario SAP', t:'c'},
+    {h:'Sede', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CEDIS PANAMA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
+    {h:'D\u00edas con hora', t:'n', f:nf},
+    {h:'Captura m\u00e1s temprana', t:'c', nb:true},
+    {h:'El d\u00eda', t:'c'},
+    {h:'1.\u00aa captura mediana', t:'c'},
+    {h:'Captura m\u00e1s tard\u00eda', t:'c', nb:true},
+    {h:'El d\u00eda ', t:'c'},
+    {h:'Minutos tras el inicio de turno', t:'n', f:nf}
+  ], Object.keys(pu).map(function (k) {
+    var x = pu[k];
+    return [DIC.usr[x.u], D_EQ[x.u] ? 'CEDIS PANAMA' : 'OTRA SEDE', x.nd,
+      x.min.slice(0, 5), x.minF, minHHMM(mediana(x.ini)), x.max.slice(0, 5), x.maxF,
+      hhmmMin(x.min) - turno];
+  }), {i:3, d:1}, null, 400);
+
+  /* el detalle granular, dia por dia */
+  var fila = function (x) {
+    return [x.f, DIC.usr[x.u], D_EQ[x.u] ? 'CEDIS PANAMA' : 'OTRA SEDE',
+      x.ini.slice(0, 5), x.fin.slice(0, 5),
+      ((hhmmMin(x.fin) - hhmmMin(x.ini)) / 60).toFixed(1), x.n,
+      hhmmMin(x.ini) - turno];
+  };
+  tabla('tDiaUsr', [
+    {h:'Fecha', t:'c'}, {h:'Usuario SAP', t:'c'},
+    {h:'Sede', t:'c', f:function (v) { return '<span class="chip ' + (v === 'CEDIS PANAMA' ? 'ok' : 'wa') + '">' + v + '</span>'; }},
+    {h:'Primera captura', t:'c'}, {h:'\u00daltima captura', t:'c'},
+    {h:'Ventana (h)', t:'n'}, {h:'L\u00edneas del d\u00eda', t:'n', f:nf},
+    {h:'Minutos tras el inicio de turno', t:'n', f:nf}
+  /* Se pasan TODAS las filas y el recorte lo hace el tope: asi la tabla
+     declara en el pie cuantas hay en total. Recortarlas antes escondia el
+     numero, que es justo el dato que da la dimension del detalle. */
+  ], dias.map(fila), {i:3, d:1}, function () { return dias.map(fila); }, 400);
+}
+
 /* ══════════════════════════ COBERTURA Y CALIDAD ══════════════════════════ */
 function pintarCalidad() {
   var d0 = $('fDesde').value || IDX._meta.desde, d1 = $('fHasta').value || IDX._meta.hasta;
   var cargados = {}; (IDX._meta.dias || []).forEach(function (d) { cargados[d] = 1; });
   var DOW = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
-  var cal = [], domingos = 0, habiles = 0, falt = 0, sabOp = 0;
+  var cal = [], domingos = 0, habiles = 0, falt = 0, sabOp = 0, sinM = 0;
   var cur = new Date(d0 + 'T00:00:00'), fin = new Date(d1 + 'T00:00:00');
   while (cur <= fin) {
     var iso = cur.toISOString().slice(0, 10), dw = cur.getDay();
@@ -2617,14 +2808,20 @@ function pintarCalidad() {
     if (NO_LABORABLES.indexOf(dw) >= 0) { domingos++; continue; }
     var hay = !!cargados[iso];
     var sab = (dw === 6);
-    var est = hay ? 'CARGADO' : (sab && SABADO_OPCIONAL ? 'OPCIONAL' : 'FALTANTE');
+    var sinMov = !hay && !!SIN_MOVIMIENTO[iso];
+    var est = hay ? 'CARGADO'
+                  : (sinMov ? 'SIN MOVIMIENTO'
+                            : (sab && SABADO_OPCIONAL ? 'OPCIONAL' : 'FALTANTE'));
     if (est === 'FALTANTE') falt++;
     if (est === 'OPCIONAL') sabOp++;
-    if (!sab || hay) habiles++;
+    if (est === 'SIN MOVIMIENTO') sinM++;
+    /* un dia sin movimiento no entra en el denominador: no habia nada que cargar */
+    if ((!sab || hay) && !sinMov) habiles++;
     var dia = [];
     for (var i = 0; i < ROWS.length; i++) if (ROWS[i][cF] === iso) dia.push(ROWS[i]);
     cal.push([iso, DOW[dw], sab ? 'Opcional' : 'S\u00ed', est, FUENTES[iso] || (hay ? 'diario' : ''),
-      dia.length, uniq(dia, function (r) { return r[cDOC]; }), uniq(dia, function (r) { return r[cUSR]; })]);
+      dia.length, uniq(dia, function (r) { return r[cDOC]; }), uniq(dia, function (r) { return r[cUSR]; }),
+      SIN_MOVIMIENTO[iso] || '']);
   }
   var cob = habiles ? ((habiles - falt) / habiles * 100) : 0;
 
@@ -2643,7 +2840,7 @@ function pintarCalidad() {
   kpis('kCal', [
     ['Cobertura de d\u00edas laborables', cob.toFixed(1) + '%', cob < 90 ? 'rojo' : 'verde', nf(habiles - falt) + ' de ' + nf(habiles)],
     ['D\u00edas laborables sin carga', nf(falt), falt ? 'rojo' : 'verde', 'Insumo no recibido'],
-    ['S\u00e1bados sin carga', nf(sabOp), '', 'D\u00eda opcional, no cuenta'],
+    ['Sin movimiento en SAP', nf(sinM), '', 'Confirmado, no cuenta'],
     ['D\u00edas cargados en total', nf((IDX._meta.dias || []).length), '', 'Hist\u00f3rico publicado'],
     ['Forma 8 legible', (legibles / tot8 * 100).toFixed(1) + '%', (legibles / tot8) < 0.9 ? 'amb' : 'verde', 'Sobre 313 y 314'],
     ['Destinos sin mapear', nf(Object.keys(sinMap).length), Object.keys(sinMap).length ? 'amb' : 'verde', 'C\u00f3digos SAP sin UE'],
@@ -2651,15 +2848,21 @@ function pintarCalidad() {
     ['Meses publicados', nf((IDX.meses || []).length), '', nf(IDX._meta.filas) + ' l\u00edneas']
   ]);
 
-  $('cobNota').innerHTML = 'Se excluyen los domingos por no ser d\u00eda laborable (' + nf(domingos) +
-    ' en el rango). El <b>s\u00e1bado es opcional</b>: se trabaja a requerimiento, as\u00ed que un s\u00e1bado ' +
-    'sin carga no cuenta contra la cobertura. Un d\u00eda FALTANTE no significa que no hubo movimiento: ' +
-    'significa que el reporte no se carg\u00f3.';
-  var C = {CARGADO:'ok', FALTANTE:'er', OPCIONAL:'nu'};
+  $('cobNota').innerHTML = 'Tres estados distintos, y la diferencia importa. ' +
+    '<b>FALTANTE</b> significa que hubo operaci\u00f3n y el reporte no se carg\u00f3. ' +
+    '<b>SIN MOVIMIENTO</b> significa que no hay nada que cargar: el primer d\u00eda h\u00e1bil de cada mes ' +
+    'SAP-SAFIRO est\u00e1 cerrado por el cierre mensual, y en los d\u00edas de inventario f\u00edsico no se registran ' +
+    'movimientos. Esos d\u00edas <b>no cuentan contra la cobertura</b>, porque marcarlos en rojo acusar\u00eda a ' +
+    'alguien de no haber enviado un reporte que no existe. ' +
+    '<b>OPCIONAL</b> es un s\u00e1bado sin carga: se trabaja a requerimiento. ' +
+    'Los domingos se excluyen del todo (' + nf(domingos) + ' en el rango). ' +
+    'S\u00e1bados sin carga en el rango: ' + nf(sabOp) + '.';
+  var C = {CARGADO:'ok', FALTANTE:'er', OPCIONAL:'nu', 'SIN MOVIMIENTO':'nu'};
   tabla('tCob', [
     {h:'Fecha', t:'c'}, {h:'D\u00eda', t:'c'}, {h:'Laborable', t:'c'},
     {h:'Estado', t:'c', f:function (v) { return '<span class="chip ' + C[v] + '">' + v + '</span>'; }},
-    {h:'Fuente', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuarios', t:'n', f:nf}
+    {h:'Fuente', t:'c'}, {h:'L\u00edneas', t:'n', f:nf}, {h:'Doc. SAP', t:'n', f:nf}, {h:'Usuarios', t:'n', f:nf},
+    {h:'Motivo declarado', t:'t'}
   ], cal, {i:0, d:-1});
 
   var NOM = {ESTANDAR:'Formato est\u00e1ndar UE-AAAA-CICLO-N', ANIO_CORREGIDO:'A\u00f1o mal escrito, corregido',
