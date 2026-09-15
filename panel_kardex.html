@@ -17,12 +17,19 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:#ececec;color:#222;font-size:13px}
 .num{font-family:Consolas,"Courier New",monospace}
-header{background:#0C447C;padding:10px 16px;display:flex;align-items:center;gap:14px;border-bottom:3px solid #1E5A9E}
+/* La cabecera y la barra informativa quedan fijas arriba como un solo bloque.
+   La barra paso a ir DEBAJO de la cabecera y ya no entre los filtros y el
+   contenido: ahi separaba lo operativo de lo que opera, y se leia como una
+   barrera. Ahora lo informativo esta arriba del todo y los filtros quedan
+   pegados a lo que filtran. */
+header{background:#0C447C;padding:10px 16px;display:flex;align-items:center;gap:14px;
+  border-bottom:3px solid #1E5A9E;position:sticky;top:0;z-index:90}
 header img{height:42px;width:42px}
 header h1{font-size:16px;font-weight:600;letter-spacing:.2px;color:#fff}
 header .sub{font-size:11.5px;margin-top:2px;color:#dfe8f3}
 header .meta{margin-left:auto;text-align:right;white-space:nowrap;font-size:11.5px;line-height:1.5;color:#dfe8f3}
-.wrap{padding:12px 16px 48px}
+.wrap{padding:0 16px 48px}
+.filtros{margin-top:12px}
 .filtros{background:#fff;border:1px solid #a8a8a8;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
 .f{display:flex;flex-direction:column;gap:3px}
 .f label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#555;font-weight:600}
@@ -31,7 +38,8 @@ header .meta{margin-left:auto;text-align:right;white-space:nowrap;font-size:11.5
 button.btn{border:1px solid #0C447C;background:#0C447C;color:#fff;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px}
 button.btn.sec{background:#fff;color:#0C447C}
 button.btn:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
-.barra-estado{background:#eaf0f7;border:1px solid #a8a8a8;padding:7px 12px;margin-bottom:10px;font-size:12px;display:flex;flex-wrap:wrap;gap:18px}
+.barra-estado{background:#eaf0f7;border-bottom:1px solid #a8a8a8;padding:7px 16px;
+  font-size:12px;display:flex;flex-wrap:wrap;gap:18px;position:sticky;z-index:89}
 .barra-estado b{font-family:Consolas,monospace}
 .sin-res{background:#f7e3e3;border:1px solid #d9a8a8;color:#7a2020;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.6;display:none}
 .tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid #0C447C;margin-bottom:12px}
@@ -68,6 +76,13 @@ td.nb{white-space:nowrap}
   margin-left:5px;border:1px solid rgba(255,255,255,.7);border-radius:50%;font-size:9px;
   font-style:italic;font-weight:700;line-height:1;cursor:help;vertical-align:middle}
 .th-i:hover{background:#fff;color:#0C447C;border-color:#fff}
+.zoom{display:inline-flex;align-items:center;gap:4px;margin-left:10px;
+  border:1px solid #b0c8e8;border-radius:3px;padding:1px 3px;background:#fff}
+.zoom .zb{border:none;background:transparent;color:#0C447C;font-weight:700;font-size:13px;
+  line-height:1;cursor:pointer;padding:2px 6px;font-family:inherit}
+.zoom .zb:hover{background:#e6edf6;border-radius:2px}
+.zoom .zl{font-style:normal;font-family:Consolas,monospace;font-size:10.5px;color:#3d4a5a;
+  min-width:62px;text-align:center}
 th.act .ar{opacity:1}
 td{padding:4px 7px;border-bottom:1px solid #e0e0e0}
 tbody tr:nth-child(even){background:#fafafa}
@@ -193,6 +208,16 @@ td.c,th.c{text-align:center}
 
 <div class="wrap" id="app" style="display:none">
 
+<div class="barra-estado">
+<span>L&iacute;neas en vista: <b id="eLin">0</b></span>
+<span>de <b id="eTot">0</b> publicadas</span>
+<span>Rango: <b id="eRango">&mdash;</b></span>
+<span>D&iacute;as con carga: <b id="eDias">0</b></span>
+<span>Rengl&oacute;nes en cat&aacute;logo: <b id="eRen">0</b></span>
+<span>Inventario MB52: <b id="eInv">&mdash;</b></span>
+<span id="eEstado" style="margin-left:auto;font-weight:700;color:#1b7a34">&nbsp;</span>
+</div>
+
 <div class="filtros">
 <div class="f"><label>Desde</label><input type="date" id="fDesde"></div>
 <div class="f"><label>Hasta</label><input type="date" id="fHasta"></div>
@@ -202,16 +227,6 @@ td.c,th.c{text-align:center}
 <div class="f"><label>Tipo de rengl&oacute;n</label><select id="fTipo"><option value="">Todos</option><option>MEDICAMENTO</option><option>INSUMO</option><option>OTRO</option></select></div>
 <div class="f"><label>Usuario SAP</label><select id="fUsr"></select></div>
 <div class="f"><label>&nbsp;</label><button class="btn sec" id="btnLimpiar">Limpiar filtros</button></div>
-</div>
-
-<div class="barra-estado">
-<span>L&iacute;neas en vista: <b id="eLin">0</b></span>
-<span>de <b id="eTot">0</b> publicadas</span>
-<span>Rango: <b id="eRango">&mdash;</b></span>
-<span>D&iacute;as con carga: <b id="eDias">0</b></span>
-<span>Rengl&oacute;nes en cat&aacute;logo: <b id="eRen">0</b></span>
-<span>Inventario MB52: <b id="eInv">&mdash;</b></span>
-<span id="eEstado" style="margin-left:auto;font-weight:700;color:#1b7a34">&nbsp;</span>
 </div>
 
 <div class="sin-res" id="sinRes"></div>
@@ -242,15 +257,15 @@ td.c,th.c{text-align:center}
 <div class="panel on" id="p-resumen">
   <div class="kpis" id="kResumen"></div>
   <div class="grid2">
-    <div class="card"><h3>Movimiento por naturaleza<span class="per" id="perDia">&mdash;</span></h3><div class="body"><div class="chartbox"><canvas id="chDia"></canvas></div></div></div>
+    <div class="card"><h3>Movimiento por naturaleza<span class="per" id="perDia">&mdash;</span><span id="z_chDia"></span></h3><div class="body"><div class="chartbox"><canvas id="chDia"></canvas></div></div></div>
     <div class="card"><h3>Composici&oacute;n por clase de movimiento<span class="per">Acumulado del rango</span></h3><div class="body"><div class="chartbox"><canvas id="chMov"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Cierre por d&iacute;a<span class="per">Diario &middot; acumulable</span></h3>
     <div class="tabla-h"><span>Una fila por fecha de contabilizaci&oacute;n. Clic en el encabezado para ordenar.</span><div class="der"><button class="btn sec" data-csv="tDia">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tDia"></table></div></div>
   <div class="grid2">
-    <div class="card"><h3>Destinos con mayor despacho<span class="per">Acumulado &middot; unidades</span></h3><div class="body"><div class="chartbox"><canvas id="chUE"></canvas></div></div></div>
-    <div class="card"><h3>Rengl&oacute;nes con mayor despacho<span class="per">Acumulado &middot; unidades</span></h3><div class="body"><div class="chartbox"><canvas id="chRen"></canvas></div></div></div>
+    <div class="card"><h3>Destinos con mayor despacho<span class="per">Acumulado &middot; unidades</span><span id="z_chUE"></span></h3><div class="body"><div class="chartbox"><canvas id="chUE"></canvas></div></div></div>
+    <div class="card"><h3>Rengl&oacute;nes con mayor despacho<span class="per">Acumulado &middot; unidades</span><span id="z_chRen"></span></h3><div class="body"><div class="chartbox"><canvas id="chRen"></canvas></div></div></div>
   </div>
 </div>
 
@@ -296,7 +311,7 @@ td.c,th.c{text-align:center}
 <div class="panel" id="p-recep">
   <div class="sub">Movimientos <b>101</b> (entrada de mercanc&iacute;a contra pedido de compra) y <b>102</b> (anulaci&oacute;n). Es lo &uacute;nico del MB51 que trae valorizaci&oacute;n propia de SAP.</div>
   <div class="kpis" id="kRec"></div>
-  <div class="card"><h3>Valor recibido<span class="per" id="perRec">&mdash;</span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
+  <div class="card"><h3>Valor recibido<span class="per" id="perRec">&mdash;</span><span id="z_chRec"></span></h3><div class="body"><div class="chartbox"><canvas id="chRec"></canvas></div></div></div>
   <div class="card"><h3>Recepci&oacute;n por proveedor<span class="per">Acumulado del rango</span></h3>
     <div class="tabla-h"><span>El c&oacute;digo de proveedor es el de SAP; el nombre no viaja en el MB51.</span><div class="der"><button class="btn sec" data-csv="tProv">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tProv"></table></div></div>
@@ -308,7 +323,7 @@ td.c,th.c{text-align:center}
 <div class="panel" id="p-ajuste">
   <div class="sub">Movimientos <b>561/562</b> (entrada y salida inicial de existencias), <b>201</b> (consumo a centro de coste), <b>309/310</b> (traslado material a material) y <b>701/702</b> (inventario f&iacute;sico). Modifican inventario sin pedido ni despacho, y es donde se registran las bajas por vigencia.</div>
   <div class="kpis" id="kAju"></div>
-  <div class="card"><h3>Motivos de mayor impacto en valor<span class="per">Acumulado &middot; B/.</span></h3><div class="body"><div class="chartbox"><canvas id="chAju"></canvas></div></div></div>
+  <div class="card"><h3>Motivos de mayor impacto en valor<span class="per">Acumulado &middot; B/.</span><span id="z_chAju"></span></h3><div class="body"><div class="chartbox"><canvas id="chAju"></canvas></div></div></div>
   <div class="card"><h3>Ajustes por motivo declarado<span class="per">Acumulado del rango</span></h3>
     <div class="tabla-h"><span>El motivo es el texto libre de cabecera del documento, tal como lo escribi&oacute; el usuario.</span><div class="der"><button class="btn sec" data-csv="tAju">Exportar Excel</button></div></div>
     <div class="scroll"><table id="tAju"></table></div></div>
@@ -339,7 +354,7 @@ td.c,th.c{text-align:center}
   <div class="kpis" id="kInv"></div>
   <div class="grid2">
     <div class="card"><h3>Valor por categor&iacute;a de valoraci&oacute;n<span class="per">Foto vigente &middot; B/.</span></h3><div class="body"><div class="chartbox"><canvas id="chInvCat"></canvas></div></div></div>
-    <div class="card"><h3>Concentraci&oacute;n del valor<span class="per">Foto vigente &middot; top 12 rengl&oacute;nes</span></h3><div class="body"><div class="chartbox"><canvas id="chInvTop"></canvas></div></div></div>
+    <div class="card"><h3>Concentraci&oacute;n del valor<span class="per">Foto vigente &middot; top 12 rengl&oacute;nes</span><span id="z_chInvTop"></span></h3><div class="body"><div class="chartbox"><canvas id="chInvTop"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Existencia por categor&iacute;a<span class="per">Foto vigente</span></h3>
     <div class="tabla-h"><span>La categor&iacute;a es la llave con que Contabilidad asigna la cuenta financiera.</span><div class="der"><button class="btn sec" data-csv="tInvCat">Exportar Excel</button></div></div>
@@ -368,8 +383,8 @@ td.c,th.c{text-align:center}
   <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.<br><b>Las horas de esta pesta&ntilde;a son horas de captura en SAP, no de asistencia.</b> La asistencia real est&aacute; en el reporte del reloj biom&eacute;trico, que es otra fuente y otro tablero. Cada columna sensible tiene una (i) que explica qu&eacute; significa y qu&eacute; no.</div>
   <div class="kpis" id="kProd"></div>
   <div class="grid2">
-    <div class="card"><h3>Curva horaria de captura<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas por hora</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
-    <div class="card"><h3>L&iacute;neas por usuario<span class="per">CEDIS Panam&aacute; &middot; acumulado</span></h3><div class="body"><div class="chartbox"><canvas id="chUsr"></canvas></div></div></div>
+    <div class="card"><h3>Curva horaria de captura<span class="per">Barras: total CEDIS Panam&aacute; &middot; L&iacute;neas: promedio por usuario activo</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
+    <div class="card"><h3>L&iacute;neas acumuladas por usuario<span class="per">CEDIS Panam&aacute; &middot; suma de todo el rango filtrado</span></h3><div class="body"><div class="chartbox"><canvas id="chUsr"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Actividad por usuario<span class="per">Acumulado del rango</span></h3>
     <div class="tabla-h"><span id="prodNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tProd">Exportar Excel</button></div></div>
@@ -802,6 +817,14 @@ function init() {
   /* El plugin de etiquetas se registra aqui: si el CDN no cargo, el tablero
      funciona igual, solo sin numeros sobre las barras. */
   try { if (window.ChartDataLabels) Chart.register(window.ChartDataLabels); } catch (e) {}
+  /* La barra se pega justo debajo de la cabecera. El alto se mide en vez de
+     fijarlo: la cabecera crece cuando el titulo parte en dos lineas. */
+  var fijarBarra = function () {
+    var hh = document.querySelector('header').offsetHeight;
+    document.querySelector('.barra-estado').style.top = hh + 'px';
+  };
+  fijarBarra();
+  window.addEventListener('resize', fijarBarra);
   $('mCorte').textContent = IDX._meta.hasta;
   $('mGen').textContent = IDX._meta.generado;
   $('eTot').textContent = nf(ROWS.length);
@@ -882,7 +905,9 @@ function init() {
     b.onclick = function () { csv(b.dataset.csv); };
   });
   tourEnlazar();
+  zoomEnlazar();
   pintarInventario();   /* es una foto: no depende de los filtros, se dibuja una vez */
+  pintarZoomCtrl();
   aplicar();
 }
 
@@ -896,11 +921,20 @@ var RENDER = {
   ajuste: pintarAjuste, reng: pintarReng, lotes: pintarLotes, lat: pintarLat,
   prod: pintarProd, cal: pintarCalidad, det: pintarDetalle
 };
+var ZOOM_CTRL = {chDia:'tiempo', chRec:'tiempo', chUE:'top', chRen:'top',
+                 chAju:'top', chInvTop:'top'};
+function pintarZoomCtrl() {
+  for (var k in ZOOM_CTRL) {
+    var e = $('z_' + k);
+    if (e) e.innerHTML = zoomCtrl(k, ZOOM_CTRL[k]);
+  }
+}
 function pintarActiva() {
   if (!RENDER[ACTIVA]) return;          /* 'inv' no se refiltra */
   if (!SUCIO[ACTIVA]) return;
   var t0 = Date.now();
   RENDER[ACTIVA]();
+  pintarZoomCtrl();
   SUCIO[ACTIVA] = 0;
   var ms = Date.now() - t0;
   if (ms > 400) Logger_(ACTIVA + ' tardo ' + ms + ' ms');
@@ -1316,13 +1350,80 @@ function excel(id) {
     .catch(bajar);
 }
 function chart(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart($(id).getContext('2d'), cfg); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ *  ZOOM DE ESCALA
+ *  "Mas resolucion" significa dos cosas distintas segun el grafico, asi que el
+ *  control hace dos cosas distintas y lo dice en su etiqueta:
+ *
+ *   · Series de tiempo  -> cambia el PASO: mes, semana, dia. El automatico
+ *     sigue siendo el de por defecto; el control lo fuerza cuando alguien
+ *     quiere ver el detalle diario de un trimestre, o el resumen mensual de
+ *     una semana.
+ *   · Rankings          -> cambia CUANTAS BARRAS se muestran: 10, 15, 25, 40.
+ *
+ *  Poner un +/- que hiciera lo mismo en los dos casos seria mentir sobre lo
+ *  que hace: en un ranking no hay escala temporal que ampliar.
+ * ────────────────────────────────────────────────────────────────────────── */
+var ZOOM = {};
+var PASOS = ['mes','semana','dia'];          /* de menos a mas detalle */
+var TOPES = [10, 15, 25, 40];
+
+function zoomNivel(id, def) { return ZOOM[id] === undefined ? def : ZOOM[id]; }
+function zoomCtrl(id, tipo) {
+  var l = zoomEtiqueta(id, tipo);
+  return '<span class="zoom" data-z="' + id + '" data-zt="' + tipo + '">' +
+    '<button class="zb" data-zd="-1" title="Menos detalle">&minus;</button>' +
+    '<i class="zl">' + l + '</i>' +
+    '<button class="zb" data-zd="1" title="M\u00e1s detalle">+</button></span>';
+}
+function zoomEtiqueta(id, tipo) {
+  if (tipo === 'tiempo') {
+    var n = ZOOM[id];
+    return n === undefined ? 'auto' : {dia:'por d\u00eda', semana:'por semana', mes:'por mes'}[n];
+  }
+  return 'top ' + zoomNivel(id, 15);
+}
+function zoomAplicar(id, tipo, dir) {
+  if (tipo === 'tiempo') {
+    var i = ZOOM[id] === undefined ? -1 : PASOS.indexOf(ZOOM[id]);
+    /* desde 'auto', bajar detalle arranca en mes y subirlo en dia */
+    if (i < 0) ZOOM[id] = dir > 0 ? 'dia' : 'mes';
+    else {
+      var j = i + dir;
+      if (j < 0 || j >= PASOS.length) { delete ZOOM[id]; }   /* vuelve a auto */
+      else ZOOM[id] = PASOS[j];
+    }
+  } else {
+    var k = TOPES.indexOf(zoomNivel(id, 15));
+    var m = Math.min(TOPES.length - 1, Math.max(0, k + dir));
+    ZOOM[id] = TOPES[m];
+  }
+  SUCIO[ACTIVA] = 1;
+  pintarActiva();
+}
+function zoomEnlazar() {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.zoom .zb') : null;
+    if (!b) return;
+    var w = b.parentNode;
+    zoomAplicar(w.getAttribute('data-z'), w.getAttribute('data-zt'), Number(b.getAttribute('data-zd')));
+  });
+}
 /* GRANULARIDAD AUTOMATICA DE LAS SERIES TEMPORALES
    Una barra por dia es legible hasta unos dos meses. Con 93 dias ya van 19 px
    por barra y las fechas rotadas a 90 grados; a 250 dias laborables al año
    serian 7 px. Por eso la serie se agrupa sola segun el rango: dia, semana o
    mes. El rotulo dice siempre en que unidad esta, para que nadie lea una barra
    semanal como si fuera de un dia. */
-function granular(dias) {
+function granular(dias, id) {
+  /* si hay un paso forzado desde el control de zoom, manda sobre el automatico */
+  if (id && ZOOM[id]) {
+    var f = ZOOM[id];
+    if (f === 'dia')    return {u:'dia',    clave:function(x){ return x; },            nom:'Un d\u00eda por barra'};
+    if (f === 'semana') return {u:'semana', clave:semanaDe,                            nom:'Agrupado por semana'};
+    if (f === 'mes')    return {u:'mes',    clave:function(x){ return x.slice(0,7); }, nom:'Agrupado por mes'};
+  }
   var n = dias.length;
   if (n <= 62)  return {u:'dia',    clave:function(f){ return f; },            nom:'Un dia por barra'};
   if (n <= 400) return {u:'semana', clave:semanaDe,                            nom:'Agrupado por semana'};
@@ -1337,9 +1438,9 @@ function semanaDe(f) {
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 /* Agrupa un mapa dia->filas en el paso que corresponda. */
-function serieTemporal(porDia) {
+function serieTemporal(porDia, id) {
   var dias = Object.keys(porDia).sort();
-  var g = granular(dias), cubos = {}, orden = [], rango = {};
+  var g = granular(dias, id), cubos = {}, orden = [], rango = {};
   for (var i = 0; i < dias.length; i++) {
     var k = g.clave(dias[i]);
     if (!cubos[k]) { cubos[k] = []; orden.push(k); rango[k] = [dias[i], dias[i]]; }
@@ -1460,7 +1561,7 @@ function pintarResumen() {
 
   var pd = agrupar(F, function (r) { return r[cF]; });
   var dias = Object.keys(pd).sort();
-  var st = serieTemporal(pd);
+  var st = serieTemporal(pd, 'chDia');
   $('perDia').textContent = st.nom + ' · ' + U_LIN.toLowerCase();
   var nat = function (c) { return MOVS[c] ? MOVS[c][1] : 'OTRO'; };
   chart('chDia', {type:'bar', data:{labels:st.etq, datasets:['ENTRADA','SALIDA','AJUSTE','OTRO'].map(function (n) {
@@ -1500,7 +1601,7 @@ function pintarResumen() {
 
   var pu = agrupar(fac, function (r) { return r[cREC]; });
   var uk = Object.keys(pu).map(function (k) { return [k, neto(pu[k])]; })
-    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, zoomNivel('chUE', 15));
   chart('chUE', {type:'bar', data:{labels:uk.map(function (x) { var c = DIC.rec[x[0]]; return (MAPA_UE[c] || c || 'SIN DESTINO').slice(0, 34); }),
     datasets:[{label:U_UNI, backgroundColor:PAL[0][0], borderColor:PAL[0][1],
       data:uk.map(function (x) { return x[1]; })}]},
@@ -1508,7 +1609,7 @@ function pintarResumen() {
 
   var pr = agrupar(porClase(F, ['313']), function (r) { return r[cMAT]; });
   var rk = Object.keys(pr).map(function (k) { return [k, suma(pr[k], salida)]; })
-    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15);
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, zoomNivel('chRen', 15));
   chart('chRen', {type:'bar', data:{labels:rk.map(function (x) { return (DIC.ds[x[0]] || DIC.mat[x[0]]).slice(0, 34); }),
     datasets:[{label:U_UNI, backgroundColor:PAL[1][0], borderColor:PAL[1][1],
       data:rk.map(function (x) { return x[1]; })}]},
@@ -1589,7 +1690,7 @@ function pintarRecep() {
   ]);
 
   var pdr = agrupar(ab, function (r) { return r[cF]; });
-  var str = serieTemporal(pdr);
+  var str = serieTemporal(pdr, 'chRec');
   $('perRec').textContent = str.nom + ' · ' + U_BAL + ' · 101 neto de 102';
   chart('chRec', {type:'bar', data:{labels:str.etq, datasets:[{label:U_BAL,
     backgroundColor:PAL[1][0], borderColor:PAL[1][1],
@@ -1692,7 +1793,7 @@ function pintarAjuste() {
     {h:'Primera fecha', t:'c'}, {h:'\u00daltima fecha', t:'c'}
   ], filas, {i:6, d:1}, null, 300);
 
-  var top = filas.slice().sort(function (a, b) { return Math.abs(b[6]) - Math.abs(a[6]); }).slice(0, 12);
+  var top = filas.slice().sort(function (a, b) { return Math.abs(b[6]) - Math.abs(a[6]); }).slice(0, zoomNivel('chAju', 12));
   chart('chAju', {type:'bar', data:{labels:top.map(function (x) { return (x[0] + ' [' + x[1] + ']').slice(0, 42); }),
     datasets:[{label:U_BAL, data:top.map(function (x) { return x[6]; }),
       backgroundColor:top.map(function (x) { return semColor(x[6] < 0 ? 'er' : 'ok', 'bg'); }),
@@ -1847,7 +1948,7 @@ function pintarInventario() {
 
   var gm = agrupar(filas, function (f) { return f[0]; });
   var mk = Object.keys(gm).map(function (k) { return [k, suma(gm[k], function (f) { return f[6]; }), gm[k][0][1]]; })
-    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
+    .sort(function (a, b) { return b[1] - a[1]; }).slice(0, zoomNivel('chInvTop', 12));
   chart('chInvTop', {type:'bar', data:{labels:mk.map(function (x) { return (x[2] || x[0]).slice(0, 34); }),
     datasets:[{label:U_BAL, backgroundColor:PAL[1][0], borderColor:PAL[1][1],
       data:mk.map(function (x) { return x[1]; })}]},
@@ -2547,10 +2648,53 @@ function pintarProd() {
     ['Usuarios fuera del padr\u00f3n', nf(uniq(otr, function (r) { return r[cUSR]; })), '', 'Ver Cobertura y calidad']
   ]);
 
-  chart('chHora', {type:'bar', data:{labels:hk.map(function (x) { return x + ':00'; }),
-    datasets:[{label:U_LIN, backgroundColor:PAL[0][0], borderColor:PAL[0][1],
-      data:hk.map(function (x) { return horas[x]; })}]},
-    options:optV(U_LIN)});
+  /* Segundo eje: promedio de lineas por usuario ACTIVO en esa hora, separado
+     por equipo. Las barras dan el volumen total, que lo infla quien tenga mas
+     gente; las lineas dan el rendimiento por persona, que es comparable entre
+     equipos de tamaño distinto. Se divide entre los usuarios que capturaron en
+     esa hora, no entre la plantilla: dividir entre nueve a las 22:00, cuando
+     solo quedan dos, castigaria a los que se quedaron. */
+  var hp2 = {}, ho2 = {}, up2 = {}, uo2 = {}, j2;
+  for (j2 = 0; j2 < F.length; j2++) {
+    var rr = F[j2], hx = String(rr[cH] || '').slice(0, 2);
+    if (hx.length !== 2 || String(rr[cH]).indexOf(':') < 0) continue;
+    if (D_EQ[rr[cUSR]]) {
+      hp2[hx] = (hp2[hx] || 0) + 1;
+      (up2[hx] = up2[hx] || {})[rr[cUSR]] = 1;
+    } else {
+      ho2[hx] = (ho2[hx] || 0) + 1;
+      (uo2[hx] = uo2[hx] || {})[rr[cUSR]] = 1;
+    }
+  }
+  var prom = function (lin, usr, k) {
+    var nu = usr[k] ? Object.keys(usr[k]).length : 0;
+    return nu ? Math.round((lin[k] || 0) / nu) : null;
+  };
+  var opH = optV(U_LIN);
+  opH.scales.y1 = {
+    position:'right', beginAtZero:true, grace:'14%',
+    title:{display:true, text:'Promedio por usuario activo', font:{size:11, weight:'700'}, color:'#8a6207'},
+    grid:{drawOnChartArea:false},
+    ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}
+  };
+  opH.plugins.tooltip = {callbacks:{label:function (c) {
+    return c.dataset.label + ': ' + nf(c.parsed.y) +
+      (c.dataset.yAxisID === 'y1' ? ' l\u00edneas por usuario' : ' l\u00edneas');
+  }}};
+  chart('chHora', {data:{labels:hk.map(function (x) { return x + ':00'; }),
+    datasets:[
+      {type:'bar', label:'Total CEDIS Panam\u00e1', yAxisID:'y',
+       backgroundColor:PAL[0][0], borderColor:PAL[0][1],
+       data:hk.map(function (x) { return horas[x]; }), order:3},
+      {type:'line', label:'Promedio por usuario \u00b7 CEDIS Panam\u00e1', yAxisID:'y1',
+       borderColor:PAL[1][1], backgroundColor:PAL[1][1], borderWidth:2.5,
+       pointRadius:3, pointBackgroundColor:'#fff', tension:0.3, order:1,
+       data:hk.map(function (x) { return prom(hp2, up2, x); }), datalabels:{display:false}},
+      {type:'line', label:'Promedio por usuario \u00b7 otras sedes', yAxisID:'y1',
+       borderColor:PAL[2][1], backgroundColor:PAL[2][1], borderWidth:2.5,
+       borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#fff', tension:0.3, order:2,
+       data:hk.map(function (x) { return prom(ho2, uo2, x); }), datalabels:{display:false}}
+    ]}, options:opH});
 
   var gP = agrupar(pan, function (r) { return r[cUSR]; });
   var ukP = Object.keys(gP).sort(function (a, b) { return gP[b].length - gP[a].length; });
