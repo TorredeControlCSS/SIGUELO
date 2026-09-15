@@ -60,6 +60,12 @@ button.btn:hover{background:#1E5A9E;color:#fff;border-color:#1E5A9E}
 .card .body{padding:10px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+/* Tres graficos en fila. Por debajo de 1500 px pasan a dos columnas y por
+   debajo de 1000 a una: tres paneles de 380 px son ilegibles. */
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid3 .chartbox{height:300px}
+@media(max-width:1500px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.grid3{grid-template-columns:1fr}}
 .chartbox{position:relative;height:280px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 /* Los encabezados PARTEN en dos lineas. Con nowrap, 14 columnas forzaban
@@ -382,9 +388,10 @@ td.c,th.c{text-align:center}
 <div class="panel" id="p-prod">
   <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.<br><b>Las horas de esta pesta&ntilde;a son horas de captura en SAP, no de asistencia.</b> La asistencia real est&aacute; en el reporte del reloj biom&eacute;trico, que es otra fuente y otro tablero. Cada columna sensible tiene una (i) que explica qu&eacute; significa y qu&eacute; no.</div>
   <div class="kpis" id="kProd"></div>
-  <div class="grid2">
-    <div class="card"><h3>Curva horaria de captura<span class="per">Barras: total CEDIS Panam&aacute; &middot; L&iacute;neas: promedio por usuario activo</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
+  <div class="grid3">
+    <div class="card"><h3>Curva horaria de captura<span class="per">CEDIS Panam&aacute; &middot; l&iacute;neas por hora</span></h3><div class="body"><div class="chartbox"><canvas id="chHora"></canvas></div></div></div>
     <div class="card"><h3>L&iacute;neas acumuladas por usuario<span class="per">CEDIS Panam&aacute; &middot; suma de todo el rango filtrado</span></h3><div class="body"><div class="chartbox"><canvas id="chUsr"></canvas></div></div></div>
+    <div class="card"><h3>Reparto del d&iacute;a de cada persona<span class="per">Cada curva suma 100% de su propio total</span></h3><div class="body"><div class="chartbox"><canvas id="chReparto"></canvas></div></div></div>
   </div>
   <div class="card"><h3>Actividad por usuario<span class="per">Acumulado del rango</span></h3>
     <div class="tabla-h"><span id="prodNota">&mdash;</span><div class="der"><button class="btn sec" data-csv="tProd">Exportar Excel</button></div></div>
@@ -1503,7 +1510,10 @@ function etqDato(extra) {
     /* El numero va completo mientras quepa. Abreviar 2,341 a "2 k" pierde
        precision y encima convive mal con las cifras exactas de al lado; solo
        se abrevia por encima de cien mil, donde el numero entero no cabe. */
+    /* Halo blanco en toda etiqueta de dato: la despega de lo que tenga detras
+       —una barra apilada, una linea que cruce— sin recuadro ni fondo solido. */
     color:'#22303c', font:{family:'Consolas', size:10, weight:'700'},
+    textStrokeColor:'#ffffff', textStrokeWidth:2.5,
     formatter:function (v) { return Math.abs(v) >= 100000 ? ejeCorto(v) : nf(v); }
   };
   if (extra) for (var k in extra) o[k] = extra[k];
@@ -2648,53 +2658,55 @@ function pintarProd() {
     ['Usuarios fuera del padr\u00f3n', nf(uniq(otr, function (r) { return r[cUSR]; })), '', 'Ver Cobertura y calidad']
   ]);
 
-  /* Segundo eje: promedio de lineas por usuario ACTIVO en esa hora, separado
-     por equipo. Las barras dan el volumen total, que lo infla quien tenga mas
-     gente; las lineas dan el rendimiento por persona, que es comparable entre
-     equipos de tamaño distinto. Se divide entre los usuarios que capturaron en
-     esa hora, no entre la plantilla: dividir entre nueve a las 22:00, cuando
-     solo quedan dos, castigaria a los que se quedaron. */
-  var hp2 = {}, ho2 = {}, up2 = {}, uo2 = {}, j2;
-  for (j2 = 0; j2 < F.length; j2++) {
-    var rr = F[j2], hx = String(rr[cH] || '').slice(0, 2);
-    if (hx.length !== 2 || String(rr[cH]).indexOf(':') < 0) continue;
-    if (D_EQ[rr[cUSR]]) {
-      hp2[hx] = (hp2[hx] || 0) + 1;
-      (up2[hx] = up2[hx] || {})[rr[cUSR]] = 1;
-    } else {
-      ho2[hx] = (ho2[hx] || 0) + 1;
-      (uo2[hx] = uo2[hx] || {})[rr[cUSR]] = 1;
-    }
+  chart('chHora', {type:'bar', data:{labels:hk.map(function (x) { return x + ':00'; }),
+    datasets:[{label:U_LIN, backgroundColor:PAL[0][0], borderColor:PAL[0][1],
+      data:hk.map(function (x) { return horas[x]; })}]},
+    options:optV(U_LIN)});
+
+  /* ── Reparto del dia de cada persona ──────────────────────────────────────
+     El promedio por hora dividido entre los usuarios activos resulto redundante
+     como curva: correlacion 0.999 con el total y ninguna de las 14 horas cambia
+     de puesto, porque los nueve estan activos casi todas las horas y el divisor
+     es practicamente constante.
+     Este grafico usa un divisor PROPIO de cada persona —su propio total— asi
+     que cada curva suma 100% y las nueve tienen forma distinta. Responde algo
+     que las otras dos no pueden: quien concentra su trabajo temprano y quien lo
+     empuja a la tarde, sin que el volumen de cada uno distorsione la
+     comparacion.
+     ──────────────────────────────────────────────────────────────────────── */
+  var repUsr = {}, repTot = {}, k3;
+  for (k3 = 0; k3 < pan.length; k3++) {
+    var r3 = pan[k3], h3 = String(r3[cH] || '');
+    if (h3.indexOf(':') < 0) continue;
+    var u3 = r3[cUSR], hh3 = h3.slice(0, 2);
+    if (!repUsr[u3]) repUsr[u3] = {};
+    repUsr[u3][hh3] = (repUsr[u3][hh3] || 0) + 1;
+    repTot[u3] = (repTot[u3] || 0) + 1;
   }
-  var prom = function (lin, usr, k) {
-    var nu = usr[k] ? Object.keys(usr[k]).length : 0;
-    return nu ? Math.round((lin[k] || 0) / nu) : null;
-  };
-  var opH = optV(U_LIN);
-  opH.scales.y1 = {
-    position:'right', beginAtZero:true, grace:'14%',
-    title:{display:true, text:'Promedio por usuario activo', font:{size:11, weight:'700'}, color:'#8a6207'},
-    grid:{drawOnChartArea:false},
-    ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return ejeCorto(v); }}
-  };
-  opH.plugins.tooltip = {callbacks:{label:function (c) {
-    return c.dataset.label + ': ' + nf(c.parsed.y) +
-      (c.dataset.yAxisID === 'y1' ? ' l\u00edneas por usuario' : ' l\u00edneas');
-  }}};
-  chart('chHora', {data:{labels:hk.map(function (x) { return x + ':00'; }),
-    datasets:[
-      {type:'bar', label:'Total CEDIS Panam\u00e1', yAxisID:'y',
-       backgroundColor:PAL[0][0], borderColor:PAL[0][1],
-       data:hk.map(function (x) { return horas[x]; }), order:3},
-      {type:'line', label:'Promedio por usuario \u00b7 CEDIS Panam\u00e1', yAxisID:'y1',
-       borderColor:PAL[1][1], backgroundColor:PAL[1][1], borderWidth:2.5,
-       pointRadius:3, pointBackgroundColor:'#fff', tension:0.3, order:1,
-       data:hk.map(function (x) { return prom(hp2, up2, x); }), datalabels:{display:false}},
-      {type:'line', label:'Promedio por usuario \u00b7 otras sedes', yAxisID:'y1',
-       borderColor:PAL[2][1], backgroundColor:PAL[2][1], borderWidth:2.5,
-       borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#fff', tension:0.3, order:2,
-       data:hk.map(function (x) { return prom(ho2, uo2, x); }), datalabels:{display:false}}
-    ]}, options:opH});
+  var uRep = Object.keys(repUsr).sort(function (a, b) { return repTot[b] - repTot[a]; });
+  chart('chReparto', {type:'line', data:{labels:hk.map(function (x) { return x + ':00'; }),
+    datasets:uRep.map(function (u4, i4) {
+      return {label:DIC.usr[u4], borderColor:PAL[i4 % PAL.length][1],
+        backgroundColor:PAL[i4 % PAL.length][1], borderWidth:2,
+        pointRadius:2.5, pointBackgroundColor:'#fff', tension:0.35, fill:false,
+        data:hk.map(function (x) {
+          return repTot[u4] ? Number(((repUsr[u4][x] || 0) / repTot[u4] * 100).toFixed(1)) : 0;
+        })};
+    })},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{font:{size:10}, boxWidth:10, padding:8}},
+        /* nueve curvas por catorce puntos son 126 etiquetas: el tooltip las da
+           todas a la vez y ordenadas, que es como se comparan de verdad */
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false, itemSort:function (a, b) { return b.parsed.y - a.parsed.y; },
+          callbacks:{label:function (c) { return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + '% de su d\u00eda'; }}}},
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        y:{beginAtZero:true, grace:'10%',
+           title:{display:true, text:'% del propio total de la persona', font:{size:11, weight:'700'}, color:'#3d4a5a'},
+           ticks:{font:{family:'Consolas', size:10}, callback:function (v) { return v + '%'; }}},
+        x:{ticks:{font:{size:10}, maxRotation:60}}}}});
 
   var gP = agrupar(pan, function (r) { return r[cUSR]; });
   var ukP = Object.keys(gP).sort(function (a, b) { return gP[b].length - gP[a].length; });
