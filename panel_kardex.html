@@ -428,6 +428,9 @@ td.c,th.c{text-align:center}
   <div class="card"><h3>Meses publicados y esquema de origen<span class="per">Bit&aacute;cora de ingesta</span></h3>
     <div class="scroll"><table id="tMeses"></table></div></div>
   <div class="card"><h3>Completitud de campos<span class="per">Sobre las l&iacute;neas en vista</span></h3><div class="scroll"><table id="tCampos"></table></div></div>
+  <div class="card"><h3>Con qu&eacute; precio se valoriz&oacute; cada mes<span class="per">Trazabilidad de la valorizaci&oacute;n</span></h3>
+    <div class="tabla-h"><span>SAP no valoriza los traslados, as&iacute; que el tablero les pone precio con el MB52. Esta tabla dice <b>qu&eacute; foto</b> valoriz&oacute; cada mes, para que cualquier cifra sea explicable ante quien la cuestione.</span><div class="der"><button class="btn sec" data-csv="tFoto">Exportar Excel</button></div></div>
+    <div class="scroll"><table id="tFoto"></table></div></div>
   <div class="card"><h3>Advertencias estructurales del reporte</h3><div class="body" id="advertencias"></div></div>
 </div>
 
@@ -545,6 +548,9 @@ var NCOL = 19;
 
 var IDX = null, ROWS = [], INV = null, F = [], CH = {}, DET_N = 200;
 var DIC = {}, D_F8 = [], D_E8 = [], D_TP = [], D_AT = [], D_EQ = [], PRECIO = {};
+/* Una tabla de precios por mes. PRECIO queda como respaldo global: es la foto
+   mas reciente y solo se usa cuando ningun mes puede resolver la linea. */
+var INV_MES = {}, PRECIO_MES = {}, FOTO_DE = {}, VAL_FUENTE = {};
 var FUENTES = {}, MESCAMPOS = {};
 /* Codigo de almacen receptor de SAP -> Unidad Ejecutora. Derivado del empate
    real entre MB51_ENTRADA y SEGUIMIENTO_PEDIDOS del Motor, no inventado. Los
@@ -693,9 +699,23 @@ function cargar() {
     });
     return acum.then(function () {
       prog(85, 'Cargando el inventario MB52\u2026');
-      return traer('inventario.json').catch(function () { return null; });
-    }).then(function (inv) {
-      INV = inv;
+      /* Se bajan TODAS las fotos publicadas, una por mes, mas la mas reciente.
+         Con una sola foto, cambiarla revalorizaba cinco meses de historia: se
+         midio un movimiento de 12,771,155.86 —13.5% del despacho— sin que
+         cambiara un solo dato. */
+      var fm = (idx._meta && idx._meta.mb52meses) ? idx._meta.mb52meses : {};
+      var mesesFoto = Object.keys(fm).sort();
+      var cad = traer('inventario.json').then(function (v) { INV = v; }).catch(function () { INV = null; });
+      mesesFoto.forEach(function (mz) {
+        cad = cad.then(function () {
+          return traer(fm[mz].archivo || ('inventario_' + mz + '.json'))
+            .then(function (p) { INV_MES[mz] = p; })
+            .catch(function () { /* una foto que falte se resuelve con la vecina */ });
+        });
+      });
+      return cad;
+    }).then(function () {
+      var inv = INV;
       prog(92, 'Normalizando ' + nf(idx._meta.filas) + ' l\u00edneas\u2026');
       unificar(cargados);
       prog(98, 'Preparando el tablero\u2026');
@@ -784,8 +804,50 @@ function unificar(paquetes) {
   D_EQ = [];
   for (var uu = 0; uu < DIC.usr.length; uu++) D_EQ.push(PADRON.indexOf(DIC.usr[uu]) >= 0 ? 1 : 0);
 
-  /* precio del MB52 por Material + Almacén + Lote, y de respaldo por
-     Material + Lote, porque los meses viejos no publicaron el almacén */
+  /* ── PRECIOS POR MES ──────────────────────────────────────────────────────
+     Cada foto del MB52 produce su propia tabla. Una linea se valoriza con la
+     foto de SU mes; si ese mes no tiene foto, con la ANTERIOR mas cercana
+     —nunca con una posterior, porque un precio del futuro no valoriza un
+     movimiento del pasado—, y solo si no hay ninguna anterior se usa la
+     posterior mas cercana. FOTO_DE deja constancia de que foto resolvio cada
+     mes, y el tablero lo muestra: si se le pide una explicacion a alguien por
+     una cifra, hay que poder decir con que precio se calculo.
+     ──────────────────────────────────────────────────────────────────────── */
+  PRECIO_MES = {}; FOTO_DE = {};
+  var tablaDe = function (paq) {
+    var T = {};
+    if (!paq || !paq.rows) return T;
+    var io2 = {};
+    paq._meta.orden.forEach(function (cc3, i3) { io2[cc3.replace('*','')] = i3; });
+    for (var q2 = 0; q2 < paq.rows.length; q2++) {
+      var r2 = paq.rows[q2];
+      var m2 = paq.dic.mat[r2[io2.mat]], a2 = paq.dic.alm[r2[io2.alm]], l2 = paq.dic.lote[r2[io2.lote]];
+      var p2 = Number(r2[io2.precio]) || 0;
+      if (!p2) continue;
+      T[m2 + '|' + a2 + '|' + l2] = p2;
+      if (T[m2 + '|' + l2] === undefined) T[m2 + '|' + l2] = p2;
+      if (T[m2] === undefined) T[m2] = p2;
+    }
+    return T;
+  };
+  var mesesFoto = Object.keys(INV_MES).sort();
+  for (var z = 0; z < mesesFoto.length; z++) PRECIO_MES[mesesFoto[z]] = tablaDe(INV_MES[mesesFoto[z]]);
+  /* a cada mes con movimientos se le asigna su foto */
+  var mesesDatos = {};
+  for (var z2 = 0; z2 < ROWS.length; z2++) mesesDatos[String(ROWS[z2][cF]).slice(0, 7)] = 1;
+  Object.keys(mesesDatos).sort().forEach(function (md) {
+    if (PRECIO_MES[md]) { FOTO_DE[md] = {mes:md, tipo:'propia'}; return; }
+    var ant = null, pos = null, z3;
+    for (z3 = 0; z3 < mesesFoto.length; z3++) {
+      if (mesesFoto[z3] < md) ant = mesesFoto[z3];
+      else if (pos === null) pos = mesesFoto[z3];
+    }
+    if (ant) FOTO_DE[md] = {mes:ant, tipo:'anterior'};
+    else if (pos) FOTO_DE[md] = {mes:pos, tipo:'posterior'};
+    else FOTO_DE[md] = null;
+  });
+
+  /* respaldo global: la foto mas reciente, por si un mes no resuelve */
   PRECIO = {};
   if (INV && INV.rows) {
     var io = {}, ordI = INV._meta.orden;
@@ -809,10 +871,31 @@ function unificar(paquetes) {
 function valor(r) {
   if (r[cV]) return r[cV];
   var mat = DIC.mat[r[cMAT]], alm = DIC.alm[r[cALM]], lo = DIC.lote[r[cLOTE]];
-  var p = PRECIO[mat + '|' + alm + '|' + lo];
-  if (p === undefined) p = PRECIO[mat + '|' + lo];
-  if (p === undefined) p = PRECIO[mat];
+  var mesL = String(r[cF]).slice(0, 7);
+  var asig = FOTO_DE[mesL];
+  var T = asig ? PRECIO_MES[asig.mes] : null;
+  var p;
+  if (T) {
+    p = T[mat + '|' + alm + '|' + lo];
+    if (p === undefined) p = T[mat + '|' + lo];
+    if (p === undefined) p = T[mat];
+  }
+  /* si la foto de su mes no lo resuelve, la mas reciente como ultimo recurso */
+  if (p === undefined) {
+    p = PRECIO[mat + '|' + alm + '|' + lo];
+    if (p === undefined) p = PRECIO[mat + '|' + lo];
+    if (p === undefined) p = PRECIO[mat];
+  }
   return p === undefined ? 0 : r[cQ] * p;
+}
+/* Con que foto se valorizo esta linea. Va en el Detalle y en la pestaña de
+   calidad: la cifra tiene que ser explicable, no solo correcta. */
+function fuenteValor(r) {
+  if (r[cV]) return 'SAP';
+  if (valor(r) === 0) return 'SIN PRECIO';
+  var asig = FOTO_DE[String(r[cF]).slice(0, 7)];
+  if (!asig) return 'MB52 vigente';
+  return 'MB52 ' + asig.mes + (asig.tipo === 'propia' ? '' : ' (' + asig.tipo + ')');
 }
 function valorEstimado(r) { return !r[cV] && valor(r) !== 0; }
 
@@ -3098,6 +3181,37 @@ function pintarCalidad() {
       p >= 99 ? 'COMPLETO' : (p >= 50 ? 'PARCIAL' : 'MAYORMENTE VAC\u00cdO')];
   }), {i:1, d:-1});
 
+  /* trazabilidad de la valorizacion, mes por mes */
+  var mesesD = {};
+  for (var z5 = 0; z5 < ROWS.length; z5++) {
+    var mz5 = String(ROWS[z5][cF]).slice(0, 7);
+    if (!mesesD[mz5]) mesesD[mz5] = {n:0, est:0, sin:0, sap:0};
+    var rz = ROWS[z5];
+    mesesD[mz5].n++;
+    if (rz[cV]) mesesD[mz5].sap++;
+    else if (valor(rz) === 0) mesesD[mz5].sin++;
+    else mesesD[mz5].est++;
+  }
+  var TFO = {propia:'ok', anterior:'wa', posterior:'er'};
+  tabla('tFoto', [
+    {h:'Mes del movimiento', t:'c'},
+    {h:'Foto del MB52 usada', t:'c'},
+    {h:'Fecha de esa foto', t:'c'},
+    {h:'Correspondencia', t:'c', f:function (v) {
+      return '<span class="chip ' + (TFO[v] || 'er') + '">' + v + '</span>'; }},
+    {h:'L\u00edneas del mes', t:'n', f:nf},
+    {h:'Valorizadas por SAP', t:'n', f:nf},
+    {h:'Estimadas con MB52', t:'n', f:nf},
+    {h:'Sin precio', t:'n', f:nf},
+    {h:'% sin precio', t:'n'}
+  ], Object.keys(mesesD).sort().map(function (mz6) {
+    var a6 = FOTO_DE[mz6], x6 = mesesD[mz6];
+    var f6 = a6 && INV_MES[a6.mes] ? INV_MES[a6.mes]._meta.fecha : (INV ? INV._meta.fecha : '\u2014');
+    return [mz6, a6 ? a6.mes : (INV ? 'la m\u00e1s reciente' : '\u2014'), f6,
+      a6 ? a6.tipo : 'sin foto por mes', x6.n, x6.sap, x6.est, x6.sin,
+      x6.n ? (x6.sin / x6.n * 100).toFixed(1) + '%' : '0%'];
+  }), {i:0, d:1});
+
   $('advertencias').innerHTML =
   '<div class="nota"><b>Los movimientos 313, 314, 315 y 316 llegan con Importe ML en cero.</b> ' +
   'SAP no valoriza el traslado entre almacenes. El valor que muestra este tablero para esos movimientos ' +
@@ -3109,7 +3223,13 @@ function pintarCalidad() {
   'Un MB52 cargado con la fecha equivocada hace que el tablero valorice con precios de otro ' +
   'mes sin que nada lo delate. Los MB52 de cierre antiguos deben ir a Drive a mano con su ' +
   'fecha real, porque la ventana del panel es de 15 d\u00edas.</div>' +
-  '<div class="nota"><b>El precio proviene de una sola foto del MB52, la del ' +
+  '<div class="nota"><b>Cada mes se valoriza con la foto del MB52 de su propio mes.</b> ' +
+  'Antes hab\u00eda una sola foto para todo el hist\u00f3rico, y cambiarla revalorizaba cinco meses ' +
+  'de golpe: medido el 16-sep, pasar de la foto del 31-jul a la del 15-sep movi\u00f3 el despacho en ' +
+  'B/. 12,771,155.86 \u2014un 13.5%\u2014 sin que cambiara un solo movimiento. La tabla de arriba dice ' +
+  'qu\u00e9 foto valoriz\u00f3 cada mes; un mes marcado <b>anterior</b> o <b>posterior</b> no tiene foto propia ' +
+  'y se resolvi\u00f3 con la vecina. P\u00eddale a la Jefatura el MB52 de cierre de los meses que falten.</div>' +
+  '<div class="nota"><b>Nota de la versi\u00f3n anterior, que ya no aplica: el precio proven\u00eda de una sola foto, la del ' +
   (INV ? INV._meta.fecha : 'sin publicar') + '.</b> Para el tablero operativo eso da una referencia v\u00e1lida. ' +
   'Para valorizaci\u00f3n hist\u00f3rica no alcanza: el cierre contable valoriza los movimientos de cada mes con el ' +
   'MB52 de ese mes, y aqu\u00ed se est\u00e1n valorizando todos los meses con la \u00fanica foto disponible.</div>' +
@@ -3145,7 +3265,7 @@ function pintarDetalle() {
     var cod = DIC.rec[r[cREC]];
     return [r[cF], r[cH], r[cM], MOVS[r[cM]] ? MOVS[r[cM]][0] : 'Sin catalogar',
       DIC.mat[r[cMAT]], DIC.ds[r[cDS]], D_TP[r[cMAT]], DIC.lote[r[cLOTE]], r[cFV],
-      r[cQ], r[cV], valor(r), valorEstimado(r) ? 'ESTIMADO' : (r[cV] ? 'SAP' : 'SIN PRECIO'),
+      r[cQ], r[cV], valor(r), fuenteValor(r),
       r[cDOC], DIC.tx[r[cTX]], D_F8[r[cTX]], D_E8[r[cTX]],
       MAPA_UE[cod] || cod, DIC.alm[r[cALM]], DIC.usr[r[cUSR]],
       D_EQ[r[cUSR]] ? 'CEDIS PANAMA' : 'OTRA SEDE',
@@ -3157,7 +3277,9 @@ function pintarDetalle() {
     {h:'C\u00f3digo SAP', t:'c'}, {h:'Descripci\u00f3n', t:'t'}, {h:'Tipo', t:'c'},
     {h:'Lote', t:'c'}, {h:'Vence', t:'c'}, {h:'Cantidad', t:'n', f:nf},
     {h:'Importe SAP B/.', t:'n', f:nf2}, {h:'Valor usado B/.', t:'n', f:nf2},
-    {h:'Origen del valor', t:'c', f:function (v) { return '<span class="chip ' + (v === 'SAP' ? 'ok' : (v === 'ESTIMADO' ? 'wa' : 'er')) + '">' + v + '</span>'; }},
+    {h:'Origen del valor', t:'c', nb:true, f:function (v) {
+      var c = v === 'SAP' ? 'ok' : (v === 'SIN PRECIO' ? 'er' : (/\(/.test(v) ? 'wa' : 'nu'));
+      return '<span class="chip ' + c + '">' + v + '</span>'; }},
     {h:'N.\u00ba documento', t:'c'}, {h:'Texto cabecera', t:'t'}, {h:'Forma 8', t:'c'}, {h:'Lectura F8', t:'c'},
     {h:'Destino', t:'t'}, {h:'Almac\u00e9n', t:'c'}, {h:'Usuario', t:'c'}, {h:'Equipo', t:'c'},
     {h:'Proveedor', t:'c'}, {h:'Pedido', t:'c'}, {h:'Referencia', t:'c'}, {h:'Centro de coste', t:'c'},
