@@ -455,13 +455,25 @@ function avpEnviar_(opc) {
   var correoPrueba = props.getProperty('AVP_CORREO_PRUEBA') || Session.getEffectiveUser().getEmail();
   var cuota = Number(props.getProperty('AVP_CUOTA') || 280);
   var dia = opc.dia || Number(Utilities.formatDate(new Date(), 'America/Panama', 'u'));   // 1 = lunes
-  if (!opc.soloProveedor && (dia < 1 || dia > 5)) return { success: true, mensaje: 'Fin de semana: no se envía.' };
+  if (!opc.soloProveedor && !opc.todos && (dia < 1 || dia > 5)) return { success: true, mensaje: 'Fin de semana: no se envía.' };
 
   var datos = avpDatos_(), dir = avpLeerDirectorios_(datos.resolver);
   var bit = avpHoja_(AVP_HOJA_BIT, ['FECHA', 'MODO', 'PROVEEDOR', 'PARA', 'CC', 'RENGLONES', 'CRITICOS_CEDIS_PMA', 'RESULTADO']);
   var lista = Object.keys(datos.porProveedor).map(function (k) { return { k: k, p: datos.porProveedor[k], d: dir.prov[k] }; });
   if (opc.soloProveedor) { var ks = avpNorm_(opc.soloProveedor); lista = lista.filter(function (x) { return x.k === ks; }); }
+  else if (opc.todos) lista = lista.filter(function (x) { return x.d && x.d.activo; });
   else lista = lista.filter(function (x) { return x.d && x.d.activo && x.d.dia === dia; });
+
+  // Nadie recibe dos avisos reales en menos de 6 días (p. ej. tras un envío a todos).
+  var recientes = {}, omitidos = 0;
+  if (!prueba && !opc.soloProveedor) {
+    var bv = bit.getDataRange().getValues(), bh = avpIdx_(bv[0]), lim = Date.now() - 6 * 864e5;
+    for (var b = 1; b < bv.length; b++) {
+      var f = bv[b][bh.FECHA];
+      if (String(bv[b][bh.RESULTADO]) === 'ENVIADO' && f instanceof Date && f.getTime() >= lim) recientes[avpNorm_(bv[b][bh.PROVEEDOR])] = true;
+    }
+    lista = lista.filter(function (x) { if (recientes[x.k]) { omitidos++; return false; } return true; });
+  }
 
   var usados = 0, enviados = 0, sinCorreo = [], errores = [];
   lista.forEach(function (x) {
@@ -504,7 +516,8 @@ function avpEnviar_(opc) {
   });
   return { success: errores.length === 0 || enviados > 0, modo: prueba ? 'PRUEBA' : 'REAL', dia: AVP_DIAS[dia] || '', proveedores: lista.length,
            enviados: enviados, destinatarios: usados, sinCorreo: sinCorreo, errores: errores,
-           mensaje: (opc.simular ? 'Simulación: ' : '') + enviados + ' aviso(s) ' + (prueba ? 'de prueba ' : '') + 'para ' + lista.length + ' proveedor(es) del ' + (AVP_DIAS[dia] || 'día') +
+           mensaje: (opc.simular ? 'Simulación: ' : '') + enviados + ' aviso(s) ' + (prueba ? 'de prueba ' : '') + 'para ' + lista.length + ' proveedor(es) ' + (opc.todos ? 'de toda la semana' : 'del ' + (AVP_DIAS[dia] || 'día')) +
+             (omitidos ? ' · ' + omitidos + ' ya recibieron aviso en los últimos 6 días' : '') +
              ' · ' + usados + ' destinatarios' + (sinCorreo.length ? ' · ' + sinCorreo.length + ' sin correo' : '') + (errores.length ? ' · ' + errores.length + ' con error' : '') };
 }
 
@@ -531,7 +544,7 @@ function avpResumen_() {
 function avpDiario() {
   try {
     var r = avpEnviar_({});
-    Logger.log('Aviso a proveedores: ' + r.mensaje + (r.errores.length ? ' · ' + r.errores.join(' | ') : ''));
+    Logger.log('Aviso a proveedores: ' + r.mensaje + (r.errores && r.errores.length ? ' · ' + r.errores.join(' | ') : ''));
   } catch (e) { Logger.log('avpDiario ERROR: ' + e); }
 }
 
@@ -549,6 +562,15 @@ function avpInstalar() {
 function avpDesinstalar() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'avpDiario') ScriptApp.deleteTrigger(t); });
   Logger.log('Disparador avpDiario eliminado.');
+}
+
+/* Envía YA a todos los proveedores activos, sin esperar su día. Los que lo reciban hoy
+   no vuelven a recibirlo en su día de esta semana (regla de 6 días). Respeta AVP_MODO
+   y AVP_CUOTA (con el plan Starter de Brevo, ponga AVP_CUOTA = 1000). */
+function avpEnviarTodosAhora() {
+  var r = avpEnviar_({ todos: true });
+  Logger.log(r.mensaje + (r.errores.length ? ' · ' + r.errores.join(' | ') : '') + (r.sinCorreo.length ? ' · sin correo: ' + r.sinCorreo.join(', ') : ''));
+  return r;
 }
 
 /* Manda a AVP_CORREO_PRUEBA el aviso del proveedor con más renglones vigentes. */
