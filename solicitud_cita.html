@@ -239,6 +239,18 @@
             </div>
 
             <div id="boxDiferidasVacio" style="display:none;font-size:12px;color:#777;padding:6px 0;">Sin citas activas. Use el botón de Excel para ver su historial completo.</div>
+
+            <!-- Seguimiento de la entrega: recepción, revisión documental y pago -->
+            <div id="boxSeguimiento" style="margin-top:12px;border-top:1px dashed #b7c9de;padding-top:10px;">
+              <div style="font-weight:700;color:#0C447C;font-size:13px;">Seguimiento de mi entrega · recepción, revisión y pago</div>
+              <div style="font-size:11.5px;color:#666;margin:2px 0 8px;">Vea en qué etapa está la mercancía que ya entregó: recepción en el CEDIS, ingreso al inventario, entrada contable, revisión del informe de recepción, Contabilidad y publicación. No muestra montos ni datos de otros proveedores.</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <input type="text" id="segOC" class="mono" list="segOCs" placeholder="OC (10 dígitos)" inputmode="numeric" style="max-width:200px;">
+                <datalist id="segOCs"></datalist>
+                <button type="button" id="btnSeguimiento" style="font-size:12px;padding:6px 12px;border:1px solid #1e5a9e;background:#1e5a9e;color:#fff;border-radius:3px;cursor:pointer;">Ver seguimiento ↗</button>
+                <span id="segMsg" style="font-size:11.5px;color:#a3331f;"></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -360,8 +372,20 @@
         </div>
         <div class="campo" id="campoOC">
           <label>N.º de Orden de Compra / Contrato <span class="req">*</span></label>
-          <input type="text" id="oc" class="mono" placeholder="Ej. 1001016980">
-          <span class="hint">Una orden por renglón. No se admite el mismo renglón dos veces bajo la misma orden.</span>
+          <input type="text" id="oc" class="mono" placeholder="Ej. 1001016980" inputmode="numeric" autocomplete="off">
+          <span class="hint">Solo los 10 dígitos de la OC (empieza con 100). No agregue 08-12, letras, el pedido SAFIRO (3000…) ni el número de entrega.</span>
+          <span class="hint" id="ocAviso" style="display:none;color:#a3331f;font-weight:600;"></span>
+        </div>
+        <div class="campo" id="campoEntrega">
+          <label>N.º de entrega de esta OC para este renglón <span class="req">*</span></label>
+          <select id="ocEntrega">
+            <option value="1">1.ª entrega (o entrega única)</option>
+            <option value="2">2.ª entrega</option><option value="3">3.ª entrega</option><option value="4">4.ª entrega</option>
+            <option value="5">5.ª entrega</option><option value="6">6.ª entrega</option><option value="7">7.ª entrega</option>
+            <option value="8">8.ª entrega</option><option value="9">9.ª entrega</option><option value="10">10.ª entrega</option>
+            <option value="11">11.ª entrega</option><option value="12">12.ª entrega</option>
+          </select>
+          <span class="hint">Si la misma OC y renglón se entregan por partes, cada parte es una solicitud nueva: elija 2.ª, 3.ª… El sistema la registra como <span class="mono">OC-E2</span>, <span class="mono">OC-E3</span>.</span>
         </div>
         <div class="campo" id="campoNotaAdelanto" style="display:none;">
           <label>N.º de Nota de Adelanto <span class="req">*</span></label>
@@ -926,6 +950,7 @@ document.getElementById('tipoEntrega').addEventListener('change', function(){
   const t=this.value;
   const esAdelanto = t==='Adelanto';
   document.getElementById('campoOC').style.display = esAdelanto?'none':'flex';
+  if(document.getElementById('campoEntrega')) document.getElementById('campoEntrega').style.display = esAdelanto?'none':'flex';
   document.getElementById('campoNotaAdelanto').style.display = esAdelanto?'flex':'none';
   document.getElementById('avisoCompromiso').classList.toggle('activo', t==='Reposicion');
 });
@@ -1096,6 +1121,56 @@ function renderTransitosDisponibles(lista){
   box.style.display='block';
 }
 
+// ---- Seguimiento de la entrega (abre la vista del proveedor de Trazabilidad) ----
+const URL_TRAZ='https://torredecontrolcss.github.io/SIGUELO/trazabilidad.html';
+function ocBase(oc){ const m=String(oc||'').replace(/\s+/g,'').match(/(100\d{7})(?!\d)/); return m?m[1]:''; }
+function urlSeguimiento(oc,cod){ const b=ocBase(oc); if(!b) return ''; return URL_TRAZ+'?proveedor=1&oc='+b+(cod?'&ren='+encodeURIComponent(String(cod).replace(/\.0+$/,'')):''); }
+function llenarSeguimiento(citas){
+  const dl=document.getElementById('segOCs'); if(!dl) return;
+  const set=[...new Set((citas||[]).filter(c=>/ASISTIO|ENTREGADO/i.test(String(c.estado||''))).map(c=>ocBase(c.oc)).filter(Boolean))];
+  dl.innerHTML=set.map(o=>'<option value="'+o+'">').join('');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('btnSeguimiento'); if(!b) return;
+  const ir=()=>{ const v=validarOC(document.getElementById('segOC').value); const msg=document.getElementById('segMsg');
+    if(!v.ok||v.tipo!=='OC'){ msg.textContent=v.ok?'Escriba el número de la orden de compra (10 dígitos, empieza con 100).':v.msg; return; }
+    msg.textContent=''; window.open(urlSeguimiento(v.oc,''),'_blank','noopener'); };
+  b.addEventListener('click',ir);
+  document.getElementById('segOC').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ir(); } });
+});
+
+// ---- OC: normalización y número de entrega explícito ----
+// Acepta: OC de 10 dígitos que empieza con 100, o el N.º de solicitud de entrega de DINALOG
+// (entregas por contrato sin OC, que llegan desde los tránsitos de Planificación).
+function validarOC(raw){
+  let s=String(raw||'').trim();
+  if(!s) return {ok:false,msg:'Falta el número de orden de compra.'};
+  if(/DINALOG|S\.\s*MED|P\.\s*de/i.test(s)) return {ok:true,oc:s,tipo:'SOLICITUD'};
+  const solo=s.replace(/\s+/g,'');
+  const m=solo.match(/(?:^|\D)(100\d{7})(?!\d)/) || solo.match(/^(100\d{7})0?8-?12/) || solo.match(/^(100\d{7})/);
+  if(/^3000\d{6}$/.test(solo.replace(/\D/g,''))) return {ok:false,msg:'Escribió el pedido SAFIRO (3000…). Use el número de la orden de compra: 10 dígitos que empiezan con 100.'};
+  if(!m) return {ok:false,msg:'La OC debe tener 10 dígitos y empezar con 100 (ej. 1001016980). Revise que no le falte un dígito.'};
+  return {ok:true,oc:m[1],tipo:'OC',limpiada:m[1]!==s};
+}
+function ocCompuesta(){
+  const v=validarOC(document.getElementById('oc').value);
+  const base=v.ok?v.oc:document.getElementById('oc').value.trim();
+  const n=parseInt((document.getElementById('ocEntrega')||{}).value||'1',10)||1;
+  return n>1 ? base+'-E'+n : base;
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('oc'), av=document.getElementById('ocAviso');
+  if(!inp||!av) return;
+  inp.addEventListener('blur',()=>{
+    const v=validarOC(inp.value);
+    if(!inp.value.trim()){ av.style.display='none'; return; }
+    if(!v.ok){ av.textContent=v.msg; av.style.display='block'; return; }
+    if(v.tipo==='OC' && v.limpiada){ av.style.color='#2d5a1e'; av.textContent='Se dejó solo el número de la OC: '+v.oc+'. Si es una entrega parcial, indíquelo en "N.º de entrega".'; av.style.display='block'; inp.value=v.oc; }
+    else av.style.display='none';
+    av.style.color = v.ok ? '#2d5a1e' : '#a3331f';
+  });
+});
+
 // Pre-llena el formulario a partir de una OC en tránsito y selecciona su renglón.
 function usarTransito(t){
   _transitoSeleccionado=t;
@@ -1150,6 +1225,7 @@ function cargarDiferidasProveedor(empresa){
     const atencion=filtrarAtencion(citasTodas);
     const agendadas=filtrarAgendadas(citasTodas);
     const asistio=filtrarAsistioSemanaPasada(citasTodas);
+    try{ llenarSeguimiento(citasTodas); }catch(eS){}
 
     box.style.display='block';
 
@@ -1374,6 +1450,7 @@ function _tarjetaCita(d){
     (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
     (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
     (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
+    ((estU==='ASISTIO'||estU==='ENTREGADO')&&urlSeguimiento(d.oc,d.cod_abasto)?'<br><a href="'+urlSeguimiento(d.oc,d.cod_abasto)+'" target="_blank" rel="noopener" style="color:#1e5a9e;font-weight:600;">Ver avance de recepción y pago ↗</a>':'')+
     '</div>';
 }
 // Renderiza una lista de citas en un contenedor, con tope de 4 + botón "ver más".
@@ -1615,7 +1692,7 @@ function enviarSolicitud(){
   const req={
     empresa:val('empresa'), solicitante:val('solicitante'), correo:val('correo'),
     telefono:val('telefono'), tipo_entrega:tipo,
-    oc: esAdelanto ? ('ADELANTO-'+val('notaAdelanto')) : val('oc'),
+    oc: esAdelanto ? ('ADELANTO-'+val('notaAdelanto')) : ocCompuesta(),
     nota_adelanto: esAdelanto ? val('notaAdelanto') : '',
     fecha_solicitada:val('fechaSolic'), fecha_vencimiento:val('fechaVenc'),
     tipo_ambiente:val('ambiente'), estado_bulto:val('estadoBulto'),
@@ -1631,6 +1708,7 @@ function enviarSolicitud(){
   for(const k in obligatorios){ if(!req[k]){ mostrarAlerta('err','Falta completar: '+obligatorios[k]+'.'); return; } }
   if(esAdelanto && !val('notaAdelanto')){ mostrarAlerta('err','El adelanto requiere número de nota de adelanto.'); return; }
   if(!esAdelanto && !val('oc')){ mostrarAlerta('err','Falta el número de orden de compra.'); return; }
+  if(!esAdelanto){ const vOc=validarOC(val('oc')); if(!vOc.ok){ mostrarAlerta('err',vOc.msg); document.getElementById('oc').focus(); return; } document.getElementById('oc').value=vOc.oc; req.oc=ocCompuesta(); }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(req.correo)){ mostrarAlerta('err','El correo no tiene un formato válido.'); return; }
   if(!renglonActual){ mostrarAlerta('err','Debe seleccionar un renglón.'); return; }
 
@@ -1694,7 +1772,7 @@ function enviarSolicitud(){
       limpiarTodo();
     }
   })
-  .catch(e=>mostrarAlerta('err','No se pudo registrar: '+e.message))
+  .catch(e=>mostrarAlerta('err','No se pudo registrar: '+e.message+(/Ya existe una solicitud/i.test(e.message)?' Si es otra parte de la misma OC, elija la siguiente entrega en "N.º de entrega de esta OC" (2.ª, 3.ª…) y vuelva a enviar.':'')))
   .finally(()=>{ btn.disabled=false; btn.textContent='Enviar solicitud'; });
 }
 
@@ -1773,6 +1851,9 @@ function limpiarTodo(){
   document.getElementById('renglon').disabled=true;
   document.getElementById('ficha').classList.remove('activa');
   document.getElementById('campoOC').style.display='flex';
+  if(document.getElementById('ocEntrega')) document.getElementById('ocEntrega').value='1';
+  if(document.getElementById('campoEntrega')) document.getElementById('campoEntrega').style.display='flex';
+  if(document.getElementById('ocAviso')) document.getElementById('ocAviso').style.display='none';
   document.getElementById('campoNotaAdelanto').style.display='none';
   document.getElementById('avisoCompromiso').classList.remove('activo');
   renglonActual=null; lotes=[]; agregarLote();

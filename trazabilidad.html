@@ -244,6 +244,8 @@ tr.click:hover td{background:var(--surface2)}
 .fdet-t{display:flex;gap:10px;align-items:flex-start;font-size:.86rem}
 .fdet-t .c{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink);font-size:.8rem;padding-top:2px}
 .fdet .st{font-size:.78rem;color:var(--muted)}.fdet .st.ok{color:var(--ok);font-weight:600}.fdet .st.now{color:var(--warn);font-weight:600}
+/* modo proveedor (abierto desde solicitud_cita) */
+body.modo-prov nav.tabs,body.modo-prov .internal,body.modo-prov #btnTour,body.modo-prov label[for="pProv"]{display:none!important}
 @media print{body *{visibility:hidden} #caratula,#caratula *{visibility:visible} #caratula{position:absolute;left:0;top:0;border:0}}
 
 /* portal del proveedor (imita solicitud_cita.html) */
@@ -755,6 +757,18 @@ function provRens(){
   $('#pRen').innerHTML='<option value="">Todos los renglones</option>'+[...rm.entries()].map(r=>'<option value="'+esc(r[0])+'">'+esc(r[0])+' · '+esc(r[1].slice(0,50))+'</option>').join('');renderProv();
 }
 function hit(x,p){const r=RES[x.id];return r&&r.hitos&&r.hitos[p]?String(r.hitos[p]).slice(0,10):null;}
+function modoProveedor(qp){
+  document.body.classList.add('modo-prov');showTab('p-prov');
+  const oc=String(qp.get('oc')||'').replace(/\D/g,'').slice(0,10),ren=String(qp.get('ren')||'').trim();
+  const x=X.find(v=>String(v.e.oc)===oc);
+  if(!x){$('#pOc').innerHTML='<option>'+esc(oc||'—')+'</option>';$('#pRen').innerHTML='<option value="">—</option>';
+    $('#pRes').innerHTML='<p style="font-size:.86rem">No encontramos recepciones de la OC <b class="mono">'+esc(oc||'—')+'</b> en el CEDIS Panamá desde el 5 de mayo de 2026.</p><p style="font-size:.8rem;color:var(--sg-tenue)">Si entregó hace pocos días, el registro de recepción puede tardar en aparecer. Verifique que el número sea el de la orden de compra (10 dígitos, empieza con 100). Dudas: Torre de Control, ext. 86322.</p>';return;}
+  $('#pProv').innerHTML='<option>'+esc(x.e.prov)+'</option>';
+  $('#pOc').innerHTML='<option>'+esc(oc)+'</option>';
+  provRens();
+  if(ren&&[...$('#pRen').options].some(o=>o.value===ren)){$('#pRen').value=ren;renderProv();}
+  if(VIVO_REG)cargarResumen().then(()=>{if(RESOK)renderProv();});
+}
 function renderProv(){
   const oc=$('#pOc').value,rn=$('#pRen').value,pv=$('#pProv').value;const box=$('#pRes');
   let L=X.filter(x=>String(x.e.oc)===oc);if(rn)L=L.filter(x=>x.e.cod===rn);
@@ -830,6 +844,8 @@ function iniciar(){
   llenarFiltros();renderFlujo();renderFlujoChips();renderTabla();provLlenar();
   if(VIVO_REG){cargarResumen().then(()=>{if(RESOK)renderProv();});enviarCola();}
   const demo=X.find(x=>x.f101&&x.c&&x.t)||X.find(x=>x.f101&&x.c);
+  const qp=new URLSearchParams(location.search);
+  if(qp.get('proveedor')==='1'){modoProveedor(qp);return;}
   const h=(location.hash||'').slice(1);if(h&&X.some(x=>x.id===h)){abrir(h);}else{SELID=(demo||X[0]).id;}
 }
 (async function(){
