@@ -256,25 +256,63 @@ function avpSugerirCorreosPlanificadores_(shp) {
   return { sugeridos: sugeridos, sinCorreo: sinCorreo, fuentes: con.fuentes.join(' · ') };
 }
 
-function avpLeerDirectorios_() {
+/* resolver: función de alias (avpAlias_) para unir los nombres de CORREOS_PROVEEDORES. */
+function avpLeerDirectorios_(resolver) {
+  var kP = function (n) { return avpNorm_((resolver && resolver(n)) || n); };
   var sh = avpHoja_(AVP_HOJA_DIR, ['PROVEEDOR', 'CORREO_1', 'CORREO_2', 'CORREO_3', 'DIA', 'ACTIVO', 'NOTA']);
   var d = sh.getDataRange().getValues(), h = avpIdx_(d[0]), prov = {};
   for (var i = 1; i < d.length; i++) {
     var p = String(d[i][h.PROVEEDOR] || '').trim(); if (!p) continue;
-    prov[avpNorm_(p)] = {
+    prov[kP(p)] = {
       nombre: p, dia: Number(d[i][h.DIA]) || 0,
       activo: String(d[i][h.ACTIVO] || 'SI').trim().toUpperCase() !== 'NO',
-      correos: [d[i][h.CORREO_1], d[i][h.CORREO_2], d[i][h.CORREO_3]].map(function (x) { return String(x || '').trim(); }).filter(avpCorreoOk_)
+      correos: [d[i][h.CORREO_1], d[i][h.CORREO_2], d[i][h.CORREO_3]].map(function (x) { return String(x || '').trim().toLowerCase(); }).filter(avpCorreoOk_)
     };
   }
+  // CORREOS_PROVEEDORES (lista institucional del libro): sus correos activos se suman a los del directorio.
+  try {
+    var cp = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CORREOS_PROVEEDORES');
+    if (cp && cp.getLastRow() > 1) {
+      var w = cp.getDataRange().getValues();
+      for (var r = 1; r < w.length; r++) {
+        if (String(w[r][2] || 'SI').trim().toUpperCase() === 'NO') continue;
+        var x = prov[kP(w[r][0])]; if (!x) continue;
+        String(w[r][1] || '').split(/[,;\s]+/).forEach(function (m) { m = m.trim().toLowerCase(); if (avpCorreoOk_(m) && x.correos.indexOf(m) < 0) x.correos.push(m); });
+      }
+    }
+  } catch (e) {}
+
+  // Planificadores. En tránsitos el nombre viene escrito de varias formas ("Nohelia S.",
+  // "Selene itzel Fernandez vega"): si no calza exacto, se busca por primer nombre +
+  // apellidos del directorio (una inicial vale por el apellido). Solo si hay un único correo.
   var sp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO']);
-  var dp = sp.getDataRange().getValues(), plan = {};
+  var dp = sp.getDataRange().getValues(), plan = {}, nombreDe = {}, lista = [];
+  var toks = function (s) { return String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z ]/g, ' ').split(/\s+/).filter(Boolean); };
   for (var j = 1; j < dp.length; j++) {
     if (String(dp[j][2] || 'SI').trim().toUpperCase() === 'NO') continue;
-    var m = String(dp[j][1] || '').trim();
-    if (avpCorreoOk_(m)) plan[avpNorm_(dp[j][0])] = m;
+    var nm = String(dp[j][0] || '').trim(), m = String(dp[j][1] || '').trim().toLowerCase();
+    if (!nm || !avpCorreoOk_(m)) continue;
+    plan[avpNorm_(nm)] = m; nombreDe[avpNorm_(nm)] = nm;
+    lista.push({ n: nm, m: m, t: toks(nm).filter(function (w) { return w.length > 1 && ['DE', 'LA', 'DEL', 'LOS'].indexOf(w) < 0; }) });
   }
-  return { prov: prov, plan: plan, jefatura: plan[avpNorm_(AVP_JEFATURA)] || '' };
+  var cache = {};
+  var buscar = function (nm) {
+    var k = avpNorm_(nm); if (!k) return null;
+    if (plan[k]) return { m: plan[k], n: nombreDe[k] };
+    if (k in cache) return cache[k];
+    var t = toks(nm), ms = {};
+    if (t.length > 1) lista.forEach(function (x) {
+      if (x.t.length < 2 || x.t[0] !== t[0]) return;
+      var ok = x.t.slice(1).every(function (w) { return t.some(function (u) { return u === w || (u.length === 1 && w.charAt(0) === u); }); });
+      if (ok) ms[x.m] = x.n;
+    });
+    var ks = Object.keys(ms);
+    return (cache[k] = ks.length === 1 ? { m: ks[0], n: ms[ks[0]] } : null);
+  };
+  var jefatura = plan[avpNorm_(AVP_JEFATURA)] || plan[avpNorm_(AVP_JEFATURA_SUGERIDA[0])] || '';
+  return { prov: prov, plan: plan, jefatura: jefatura,
+           planDe: function (n) { var b = buscar(n); return b ? b.m : ''; },
+           planNombre: function (n) { var b = buscar(n); return b ? b.n : String(n || '').trim(); } };
 }
 
 /* ------------------------------------------------------------------ */
@@ -338,7 +376,7 @@ function avpDatos_() {
       out[kp] = { nombre: p, filas: filas, planificadores: Object.keys(planes) };
     }
   });
-  return { porProveedor: out, saldosAl: String((sal._meta && sal._meta.generado) || '').slice(0, 10) };
+  return { resolver: resolver, porProveedor: out, saldosAl: String((sal._meta && sal._meta.generado) || '').slice(0, 10) };
 }
 
 /* ------------------------------------------------------------------ */
@@ -417,7 +455,7 @@ function avpEnviar_(opc) {
   var dia = opc.dia || Number(Utilities.formatDate(new Date(), 'America/Panama', 'u'));   // 1 = lunes
   if (!opc.soloProveedor && (dia < 1 || dia > 5)) return { success: true, mensaje: 'Fin de semana: no se envía.' };
 
-  var dir = avpLeerDirectorios_(), datos = avpDatos_();
+  var datos = avpDatos_(), dir = avpLeerDirectorios_(datos.resolver);
   var bit = avpHoja_(AVP_HOJA_BIT, ['FECHA', 'MODO', 'PROVEEDOR', 'PARA', 'CC', 'RENGLONES', 'CRITICOS_CEDIS_PMA', 'RESULTADO']);
   var lista = Object.keys(datos.porProveedor).map(function (k) { return { k: k, p: datos.porProveedor[k], d: dir.prov[k] }; });
   if (opc.soloProveedor) { var ks = avpNorm_(opc.soloProveedor); lista = lista.filter(function (x) { return x.k === ks; }); }
@@ -427,7 +465,7 @@ function avpEnviar_(opc) {
   lista.forEach(function (x) {
     var para = (x.d && x.d.correos) || [];
     var cc = [];
-    x.p.planificadores.forEach(function (n) { var m = dir.plan[avpNorm_(n)]; if (m && cc.indexOf(m) < 0) cc.push(m); });
+    x.p.planificadores.forEach(function (n) { var m = dir.planDe(n); if (m && cc.indexOf(m) < 0) cc.push(m); });
     if (!cc.length && dir.jefatura) cc.push(dir.jefatura);
     var crit = x.p.filas.filter(function (f) { return f.pa != null && Math.round(f.pa * 10) / 10 < 1; }).length;
     if (!para.length) { sinCorreo.push(x.p.nombre); if (!prueba) { bit.appendRow([new Date(), modo, x.p.nombre, '', cc.join(', '), x.p.filas.length, crit, 'SIN CORREO']); return; } }
@@ -442,13 +480,13 @@ function avpEnviar_(opc) {
       // se quita el nombre cuyas palabras ya están en otro, y el que comparte correo con otro.
       var tok = function (s) { return String(s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean); };
       var vistos = {}, planes = x.p.planificadores.slice().sort(function (a, b) { return tok(a).length - tok(b).length; }).filter(function (nm, i, arr) {
-        var t = tok(nm), m = dir.plan[avpNorm_(nm)];
+        var t = tok(nm), m = dir.planDe(nm);
         if (m && vistos[m]) return false;
         var dentro = arr.some(function (o, j) { if (j >= i) return false; var u = tok(o); return u.every(function (w) { return t.indexOf(w) >= 0; }); });
         if (dentro) return false;
         if (m) vistos[m] = true; return true;
       });
-      var nombres = planes.map(function (n) { var m = dir.plan[avpNorm_(n)]; return '<b>' + avpEsc_(n) + '</b>' + (m ? ' (<a href="mailto:' + m + '">' + avpEsc_(m) + '</a>)' : ''); });
+      var nombres = planes.map(function (n) { var m = dir.planDe(n); return '<b>' + avpEsc_(dir.planNombre(n)) + '</b>' + (m ? ' (<a href="mailto:' + m + '">' + avpEsc_(m) + '</a>)' : ''); });
       var contacto = nombres.length ? (nombres.length === 1 ? 'su planificador(a) asignado(a), ' : 'sus planificadores asignados: ') + nombres.join(', ')
         : (dir.jefatura ? 'la Jefatura de Planificación (<a href="mailto:' + dir.jefatura + '">' + avpEsc_(dir.jefatura) + '</a>)' : '');
       var html = avpHtml_(x.p, datos.saldosAl, franja, contacto);
@@ -470,12 +508,12 @@ function avpEnviar_(opc) {
 
 /* Resumen de la semana para la Administración (sin enviar nada). */
 function avpResumen_() {
-  var dir = avpLeerDirectorios_(), datos = avpDatos_(), porDia = [0, 0, 0, 0, 0, 0], sinCorreo = 0, sinPlan = 0, n = 0;
+  var datos = avpDatos_(), dir = avpLeerDirectorios_(datos.resolver), porDia = [0, 0, 0, 0, 0, 0], sinCorreo = 0, sinPlan = 0, n = 0;
   Object.keys(datos.porProveedor).forEach(function (k) {
     var d = dir.prov[k], p = datos.porProveedor[k]; n++;
     if (!d || !d.correos.length) sinCorreo++;
     if (d && d.activo && d.dia >= 1 && d.dia <= 5) porDia[d.dia]++;
-    if (!p.planificadores.some(function (x) { return dir.plan[avpNorm_(x)]; })) sinPlan++;
+    if (!p.planificadores.some(function (x) { return dir.planDe(x); })) sinPlan++;
   });
   return { success: true, proveedores: n, sinCorreo: sinCorreo, sinPlanificador: sinPlan, jefatura: !!dir.jefatura,
            porDia: { lunes: porDia[1], martes: porDia[2], miercoles: porDia[3], jueves: porDia[4], viernes: porDia[5] },
