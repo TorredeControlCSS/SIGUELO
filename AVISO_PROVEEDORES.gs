@@ -1,0 +1,402 @@
+/**
+ * ============================================================================
+ *  AVISO_PROVEEDORES · Cobertura semanal de los renglones de cada proveedor
+ *  Diego Bethancourth · Torre de Control · DINALOG · CSS
+ *  Proyecto: SIGUELO Backend (libro BASE DE DATOS DE CITAS)
+ * ----------------------------------------------------------------------------
+ *  Cuarta familia de correos (no se mezcla con Desabasto, Traslados entre CEDIS
+ *  ni Aviso de Reposición a las UE). A cada proveedor, una vez por semana:
+ *  "Los renglones que usted abastece tienen estas coberturas en CEDIS Panamá,
+ *  Chiriquí y Divisa y en la red de unidades ejecutoras", con su saldo pendiente
+ *  por entregar y el enlace a solicitud_cita. Copia al planificador de sus OC;
+ *  si no hay planificador identificado, a la Jefatura de Planificación.
+ *
+ *  QUÉ RENGLONES: los del maestro de proveedores que siguen VIGENTES para ese
+ *  proveedor: tiene OC o solicitud de entrega en tránsito, o entregó en los
+ *  últimos 183 días (informe de entradas o cita asistida). Los que ya entrega
+ *  otro proveedor, los que nunca entregó y los proveedores sin entregas no van.
+ *
+ *  DATOS (todo de GitHub Pages, lo mismo que ven los tableros):
+ *    maestro_renglones.json · entradas_recepcion.json · citas_trazabilidad.json
+ *    transitos_oc.json · saldos_en_linea.json (saldo y cobertura por punto)
+ *
+ *  HOJAS que crea solas:
+ *    DIRECTORIO_PROVEEDORES   PROVEEDOR | CORREO_1 | CORREO_2 | CORREO_3 | DIA | ACTIVO | NOTA
+ *        se llena con los correos que cada proveedor usó al pedir cita (SOLICITUDES);
+ *        lo que usted edite a mano se respeta. DIA = 1 (lunes) … 5 (viernes).
+ *    DIRECTORIO_PLANIFICADORES NOMBRE | CORREO | ACTIVO
+ *        nombres tal como vienen en tránsitos; usted completa el CORREO.
+ *        La fila "JEFATURA DE PLANIFICACIÓN" recibe la copia de los proveedores
+ *        sin planificador identificado.
+ *    AVP_BITACORA             cada envío (o simulación) con destinatarios y resultado.
+ *
+ *  ENVÍO: cuenta Brevo PROPIA de esta familia (no gasta la cuota de los avisos a
+ *  las UE). Propiedades del script:
+ *    AVP_BREVO_KEY     clave API de la segunda cuenta Brevo
+ *    AVP_REMITENTE     correo verificado en esa cuenta (p. ej. info@torrecontrol.org)
+ *    AVP_MODO          PRUEBA (por defecto) | REAL
+ *    AVP_CORREO_PRUEBA a dónde van los correos en modo PRUEBA (por defecto, la
+ *                      cuenta que corre el script)
+ *    AVP_CUOTA         destinatarios máximos por día (por defecto 280)
+ *  En PRUEBA nada sale a proveedores: cada aviso llega a AVP_CORREO_PRUEBA con
+ *  una franja que dice a quién habría ido.
+ *
+ *  INSTALACIÓN:
+ *    1) Pegar este archivo (nuevo) en el proyecto.
+ *    2) Ejecutar avpInstalar(): crea las hojas, llena los directorios y crea el
+ *       disparador de lunes a viernes a las 7 a. m.
+ *    3) Completar correos en DIRECTORIO_PLANIFICADORES (y la Jefatura).
+ *    4) Ejecutar avpProbar() → manda a AVP_CORREO_PRUEBA el aviso de un proveedor.
+ *    5) Con la cuenta Brevo lista y revisado el directorio: AVP_MODO = REAL.
+ *  También se maneja desde panel_confirmacion › Administración.
+ *
+ *  REVERSIÓN: avpDesinstalar() quita el disparador; borrar este archivo.
+ * ============================================================================
+ */
+
+var AVP_BASE = 'https://torredecontrolcss.github.io/SIGUELO/';
+var AVP_HOJA_DIR = 'DIRECTORIO_PROVEEDORES';
+var AVP_HOJA_PLAN = 'DIRECTORIO_PLANIFICADORES';
+var AVP_HOJA_BIT = 'AVP_BITACORA';
+var AVP_JEFATURA = 'JEFATURA DE PLANIFICACIÓN';
+var AVP_DIAS_VIGENCIA = 183;
+var AVP_MAX_FILAS = 60;           // renglones por correo; el resto se ve en solicitud_cita
+var AVP_DIAS = ['', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
+
+/* ------------------------------------------------------------------ */
+/*  Utilidades                                                          */
+/* ------------------------------------------------------------------ */
+
+function avpProps_() { return PropertiesService.getScriptProperties(); }
+function avpNorm_(s) {
+  s = String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  s = s.replace(/\(.*?\)/g, ' ').replace(/[^A-Z0-9 ]/g, ' ');
+  s = s.replace(/\b(S ?A|SAS|INC|CORP|Y CIA|CIA|DE|PANAMA|LTDA)\b/g, ' ');
+  return s.replace(/\s+/g, '');
+}
+function avpCod_(c) { return String(c == null ? '' : c).replace(/\.0+$/, '').replace(/[-\s]/g, '').trim(); }
+function avpJson_(archivo) {
+  var r = UrlFetchApp.fetch(AVP_BASE + archivo + '?_=' + Date.now(), { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('No se pudo leer ' + archivo + ' (' + r.getResponseCode() + ').');
+  return JSON.parse(r.getContentText());
+}
+function avpHoja_(nombre, enc) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(nombre);
+  if (!sh) { sh = ss.insertSheet(nombre); sh.getRange(1, 1, 1, enc.length).setValues([enc]).setFontWeight('bold'); sh.setFrozenRows(1); }
+  return sh;
+}
+function avpIdx_(fila) { var m = {}; fila.forEach(function (h, i) { m[String(h || '').trim().toUpperCase()] = i; }); return m; }
+function avpCorreoOk_(c) { return /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i.test(String(c || '').trim()); }
+function avpHoy_() { return Utilities.formatDate(new Date(), 'America/Panama', 'yyyy-MM-dd'); }
+function avpEsc_(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function avpFmt_(n) { return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+/* ------------------------------------------------------------------ */
+/*  Directorios                                                         */
+/* ------------------------------------------------------------------ */
+
+/* Llena DIRECTORIO_PROVEEDORES con los correos usados al pedir cita (los más
+   recientes primero) y DIRECTORIO_PLANIFICADORES con los nombres de tránsitos.
+   Nunca borra ni pisa lo que se escribió a mano: solo completa celdas vacías y
+   agrega filas nuevas. */
+function avpConstruirDirectorio_() {
+  var maestro = avpJson_('maestro_renglones.json');
+  var canon = {};
+  Object.keys(maestro.catalogo || {}).forEach(function (p) { canon[avpNorm_(p)] = p; });
+
+  // Correos por proveedor desde SOLICITUDES (más recientes primero)
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sol = ss.getSheetByName('SOLICITUDES');
+  var correos = {};
+  if (sol && sol.getLastRow() > 1) {
+    var v = sol.getDataRange().getValues(), c = avpIdx_(v[0]);
+    var iE = c.EMPRESA, iC = c.CORREO, iM = c.MARCA_TEMPORAL;
+    var filas = [];
+    for (var i = 1; i < v.length; i++) {
+      var k = avpNorm_(v[i][iE]);
+      if (!k || !canon[k]) continue;
+      String(v[i][iC] || '').split(/[,;\s]+/).forEach(function (m) {
+        m = m.trim().toLowerCase();
+        if (avpCorreoOk_(m)) filas.push([k, m, v[i][iM] instanceof Date ? v[i][iM].getTime() : 0]);
+      });
+    }
+    filas.sort(function (a, b) { return b[2] - a[2]; });
+    filas.forEach(function (f) { var L = correos[f[0]] = correos[f[0]] || []; if (L.indexOf(f[1]) < 0 && L.length < 3) L.push(f[1]); });
+  }
+
+  var sh = avpHoja_(AVP_HOJA_DIR, ['PROVEEDOR', 'CORREO_1', 'CORREO_2', 'CORREO_3', 'DIA', 'ACTIVO', 'NOTA']);
+  var d = sh.getDataRange().getValues(), h = avpIdx_(d[0]), ya = {};
+  for (var j = 1; j < d.length; j++) ya[avpNorm_(d[j][h.PROVEEDOR])] = j;
+  var nombres = Object.keys(canon).map(function (k) { return canon[k]; }).sort();
+  var nuevos = 0, completados = 0;
+  nombres.forEach(function (p, n) {
+    var k = avpNorm_(p), L = correos[k] || [];
+    if (ya[k] == null) {
+      sh.appendRow([p, L[0] || '', L[1] || '', L[2] || '', (n % 5) + 1, 'SI', L.length ? '' : 'Sin correo en SOLICITUDES']);
+      nuevos++;
+    } else {
+      var fila = d[ya[k]], cambio = false;
+      ['CORREO_1', 'CORREO_2', 'CORREO_3'].forEach(function (col) {
+        if (String(fila[h[col]] || '').trim()) return;
+        var libre = L.filter(function (m) { return [fila[h.CORREO_1], fila[h.CORREO_2], fila[h.CORREO_3]].map(String).indexOf(m) < 0; })[0];
+        if (libre) { fila[h[col]] = libre; cambio = true; }
+      });
+      if (cambio) { sh.getRange(ya[k] + 1, 1, 1, fila.length).setValues([fila]); completados++; }
+    }
+  });
+
+  // Planificadores desde tránsitos
+  var tr = avpJson_('transitos_oc.json').rows || [];
+  var shp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO']);
+  var dp = shp.getDataRange().getValues(), yp = {};
+  for (var q = 1; q < dp.length; q++) yp[avpNorm_(dp[q][0])] = true;
+  var planNuevos = 0;
+  if (!yp[avpNorm_(AVP_JEFATURA)]) { shp.appendRow([AVP_JEFATURA, '', 'SI']); yp[avpNorm_(AVP_JEFATURA)] = true; planNuevos++; }
+  tr.forEach(function (t) {
+    var nm = String(t.planificador || '').trim();
+    if (!nm || /RECIEN NOMBRADOS/i.test(nm) || yp[avpNorm_(nm)]) return;
+    shp.appendRow([nm, '', 'SI']); yp[avpNorm_(nm)] = true; planNuevos++;
+  });
+  return { success: true, proveedoresNuevos: nuevos, proveedoresCompletados: completados, planificadoresNuevos: planNuevos,
+           conCorreo: Object.keys(correos).length, totalProveedores: nombres.length };
+}
+
+function avpLeerDirectorios_() {
+  var sh = avpHoja_(AVP_HOJA_DIR, ['PROVEEDOR', 'CORREO_1', 'CORREO_2', 'CORREO_3', 'DIA', 'ACTIVO', 'NOTA']);
+  var d = sh.getDataRange().getValues(), h = avpIdx_(d[0]), prov = {};
+  for (var i = 1; i < d.length; i++) {
+    var p = String(d[i][h.PROVEEDOR] || '').trim(); if (!p) continue;
+    prov[avpNorm_(p)] = {
+      nombre: p, dia: Number(d[i][h.DIA]) || 0,
+      activo: String(d[i][h.ACTIVO] || 'SI').trim().toUpperCase() !== 'NO',
+      correos: [d[i][h.CORREO_1], d[i][h.CORREO_2], d[i][h.CORREO_3]].map(function (x) { return String(x || '').trim(); }).filter(avpCorreoOk_)
+    };
+  }
+  var sp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO']);
+  var dp = sp.getDataRange().getValues(), plan = {};
+  for (var j = 1; j < dp.length; j++) {
+    if (String(dp[j][2] || 'SI').trim().toUpperCase() === 'NO') continue;
+    var m = String(dp[j][1] || '').trim();
+    if (avpCorreoOk_(m)) plan[avpNorm_(dp[j][0])] = m;
+  }
+  return { prov: prov, plan: plan, jefatura: plan[avpNorm_(AVP_JEFATURA)] || '' };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Datos: renglones vigentes por proveedor y su cobertura              */
+/* ------------------------------------------------------------------ */
+
+function avpDatos_() {
+  var maestro = avpJson_('maestro_renglones.json').catalogo || {};
+  var ent = avpJson_('entradas_recepcion.json').rows || [];
+  var ct = avpJson_('citas_trazabilidad.json');
+  var tr = avpJson_('transitos_oc.json').rows || [];
+  var sal = avpJson_('saldos_en_linea.json');
+  var corte = Utilities.formatDate(new Date(Date.now() - AVP_DIAS_VIGENCIA * 864e5), 'America/Panama', 'yyyy-MM-dd');
+
+  var ultima = {};
+  ent.forEach(function (e) { var k = avpNorm_(e.prov) + '|' + avpCod_(e.cod); if (String(e.fRec) > (ultima[k] || '')) ultima[k] = String(e.fRec); });
+  var col = ct._meta.columnas, ix = {}; col.forEach(function (c, i) { ix[c] = i; });
+  ct.rows.forEach(function (r) {
+    var est = String(r[ix.estado] || '').toUpperCase();
+    if (est !== 'ASISTIO' && est !== 'ENTREGADO') return;
+    var k = avpNorm_(r[ix.proveedor]) + '|' + avpCod_(r[ix.codigo]);
+    var f = String(r[ix.fechaConfirmada] || r[ix.fechaSolicitada] || '');
+    if (f > (ultima[k] || '')) ultima[k] = f;
+  });
+  var trans = {};
+  tr.forEach(function (t) { var k = avpNorm_(t.prov) + '|' + avpCod_(t.cod); (trans[k] = trans[k] || []).push(t); });
+
+  var out = {};
+  Object.keys(maestro).forEach(function (p) {
+    var kp = avpNorm_(p), filas = [], planes = {};
+    maestro[p].forEach(function (r) {
+      var c = avpCod_(r.cod_abasto), k = kp + '|' + c, T = trans[k] || [];
+      if (!T.length && !((ultima[k] || '') >= corte)) return;           // no vigente para este proveedor
+      T.forEach(function (t) { if (t.planificador) planes[String(t.planificador).trim()] = true; });
+      var s = sal.renglones && sal.renglones[c];
+      if (!s || !s.puntos) return;
+      var up = function (x) { return String(x.punto_canon || x.punto || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z]/g, ''); };
+      var esCedis = function (x) { return !!x.es_cedis || up(x).indexOf('CEDIS') === 0; };
+      var cedis = function (nom) { for (var i = 0; i < s.puntos.length; i++) { var x = s.puntos[i]; if (esCedis(x) && up(x).indexOf(nom) >= 0) return x; } return null; };
+      var pa = cedis('CEDISPANAMA'), ch = cedis('CHIRIQUI'), dv = cedis('DIVISA');
+      var ues = s.puntos.filter(function (x) { return !esCedis(x); });
+      var conCob = ues.filter(function (x) { return x.cobertura != null; });
+      var pend = 0, venc = '';
+      T.forEach(function (t) { var sd = Number(t.saldo) || 0; if (sd > 0) { pend += sd; if (t.vencEntrega && (!venc || t.vencEntrega < venc)) venc = String(t.vencEntrega); } });
+      filas.push({
+        cod: c, desc: r.desc || '',
+        pa: pa ? pa.cobertura : null, ch: ch ? ch.cobertura : null, dv: dv ? dv.cobertura : null,
+        saldoPa: pa ? Number(pa.saldo) || 0 : 0,
+        ue: s.total_consumo_ue ? (Number(s.total_ue) || 0) / Number(s.total_consumo_ue) : null,
+        ueSaldo: Number(s.total_ue) || 0,
+        ueEsc: conCob.filter(function (x) { return Number(x.cobertura) < 1; }).length, ueN: conCob.length,
+        pend: pend, venc: venc
+      });
+    });
+    if (filas.length) {
+      filas.sort(function (a, b) { return (a.pa == null ? 99 : a.pa) - (b.pa == null ? 99 : b.pa); });
+      out[kp] = { nombre: p, filas: filas, planificadores: Object.keys(planes) };
+    }
+  });
+  return { porProveedor: out, saldosAl: String((sal._meta && sal._meta.generado) || '').slice(0, 10) };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Correo                                                              */
+/* ------------------------------------------------------------------ */
+
+function avpPill_(m) {
+  if (m == null) return '<span style="color:#999">s/d</span>';
+  var r = Math.round(Number(m) * 10) / 10;
+  var c = r < 1 ? ['#fde8ea', '#9b1c2c'] : (r < 3 ? ['#fff3d6', '#8a5a00'] : ['#e3f4e8', '#2d6a3e']);
+  return '<span style="background:' + c[0] + ';color:' + c[1] + ';padding:1px 7px;border-radius:9px;font-weight:600;white-space:nowrap">' + r.toFixed(1) + ' m</span>';
+}
+
+function avpHtml_(p, saldosAl, franja) {
+  var F = p.filas, hoy = avpHoy_();
+  var crit = F.filter(function (x) { return x.pa != null && Math.round(x.pa * 10) / 10 < 1; }).length;
+  var conPend = F.filter(function (x) { return x.pend > 0; }).length;
+  var ueTxt = (function () {
+    var s = 0, cons = 0;
+    F.forEach(function (x) { if (x.ue != null) { s += x.ueSaldo; cons += x.ueSaldo / (x.ue || 1e-9); } });
+    return cons ? (s / cons).toFixed(1) + ' meses' : 'sin dato';
+  })();
+  var filas = F.slice(0, AVP_MAX_FILAS).map(function (x) {
+    var vencTxt = x.pend > 0 && x.venc ? (x.venc < hoy ? '<div style="font-size:11px;color:#9b1c2c">venció ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>' : '<div style="font-size:11px;color:#777">vence ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>') : '';
+    return '<tr><td style="padding:7px 8px;border-bottom:1px solid #e6e9ee"><b style="color:#0C447C;font-family:Consolas,monospace">' + x.cod + '</b> ' + avpEsc_(String(x.desc).slice(0, 70)) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.pa) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.ch) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.dv) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.ue) + '<div style="font-size:11px;color:#777">' + x.ueEsc + ' de ' + x.ueN + ' UE bajo 1 mes</div></td>' +
+      '<td style="text-align:right;padding-right:8px;border-bottom:1px solid #e6e9ee;font-family:Consolas,monospace">' + (x.pend > 0 ? avpFmt_(x.pend) : '—') + vencTxt + '</td></tr>';
+  }).join('');
+  var resto = F.length > AVP_MAX_FILAS ? '<p style="font-size:12px;color:#666">Se muestran los ' + AVP_MAX_FILAS + ' más críticos de ' + F.length + '. Los demás se consultan en Solicitud de Cita al elegir el renglón.</p>' : '';
+  return '<div style="font-family:Segoe UI,Arial,sans-serif;color:#222;max-width:900px">' + (franja || '') +
+    '<div style="background:#0C447C;color:#fff;padding:16px 20px"><table role="presentation"><tr><td style="padding-right:12px"><img src="' + AVP_BASE + 'icons/icon-192.png" width="44" height="44" alt="CSS" style="background:#fff;border-radius:50%"></td><td>' +
+    '<div style="font-size:19px;font-weight:700">Cobertura de sus renglones · ' + avpEsc_(p.nombre) + '</div>' +
+    '<div style="font-size:12.5px;opacity:.9">Caja de Seguro Social · Dirección Nacional de Logística · Saldos al ' + saldosAl.split('-').reverse().join('/') + '</div></td></tr></table></div>' +
+    '<div style="padding:16px 20px;font-size:14px;line-height:1.5;border:1px solid #ddd;border-top:0">' +
+    '<p>Estimado proveedor: los <b>' + F.length + ' renglones</b> que usted abastece a la CSS tienen hoy las coberturas que se muestran abajo en los CEDIS Panamá, Chiriquí y Divisa, con una cobertura conjunta en la red de unidades ejecutoras de <b>' + ueTxt + '</b>. ' +
+    (crit ? '<b>' + crit + (crit === 1 ? ' está' : ' están') + ' por debajo de un mes en CEDIS Panamá.</b> ' : '') +
+    (conPend ? 'Usted tiene saldo pendiente de entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + ': le pedimos agendar su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Cuando tenga una orden de compra o solicitud de entrega, agende su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
+    '<p style="font-size:12px;color:#666;margin-top:12px">Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
+    '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Control Operativo DINALOG.</p></div></div>';
+}
+
+function avpEnviarBrevo_(para, cc, asunto, html) {
+  var key = avpProps_().getProperty('AVP_BREVO_KEY'), rem = avpProps_().getProperty('AVP_REMITENTE');
+  if (!key || !rem) throw new Error('Faltan AVP_BREVO_KEY o AVP_REMITENTE en las propiedades del script.');
+  var body = { sender: { name: 'Torre de Control · DINALOG', email: rem }, to: para.map(function (m) { return { email: m }; }), subject: asunto, htmlContent: html };
+  if (cc.length) body.cc = cc.map(function (m) { return { email: m }; });
+  var r = UrlFetchApp.fetch('https://api.brevo.com/v3/smtp/email', { method: 'post', contentType: 'application/json',
+    headers: { 'api-key': key, accept: 'application/json' }, payload: JSON.stringify(body), muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) throw new Error('Brevo respondió ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Envío del día                                                       */
+/* ------------------------------------------------------------------ */
+
+/* dia: 1..5 (lunes..viernes); vacío = el de hoy. soloProveedor: nombre exacto o normalizado.
+   simular: no envía nada, solo cuenta. */
+function avpEnviar_(opc) {
+  opc = opc || {};
+  var props = avpProps_(), modo = String(props.getProperty('AVP_MODO') || 'PRUEBA').toUpperCase();
+  var prueba = modo !== 'REAL' || !!opc.forzarPrueba;
+  var correoPrueba = props.getProperty('AVP_CORREO_PRUEBA') || Session.getEffectiveUser().getEmail();
+  var cuota = Number(props.getProperty('AVP_CUOTA') || 280);
+  var dia = opc.dia || Number(Utilities.formatDate(new Date(), 'America/Panama', 'u'));   // 1 = lunes
+  if (!opc.soloProveedor && (dia < 1 || dia > 5)) return { success: true, mensaje: 'Fin de semana: no se envía.' };
+
+  var dir = avpLeerDirectorios_(), datos = avpDatos_();
+  var bit = avpHoja_(AVP_HOJA_BIT, ['FECHA', 'MODO', 'PROVEEDOR', 'PARA', 'CC', 'RENGLONES', 'CRITICOS_CEDIS_PMA', 'RESULTADO']);
+  var lista = Object.keys(datos.porProveedor).map(function (k) { return { k: k, p: datos.porProveedor[k], d: dir.prov[k] }; });
+  if (opc.soloProveedor) { var ks = avpNorm_(opc.soloProveedor); lista = lista.filter(function (x) { return x.k === ks; }); }
+  else lista = lista.filter(function (x) { return x.d && x.d.activo && x.d.dia === dia; });
+
+  var usados = 0, enviados = 0, sinCorreo = [], errores = [];
+  lista.forEach(function (x) {
+    var para = (x.d && x.d.correos) || [];
+    var cc = [];
+    x.p.planificadores.forEach(function (n) { var m = dir.plan[avpNorm_(n)]; if (m && cc.indexOf(m) < 0) cc.push(m); });
+    if (!cc.length && dir.jefatura) cc.push(dir.jefatura);
+    var crit = x.p.filas.filter(function (f) { return f.pa != null && Math.round(f.pa * 10) / 10 < 1; }).length;
+    if (!para.length) { sinCorreo.push(x.p.nombre); if (!prueba) { bit.appendRow([new Date(), modo, x.p.nombre, '', cc.join(', '), x.p.filas.length, crit, 'SIN CORREO']); return; } }
+    var dest = prueba ? [correoPrueba] : para, copia = prueba ? [] : cc;
+    if (usados + dest.length + copia.length > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
+    var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + (cc.length ? ' · copia: ' + avpEsc_(cc.join(', ')) : ' · sin copia (falta correo del planificador)') + '</div>' : '';
+    var asunto = (prueba ? '[PRUEBA] ' : '') + 'Cobertura de sus renglones en la CSS · ' + x.p.nombre;
+    if (opc.simular) { usados += para.length + cc.length; enviados++; return; }
+    try {
+      var html = avpHtml_(x.p, datos.saldosAl, franja);
+      // Mientras la cuenta Brevo de proveedores no esté lista, las PRUEBAS salen por Gmail del script (un correo a usted).
+      if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: dest.join(','), subject: asunto, htmlBody: html, name: 'Torre de Control · DINALOG' });
+      else avpEnviarBrevo_(dest, copia, asunto, html);
+      usados += dest.length + copia.length; enviados++;
+      bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.join(', '), x.p.filas.length, crit, prueba ? 'PRUEBA → ' + correoPrueba : 'ENVIADO']);
+    } catch (e) {
+      errores.push(x.p.nombre + ': ' + e.message);
+      bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.join(', '), x.p.filas.length, crit, 'ERROR ' + e.message]);
+    }
+  });
+  return { success: errores.length === 0 || enviados > 0, modo: prueba ? 'PRUEBA' : 'REAL', dia: AVP_DIAS[dia] || '', proveedores: lista.length,
+           enviados: enviados, destinatarios: usados, sinCorreo: sinCorreo, errores: errores,
+           mensaje: (opc.simular ? 'Simulación: ' : '') + enviados + ' aviso(s) ' + (prueba ? 'de prueba ' : '') + 'para ' + lista.length + ' proveedor(es) del ' + (AVP_DIAS[dia] || 'día') +
+             ' · ' + usados + ' destinatarios' + (sinCorreo.length ? ' · ' + sinCorreo.length + ' sin correo' : '') + (errores.length ? ' · ' + errores.length + ' con error' : '') };
+}
+
+/* Resumen de la semana para la Administración (sin enviar nada). */
+function avpResumen_() {
+  var dir = avpLeerDirectorios_(), datos = avpDatos_(), porDia = [0, 0, 0, 0, 0, 0], sinCorreo = 0, sinPlan = 0, n = 0;
+  Object.keys(datos.porProveedor).forEach(function (k) {
+    var d = dir.prov[k], p = datos.porProveedor[k]; n++;
+    if (!d || !d.correos.length) sinCorreo++;
+    if (d && d.activo && d.dia >= 1 && d.dia <= 5) porDia[d.dia]++;
+    if (!p.planificadores.some(function (x) { return dir.plan[avpNorm_(x)]; })) sinPlan++;
+  });
+  return { success: true, proveedores: n, sinCorreo: sinCorreo, sinPlanificador: sinPlan, jefatura: !!dir.jefatura,
+           porDia: { lunes: porDia[1], martes: porDia[2], miercoles: porDia[3], jueves: porDia[4], viernes: porDia[5] },
+           mensaje: n + ' proveedores con renglones vigentes · ' + sinCorreo + ' sin correo · ' + sinPlan + ' sin planificador con correo' + (dir.jefatura ? '' : ' · falta el correo de la Jefatura') +
+             ' · por día L ' + porDia[1] + ' / M ' + porDia[2] + ' / X ' + porDia[3] + ' / J ' + porDia[4] + ' / V ' + porDia[5] };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Disparador y funciones para el editor                               */
+/* ------------------------------------------------------------------ */
+
+/* Disparador de lunes a viernes, 7 a. m. Nunca lanza. */
+function avpDiario() {
+  try {
+    var r = avpEnviar_({});
+    Logger.log('Aviso a proveedores: ' + r.mensaje + (r.errores.length ? ' · ' + r.errores.join(' | ') : ''));
+  } catch (e) { Logger.log('avpDiario ERROR: ' + e); }
+}
+
+function avpInstalar() {
+  var r = avpConstruirDirectorio_();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'avpDiario') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('avpDiario').timeBased().everyDays(1).atHour(7).inTimezone('America/Panama').create();
+  if (!avpProps_().getProperty('AVP_MODO')) avpProps_().setProperty('AVP_MODO', 'PRUEBA');
+  Logger.log('Directorio: ' + r.totalProveedores + ' proveedores (' + r.proveedoresNuevos + ' nuevos, ' + r.conCorreo + ' con correo en SOLICITUDES) · ' + r.planificadoresNuevos + ' planificadores nuevos.');
+  Logger.log('Disparador avpDiario creado (todos los días 7 a. m.; sábado y domingo no envía). Modo: ' + avpProps_().getProperty('AVP_MODO'));
+  Logger.log(avpResumen_().mensaje);
+}
+
+function avpDesinstalar() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'avpDiario') ScriptApp.deleteTrigger(t); });
+  Logger.log('Disparador avpDiario eliminado.');
+}
+
+/* Manda a AVP_CORREO_PRUEBA el aviso del proveedor con más renglones vigentes. */
+function avpProbar(proveedor) {
+  var nombre = proveedor;
+  if (!nombre) {
+    var d = avpDatos_(), mejor = null;
+    Object.keys(d.porProveedor).forEach(function (k) { var p = d.porProveedor[k]; if (!mejor || p.filas.length > mejor.filas.length) mejor = p; });
+    nombre = mejor && mejor.nombre;
+  }
+  var r = avpEnviar_({ soloProveedor: nombre, forzarPrueba: true });
+  Logger.log(r.mensaje + (r.errores.length ? ' · ' + r.errores.join(' | ') : '') + (r.sinCorreo.length ? ' · sin correo: ' + r.sinCorreo.join(', ') : ''));
+  return r;
+}

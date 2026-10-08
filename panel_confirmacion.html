@@ -3745,6 +3745,11 @@ const ADM_TAREAS=[
     {k:'notas_sim', t:'Ver diferidas sin nota', d:'Cuenta las citas diferidas que aún no tienen nota. No modifica nada.'},
     {k:'notas_apl', t:'Generar notas y PDF', d:'Asigna correlativo y archiva el PDF de cada diferida sin nota.', w:'Se asignará correlativo y se generará el PDF de cada cita diferida que no tenga nota.'},
     {k:'notas_rearch', t:'Re-archivar PDF de notas', d:'Vuelve a generar el PDF de todas las notas ya emitidas.', w:'Se regenerará el PDF de todas las notas existentes. Puede tardar varios minutos.'}]},
+  {g:'Aviso a proveedores', items:[
+    {k:'avp_resumen', t:'Ver resumen de la semana', d:'Cuántos proveedores reciben aviso cada día y a cuáles les falta correo. No envía nada.'},
+    {k:'avp_directorio', t:'Actualizar directorio', d:'Agrega proveedores y planificadores nuevos y completa correos vacíos desde SOLICITUDES. No pisa lo escrito a mano.'},
+    {k:'avp_prueba', t:'Enviarme una prueba', d:'Manda a la cuenta de prueba el aviso del proveedor con más renglones, con una franja que dice a quién iría.'},
+    {k:'avp_hoy', t:'Enviar los avisos de hoy', d:'Envía ya los avisos de los proveedores que tocan hoy (en modo PRUEBA llegan solo a la cuenta de prueba).', w:'Se enviarán los avisos de cobertura de los proveedores que tocan hoy. Si el modo es REAL, saldrán a los proveedores con copia a sus planificadores.'}]},
   {g:'Motor de Asignaciones', items:[
     {k:'motor_sim', t:'Ver qué se enviaría', d:'Cuenta las citas que irían a la hoja CALENDARIO del Motor. No modifica nada.'},
     {k:'motor_apl', t:'Sincronizar CALENDARIO', d:'Reescribe la hoja CALENDARIO del Motor con las citas agendadas actuales.', w:'Se reescribirá la hoja CALENDARIO del Motor con las citas agendadas actuales (se limpia lo histórico).'}]}
@@ -4107,6 +4112,23 @@ const ADM_AYUDA={
     ['Cuándo usarla','Si cambió el formato de la nota o faltan PDF en Drive.'],
     ['Qué modifica','Archivos PDF en Drive. No cambia los correlativos.'],
     ['Tiempo','Varios minutos.']]},
+  avp_resumen:{cada:'', q:[
+    ['Qué hace','Cuenta los proveedores con renglones vigentes, cuántos reciben aviso cada día de la semana, a cuántos les falta correo y a cuántos no se les puede copiar a un planificador.'],
+    ['Renglones vigentes','Los del catálogo del proveedor que tienen OC o solicitud de entrega en tránsito, o que el proveedor entregó en los últimos 6 meses.'],
+    ['Qué modifica','Nada.']]},
+  avp_directorio:{cada:'', q:[
+    ['Qué hace','Llena DIRECTORIO_PROVEEDORES con los correos que cada proveedor usó al pedir cita (hasta 3, los más recientes) y DIRECTORIO_PLANIFICADORES con los nombres que vienen en tránsitos.'],
+    ['Lo que usted completa','El correo de cada planificador y el de la JEFATURA DE PLANIFICACIÓN, que recibe la copia cuando el proveedor no tiene planificador identificado. En DIRECTORIO_PROVEEDORES puede corregir correos, cambiar el DIA (1 = lunes … 5 = viernes) o poner ACTIVO = NO.'],
+    ['Qué modifica','Solo agrega filas y completa celdas vacías; lo escrito a mano se respeta.']]},
+  avp_prueba:{cada:'', q:[
+    ['Qué hace','Arma el aviso del proveedor con más renglones vigentes y lo manda solo a la cuenta de prueba (AVP_CORREO_PRUEBA), con una franja amarilla que dice a quién habría ido y a quién se copiaría.'],
+    ['Cuándo usarla','Antes de pasar a modo REAL, o después de cambiar el directorio.'],
+    ['Qué modifica','Una fila en AVP_BITACORA.']]},
+  avp_hoy:{h:'avpDiario', cada:'de lunes a viernes a las 7 a. m., cada proveedor una vez por semana', q:[
+    ['Qué hace','Envía el aviso de cobertura a los proveedores que tocan hoy según la columna DIA del directorio: sus renglones vigentes con la cobertura en CEDIS Panamá, Chiriquí, Divisa y en la red de UE, y el saldo pendiente por entregar.'],
+    ['Copia','Al planificador de las OC del proveedor; si no hay planificador con correo, a la Jefatura de Planificación.'],
+    ['Modo','En PRUEBA todo llega solo a la cuenta de prueba. Se pasa a REAL con la propiedad del script AVP_MODO = REAL, una vez configurada la cuenta Brevo de proveedores.'],
+    ['Cuota','Se detiene al llegar a AVP_CUOTA destinatarios en el día (280 por defecto); lo que falte queda en AVP_BITACORA.']]},
   motor_sim:{cada:'', q:[
     ['Qué hace','Cuenta las citas que se enviarían a la hoja CALENDARIO del Motor de Asignaciones.'],
     ['Cuándo usarla','Antes de sincronizar a mano, para comparar con lo que ve el Motor.'],

@@ -300,6 +300,26 @@ function admTarea_(d, u) {
     motor_apl: function () {
       var r = sincronizarMotorCalendario_core_(false); if (!r || !r.success) throw new Error((r && r.error) || 'No se pudo sincronizar.');
       return 'Citas escritas en el Motor: ' + r.total + '.';
+    },
+    // Aviso semanal de cobertura a proveedores (AVISO_PROVEEDORES.gs)
+    avp_resumen: function () {
+      if (typeof avpResumen_ !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');
+      return avpResumen_().mensaje + ' · modo ' + (PropertiesService.getScriptProperties().getProperty('AVP_MODO') || 'PRUEBA') + '.';
+    },
+    avp_directorio: function () {
+      if (typeof avpConstruirDirectorio_ !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');
+      var r = avpConstruirDirectorio_();
+      return 'Directorio al día: ' + r.proveedoresNuevos + ' proveedores nuevos, ' + r.proveedoresCompletados + ' con correos completados, ' + r.planificadoresNuevos + ' planificadores nuevos.';
+    },
+    avp_prueba: function () {
+      if (typeof avpProbar !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');
+      var r = avpProbar(); if (r.errores && r.errores.length) throw new Error(r.errores.join(' | '));
+      return r.mensaje + '. Revise el correo de prueba.';
+    },
+    avp_hoy: function () {
+      if (typeof avpEnviar_ !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');
+      var r = avpEnviar_({}); if (!r.success) throw new Error(r.errores.join(' | '));
+      return r.mensaje + '.';
     }
   };
   if (!T.hasOwnProperty(t)) return { success: false, error: 'Tarea no reconocida.' };
