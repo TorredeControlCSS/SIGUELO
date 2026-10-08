@@ -77,7 +77,8 @@ section.panel{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 
 /* franja de flujo conectada */
 /* recorrido en flechas conectadas */
-.chevs{display:flex;overflow-x:auto;padding:2px 0 0}
+.chevs{display:flex;overflow:hidden;padding:2px 0 0}
+@media (max-width:900px){.chevs,.lats{overflow-x:auto}}
 .chev{flex:1 1 0;min-width:132px;margin-right:-11px;padding:10px 12px 10px 24px;background:var(--k-blue);color:var(--ink);border:0;font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:1px;
   clip-path:polygon(0 0,calc(100% - 15px) 0,100% 50%,calc(100% - 15px) 100%,0 100%,15px 50%);transition:filter .15s ease}
 .chev:first-child{clip-path:polygon(0 0,calc(100% - 15px) 0,100% 50%,calc(100% - 15px) 100%,0 100%);padding-left:12px}
@@ -90,12 +91,12 @@ section.panel{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 .chev.ok{background:var(--k-green)}.chev.ok .c{color:var(--ok)}
 .chev.cuello{background:linear-gradient(110deg,var(--k-red) 40%,color-mix(in srgb,var(--k-red) 70%,var(--surface)) 50%,var(--k-red) 60%);background-size:300% 100%;animation:brillo 3.2s linear infinite}
 .chev.cuello .c,.chev .al{color:var(--bad)}
-.chev.box{background:repeating-linear-gradient(135deg,var(--k-grey) 0 8px,var(--hatch) 8px 10px);cursor:default;flex:1.35 1 0}
+.chev.box{background:repeating-linear-gradient(135deg,var(--k-grey) 0 8px,var(--hatch) 8px 10px);cursor:default;flex:1.35 1 0;padding-right:20px}
 .chev.box .c{color:var(--muted)}
 .chev[aria-pressed="true"]{filter:brightness(.9)}
 @keyframes brillo{from{background-position:100% 0}to{background-position:-200% 0}}
-.lats{display:flex;margin-top:6px}
-.lat{flex:1 1 0;min-width:132px;margin-right:-11px;position:relative;height:30px}
+.lats{display:flex;margin-top:6px;overflow:hidden;padding-right:12px}
+.lat{flex:1 1 0;min-width:132px;margin-right:-11px;position:relative;height:44px}
 .lat.wide{flex:1.35 1 0}
 .lat span{position:absolute;right:-8px;top:0;transform:translateX(50%);white-space:nowrap;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.25}
 .lat span b{display:block;color:var(--ink);font-family:var(--f-mono);font-size:12px}
@@ -248,7 +249,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 <section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo">
   <div class="kpis" id="kpis"></div>
   <div class="block" id="bRecorrido">
-    <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: mediana y p85 en días hábiles · en rojo, la etapa con más líneas atrasadas</p></div>
+    <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: días hábiles típicos y plazo en que se resuelve el 85 % de las líneas · en rojo, la etapa con más atrasadas</p></div>
     <div id="chevs"></div>
   </div>
   <div class="block" id="bSankey">
@@ -360,6 +361,12 @@ function construir(){
   S.K.forEach(r=>push(ki,r[0]+'|'+r[1],r));
   S.C.forEach(r=>push(cx,String(r[3]).split('-')[0]+'|'+r[4],r));
   S.T.forEach(r=>push(tx,r[5]+'|'+r[1],r));
+  /* Respaldo: si el alias del libro no unificó un nombre, se agrupan las
+     variantes por su forma básica y se usa la más frecuente. */
+  const pk=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\(.*?\)/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\b(S ?A|SAS|INC|CORP|Y CIA|CIA|DE|PANAMA|LTDA)\b/g,' ').replace(/\s+/g,'');
+  const pc=new Map(),pf=new Map();S.E.forEach(e=>{pf.set(e.prov,(pf.get(e.prov)||0)+1);});
+  [...pf.keys()].forEach(p=>{const k=pk(p);const cur=pc.get(k);if(!cur||pf.get(p)>pf.get(cur))pc.set(k,p);});
+  S.E.forEach(e=>{const c=pc.get(pk(e.prov));if(c)e.prov=c;});
   X=S.E.map(e=>{
     const id='RB-'+e.oc+'-'+e.fRec.replace(/-/g,'');
     const ks=ki.get(e.safiro+'|'+e.mat)||[];
@@ -389,13 +396,13 @@ function renderFlujo(){
   $('#kpis').innerHTML=
     kpiH('','Líneas recibidas',nf(n),'desde 05/05/2026 · '+nf(new Set(X.map(x=>x.e.oc)).size)+' OC')+
     kpiH('verde','Con entrada contable 101',Math.round(100*con101/n)+' %',nf(con101)+' líneas')+
-    kpiH('','Recepción → 101',r1(pct(MED.k101,.5))+' d háb.','mediana · p85 '+r1(pct(MED.k101,.85)))+
-    kpiH('rojo','Sin 101 y atrasadas',nf(atRec+atSal),'más de '+thrSal+' días hábiles')+
+    kpiH('','Recepción → 101',Math.round(pct(MED.k101,.5))+' d háb.','típico · el 85 % en ≤ '+Math.round(pct(MED.k101,.85))+' d')+
+    kpiH('rojo','Sin 101 y atrasadas',nf(atRec+atSal),'más de '+thrSal+' días hábiles sin registro')+
     kpiH('amb','Valor detenido','B/. '+(valorAt/1e6).toFixed(1)+' M','líneas atrasadas sin 101')+
     kpiH('gris','Sin trazabilidad digital',nf(con101),'después de la entrada contable');
   const cu=atRec>=atSal?'REC':'SALMI';
   const ch=(key,cls,c,r,big,small,tip)=>'<button class="chev '+cls+'" data-f="'+key+'" aria-pressed="'+(FILT===key)+'" title="'+esc(tip)+'"><span class="c">'+c+'</span><span class="r">'+r+'</span><b>'+big+'</b><small>'+small+'</small></button>';
-  const lat=(arr,lbl,wide)=>'<div class="lat'+(wide?' wide':'')+'">'+(lbl?'<span>'+lbl+'<b>'+(arr&&arr.length?r1(pct(arr,.5))+' d':'sin dato')+'</b>'+(arr&&arr.length?'p85 '+r1(pct(arr,.85)):'no se registra')+'</span>':'')+'</div>';
+  const lat=(arr,lbl,wide)=>'<div class="lat'+(wide?' wide':'')+'">'+(lbl?'<span data-tip="'+(arr&&arr.length?'Típico (mediana): '+Math.round(pct(arr,.5))+' días hábiles.<br>El 85 % de las líneas lo hizo en '+Math.round(pct(arr,.85))+' días o menos.<br>Basado en '+arr.length+' líneas.':'Este tramo todavía no se registra en ningún sistema.')+'">'+lbl+'<b>'+(arr&&arr.length?Math.round(pct(arr,.5))+' d típico':'sin dato')+'</b>'+(arr&&arr.length?'85 % en ≤ '+Math.round(pct(arr,.85))+' d':'no se registra')+'</span>':'')+'</div>';
   $('#chevs').innerHTML='<div class="chevs">'+
     ch('SOL','up','Planificación','Solicitud de entrega',nf(conSol),'enlazadas a su solicitud','Solicitudes de entrega de planificación enlazadas a la línea recibida (tránsitos)')+
     ch('CIT','up','Proveedor · SIGUELO','Cita confirmada',nf(conCita),'enlazadas por OC y renglón','Citas del portal de proveedores enlazadas por OC y renglón')+
@@ -468,7 +475,7 @@ function renderAge(thr){
     const h2=ih*r.rec/top;y-=h2;g.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h2+'" fill="var(--s-rec)" data-tip="'+tip+'"/>');
     g.push('<text x="'+(x+w/2)+'" y="'+(y-14)+'" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--ink)">'+(r.rec+r.sal)+'</text><text x="'+(x+w/2)+'" y="'+(y-3)+'" font-size="9.5" text-anchor="middle" fill="var(--muted)">B/. '+(r.v>=1e6?(r.v/1e6).toFixed(1)+' M':Math.round(r.v/1e3)+' mil')+'</text>');
     g.push('<text x="'+(x+w/2)+'" y="'+(T+ih+14)+'" font-size="10.5" text-anchor="middle" font-weight="'+(r.lo>thr?700:400)+'" fill="'+(r.lo>thr?'var(--bad)':'var(--muted)')+'">'+r.l+'</text>');});
-  g.push('<text x="'+(L+iw/2)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--muted)">Días hábiles desde la recepción · en rojo, por encima del p85 ('+thr+' d)</text>');
+  g.push('<text x="'+(L+iw/2)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--muted)">Días hábiles desde la recepción · en rojo, más de '+thr+' d (plazo en que se registra el 85 %)</text>');
   $('#age').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:480px" role="img" aria-label="Antigüedad sin entrada contable">'+g.join('')+'</svg>';
 }
 
