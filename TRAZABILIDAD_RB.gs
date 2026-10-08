@@ -91,11 +91,15 @@ function trzRuta_(e) {
   if (a === 'trzEventos') return trzEventos_(String(p.exp || ''));
   if (a === 'trzResumen') return trzResumen_();
   if (a === 'trzPasos')   return { success: true, pasos: TRZ_PASOS };
+  // Administración de panel_confirmacion (PANEL_ADMIN.gs), si está instalada.
+  if (typeof admRuta_ === 'function') return admRuta_(e);
   return null;
 }
 
 function trzPost_(payload) {
   var a = String((payload && payload.action) || '');
+  // Administración de panel_confirmacion (PANEL_ADMIN.gs) usa el mismo PIN.
+  if (a.indexOf('adm') === 0) return (typeof admPost_ === 'function') ? admPost_(payload) : null;
   if (a.indexOf('trz') !== 0) return null;
   try {
     var d = payload.data || {};

@@ -130,6 +130,8 @@ function ctzPublicar_(forzar) {
 function citasTrazDiferido_() {
   // También publica la bitácora de hitos documentales (TRAZABILIDAD_RB.gs).
   try { if (typeof trzDiferido_ === 'function') trzDiferido_(); } catch (eT) {}
+  // Copia rápida de panel_confirmacion (PANEL_ADMIN.gs): solo trabaja si SIGUELO cambió.
+  try { if (typeof panelDiferido_ === 'function') panelDiferido_(); } catch (eP) {}
   try {
     var r = ctzPublicar_(false);
     if (r && r.success && !r.sinCambios) Logger.log('citas_trazabilidad.json publicado: ' + r.filas + ' filas.');

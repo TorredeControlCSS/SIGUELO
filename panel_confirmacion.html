@@ -179,22 +179,7 @@
   .ue-tabla td{padding:5px 8px;border-bottom:1px solid #eee;}
   .ue-tabla tr:nth-child(even) td{background:#f7f7f7;}
   .tab-cal{display:none;}
-  .tab-kanban{display:none;}
   .tab-transitos{display:none;}
-  .kanban-board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:start;}
-  .kanban-col{background:var(--gris-bg);border:1px solid var(--borde-suave);border-radius:3px;display:flex;flex-direction:column;min-height:120px;}
-  .kanban-col-head{padding:8px 10px;font-size:12px;font-weight:700;color:#fff;border-radius:3px 3px 0 0;display:flex;justify-content:space-between;align-items:center;}
-  .kanban-col-head .cnt{font-family:var(--mono);background:rgba(255,255,255,.25);padding:0 7px;border-radius:8px;font-size:11px;}
-  .kanban-col-body{padding:7px;display:flex;flex-direction:column;gap:6px;max-height:560px;overflow-y:auto;}
-  .kanban-card{background:#fff;border:1px solid var(--borde-suave);border-left-width:3px;border-radius:2px;padding:7px 8px;cursor:pointer;transition:box-shadow .12s;}
-  .kanban-card:hover{box-shadow:0 1px 4px rgba(0,0,0,.12);}
-  .kanban-card .kc-emp{font-size:12px;font-weight:600;color:#222;line-height:1.25;}
-  .kanban-card .kc-desc{font-size:10.5px;color:#666;margin:2px 0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .kanban-card .kc-meta{font-size:10px;color:#888;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;gap:6px;}
-  .kanban-card .kc-ipr{font-weight:700;font-family:var(--mono);padding:0 5px;border-radius:3px;}
-  .kanban-card .kc-badges{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;}
-  .kanban-empty{font-size:11px;color:#999;padding:10px;text-align:center;}
-  @media(max-width:1000px){ .kanban-board{grid-template-columns:repeat(2,1fr);} }
   .cal-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;width:100%;}
   .cal-titulo{font-size:16px;font-weight:700;color:var(--azul-osc);min-width:180px;text-align:center;text-transform:capitalize;}
   .cal-leyenda{font-size:11px;color:#555;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;}
@@ -241,6 +226,111 @@
   .cal-res-tabla td:first-child{font-family:inherit;}
   .cal-res-tot td{font-weight:700;background:#eef4fb;}
   .cal-res-prom{font-size:11.5px;color:#555;margin-top:6px;}
+
+  /* ===== Filtros (oct-2026): una sola tarjeta, en tres franjas: buscar · filtrar · acciones ===== */
+  .fz{background:#fff;border:1px solid var(--borde-suave);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:9px;}
+  .fz-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .fz-buscar{flex:1 1 320px;display:flex;align-items:center;gap:6px;border:1px solid var(--borde);border-radius:6px;padding:0 9px;background:#fff;}
+  .fz-buscar:focus-within{outline:2px solid var(--azul);outline-offset:-1px;}
+  .fz-buscar .ic{color:#888;font-size:16px;}
+  .fz-buscar input{flex:1;border:0;outline:0;padding:7px 0;font-size:13px;font-family:inherit;background:transparent;min-width:120px;}
+  .fz-rapidos{display:flex;gap:4px;}
+  .fz-campos{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;}
+  .fz-campo,.fz-fechas>summary{display:flex;flex-direction:column;gap:1px;background:#f5f8fc;border:1px solid #dbe5f1;border-radius:6px;padding:4px 8px 5px;cursor:pointer;}
+  .fz-campo .et,.fz-fechas .et,.fz-rango .et{font-size:9.5px;color:#6b7a8c;text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+  .filtros .fz-campo select{border:0;background:transparent;padding:1px 0;min-width:0;font-size:12.5px;font-weight:600;color:var(--azul-osc);cursor:pointer;}
+  .fz-campo.filtro-cat{background:#eaf1fb;border-color:#b8d0ea;}
+  .fz-campo.on{background:#fff8e1;border-color:#e0c97a;}
+  .fz-fechas{position:relative;}
+  .fz-fechas>summary{list-style:none;min-width:130px;}
+  .fz-fechas>summary::-webkit-details-marker{display:none;}
+  .fz-fechas .fz-sum{font-size:12.5px;font-weight:600;color:var(--azul-osc);}
+  .fz-fechas .fz-sum::after{content:' ▾';color:#888;font-weight:400;}
+  .fz-fechas.on>summary{background:#fff8e1;border-color:#e0c97a;}
+  .fz-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--borde-suave);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.14);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+  .fz-rango{display:flex;flex-direction:column;gap:3px;}
+  .fz-pie{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:1px solid #eef1f5;padding-top:8px;}
+  .fz-grupo{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+  .fz-et{font-size:10px;color:#8a96a3;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-right:2px;}
+  .seg{display:inline-flex;}
+  .seg .btn{border-radius:0;margin-left:-1px;}
+  .seg .btn:first-child{border-radius:4px 0 0 4px;margin-left:0;}
+  .seg .btn:last-child{border-radius:0 4px 4px 0;}
+  #btnAvisarTodos{border-color:#e0c97a;color:#8a5a00;background:#fffaf0;}
+  #btnReporteDiferidos{border-color:#b8d0ea;color:var(--azul-osc);background:#f5f8fc;}
+  .filtros .filtros-activos{margin-top:0;border-radius:6px;}
+  @media(max-width:700px){ .fz-pie{gap:8px;} .fz-buscar{flex-basis:100%;} }
+  /* ===== Administración (oct-2026) ===== */
+  .tab-admin{display:none;}
+  .adm{display:flex;flex-direction:column;gap:12px;}
+  .adm-card{background:#fff;border:1px solid var(--borde-suave);border-radius:8px;padding:12px 14px;}
+  .adm-main{background:linear-gradient(#f7faff,#fff 90px);border-color:#c9daf0;}
+  .adm-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .adm-h h3{margin:0;font-size:15px;color:var(--azul-osc);}
+  .adm-sub{font-size:12px;color:#6b7a8c;}
+  .adm-ses{display:flex;justify-content:space-between;align-items:center;background:#eef4fb;border:1px solid #c9daf0;border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--azul-osc);}
+  .adm-login{max-width:460px;margin:20px auto;text-align:center;}
+  .adm-login h3{margin:4px 0 6px;color:var(--azul-osc);} .adm-login p{font-size:13px;color:#555;line-height:1.45;}
+  .adm-loginf{display:flex;gap:8px;justify-content:center;margin-top:8px;}
+  #admPin{width:150px;font-size:1.5rem;letter-spacing:8px;text-align:center;border:1.5px solid var(--borde);border-radius:8px;padding:6px;}
+  .adm-err{min-height:18px;font-size:12.5px;color:#b00020;margin-top:8px;}
+  .adm-lbl{font-size:12px;font-weight:700;color:var(--azul-osc);display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .adm-n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--azul-osc);color:#fff;font-size:11px;}
+  .adm-prov{display:grid;grid-template-columns:auto minmax(260px,520px) 1fr;gap:10px;align-items:center;margin-bottom:12px;}
+  .adm-prov .adm-lbl{margin:0;}
+  .adm-ac-w{position:relative;}
+  #admProv{width:100%;box-sizing:border-box;padding:8px 30px 8px 10px;border:1.5px solid #9fbbe0;border-radius:7px;font:inherit;font-size:13.5px;font-weight:600;color:var(--azul-osc);}
+  #admProv:focus{outline:2px solid var(--azul);outline-offset:0;}
+  .adm-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:18px;color:#888;cursor:pointer;}
+  .adm-ac{display:none;position:absolute;z-index:40;left:0;right:0;top:calc(100% + 3px);background:#fff;border:1px solid var(--borde-suave);border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.14);max-height:320px;overflow:auto;}
+  .adm-ac.open{display:block;}
+  .adm-it{padding:7px 10px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;}
+  .adm-it span{color:#8a96a3;font-family:var(--mono);font-size:11px;}
+  .adm-it.sel,.adm-it:hover{background:#eef4fb;}
+  .adm-provinfo{font-size:12px;}
+  .adm-ok{color:#2d6a3e;font-weight:600;} .adm-warn{color:#8a5a00;font-weight:600;} .adm-mut{color:#6b7a8c;}
+  .adm-provinfo a{color:var(--azul);}
+  .adm-cols{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:14px;align-items:start;}
+  .adm-form{background:#fff;border:1px solid #dbe5f1;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
+  .adm-f{display:flex;flex-direction:column;gap:2px;}
+  .adm-f>span{font-size:10px;font-weight:700;color:#6b7a8c;text-transform:uppercase;letter-spacing:.4px;}
+  .adm-f input,.adm-f select,.adm-f textarea{width:100%;box-sizing:border-box;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--borde);border-radius:5px;background:#fff;}
+  .adm-f textarea{resize:vertical;}
+  #admCod{font-family:var(--mono);font-size:14px;letter-spacing:.5px;}
+  .adm-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .adm-hint{font-size:11.5px;min-height:0;color:#555;line-height:1.35;}
+  .adm-hint:empty{display:none;}
+  .adm-hint.ok{color:#2d6a3e;background:#eaf6ee;border-radius:5px;padding:5px 7px;}
+  .adm-hint.warn{color:#8a5a00;background:#fff8e1;border-radius:5px;padding:5px 7px;}
+  .adm-hint.bad{color:#9b1c2c;background:#fdeef0;border-radius:5px;padding:5px 7px;}
+  .adm-acc{display:flex;gap:8px;margin-top:2px;}
+  .adm-res{font-size:12.5px;min-height:16px;}
+  .adm-res.ok{color:#2d6a3e;font-weight:600;} .adm-res.bad{color:#b00020;}
+  .adm-lista{background:#fff;border:1px solid #dbe5f1;border-radius:8px;padding:10px 12px;}
+  .adm-cnt{font-weight:400;color:#8a96a3;}
+  .adm-filtro{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;padding:6px 8px;border:1px solid var(--borde);border-radius:5px;margin-bottom:6px;}
+  .adm-rows{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:3px;}
+  .adm-row{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;padding:5px 7px;border-radius:5px;background:#f8fafc;border:1px solid #eef1f5;}
+  .adm-row.nuevo{background:#eaf6ee;border-color:#b7dcc2;}
+  .adm-row.off{opacity:.6;background:#fafafa;}
+  .adm-rc{font-family:var(--mono);font-size:12px;color:var(--azul-osc);font-weight:600;}
+  .adm-rd{font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .adm-rd span{display:block;font-size:10.5px;color:#8a96a3;}
+  .btn.adm-mini{padding:2px 8px;font-size:11px;}
+  .adm-vacio{font-size:12px;color:#8a96a3;padding:10px;text-align:center;}
+  .adm-tareas{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;}
+  .adm-g{display:flex;flex-direction:column;gap:6px;}
+  .adm-gt{font-size:10.5px;font-weight:700;color:#6b7a8c;text-transform:uppercase;letter-spacing:.5px;}
+  .adm-t{border:1px solid #dbe5f1;background:#f7faff;border-radius:7px;padding:8px 10px;}
+  .adm-t.w{background:#fffaf0;border-color:#efdcae;}
+  .adm-tt{font-size:12.5px;font-weight:700;color:#24364a;}
+  .adm-tag{white-space:nowrap;font-size:9.5px;font-weight:700;color:#8a5a00;background:#fbecc8;border-radius:8px;padding:1px 6px;margin-left:4px;vertical-align:1px;}
+  .adm-td{font-size:11.5px;color:#5d6b7a;margin:2px 0 6px;line-height:1.35;}
+  .adm-tf{display:flex;align-items:center;gap:8px;}
+  .adm-tr{font-size:11.5px;} .adm-tr.run{color:#6b7a8c;} .adm-tr.ok{color:#2d6a3e;font-weight:600;} .adm-tr.bad{color:#b00020;}
+  .adm-bit{margin-top:10px;font-size:11.5px;color:#555;display:flex;flex-direction:column;gap:2px;}
+  .adm-bit:empty{display:none;}
+  @media(max-width:900px){ .adm-cols{grid-template-columns:1fr;} .adm-prov{grid-template-columns:1fr;} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -293,15 +383,24 @@
   <div class="tabs">
     <div class="tab activa" data-tab="lista">Lista priorizada</div>
     <div class="tab" data-tab="calendario">Calendario</div>
-    <div class="tab" data-tab="kanban">Kanban</div>
     <div class="tab" data-tab="transitos">OC en tránsito sin cita</div>
+    <div class="tab tab-adm" data-tab="admin">⚙ Administración</div>
   </div>
 
   <div class="panel-body">
     <div class="filtros">
-      <div class="filtros-linea">
-        <div class="filtro-campo">
-          <span class="et">Estado</span>
+      <div class="fz">
+        <div class="fz-top">
+          <label class="fz-buscar"><span class="ic" aria-hidden="true">⌕</span><input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto..." aria-label="Buscar"></label>
+          <div class="fz-rapidos" role="group" aria-label="Atajos de fecha agendada">
+            <button class="btn chip" data-atajo="semana">Esta semana</button>
+            <button class="btn chip" data-atajo="proxima">Próxima</button>
+          </div>
+          <button class="btn" id="btnLimpiar">✕ Limpiar</button>
+          <button class="btn" id="btnRefrescar" title="Volver a consultar SIGUELO">↻ Refrescar</button>
+        </div>
+        <div class="fz-campos">
+          <label class="fz-campo"><span class="et">Estado</span>
           <select id="filtroEstadoSel">
             <option value="">Todos</option>
             <option value="PENDIENTE">Pendientes (sin cita)</option>
@@ -313,10 +412,8 @@
             <option value="ASISTIO">Asistió</option>
             <option value="NO_ASISTIO">No asistió</option>
             <option value="CANCELADA">Cancelada</option>
-          </select>
-        </div>
-        <div class="filtro-campo filtro-cat">
-          <span class="et">Categoría</span>
+          </select></label>
+          <label class="fz-campo filtro-cat"><span class="et">Categoría</span>
           <select id="filtroCategoria">
             <option value="">Todas</option>
             <option value="__FRIO__">❄ Frío</option>
@@ -325,61 +422,51 @@
             <option value="LABORATORIO">Laboratorio</option>
             <option value="ODONTOLOGIA">Odontología</option>
             <option value="SUSTANCIAS CONTROLADAS">Sustancias Controladas</option>
-          </select>
-        </div>
-        <div class="filtro-campo">
-          <span class="et">IPR</span>
+          </select></label>
+          <label class="fz-campo"><span class="et">IPR</span>
           <select id="filtroIprMin">
             <option value="">Cualquiera</option>
             <option value="r75">Urgente (≥75)</option>
             <option value="r50">Medio (50–74)</option>
             <option value="r0">Bajo (&lt;50)</option>
-          </select>
-        </div>
-        <div class="filtro-campo">
-          <span class="et">Antigüedad (ciclos)</span>
+          </select></label>
+          <label class="fz-campo"><span class="et">Antigüedad</span>
           <select id="filtroCiclos" title="Filtra por ciclos en revisión desde la fecha solicitada">
             <option value="">Cualquiera</option>
             <option value="1">1+ ciclo (arrastradas)</option>
             <option value="2">2+ ciclos</option>
             <option value="3">3+ ciclos</option>
             <option value="4">4+ ciclos (críticas)</option>
-          </select>
+          </select></label>
+          <details class="fz-fechas" id="fzFechas">
+            <summary><span class="et">Fechas</span><span class="fz-sum" id="fzFechasTxt">Cualquiera</span></summary>
+            <div class="fz-pop">
+              <div class="fz-rango"><span class="et">Agendada</span>
+                <div class="rango-fecha"><input type="date" id="filtroAgenDesde" title="Agendada desde" aria-label="Agendada desde"><span>a</span><input type="date" id="filtroAgenHasta" title="Agendada hasta" aria-label="Agendada hasta"></div></div>
+              <div class="fz-rango"><span class="et">Solicitada</span>
+                <div class="rango-fecha"><input type="date" id="filtroSolicDesde" title="Solicitada desde" aria-label="Solicitada desde"><span>a</span><input type="date" id="filtroSolicHasta" title="Solicitada hasta" aria-label="Solicitada hasta"></div></div>
+            </div>
+          </details>
         </div>
-        <div class="filtro-campo">
-          <span class="et">Fecha agendada</span>
-          <div class="rango-fecha">
-            <input type="date" id="filtroAgenDesde" title="Agendada desde">
-            <span>a</span>
-            <input type="date" id="filtroAgenHasta" title="Agendada hasta">
+        <div id="filtrosActivos" class="filtros-activos" style="display:none;"></div>
+        <div class="fz-pie">
+          <div class="fz-grupo"><span class="fz-et">Ordenar</span>
+            <div class="seg" role="group" aria-label="Ordenar la lista">
+              <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
+              <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
+              <button class="btn" id="btnOrdenVenc" data-campo="venc" title="Ordenar por vencimiento de la OC (lo que vence primero, arriba)">Vence OC ↕</button>
+              <button class="btn" id="btnOrdenAntig" data-campo="antig" title="Ordenar por antigüedad: las que llevan más ciclos sin asignación, arriba">Antigüedad ↕</button>
+            </div>
+          </div>
+          <div class="fz-grupo"><span class="fz-et">Descargar</span>
+            <button class="btn" id="btnExcel">⬇ Excel</button>
+            <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel detallado con todos los lotes y niveles de empaque">⬇ Lista de empaque</button>
+          </div>
+          <div class="fz-grupo"><span class="fz-et">Comunicar</span>
+            <button class="btn" id="btnAvisarTodos" title="Enviar correo de 'sigue en revisión' a TODOS los proveedores sin cita confirmada">✉ Avisar a todos sin cita</button>
+            <button class="btn" id="btnReporteDiferidos" title="Enviar a la Dirección de Compras el reporte de entregas diferidas, con cruce de autorización">📋 Reporte de diferidos</button>
           </div>
         </div>
-        <div class="filtro-campo">
-          <span class="et">Fecha solicitada</span>
-          <div class="rango-fecha">
-            <input type="date" id="filtroSolicDesde" title="Solicitada desde">
-            <span>a</span>
-            <input type="date" id="filtroSolicHasta" title="Solicitada hasta">
-          </div>
-        </div>
-      </div>
-      <div id="filtrosActivos" class="filtros-activos" style="display:none;"></div>
-      <div class="buscar-barra">
-        <input type="text" id="buscar" placeholder="Buscar por empresa, OC, código o producto...">
-        <button class="btn chip" data-atajo="semana">Esta semana</button>
-        <button class="btn chip" data-atajo="proxima">Próxima</button>
-        <button class="btn" id="btnLimpiar">✕ Limpiar</button>
-        <button class="btn" id="btnRefrescar">Refrescar</button>
-        <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
-        <button class="btn" id="btnOrdenIpr" data-campo="ipr" title="Ordenar por IPR">IPR ↓</button>
-        <button class="btn" id="btnOrdenFsol" data-campo="fsol" title="Ordenar por fecha solicitada">Fecha solic. ↕</button>
-        <button class="btn" id="btnOrdenVenc" data-campo="venc" title="Ordenar por vencimiento de la OC (lo que vence primero, arriba)">Vence OC ↕</button>
-        <button class="btn" id="btnOrdenAntig" data-campo="antig" title="Ordenar por antigüedad: las que llevan más ciclos sin asignación, arriba">Antigüedad ↕</button>
-        <button class="btn primary" id="btnExcel">⬇ Excel</button>
-        <button class="btn" id="btnListaEmpaque" title="Genera la hoja LISTA_EMPAQUE_PLANA y descarga el Excel detallado con todos los lotes y niveles de empaque">⬇ Lista de empaque</button>
-        <span style="border-left:1px solid #ccc;margin:0 4px;align-self:stretch;"></span>
-        <button class="btn" id="btnAvisarTodos" style="border-color:#b8852f;color:#8a5a00;" title="Enviar correo de 'sigue en revisión' a TODOS los proveedores sin cita confirmada">✉ Avisar a todos sin cita</button>
-        <button class="btn" id="btnReporteDiferidos" style="border-color:#0C447C;color:#0C447C;" title="Enviar a la Dirección de Compras el reporte de entregas diferidas, con cruce de autorización">📋 Reporte de diferidos</button>
       </div>
     </div>
     <div id="tabLista"></div>
@@ -408,9 +495,6 @@
       </div>
       <div class="estado-msg" id="calMsg" style="display:none;">Cargando historial...</div>
     </div>
-    <div id="tabKanban" class="tab-kanban">
-      <div class="kanban-board" id="kanbanBoard"></div>
-    </div>
     <div id="tabTransitos" class="tab-transitos">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
         <div style="font-size:13px;color:var(--azul-osc);font-weight:600;flex:1;">Órdenes de compra emitidas (SEGUIRE) que aún no tienen cita agendada. Ordenadas por vencimiento de entrega más próximo.</div>
@@ -424,6 +508,7 @@
       </div>
       <div id="trLista"><div class="estado-msg">Seleccione la pestaña para cargar.</div></div>
     </div>
+    <div id="tabAdmin" class="tab-admin"></div>
   </div>
 </div>
 
@@ -450,6 +535,46 @@ function loadJsonp(action, extra){
     s.onerror=()=>{ delete window[cb]; reject(new Error('Error de red')); };
     document.body.appendChild(s);
   });
+}
+
+// ═══ Carga rápida (oct-2026) ═══════════════════════════════════════════════
+// SIGUELO publica cada 15 min una copia de la lista activa y del calendario
+// (m-1 a m+2) en panel_confirmacion.json, servida por GitHub Pages. El panel
+// pinta esa copia al instante y en segundo plano consulta SIGUELO; cuando llega
+// la respuesta en vivo, la reemplaza. La copia no trae datos de contacto ni
+// lotes: llegan con la respuesta en vivo (CAL_VIVO marca los meses completos).
+let CAL_VIVO={};
+const PANEL_RAPIDO={prom:null,meta:null,usados:{}};
+function panelCopia_(){
+  if(PANEL_RAPIDO.prom) return PANEL_RAPIDO.prom;
+  const t=new Promise(r=>setTimeout(()=>r(null),4000));
+  PANEL_RAPIDO.prom=Promise.race([t,fetch('./panel_confirmacion.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)]).then(j=>{
+    if(!j||!j._meta||!Array.isArray(j.cols)) return null;
+    const dec=rows=>(rows||[]).map(r=>{ const o={}; j.cols.forEach((c,i)=>{ o[c]=r[i]; }); return o; });
+    PANEL_RAPIDO.meta=j._meta;
+    return {activas:j.activas, meses:j.meses||{}, dec:dec};
+  });
+  return PANEL_RAPIDO.prom;
+}
+// Igual que loadJsonp, pero la primera vez de cada vista responde con la copia publicada
+// y llama a onVivo(resp) cuando llega la respuesta de SIGUELO.
+async function loadPanelRapido(action, extra, onVivo){
+  const m=/[?&]mes=(\d{4}-\d{2})/.exec(extra||'');
+  const clave=m?((/historico=1/.test(extra)?'h':'')+'mes:'+m[1]):((extra||'')===''?'activas':'');
+  if(action==='getSolicitudesPriorizadas' && clave && !PANEL_RAPIDO.usados[clave]){
+    PANEL_RAPIDO.usados[clave]=1;
+    const c=await panelCopia_();
+    const filas=c&&(clave==='activas'?c.activas:c.meses[m[1]]);
+    if(filas){
+      loadJsonp(action,extra).then(resp=>{ if(resp&&resp.success&&onVivo) onVivo(resp); }).catch(()=>{});
+      return {success:true, solicitudes:c.dec(filas), _copia:true};
+    }
+  }
+  return loadJsonp(action,extra);
+}
+function panelAvisoCopia_(){
+  const sa=document.getElementById('subActualizado'); if(!sa||!PANEL_RAPIDO.meta) return;
+  sa.textContent='Mostrando copia de las '+String(PANEL_RAPIDO.meta.generado||'').slice(11,16)+' · actualizando…';
 }
 
 // Variante con TIMEOUT: si el callback no llega en msTimeout, rechaza y limpia.
@@ -612,11 +737,10 @@ async function cargarCerradasGrafico_(){
     const lunes = cargaSemLunes_(cargaSemRef);
     const mes = lunes.getFullYear()+'-'+String(lunes.getMonth()+1).padStart(2,'0');
     if(mes===cargaSemCerradasMes && cargaSemCerradas.length) return; // ya cacheado
-    const resp = await loadJsonp('getSolicitudesPriorizadas','&historico=1&mes='+mes);
-    const sols = (resp && resp.solicitudes) ? resp.solicitudes : [];
     const CERR = ['ENTREGADA','ENTREGADO','ASISTIO'];
-    cargaSemCerradas = sols.filter(s=>CERR.indexOf(String(s.estado||'').toUpperCase().trim())>=0);
-    cargaSemCerradasMes = mes;
+    const tomar = r => { const sols=(r && r.solicitudes) ? r.solicitudes : []; cargaSemCerradas = sols.filter(s=>CERR.indexOf(String(s.estado||'').toUpperCase().trim())>=0); cargaSemCerradasMes = mes; };
+    const resp = await loadPanelRapido('getSolicitudesPriorizadas','&historico=1&mes='+mes, vivo=>{ tomar(vivo); try{ actualizarCargaSemanal(); }catch(e){} });
+    tomar(resp);
   }catch(e){ /* si falla, el gráfico sigue sin la serie de cerradas */ }
 }
 
@@ -848,8 +972,9 @@ function cargaSemIrA_(deltaSemanas){
 }
 
 
+let CARGA_SEQ=0;
 async function cargar(){
-  CAL_MESES={}; // invalidar cache del calendario para que refleje cambios
+  CAL_MESES={}; CAL_VIVO={}; // invalidar cache del calendario para que refleje cambios
   document.getElementById('tabLista').innerHTML='<div class="estado-msg">Cargando solicitudes...</div>';
   try{
     let resp;
@@ -861,12 +986,18 @@ async function cargar(){
       SOLICITUDES=resp.solicitudes||[];
       HIST_INFO=resp; // guardar meta (modo, mes, truncado) para el aviso
     } else {
-      resp=await loadJsonp('getSolicitudesPriorizadas','');
+      const seq=++CARGA_SEQ;
+      resp=await loadPanelRapido('getSolicitudesPriorizadas','',vivo=>{
+        // Respuesta en vivo: reemplaza la copia solo si nadie volvió a cargar mientras tanto.
+        if(seq!==CARGA_SEQ || verHistorico) return;
+        SOLICITUDES=vivo.solicitudes||[]; actualizarKPIs(); aplicarFiltros();
+      });
       if(!resp.success){ throw new Error(resp.error||'error'); }
       SOLICITUDES=resp.solicitudes||[];
       HIST_INFO=null;
     }
     actualizarKPIs();
+    if(resp && resp._copia) panelAvisoCopia_();
     render();
   }catch(e){
     document.getElementById('tabLista').innerHTML='<div class="estado-msg">No se pudieron cargar las solicitudes: '+esc(e.message)+'</div>';
@@ -905,7 +1036,7 @@ function actualizarKPIs(){
 let filtroEstado=''; // filtro por tarjeta KPI: '' | 'PENDIENTE' | 'AGENDADA' | 'URGENTE' | 'VENCE' | 'DIFERIDA'
 let _ordenLista={campo:'ipr', dir:'desc'}; // orden de la lista priorizada: campo 'ipr'|'fsol', dir 'asc'|'desc'
 let TAB_ACTIVA='lista';
-let KANBAN_LISTA=[];
+
 function getFiltradas(){
   const q=document.getElementById('buscar').value.toLowerCase().trim();
   const estSel=document.getElementById('filtroEstadoSel').value;
@@ -1273,83 +1404,6 @@ function render(){
       cargarCerradasGrafico_().then(()=>actualizarCargaSemanal());
     }
   }
-}
-
-// ====== Kanban por estado (Pendientes / Agendadas / Asistió / Diferidas) ======
-function renderKanban(){
-  const board=document.getElementById('kanbanBoard');
-  if(!board) return;
-  const lista=getFiltradas();
-
-  // Columnas por estado puro. Cada una agrupa los estados equivalentes.
-  // Columnas en orden del flujo real: Pendiente -> Agendada -> (Diferida) -> Asistió -> Cerrada.
-  const COLS=[
-    {key:'PEND', titulo:'Pendientes', color:'#854F0B', estados:['PENDIENTE','SOLICITADA','EN ANALISIS','REPROGRAMADA']},
-    {key:'AGEN', titulo:'Agendadas', color:'#1e5a9e', estados:['AGENDADA']},
-    {key:'DIFE', titulo:'Diferidas', color:'#993C1D', estados:['DIFERIDA','DIFERIDA_HISTORICA']},
-    {key:'ASIS', titulo:'Asistió', color:'#0F6E56', estados:['ASISTIO','PARCIAL']},
-    {key:'CERR', titulo:'Cerradas', color:'#5F5E5A', estados:['ENTREGADA','ENTREGADO','NO_ASISTIO','CANCELADA','CADUCADA_NO_ASISTIO','CADUCADA_SIN_CIERRE']}
-  ];
-
-  // Repartir cada cita en UNA sola columna según su estado (excluyentes).
-  const buckets={PEND:[],AGEN:[],DIFE:[],ASIS:[],CERR:[]};
-  lista.forEach(s=>{
-    const e=String(s.estado||'').toUpperCase().trim();
-    const col=COLS.find(c=>c.estados.indexOf(e)>=0);
-    if(col) buckets[col.key].push(s);
-  });
-  // Ordenar cada columna por IPR descendente (lo urgente arriba).
-  Object.keys(buckets).forEach(k=>buckets[k].sort((a,b)=>Number(b.ipr||0)-Number(a.ipr||0)));
-
-  // Guardar la lista para que los clics resuelvan la cita correcta.
-  KANBAN_LISTA=lista;
-
-  const cardKanban=(s)=>{
-    const idx=KANBAN_LISTA.indexOf(s);
-    const ipr=Number(s.ipr||0);
-    const iprBg=ipr>=75?'#fcecec':(ipr>=50?'#fdf4e3':'#e1f5ee');
-    const iprCol=ipr>=75?'#A32D2D':(ipr>=50?'#854F0B':'#0F6E56');
-    const borde=ipr>=75?'#A32D2D':(ipr>=50?'#c97a00':'#0F6E56');
-    const fAge=String(s.fecha_confirmada||'').slice(0,10);
-    const fSol=String(s.fecha_solicitada||'').slice(0,10);
-    const fechaTxt = fAge ? ('Agendada '+fAge) : (fSol?('Solic. '+fSol):'sin fecha');
-    const badges=[];
-    if(s.es_rescatada) badges.push('<span class="badge rescatada" style="font-size:9px;">⮌ Rescatada</span>');
-    if(s.categoria) badges.push('<span class="badge categoria" style="font-size:9px;">'+catCorta(s.categoria)+'</span>');
-    { const sg=infoSegregacion(s); if(sg.es) badges.push('<span class="badge segregada" style="font-size:9px;">'+sg.texto+'</span>'); }
-    if(s.es_frio) badges.push('<span class="badge frio" style="font-size:9px;">❄ Frío</span>');
-    const venc = s.venc && s.venc.etiqueta ? s.venc.etiqueta : '';
-    return `<div class="kanban-card" data-kan="${idx}" title="${esc(s.empresa)} — ${esc(s.descripcion)}" style="border-left-color:${borde};">
-      <div class="kc-emp">${esc(s.empresa)}</div>
-      <div class="kc-desc">${esc(s.descripcion)}</div>
-      <div class="kc-meta">
-        <span>OC ${esc(s.oc)}</span>
-        <span class="kc-ipr" style="background:${iprBg};color:${iprCol};">IPR ${s.ipr}</span>
-      </div>
-      <div class="kc-meta" style="margin-top:3px;">
-        <span>${esc(fechaTxt)}</span>
-        <span>${num(s.cant_pallets)} pallets</span>
-      </div>
-      ${venc?`<div class="kc-meta" style="margin-top:2px;"><span style="color:#A32D2D;">${esc(venc)}</span></div>`:''}
-      ${badges.length?`<div class="kc-badges">${badges.join('')}</div>`:''}
-    </div>`;
-  };
-
-  board.innerHTML=COLS.map(c=>{
-    const items=buckets[c.key];
-    const cards = items.length ? items.map(cardKanban).join('') : '<div class="kanban-empty">Sin citas</div>';
-    return `<div class="kanban-col">
-      <div class="kanban-col-head" style="background:${c.color};">
-        <span>${c.titulo}</span><span class="cnt">${items.length}</span>
-      </div>
-      <div class="kanban-col-body">${cards}</div>
-    </div>`;
-  }).join('');
-
-  // Clic en tarjeta -> abre el detalle de la cita.
-  board.querySelectorAll('[data-kan]').forEach(el=>{
-    el.addEventListener('click',()=>{ const s=KANBAN_LISTA[+el.dataset.kan]; if(s) verDetalle(s); });
-  });
 }
 
 function explicarIPR(s){
@@ -2241,7 +2295,6 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id=
 function aplicarFiltros(){
   if(TAB_ACTIVA==='lista') render();
   else if(TAB_ACTIVA==='calendario'){ if(typeof renderCalendario==='function') renderCalendario(); }
-  else if(TAB_ACTIVA==='kanban'){ if(typeof renderKanban==='function') renderKanban(); }
   // (#8) refrescar el gráfico para que refleje el filtro de categoría
   if(typeof actualizarCargaSemanal==='function') actualizarCargaSemanal();
   actualizarBotonLimpiar && actualizarBotonLimpiar();
@@ -2474,7 +2527,21 @@ function actualizarBotonLimpiar(){
   if(!b) return;
   b.classList.toggle('primary', hayFiltroActivo());
   renderFiltrosActivos();
+  fzMarcar_();
 }
+// Resalta los filtros en uso y resume las fechas elegidas en el botón "Fechas".
+function fzMarcar_(){
+  [['filtroEstadoSel'],['filtroCategoria'],['filtroIprMin'],['filtroCiclos']].forEach(([id])=>{
+    const s=document.getElementById(id); const c=s&&s.closest('.fz-campo'); if(c) c.classList.toggle('on',!!s.value);
+  });
+  const v=id=>document.getElementById(id).value, f=x=>x?x.slice(8,10)+'/'+x.slice(5,7):'…';
+  const ag=v('filtroAgenDesde')||v('filtroAgenHasta'), so=v('filtroSolicDesde')||v('filtroSolicHasta');
+  const t=[]; if(ag) t.push('Agend. '+f(v('filtroAgenDesde'))+'–'+f(v('filtroAgenHasta'))); if(so) t.push('Solic. '+f(v('filtroSolicDesde'))+'–'+f(v('filtroSolicHasta')));
+  const el=document.getElementById('fzFechasTxt'); if(el) el.textContent=t.length?t.join(' · '):'Cualquiera';
+  const d=document.getElementById('fzFechas'); if(d) d.classList.toggle('on',t.length>0);
+}
+document.addEventListener('click',e=>{ const d=document.getElementById('fzFechas'); if(d&&d.open&&!d.contains(e.target)) d.open=false; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const d=document.getElementById('fzFechas'); if(d) d.open=false; } });
 
 // Construye la línea de chips que muestra qué filtros están aplicados ahora mismo.
 function renderFiltrosActivos(){
@@ -2608,8 +2675,12 @@ async function cargarCalendario(){
   grid.innerHTML=''; if(res) res.innerHTML='';
   msg.style.display='block'; msg.textContent='Cargando '+clave+'...';
   try{
-    const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+clave);
+    const resp=await loadPanelRapido('getSolicitudesPriorizadas','&mes='+clave,vivo=>{
+      CAL_MESES[clave]=vivo.solicitudes||[]; CAL_VIVO[clave]=1;
+      if(TAB_ACTIVA==='calendario' && calClaveMes()===clave) renderCalendario();
+    });
     CAL_MESES[clave]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+    if(!(resp && resp._copia)) CAL_VIVO[clave]=1;
     msg.style.display='none';
     renderCalendario();
   }catch(e){
@@ -2856,10 +2927,10 @@ async function imprimirListaDia(){
   const f=fecha.trim().slice(0,10);
   const claveMes=f.slice(0,7);
   // Asegurar que el mes de esa fecha esté cargado en cache
-  if(!CAL_MESES[claveMes]){
+  if(!CAL_MESES[claveMes]||!CAL_VIVO[claveMes]){
     try{
       const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
-      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : []; CAL_VIVO[claveMes]=1;
     }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
   }
   // Solo AGENDADA (citas confirmadas), ubicadas por fecha confirmada
@@ -2993,8 +3064,8 @@ async function imprimirCoberturaResumen(){
   if(!fecha) return;
   const f=fecha.trim().slice(0,10);
   const claveMes=f.slice(0,7);
-  if(!CAL_MESES[claveMes]){
-    try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes); CAL_MESES[claveMes]=(resp && resp.solicitudes)?resp.solicitudes:[]; }
+  if(!CAL_MESES[claveMes]||!CAL_VIVO[claveMes]){
+    try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes); CAL_MESES[claveMes]=(resp && resp.solicitudes)?resp.solicitudes:[]; CAL_VIVO[claveMes]=1; }
     catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
   }
   const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
@@ -3076,8 +3147,8 @@ async function imprimirSemana(){
   // Cargar los meses que toca la semana
   const meses=[...new Set(dias.map(d=>isoDe(d).slice(0,7)))];
   for(const cm of meses){
-    if(!CAL_MESES[cm]){
-      try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+cm); CAL_MESES[cm]=(resp && resp.solicitudes)?resp.solicitudes:[]; }
+    if(!CAL_MESES[cm]||!CAL_VIVO[cm]){
+      try{ const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+cm); CAL_MESES[cm]=(resp && resp.solicitudes)?resp.solicitudes:[]; CAL_VIVO[cm]=1; }
       catch(e){ alert('No se pudo cargar el mes '+cm+': '+e.message); return; }
     }
   }
@@ -3366,10 +3437,10 @@ async function imprimirCoberturaDia(){
   if(!fecha) return;
   const f=fecha.trim().slice(0,10);
   const claveMes=f.slice(0,7);
-  if(!CAL_MESES[claveMes]){
+  if(!CAL_MESES[claveMes]||!CAL_VIVO[claveMes]){
     try{
       const resp=await loadJsonp('getSolicitudesPriorizadas','&mes='+claveMes);
-      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : [];
+      CAL_MESES[claveMes]=(resp && resp.solicitudes) ? resp.solicitudes : []; CAL_VIVO[claveMes]=1;
     }catch(e){ alert('No se pudo cargar el mes: '+e.message); return; }
   }
   const citas=(CAL_MESES[claveMes]||[]).filter(s=>{
@@ -3565,12 +3636,12 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   TAB_ACTIVA=tab;
   document.getElementById('tabLista').style.display = tab==='lista'?'block':'none';
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
-  document.getElementById('tabKanban').style.display = tab==='kanban'?'block':'none';
+  document.getElementById('tabAdmin').style.display = tab==='admin'?'block':'none';
   document.getElementById('tabTransitos').style.display = tab==='transitos'?'block':'none';
   // Los filtros estándar no aplican a la vista de tránsitos
-  document.querySelector('.filtros').style.display = (tab==='transitos')?'none':'block';
+  document.querySelector('.filtros').style.display = (tab==='transitos'||tab==='admin')?'none':'block';
   if(tab==='calendario') cargarCalendario();
-  if(tab==='kanban') renderKanban();
+  if(tab==='admin') admRender();
   if(tab==='transitos') cargarTransitosSinCita();
 }));
 
@@ -3631,6 +3702,263 @@ function mostrarGatePin_(){
   document.getElementById('pinEntrar').addEventListener('click',intentar);
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter') intentar(); });
 }
+// ═══════════════════════════════════════════════════════════════════════════
+//  ADMINISTRACIÓN (oct-2026) · reemplaza la pestaña Kanban.
+//  1) Renglones del catálogo de proveedores (hoja MAESTRO_PROVEEDORES), que
+//     alimenta solicitud_cita. 2) Las tareas del menú ⚙ SÍGUELO del libro, para
+//     que nadie tenga que entrar al back end. Ingreso con el PIN de TRZ_USUARIOS
+//     (el mismo de Trazabilidad); el servidor valida el PIN y el rol en cada acción.
+// ═══════════════════════════════════════════════════════════════════════════
+const ADM={ses:null, filas:null, completo:false, prov:'', prop:null, ac:[], acSel:-1, bit:[]};
+const ADM_CATS_BASE=['MEDICAMENTO','MEDICO QUIRURGICO','LABORATORIO','ODONTOLOGIA','SUSTANCIAS CONTROLADAS'];
+const ADM_TAREAS=[
+  {g:'Panel', items:[
+    {k:'precalentar', t:'Actualizar panel', d:'Recalcula y deja listas la lista activa y el calendario del mes para que abran rápido.'},
+    {k:'panel_json', t:'Publicar copia rápida del panel', d:'Regenera la copia que este panel muestra al abrir (lista y calendario).'},
+    {k:'senal', t:'Recalcular señales de demanda', d:'Actualiza el IPR con los saldos de las unidades ejecutoras.'},
+    {k:'invalidar', t:'Invalidar caché', d:'SIGUELO vuelve a leer las hojas en la próxima consulta.'}]},
+  {g:'Publicaciones', items:[
+    {k:'saldos', t:'Publicar saldos', d:'Actualiza saldos_en_linea.json (también se hace solo cada 15 minutos).'},
+    {k:'entradas', t:'Publicar entradas por recepción', d:'Lee el último Excel de 01_RECEPCION y publica el informe. Tarda cerca de un minuto.', lento:true},
+    {k:'maestro', t:'Publicar catálogo de proveedores', d:'Copia la hoja MAESTRO_PROVEEDORES a solicitud_cita. Se hace solo al guardar un renglón.'}]},
+  {g:'Notas de diferimiento', items:[
+    {k:'notas_sim', t:'Ver diferidas sin nota', d:'Cuenta las citas diferidas que aún no tienen nota. No modifica nada.'},
+    {k:'notas_apl', t:'Generar notas y PDF', d:'Asigna correlativo y archiva el PDF de cada diferida sin nota.', w:'Se asignará correlativo y se generará el PDF de cada cita diferida que no tenga nota.'},
+    {k:'notas_rearch', t:'Re-archivar PDF de notas', d:'Vuelve a generar el PDF de todas las notas ya emitidas.', w:'Se regenerará el PDF de todas las notas existentes. Puede tardar varios minutos.'}]},
+  {g:'Motor de Asignaciones', items:[
+    {k:'motor_sim', t:'Ver qué se enviaría', d:'Cuenta las citas que irían a la hoja CALENDARIO del Motor. No modifica nada.'},
+    {k:'motor_apl', t:'Sincronizar CALENDARIO', d:'Reescribe la hoja CALENDARIO del Motor con las citas agendadas actuales.', w:'Se reescribirá la hoja CALENDARIO del Motor con las citas agendadas actuales (se limpia lo histórico).'}]}
+];
+try{ const s=JSON.parse(localStorage.getItem('rb_ses')||'null'); if(s&&s.exp>Date.now()&&s.pin) ADM.ses=s; }catch(e){}
+
+function admCod_(c){ return String(c==null?'':c).replace(/\.0+$/,'').replace(/[^0-9A-Za-z]/g,'').toUpperCase(); }
+function admNormProv_(s){ return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[.,&]/g,' ').replace(/\b(S A|SA|CIA|INC|CORP)\b/g,' ').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+function admPost_(action,data){ return postGAS(action,Object.assign({pin:ADM.ses&&ADM.ses.pin},data||{})); }
+function admSalir_(){ ADM.ses=null; try{ localStorage.removeItem('rb_ses'); }catch(e){} admRender(); }
+
+function admRender(){
+  const box=document.getElementById('tabAdmin'); if(!box) return;
+  if(!ADM.ses){ return admLoginVista_(box); }
+  if(!ADM.ses.admin){
+    box.innerHTML='<div class="adm"><div class="adm-card adm-login"><h3>Sin permiso de administración</h3><p>'+esc(ADM.ses.nombre)+' ('+esc(ADM.ses.rol||'')+') no tiene rol SUPERVISOR o ADMIN en TRZ_USUARIOS.</p><button class="btn" id="admOtro">Ingresar con otro PIN</button></div></div>';
+    document.getElementById('admOtro').onclick=admSalir_; return;
+  }
+  box.innerHTML=`<div class="adm">
+  <div class="adm-ses"><span>👤 <b>${esc(ADM.ses.nombre)}</b> · ${esc(ADM.ses.area||'')} · ${esc(ADM.ses.rol||'')}</span><button class="btn" id="admSalir">Salir</button></div>
+  <section class="adm-card adm-main" aria-labelledby="admT1">
+    <div class="adm-h"><h3 id="admT1">Renglones por proveedor</h3><span class="adm-sub">Catálogo que ve el proveedor en solicitud_cita. Lo que guarde aquí aparece allí en menos de un minuto.</span></div>
+    <div class="adm-prov">
+      <label class="adm-lbl" for="admProv"><span class="adm-n">1</span> Proveedor</label>
+      <div class="adm-ac-w"><input id="admProv" autocomplete="off" placeholder="Escriba parte del nombre…" role="combobox" aria-expanded="false" aria-controls="admProvAC"><button type="button" class="adm-x" id="admProvX" aria-label="Limpiar proveedor" hidden>×</button><div class="adm-ac" id="admProvAC" role="listbox"></div></div>
+      <div class="adm-provinfo" id="admProvInfo">${ADM.filas?'':'Cargando catálogo…'}</div>
+    </div>
+    <div class="adm-cols" id="admCols" hidden>
+      <form class="adm-form" id="admForm" autocomplete="off" novalidate>
+        <div class="adm-lbl"><span class="adm-n">2</span> Renglón nuevo</div>
+        <label class="adm-f"><span>Código de abasto *</span><input id="admCod" inputmode="numeric" placeholder="Ej. 102075601" maxlength="15"></label>
+        <div class="adm-hint" id="admCodHint" aria-live="polite"></div>
+        <label class="adm-f"><span>Descripción *</span><textarea id="admDesc" rows="2" placeholder="Como aparece en la OC"></textarea></label>
+        <div class="adm-2">
+          <label class="adm-f"><span>Categoría *</span><select id="admCat"></select></label>
+          <label class="adm-f"><span>Código SAP</span><input id="admSap" placeholder="Opcional"></label>
+        </div>
+        <label class="adm-f"><span>Presentación</span><input id="admPres" placeholder="Opcional · ej. Caja x 100"></label>
+        <div class="adm-acc"><button class="btn primary" id="admGuardar" type="submit">Guardar renglón</button><button class="btn" type="button" id="admLimpiarF">Limpiar</button></div>
+        <div class="adm-res" id="admRes" role="status" aria-live="polite"></div>
+      </form>
+      <div class="adm-lista">
+        <div class="adm-lbl"><span class="adm-n">3</span> Renglones de este proveedor <span class="adm-cnt" id="admCnt"></span></div>
+        <input id="admFiltro" class="adm-filtro" placeholder="Filtrar por código o descripción…" aria-label="Filtrar renglones">
+        <div id="admRows" class="adm-rows"></div>
+      </div>
+    </div>
+  </section>
+  <section class="adm-card" aria-labelledby="admT2">
+    <div class="adm-h"><h3 id="admT2">Tareas de SIGUELO</h3><span class="adm-sub">Las mismas del menú ⚙ SÍGUELO del libro. Las que modifican datos piden confirmación.</span></div>
+    <div class="adm-tareas">${ADM_TAREAS.map(g=>'<div class="adm-g"><div class="adm-gt">'+esc(g.g)+'</div>'+g.items.map(x=>
+      '<div class="adm-t'+(x.w?' w':'')+'"><div class="adm-tt">'+esc(x.t)+(x.w?' <span class="adm-tag">modifica datos</span>':'')+'</div><div class="adm-td">'+esc(x.d)+'</div><div class="adm-tf"><button class="btn'+(x.w?'':' ')+'" data-tarea="'+x.k+'">Ejecutar</button><span class="adm-tr" id="admTr_'+x.k+'"></span></div></div>').join('')+'</div>').join('')}</div>
+    <div class="adm-bit" id="admBit"></div>
+  </section></div>`;
+  document.getElementById('admSalir').onclick=admSalir_;
+  box.querySelectorAll('[data-tarea]').forEach(b=>b.addEventListener('click',()=>admTarea_(b.dataset.tarea,b)));
+  admProvPreparar_(); admFormPreparar_(); admBitPintar_();
+  admCargarCatalogo_();
+}
+
+function admLoginVista_(box){
+  box.innerHTML='<div class="adm"><div class="adm-card adm-login"><h3>Administración</h3><p>Ingrese su PIN de Torre de Control (el mismo de Trazabilidad). La sesión dura 12 horas en este equipo.</p>'+
+    '<form id="admLogin" class="adm-loginf"><input id="admPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" aria-label="PIN" autocomplete="off"><button class="btn primary" type="submit">Ingresar</button></form><div class="adm-err" id="admPinErr" role="alert"></div></div></div>';
+  const f=document.getElementById('admLogin'), inp=document.getElementById('admPin'), err=document.getElementById('admPinErr');
+  setTimeout(()=>inp.focus(),50);
+  f.addEventListener('submit',async e=>{
+    e.preventDefault(); const pin=inp.value.trim(); if(!/^\d{4,6}$/.test(pin)){ err.textContent='El PIN tiene 4 a 6 dígitos.'; return; }
+    err.textContent='Verificando…'; f.querySelector('button').disabled=true;
+    try{
+      const r=await postGAS('admLogin',{pin:pin});
+      if(!r||!r.success){ err.textContent=(r&&r.error)||'No se pudo verificar.'; f.querySelector('button').disabled=false; return; }
+      ADM.ses={pin:pin,nombre:r.nombre,area:r.area,rol:r.rol,pasos:r.pasos||[],admin:!!r.admin,exp:Date.now()+12*3600e3};
+      try{ localStorage.setItem('rb_ses',JSON.stringify(ADM.ses)); }catch(e2){}
+      admRender();
+    }catch(e2){ err.textContent='Sin conexión con SIGUELO. Intente de nuevo.'; f.querySelector('button').disabled=false; }
+  });
+}
+
+// ---- Catálogo: primero la copia publicada (instantánea), luego la hoja completa (incluye inactivos)
+async function admCargarCatalogo_(){
+  if(!ADM.filas){
+    try{
+      const j=await fetch('./maestro_renglones.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'}).then(r=>r.ok?r.json():null);
+      if(j&&j.catalogo&&!ADM.filas){ const f=[]; Object.keys(j.catalogo).forEach(p=>j.catalogo[p].forEach(x=>f.push({p:p,c:admCod_(x.cod_abasto),s:x.cod_sap||'',d:x.desc||'',cat:x.categoria||'',pres:x.presentacion||'',o:x.origen||'',a:'SI'}))); ADM.filas=f; admRefrescar_(); }
+    }catch(e){}
+  }
+  try{
+    const r=await admPost_('admMaestro');
+    if(r&&r.success){ ADM.filas=r.filas.map(x=>Object.assign(x,{c:admCod_(x.c)})); ADM.completo=true; admRefrescar_(); }
+    else if(r&&r.sesion){ admSalir_(); }
+  }catch(e){}
+}
+function admProveedores_(){ const m={}; (ADM.filas||[]).forEach(x=>{ (m[x.p]=m[x.p]||{n:0,i:0}); if(String(x.a).toUpperCase()==='NO') m[x.p].i++; else m[x.p].n++; }); return m; }
+function admRefrescar_(){
+  const info=document.getElementById('admProvInfo'); if(!info) return;
+  const cats=new Set(ADM_CATS_BASE); (ADM.filas||[]).forEach(x=>{ if(x.cat) cats.add(String(x.cat).toUpperCase()); });
+  const sel=document.getElementById('admCat'), v=sel.value; sel.innerHTML='<option value="">Elija…</option>'+[...cats].sort().map(c=>'<option>'+esc(c)+'</option>').join(''); sel.value=v;
+  admProvElegir_(ADM.prov,true);
+}
+function admProvElegir_(nombre,silencio){
+  ADM.prov=nombre||''; const info=document.getElementById('admProvInfo'), cols=document.getElementById('admCols');
+  const inp=document.getElementById('admProv'); if(!silencio||!inp.value) inp.value=ADM.prov; document.getElementById('admProvX').hidden=!inp.value;
+  if(!ADM.prov){ cols.hidden=true; info.innerHTML=ADM.filas?('<span class="adm-mut">'+Object.keys(admProveedores_()).length+' proveedores en el catálogo'+(ADM.completo?'':' · verificando con la hoja…')+'</span>'):'Cargando catálogo…'; return; }
+  const m=admProveedores_(), k=m[ADM.prov];
+  if(k){ info.innerHTML='<span class="adm-ok">'+k.n+(k.n===1?' renglón':' renglones')+' activo'+(k.n===1?'':'s')+(k.i?' · '+k.i+' inactivo'+(k.i===1?'':'s'):'')+'</span>'; }
+  else{
+    const n=admNormProv_(ADM.prov), par=Object.keys(m).filter(p=>{ const q=admNormProv_(p); return q===n||q.indexOf(n)>=0||n.indexOf(q)>=0; }).slice(0,3);
+    info.innerHTML='<span class="adm-warn">Proveedor nuevo: se creará con este nombre. Escríbalo como aparece en la orden de compra.</span>'+(par.length?' <span class="adm-mut">¿Quiso decir '+par.map(p=>'<a href="#" data-prov="'+esc(p)+'">'+esc(p)+'</a>').join(' o ')+'?</span>':'');
+    info.querySelectorAll('[data-prov]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); admProvElegir_(a.dataset.prov); }));
+  }
+  cols.hidden=false; admFilasPintar_(); admCodRevisar_();
+}
+function admProvPreparar_(){
+  const inp=document.getElementById('admProv'), p=document.getElementById('admProvAC'), x=document.getElementById('admProvX');
+  const cerrar=()=>{ p.classList.remove('open'); p.innerHTML=''; inp.setAttribute('aria-expanded','false'); ADM.acSel=-1; };
+  const pintar=()=>{ [...p.children].forEach((el,i)=>el.classList.toggle('sel',i===ADM.acSel)); };
+  const sugerir=()=>{
+    const q=admNormProv_(inp.value); x.hidden=!inp.value; const m=admProveedores_();
+    let L=Object.keys(m).filter(n=>!q||admNormProv_(n).indexOf(q)>=0).slice(0,12);
+    ADM.ac=L; ADM.acSel=L.length?0:-1;
+    if(!L.length){ cerrar(); return; }
+    p.innerHTML=L.map((n,i)=>'<div class="adm-it" role="option" data-i="'+i+'">'+esc(n)+'<span>'+m[n].n+'</span></div>').join('');
+    p.classList.add('open'); inp.setAttribute('aria-expanded','true'); pintar();
+    p.querySelectorAll('.adm-it').forEach(el=>el.addEventListener('mousedown',e=>{ e.preventDefault(); admProvElegir_(ADM.ac[+el.dataset.i]); cerrar(); }));
+  };
+  inp.addEventListener('focus',()=>{ inp.select(); sugerir(); });
+  inp.addEventListener('input',sugerir);
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'&&ADM.ac.length){ e.preventDefault(); ADM.acSel=Math.min(ADM.ac.length-1,ADM.acSel+1); pintar(); }
+    else if(e.key==='ArrowUp'&&ADM.ac.length){ e.preventDefault(); ADM.acSel=Math.max(0,ADM.acSel-1); pintar(); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(p.classList.contains('open')&&ADM.acSel>=0) admProvElegir_(ADM.ac[ADM.acSel]); else admProvElegir_(inp.value.replace(/\s+/g,' ').trim()); cerrar(); document.getElementById('admCod').focus(); }
+    else if(e.key==='Escape') cerrar();
+  });
+  inp.addEventListener('blur',()=>{ setTimeout(()=>{ cerrar(); const v=inp.value.replace(/\s+/g,' ').trim(); if(v!==ADM.prov) admProvElegir_(v); },120); });
+  x.addEventListener('click',()=>{ inp.value=''; admProvElegir_(''); inp.focus(); });
+}
+function admFilasPintar_(){
+  const rows=document.getElementById('admRows'); if(!rows) return;
+  const q=(document.getElementById('admFiltro').value||'').toUpperCase().trim();
+  const L=(ADM.filas||[]).filter(x=>x.p===ADM.prov).sort((a,b)=>(!!b._nuevo)-(!!a._nuevo)||(String(a.a).toUpperCase()==='NO')-(String(b.a).toUpperCase()==='NO')||String(a.d).localeCompare(String(b.d)));
+  document.getElementById('admCnt').textContent=L.length?'('+L.length+')':'';
+  const F=L.filter(x=>!q||x.c.indexOf(q)>=0||String(x.d).toUpperCase().indexOf(q)>=0);
+  if(!L.length){ rows.innerHTML='<div class="adm-vacio">Este proveedor aún no tiene renglones. Agregue el primero a la izquierda.</div>'; return; }
+  rows.innerHTML=F.slice(0,200).map(x=>{ const off=String(x.a).toUpperCase()==='NO';
+    return '<div class="adm-row'+(off?' off':'')+(x._nuevo?' nuevo':'')+'"><div class="adm-rc">'+esc(x.c)+'</div><div class="adm-rd" title="'+esc(x.d)+'">'+esc(x.d)+'<span>'+esc(x.cat||'')+(x.s?' · SAP '+esc(x.s):'')+(off?' · inactivo':'')+'</span></div>'+
+      (ADM.completo?'<button class="btn adm-mini" data-act="'+esc(x.c)+'" data-v="'+(off?'SI':'NO')+'">'+(off?'Activar':'Desactivar')+'</button>':'')+'</div>'; }).join('')+(F.length>200?'<div class="adm-vacio">Mostrando 200 de '+F.length+'. Use el filtro.</div>':'');
+  rows.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>admActivar_(b.dataset.act,b.dataset.v,b)));
+}
+function admCodRevisar_(){
+  const hint=document.getElementById('admCodHint'), g=document.getElementById('admGuardar'); if(!hint) return;
+  const c=admCod_(document.getElementById('admCod').value); hint.className='adm-hint'; hint.innerHTML=''; g.disabled=false; ADM.prop=null;
+  if(!c||!ADM.prov) return;
+  const mio=(ADM.filas||[]).find(x=>x.p===ADM.prov&&x.c===c);
+  if(mio){
+    if(String(mio.a).toUpperCase()==='NO'){ hint.className='adm-hint warn'; hint.innerHTML='Este renglón ya está en el catálogo del proveedor, pero <b>inactivo</b>. <button type="button" class="btn adm-mini" id="admReact">Reactivar</button>'; g.disabled=true;
+      document.getElementById('admReact').onclick=e=>admActivar_(c,'SI',e.target); }
+    else{ hint.className='adm-hint bad'; hint.textContent='Ya está en el catálogo de este proveedor ('+mio.d+'). No hace falta agregarlo.'; g.disabled=true; }
+    return;
+  }
+  const otros=(ADM.filas||[]).filter(x=>x.c===c);
+  if(otros.length){
+    const o=otros[0], f=(id,v)=>{ const el=document.getElementById(id); if(!el.value&&v) el.value=v; };
+    f('admDesc',o.d); f('admSap',o.s); f('admPres',o.pres); if(!document.getElementById('admCat').value&&o.cat) document.getElementById('admCat').value=String(o.cat).toUpperCase();
+    const prov=[...new Set(otros.map(x=>x.p))];
+    hint.className='adm-hint ok'; hint.textContent='Código conocido: lo tiene'+(prov.length>1?'n':'')+' '+prov.slice(0,2).join(' y ')+(prov.length>2?' y '+(prov.length-2)+' más':'')+' — se copiaron descripción y categoría; revíselas.';
+  } else if(c.length>=6){ hint.className='adm-hint'; hint.textContent='Código nuevo en el catálogo: complete la descripción y la categoría.'; }
+}
+function admFormPreparar_(){
+  const f=document.getElementById('admForm');
+  document.getElementById('admCod').addEventListener('input',admCodRevisar_);
+  document.getElementById('admFiltro').addEventListener('input',admFilasPintar_);
+  document.getElementById('admLimpiarF').addEventListener('click',()=>{ ['admCod','admDesc','admSap','admPres'].forEach(i=>document.getElementById(i).value=''); document.getElementById('admCat').value=''; admCodRevisar_(); document.getElementById('admRes').textContent=''; });
+  f.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const res=document.getElementById('admRes'), g=document.getElementById('admGuardar');
+    const d={proveedor:ADM.prov, cod_abasto:admCod_(document.getElementById('admCod').value), descripcion:document.getElementById('admDesc').value.replace(/\s+/g,' ').trim(),
+      categoria:document.getElementById('admCat').value, cod_sap:document.getElementById('admSap').value.trim(), presentacion:document.getElementById('admPres').value.trim()};
+    const falta=[]; if(!d.proveedor) falta.push('proveedor'); if(!d.cod_abasto) falta.push('código de abasto'); if(!d.descripcion) falta.push('descripción'); if(!d.categoria) falta.push('categoría');
+    if(falta.length){ res.className='adm-res bad'; res.textContent='Falta: '+falta.join(', ')+'.'; return; }
+    if(!/^[0-9A-Z]{5,15}$/.test(d.cod_abasto)){ res.className='adm-res bad'; res.textContent='El código de abasto debe tener entre 5 y 15 letras o números.'; return; }
+    g.disabled=true; res.className='adm-res'; res.textContent='Guardando en MAESTRO_PROVEEDORES…';
+    try{
+      const r=await admPost_('admRenglonCrear',d);
+      if(r&&r.success){
+        const nuevo=!(admProveedores_()[d.proveedor]);
+        ADM.filas=(ADM.filas||[]).filter(x=>!(x.p===r.proveedor&&x.c===d.cod_abasto));
+        ADM.filas.push({p:r.proveedor||d.proveedor,c:d.cod_abasto,s:d.cod_sap,d:d.descripcion,cat:d.categoria,pres:d.presentacion,o:'adjudicado',a:'SI',_nuevo:true});
+        res.className='adm-res ok'; res.textContent='✓ '+(r.mensaje||'Renglón guardado.')+(r.publicado?' Ya está disponible en solicitud_cita.':' Se publicará en la próxima actualización.');
+        admLog_('Renglón '+d.cod_abasto+' → '+(r.proveedor||d.proveedor)+(nuevo?' (proveedor nuevo)':''));
+        ['admCod','admDesc','admSap','admPres'].forEach(i=>document.getElementById(i).value=''); document.getElementById('admCat').value='';
+        admProvElegir_(r.proveedor||d.proveedor); document.getElementById('admCod').focus();
+      } else { if(r&&r.sesion) return admSalir_(); res.className='adm-res bad'; res.textContent=(r&&r.error)||'No se pudo guardar.'; }
+    }catch(e2){ res.className='adm-res bad'; res.textContent='Sin conexión con SIGUELO. No se guardó; intente de nuevo.'; }
+    g.disabled=false; admCodRevisar_();
+  });
+}
+async function admActivar_(cod,v,btn){
+  const fila=(ADM.filas||[]).find(x=>x.p===ADM.prov&&x.c===cod);
+  const ok=await admConfirmar_((v==='NO'?'Desactivar':'Activar')+' renglón', (v==='NO'?'El renglón '+cod+' dejará de aparecer en solicitud_cita para '+ADM.prov+'. No se borra: puede reactivarlo cuando quiera.':'El renglón '+cod+' volverá a aparecer en solicitud_cita para '+ADM.prov+'.'), v==='NO'?'Desactivar':'Activar');
+  if(!ok) return; if(btn){ btn.disabled=true; btn.textContent='…'; }
+  try{
+    const r=await admPost_('admRenglonActivo',{proveedor:ADM.prov,cod_abasto:cod,activo:v});
+    if(r&&r.success){ if(fila) fila.a=v; admLog_((v==='NO'?'Desactivado ':'Activado ')+cod+' · '+ADM.prov); admProvElegir_(ADM.prov); }
+    else { if(r&&r.sesion) return admSalir_(); alert((r&&r.error)||'No se pudo cambiar.'); admFilasPintar_(); }
+  }catch(e){ alert('Sin conexión con SIGUELO.'); admFilasPintar_(); }
+}
+function admConfirmar_(titulo,texto,boton){
+  return new Promise(res=>{
+    document.getElementById('modalTitulo').textContent=titulo;
+    document.getElementById('modalBody').innerHTML='<p style="font-size:13.5px;line-height:1.5;margin:0 0 14px;">'+esc(texto)+'</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn" id="admNo">Cancelar</button><button class="btn primary" id="admSi">'+esc(boton||'Confirmar')+'</button></div>';
+    abrirModal(); let fin=false; const cerrar=v=>{ if(fin) return; fin=true; cerrarModal(); res(v); };
+    document.getElementById('admSi').onclick=()=>cerrar(true); document.getElementById('admNo').onclick=()=>cerrar(false);
+    const ov=document.getElementById('overlay'), obs=new MutationObserver(()=>{ if(!ov.classList.contains('activo')){ obs.disconnect(); cerrar(false); } }); obs.observe(ov,{attributes:true});
+    setTimeout(()=>document.getElementById('admSi').focus(),30);
+  });
+}
+async function admTarea_(k,btn){
+  const def=[].concat(...ADM_TAREAS.map(g=>g.items)).find(x=>x.k===k); if(!def) return;
+  if(def.w && !(await admConfirmar_(def.t,def.w+' ¿Continuar?','Sí, ejecutar'))) return;
+  const out=document.getElementById('admTr_'+k); btn.disabled=true; out.className='adm-tr run'; out.textContent=def.lento?'En proceso (cerca de un minuto)…':'En proceso…';
+  const t0=Date.now();
+  try{
+    let r=await admPost_('admTarea',{tarea:k});
+    if(r&&r.success&&r.enCurso){ // tarea en segundo plano: consultar estado
+      for(let i=0;i<40&&r&&r.success&&r.enCurso;i++){ await new Promise(z=>setTimeout(z,6000)); r=await admPost_('admTarea',{tarea:k+'_estado'}); }
+    }
+    if(r&&r.success){ out.className='adm-tr ok'; out.textContent='✓ '+(r.mensaje||'Listo')+' · '+Math.round((Date.now()-t0)/1000)+' s'; admLog_(def.t+': '+(r.mensaje||'listo')); }
+    else { if(r&&r.sesion) return admSalir_(); out.className='adm-tr bad'; out.textContent=(r&&r.error)||'No se pudo ejecutar.'; admLog_(def.t+': ERROR '+((r&&r.error)||'')); }
+  }catch(e){ out.className='adm-tr bad'; out.textContent='Sin conexión con SIGUELO (la tarea pudo haber seguido en el servidor).'; }
+  btn.disabled=false;
+}
+function admLog_(t){ ADM.bit.unshift(new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})+' · '+t); ADM.bit=ADM.bit.slice(0,8); admBitPintar_(); }
+function admBitPintar_(){ const b=document.getElementById('admBit'); if(b) b.innerHTML=ADM.bit.length?'<div class="adm-gt">En esta sesión</div>'+ADM.bit.map(x=>'<div>'+esc(x)+'</div>').join(''):''; }
+
 function arrancarPanel_(){ cargar(); }
 
 // Arranque con gate: si el PIN sigue vigente, entra directo; si no, pide PIN.
