@@ -251,8 +251,8 @@ tr.click:hover td{background:var(--surface2)}
 .flg-bar{height:4px;background:var(--line);border-radius:3px;margin:-2px 0 6px;overflow:hidden}
 .flg-bar i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .6s ease}
 .favance{display:flex;align-items:center;gap:10px;font-size:.8rem;margin:2px 0 6px;flex-wrap:wrap}
-.fbar{flex:1;min-width:140px;height:8px;background:var(--line);border-radius:5px;overflow:hidden}
-.fbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#3fa45b);border-radius:5px;transition:width .6s ease}
+.favbar{flex:1;min-width:140px;height:8px;background:var(--line);border-radius:5px;overflow:hidden}
+.favbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#3fa45b);border-radius:5px;transition:width .6s ease}
 .fdev{background:var(--bad-soft);border:1px solid var(--bad);border-radius:8px;padding:7px 10px;font-size:.8rem;margin-bottom:6px;color:var(--ink)}
 .fdev b{color:var(--bad)}.fdev span{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.fn.now,.fla.vivo,.fn.devuelto,.fn.recien{animation:none}}
@@ -679,7 +679,7 @@ function flujoDoc(x,reg,hechos,sig){
     return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(now?(dev?'Corregir':'Le toca'):(reab.has(p)?'Repetir':'—')))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
   const flecha=(a,b)=>'<span class="fla'+(hechos.has(a)&&hechos.has(b)?' ok':(hechos.has(a)&&sig&&sig[0]===b?' vivo':''))+'" aria-hidden="true"></span>';
   const pct=Math.round(100*nHechos/ord.length);
-  let h='<div class="favance"><span><b>Avance documental:</b> '+nHechos+' de '+ord.length+' pasos</span><div class="fbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nHechos+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
+  let h='<div class="favance"><span><b>Avance documental:</b> '+nHechos+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nHechos+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
   if(dev){const qa=PASOS.find(z=>z[0]===dev.paso),qd=PASOS.find(z=>z[0]===dev.dest);
     h+='<div class="fdev" role="status"><b>↩ Devuelto</b> desde '+cod(dev.paso)+' ('+esc(qa?qa[1]:'')+') a '+cod(dev.dest)+' ('+esc(qd?qd[1]:'')+') · '+esc(String(dev.ts||'').replace('T',' '))+(dev.quien?' · '+esc(dev.quien):'')+'<br><span>Motivo: '+esc(dev.motivo||'—')+(dev.obs?' · '+esc(dev.obs):'')+'</span>'+(dev.evidUrl?' · <a class="evlink" href="'+esc(dev.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+'</div>';}
   h+='<div class="fl" role="list" aria-label="Recorrido documental del expediente">';

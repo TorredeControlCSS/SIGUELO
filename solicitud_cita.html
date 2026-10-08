@@ -279,7 +279,7 @@
                 <div class="mc-tit">Mis citas y entregas</div>
                 <div class="mc-sub">Busque una orden o un renglón, o use las pestañas. En las entregas recibidas verá en qué etapa va su pago.</div>
               </div>
-              <button type="button" id="btnExcelTraz" class="mc-btn-sec">⬇ Excel (historial completo)</button>
+              <button type="button" id="btnExcelTraz" class="mc-btn-sec">⬇ Excel (historial y avance del pago)</button>
             </div>
             <div class="mc-bar">
               <div class="ac-wrap">
@@ -1146,6 +1146,7 @@ function _semaforoVenc(ymd){
 }
 
 function renderTransitosDisponibles(lista){
+  MC.trans=Array.isArray(lista)?lista:[];
   const box=document.getElementById('boxTransitos');
   const cont=document.getElementById('listaTransitos');
   const cnt=document.getElementById('transitosCount');
@@ -1183,15 +1184,16 @@ function renderTransitosDisponibles(lista){
     row.querySelector('button').addEventListener('click',()=>usarTransito(t));
     cont.appendChild(row);
   });
-  box.style.display='block';
+  // La lista ahora se muestra como pestaña "Por agendar" dentro de Mis citas y entregas.
+  box.style.display='none';
 }
 
 // ================== MIS CITAS Y ENTREGAS ==================
 // Una sola vista acotada al proveedor: buscador propio (no el datalist del
 // navegador), pestañas con conteo, tarjetas en rejilla y, en las entregas
 // recibidas, el avance hasta el pago con datos de recepción, SAP y SIGUELO.
-const MC={citas:[],tab:'',q:null,lim:12,abierta:null,seg:null,segCarga:null,res:null};
-const MC_TABS=[['aten','Requieren atención'],['agen','Agendadas'],['entr','Entregadas'],['todas','Todas']];
+var MC={citas:[],trans:[],tab:'',q:null,lim:12,abierta:null,seg:null,segCarga:null,res:null};
+const MC_TABS=[['aten','Requieren atención'],['trans','Por agendar'],['agen','Agendadas'],['entr','Entregadas'],['todas','Todas']];
 function mcOC(oc){ const m=String(oc||'').replace(/\s+/g,'').match(/(100\d{7})(?!\d)/)||String(oc||'').match(/(100\d{7})(?!\d)/); return m?m[1]:''; }
 function mcEntrega(oc){ const m=String(oc||'').match(/-E(\d{1,2})\s*$/i); return m?m[1]:''; }
 function mcCod(c){ return String(c||'').replace(/\.0+$/,'').replace(/[-\s]/g,''); }
@@ -1203,6 +1205,7 @@ function mcGrupo(d){ const e=String(d.estado||'').toUpperCase();
   return 'otro'; }
 function mcLista(tab){
   const c=MC.citas;
+  if(tab==='trans') return (MC.trans||[]).map(t=>Object.assign({_tr:1},t));
   if(tab==='aten') return filtrarAtencion(c);
   if(tab==='agen') return filtrarAgendadas(c);
   const f=d=>String(d.fecha_confirmada||d.fecha_solicitada||'');
@@ -1212,7 +1215,7 @@ function mcLista(tab){
 function mcRender(citas){
   MC.citas=citas||[]; MC.q=null; MC.lim=12; MC.abierta=null;
   const n=t=>mcLista(t).length;
-  MC.tab = n('aten')?'aten':(n('agen')?'agen':(n('entr')?'entr':'todas'));
+  MC.tab = n('aten')?'aten':(n('trans')?'trans':(n('agen')?'agen':(n('entr')?'entr':'todas')));
   mcTabs(); mcPintar(); mcAcPreparar();
   mcCargarSeguimiento();
 }
@@ -1223,7 +1226,10 @@ function mcTabs(){
 function mcFiltradas(){
   if(!MC.q) return mcLista(MC.tab);
   const q=MC.q;
-  return mcLista('todas').filter(d=>{
+  return mcLista('todas').concat(mcLista('trans')).filter(d=>{
+    if(d._tr){ const oc=mcOC(d.n_orden_compra||d.n_documento), cod=mcCod(d.cod_abasto||d.cod_abasto_norm);
+      if(q.tipo==='oc') return oc===q.v; if(q.tipo==='ren') return cod===q.v;
+      return (String(d.n_documento)+' '+oc+' '+cod+' '+String(d.descripcion||'')).toLowerCase().indexOf(q.v.toLowerCase())>=0; }
     if(q.tipo==='oc') return mcOC(d.oc)===q.v;
     if(q.tipo==='ren') return mcCod(d.cod_abasto)===q.v;
     const t=(String(d.oc)+' '+mcCod(d.cod_abasto)+' '+String(d.descripcion||'')).toLowerCase();
@@ -1241,8 +1247,9 @@ function mcPintar(){
   const iAb=vis.findIndex((d,i)=>mcKey(d,i)===MC.abierta);
   const finFila=iAb>=0?Math.min(vis.length-1,Math.ceil((iAb+1)/cols)*cols-1):-1;
   let h='';
-  vis.forEach((d,i)=>{ h+=mcCard(d,i); if(i===finFila) h+=mcDetalle(vis[iAb]); });
+  vis.forEach((d,i)=>{ h+=(d._tr?mcCardTr(d,i):mcCard(d,i)); if(i===finFila) h+=mcDetalle(vis[iAb]); });
   g.innerHTML=h;
+  g.querySelectorAll('[data-usar]').forEach(b=>b.addEventListener('click',()=>{ const t=vis[Number(b.dataset.usar)]; if(t) usarTransito(MC.trans.find(x=>x.n_documento===t.n_documento&&String(x.cod_abasto||x.cod_abasto_norm)===String(t.cod_abasto||t.cod_abasto_norm))||t); }));
   g.querySelectorAll('.mc-ver').forEach(b=>b.addEventListener('click',()=>{ const k=b.dataset.k; MC.abierta=(MC.abierta===k)?null:k; mcPintar(); if(MC.abierta){ const det=document.querySelector('.mc-det'); if(det) det.scrollIntoView({behavior:'smooth',block:'nearest'}); } }));
   const resto=L.length-vis.length;
   document.getElementById('mcMas').innerHTML=resto>0?'<button type="button" class="mc-btn-sec" id="mcMasBtn">Ver '+Math.min(resto,12)+' más ('+resto+' restantes)</button>':'';
@@ -1268,6 +1275,18 @@ function mcCard(d,i){
     '<div class="prod" title="'+escAttr(d.descripcion||'')+'">'+escAttr(d.descripcion||'')+'</div>'+
     '<div class="ids">Renglón '+escAttr(mcCod(d.cod_abasto))+(d.cant_unidades?' · '+_fmtNumCita(d.cant_unidades)+' und':'')+'</div>'+
     '<div class="lin">'+lin+'</div>'+extra+seg+'</div>';
+}
+function mcCardTr(t,i){
+  const [col,txt]=_semaforoVenc(t.vencimiento_entrega||t.vencimiento_oc||'');
+  const tp=String(t.tipo||'').toUpperCase();
+  const lbl=tp==='ORDEN_COMPRA'?'Orden de compra':(tp==='SOLICITUD_ENTREGA'?'Solicitud de entrega':(tp==='ADELANTO'?'Nota de adelanto':'Documento'));
+  const ocM=tp==='ORDEN_COMPRA'?(t.n_documento||''):(t.n_orden_compra||'');
+  return '<div class="mc-card" style="border-left:4px solid '+col+'"><div class="top"><span class="mc-pill" style="background:#e6edf6;color:#0C447C">Por agendar</span><span class="ids">'+(t.cedi?'CEDI '+escAttr(t.cedi):'')+'</span></div>'+
+    '<div class="ids" style="color:#0C447C;font-weight:600">'+escAttr(lbl)+' '+escAttr(t.n_documento||'')+(ocM&&ocM!==t.n_documento?' · OC '+escAttr(ocM):'')+'</div>'+
+    '<div class="prod" title="'+escAttr(t.descripcion||'')+'">'+escAttr(t.descripcion||'')+'</div>'+
+    '<div class="ids">Renglón '+escAttr(t.cod_abasto||t.cod_abasto_norm||'')+' · ref. '+_fmtNumCita(t.cantidad)+' und'+(t.planificador?' · Planif. '+escAttr(t.planificador):'')+'</div>'+
+    '<div class="lin" style="color:'+col+';font-weight:600">'+escAttr(txt)+(t.vencimiento_entrega?' (entrega '+escAttr(t.vencimiento_entrega)+')':'')+'</div>'+
+    '<button type="button" class="mc-ver" style="background:#0C447C;color:#fff;border-color:#0C447C" data-usar="'+i+'">Usar esta OC para pedir cita</button></div>';
 }
 // Etapas de una entrega: cita → recepción → SALMI → SAP 101 → revisión → Contabilidad → publicación → pago
 function mcEntregaDe(d){
@@ -1324,8 +1343,9 @@ function mcAcPreparar(){
   const sugerir=q=>{
     const t=String(q||'').trim().toLowerCase();
     const ocs=new Map(), rens=new Map();
+    (MC.trans||[]).forEach(t=>{ const o=mcOC(t.n_orden_compra||t.n_documento); if(o){ const a=ocs.get(o)||{n:0,desc:t.descripcion}; ocs.set(o,a);} });
     MC.citas.forEach(d=>{ const o=mcOC(d.oc); if(o){ const a=ocs.get(o)||{n:0,desc:d.descripcion}; a.n++; ocs.set(o,a);} const c=mcCod(d.cod_abasto); if(c){ const b=rens.get(c)||{n:0,desc:d.descripcion}; b.n++; rens.set(c,b);} });
-    let L=[...ocs.entries()].map(([o,a])=>({tipo:'oc',v:o,etq:'OC '+o,sub:a.n+' cita'+(a.n>1?'s':'')+' · '+String(a.desc||'').slice(0,60)}))
+    let L=[...ocs.entries()].map(([o,a])=>({tipo:'oc',v:o,etq:'OC '+o,sub:(a.n?a.n+' cita'+(a.n>1?'s':''):'por agendar')+' · '+String(a.desc||'').slice(0,60)}))
       .concat([...rens.entries()].map(([c,b])=>({tipo:'ren',v:c,etq:'Renglón '+c,sub:String(b.desc||'').slice(0,70)+' · '+b.n+' cita'+(b.n>1?'s':'')})));
     if(t){ const emp=L.filter(o=>o.v.startsWith(t)), den=L.filter(o=>!emp.includes(o)&&(o.v+' '+o.sub).toLowerCase().includes(t)); L=emp.concat(den); }
     MC_AC=L.slice(0,30); MC_SEL=-1;
@@ -1429,7 +1449,8 @@ function usarTransito(t){
     mostrarAlerta('err','Cargué la OC '+(t.n_documento||'')+', pero el renglón '+(t.cod_abasto||'')+' no aparece en su catálogo. Selecciónelo manualmente o avise a Torre de Control.');
     selR.focus();
   }
-  document.getElementById('boxTransitos').scrollIntoView({behavior:'smooth',block:'center'});
+  // Lleva al formulario ya prellenado (la lista vive ahora en la pestaña Por agendar).
+  (document.getElementById('campoOC')||document.getElementById('boxTransitos')).scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 function cargarDiferidasProveedor(empresa){
@@ -1452,7 +1473,7 @@ function cargarDiferidasProveedor(empresa){
     // Subsección de prórroga: mostrar y evaluar aviso automático con citas + tránsitos.
     prepararProrroga(empresa, citasTodas, transitosDisp);
 
-    if(!citasTodas.length){ box.style.display='none'; return; }
+    if(!citasTodas.length && !transitosDisp.length){ box.style.display='none'; return; }
 
     const atencion=filtrarAtencion(citasTodas);
     const agendadas=filtrarAgendadas(citasTodas);
