@@ -286,16 +286,12 @@
     try{ var bg=localStorage.getItem('conc_base'); if(bg==='ren'||(bg==='lote'&&RL.length)) BASE=bg; }catch(e){}
     Array.prototype.forEach.call($('base').children,function(b){ b.classList.toggle('on',b.dataset.b===BASE); b.disabled=b.dataset.b==='lote'&&!RL.length; });
     var m=D._meta; $('hCorte').textContent=m.fechaMB52&&m.fechaMB52!==m.fecha?'SALMI '+m.fecha+' · MB52 '+m.fechaMB52:m.fecha; $('hPub').textContent=m.generado;
-    /* un solo aviso, una línea: qué día se concilia y por qué */
-    var fM=m.fechasMB52||[], fS=m.fechasSALMI||[], dm=function(d){ return d?d.slice(8,10)+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+d.slice(5,7)-1]:'—'; }, cl='n', t=[];
+    /* franja: solo las fechas de los archivos que se comparan */
+    var dm=function(d){ return d?d.slice(8,10)+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+d.slice(5,7)-1]+'-'+d.slice(0,4):'—'; }, cl='n', t=[];
     var ajus=m.fechaMB52&&m.fechaMB52!==m.fecha;
-    t.push('Conciliación del '+dm(m.fecha)+(ajus?' (SALMI del '+dm(m.fecha)+' contra MB52 del '+dm(m.fechaMB52)+', llevado a ese día con el MB51)':': último día con MB52 y SALMI del mismo día')+'.');
-    if(m.ultimoMB52>(m.fechaMB52||m.fecha)||m.ultimoSALMI>m.fecha){ cl='a';
-      var sinS=m.ultimoMB52>(m.fechaMB52||m.fecha)&&fS.indexOf(m.ultimoMB52)<0, sinM=m.ultimoSALMI>m.ultimoMB52;
-      t.push((sinS?'El MB52 del '+dm(m.ultimoMB52)+' no tiene SALMI de ese día. ':'')+(sinM?'El SALMI del '+dm(m.ultimoSALMI)+' todavía no tiene MB52 (SAP llega un día de por medio). ':'')+'Se actualiza sola cuando llegue el par que falta.'); }
-    if(fM.length||fS.length) t.push('Recibidos · MB52: '+fM.slice(-5).map(dm).join(', ')+' · SALMI: '+fS.slice(-5).map(dm).join(', ')+'.');
+    t.push('Inventario SALMI del '+dm(m.fecha)+' · SAP-SAFIRO MB52 del '+dm(m.fechaMB52||m.fecha)+(ajus?' (llevado al '+dm(m.fecha)+' con el MB51)':'')+'.');
     if(m.espera){ t.push(m.espera); cl='a'; }
-        if(!RL.length) t.push('El cuadre por lote aparece cuando se publique con la versión nueva del cálculo.');
+    if(!RL.length) t.push('El cuadre por lote aparece cuando se publique con la versión nueva del cálculo.');
     if(m.fechaInventarioSALMI&&m.fechaInventarioSALMI!==m.fecha){ t.push('Ojo: el valorizado dice "Fecha Inventario '+m.fechaInventarioSALMI+'".'); cl='r'; }
     $('avisos').innerHTML='<div class="aviso '+cl+'">'+esc(t.join(' '))+' <a href="#" id="aAy">Cómo se calcula</a></div>'; $('aAy').onclick=function(e){ e.preventDefault(); ayuda(); };
     var fams={}, gr={}; R.forEach(function(r){ fams[r.fam]=1; });
