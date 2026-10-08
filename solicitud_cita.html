@@ -1736,41 +1736,103 @@ function renderCitasEnCaja(cont, citas, sufijo){
   });
 }
 
-// Botón: descargar Excel de trazabilidad del proveedor
-document.getElementById('btnExcelTraz').addEventListener('click',function(){
-  if(!_empresaTraz){ alert('Seleccione su empresa primero.'); return; }
-  const btn=this; const t0=btn.textContent; btn.textContent='Generando...'; btn.disabled=true;
-  // Abrir la pestaña YA, dentro del gesto del clic, para que el navegador no la bloquee.
-  // Le ponemos un mensaje de espera y luego solo cambiamos su ubicación cuando llega la URL.
-  let win=window.open('','_blank');
-  if(win){
-    try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando Reporte de Citas…</title>'+
-      '<body style="font-family:Segoe UI,Arial,sans-serif;color:#0C447C;text-align:center;padding-top:14%;margin:0;background:#ececec;">'+
-      '<img src="https://torredecontrolcss.github.io/SIGUELO/icons/icon-192.png" alt="CSS Panamá" style="width:84px;height:84px;object-fit:contain;margin-bottom:18px;">'+
-      '<div style="font-size:20px;font-weight:700;">Generando su Reporte de Citas en Excel…</div>'+
-      '<div style="font-size:13px;color:#666;margin-top:8px;">La descarga comenzará en unos segundos.</div></body>'); }catch(e){}
+// Botón: descargar Excel del proveedor.
+// Se arma en el navegador con los datos que ya están en pantalla (citas, seguimiento y tránsitos):
+// no espera a SIGUELO, por eso tarda uno o dos segundos en vez de ~20.
+let _xlsLib=null;
+function cargarExcelJS(){
+  if(window.ExcelJS) return Promise.resolve();
+  if(_xlsLib) return _xlsLib;
+  _xlsLib=new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'; s.onload=ok; s.onerror=()=>{ _xlsLib=null; ko(new Error('No se pudo cargar el generador de Excel.')); }; document.head.appendChild(s); });
+  return _xlsLib;
+}
+function _xlsFecha(f){ f=String(f||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(f)?f.split('-').reverse().join('/'):(f||'—'); }
+function _xlsDiasVencer(estado,fv){
+  const e=String(estado||'').toUpperCase(), viva=!({'ASISTIO':1,'ENTREGADO':1,'CANCELADA':1,'NO_ASISTIO':1}[e]);
+  if(!viva) return 'Entregada'; if(!fv) return '—';
+  const d=new Date(String(fv).slice(0,10)+'T00:00:00'); if(isNaN(d)) return '—';
+  const h=new Date(); h.setHours(0,0,0,0); const n=Math.round((d-h)/864e5);
+  return n<0?'Vencida ('+(-n)+'d)':(n===0?'Vence hoy':n+' día'+(n!==1?'s':''));
+}
+async function generarExcelCliente(){
+  await cargarExcelJS();
+  try{ await mcCargarSeguimiento(); }catch(e){}
+  for(let i=0;i<15&&!MC.res;i++) await new Promise(r=>setTimeout(r,200));  // hitos documentales (opcional)
+  const emp=_empresaTraz, NAVY='FF0C447C', VERDE='FF2D5A1E';
+  const wb=new ExcelJS.Workbook(); wb.creator='SIGUELO · CSS'; wb.created=new Date();
+  let logo=null;
+  try{ const r=await fetch('./icons/icon-192.png'); const buf=await r.arrayBuffer(); logo=wb.addImage({buffer:buf,extension:'png'}); }catch(e){}
+  const _n=new Date(), _z=x=>String(x).padStart(2,'0'); const sello=_z(_n.getDate())+'/'+_z(_n.getMonth()+1)+'/'+_n.getFullYear()+' '+_z(_n.getHours())+':'+_z(_n.getMinutes());
+  const borde={top:{style:'thin',color:{argb:'FFAAAAAA'}},left:{style:'thin',color:{argb:'FFAAAAAA'}},bottom:{style:'thin',color:{argb:'FFAAAAAA'}},right:{style:'thin',color:{argb:'FFAAAAAA'}}};
+  function encabezado(ws,titulo,ncol){
+    if(logo!=null) ws.addImage(logo,{tl:{col:0.1,row:0.1},ext:{width:46,height:46}});
+    ws.getRow(1).height=24; ws.getRow(2).height=18;
+    ws.mergeCells(1,2,1,ncol); ws.getCell(1,2).value=titulo; ws.getCell(1,2).font={bold:true,size:14,color:{argb:NAVY}};
+    ws.mergeCells(2,2,2,ncol); ws.getCell(2,2).value='CEDIS Panamá · Dirección Nacional de Logística · Generado '+sello+' · Consultas: Control Operativo DINALOG'; ws.getCell(2,2).font={size:10,color:{argb:'FF555555'}};
   }
-  const cb='cbXlsTraz'+Date.now();
-  window[cb]=function(resp){
-    try{ delete window[cb]; }catch(e){}
-    btn.textContent=t0; btn.disabled=false;
-    if(resp&&resp.success&&resp.url){
-      if(win && !win.closed){ win.location=resp.url; }     // reusar la pestaña ya abierta
-      else { window.location.href=resp.url; }              // respaldo: navegar en la misma pestaña
-    } else {
-      if(win && !win.closed){ try{ win.close(); }catch(e){} }
-      alert('No se pudo generar el Excel: '+((resp&&resp.error)||''));
-    }
-  };
-  const s=document.createElement('script');
-  s.src=API_URL+'?action=generarExcelProveedor&empresa='+encodeURIComponent(_empresaTraz)+'&callback='+cb;
-  s.onerror=function(){
-    btn.textContent=t0; btn.disabled=false;
-    if(win && !win.closed){ try{ win.close(); }catch(e){} }
-    alert('Error de red al generar el Excel.');
-  };
-  document.body.appendChild(s);
+  function cabecera(ws,fila,cols,colorDesde){
+    const r=ws.getRow(fila); r.values=cols; r.height=30;
+    r.eachCell((c,i)=>{ c.font={bold:true,size:10,color:{argb:'FFFFFFFF'}}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:(colorDesde&&i>=colorDesde)?VERDE:NAVY}}; c.alignment={vertical:'middle',horizontal:'center',wrapText:true}; c.border=borde; });
+  }
+  // Hoja 1: citas + avance de cada entrega
+  const ws=wb.addWorksheet('Citas y avance',{views:[{state:'frozen',ySplit:4,xSplit:0}]});
+  const H=['Estado','OC','Cód. Abasto','Descripción','Área','Unidades','Bultos','Pallets','Solicitada','Cita para','Hora','Vence OC','Días p/ vencer','Nota','Detalle / motivo','Recibida en CEDIS','Cant. recibida','Ingreso inventario','Entrada SAP','Revisión del informe','Contabilidad','Publicación','Etapa actual'];
+  encabezado(ws,'TRAZABILIDAD DE CITAS — '+emp,H.length);
+  ws.mergeCells(3,16,3,23); ws.getCell(3,16).value='Seguimiento de la entrega: recepción, revisión y pago'; ws.getCell(3,16).font={bold:true,size:10,color:{argb:VERDE}};
+  cabecera(ws,4,H,16);
+  const fe=d=>String(d.fecha_confirmada||d.fecha_solicitada||'');
+  const citas=MC.citas.slice().sort((a,b)=>fe(b).localeCompare(fe(a)));
+  const BG={AGENDADA:'FFFFF3CD',DIFERIDA:'FFF8D7DA',REPROGRAMADA:'FFF8D7DA',CANCELADA:'FFF4CCCC',ASISTIO:'FFD9EAD3',ENTREGADO:'FFD9EAD3'};
+  citas.forEach(c=>{
+    // Igual que el Excel anterior de SIGUELO: el seguimiento aplica solo a citas ya entregadas.
+    const ent=mcGrupo(c)==='entr', s=mcEtapas(c), e=ent?mcEntregaDe(c):null;
+    let ult=-1; [1,2,3,4,5,6].forEach(i=>{ if(e&&s[i].f) ult=i; });
+    const v=i=>!e?'':(s[i].f?_xlsFecha(s[i].f):(i<ult?'Sin fecha registrada':(i<=3||MC.res?'Pendiente':'Sin registro digital')));
+    const etapa=!ent?'':(!e?'Recepción':(ult<6?s[ult+1].t:'Contraloría y pago'));
+    const r=ws.addRow([c.estado||'',c.oc||'',c.cod_abasto||'',c.descripcion||'',c.categoria||'',
+      +c.cant_unidades||0,+c.cant_bultos||0,+c.cant_pallets||0,_xlsFecha(c.fecha_solicitada),_xlsFecha(c.fecha_confirmada),c.hora_confirmada||'—',
+      _xlsFecha(c.fecha_vencimiento),_xlsDiasVencer(c.estado,c.fecha_vencimiento),c.nota_num||'—',c.motivo||'',
+      ent&&!e?'Aún no aparece en el informe de recepción':v(1),e?(+e.cant||0):'',v(2),v(3),v(4),v(5),v(6),etapa]);
+    r.font={size:9}; r.alignment={vertical:'top',wrapText:true};
+    r.eachCell({includeEmpty:true},(cel,i)=>{ cel.border=borde; if(i>=16) cel.alignment={horizontal:'center',vertical:'top',wrapText:true}; });
+    const bg=BG[String(c.estado||'').toUpperCase()]; if(bg) r.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+    [6,7,8,17].forEach(i=>{ r.getCell(i).numFmt='#,##0'; r.getCell(i).alignment={horizontal:'right',vertical:'top'}; });
+    r.getCell(13).alignment={horizontal:'center',vertical:'top'};
+    r.getCell(23).font={size:9,bold:true,color:{argb:'FF8A6A00'}};
+  });
+  if(!citas.length){ ws.mergeCells(5,1,5,H.length); ws.getCell(5,1).value='Sin citas registradas para este proveedor.'; ws.getCell(5,1).alignment={horizontal:'center'}; }
+  [14,13,13,40,15,11,9,8,12,12,8,12,13,20,32,14,12,14,12,14,13,12,20].forEach((w,i)=>{ ws.getColumn(i+1).width=w; });
+  ws.autoFilter={from:{row:4,column:1},to:{row:4+Math.max(citas.length,1),column:H.length}};
+  // Hoja 2: documentos por agendar (sin cita)
+  const tr=MC.trans||[];
+  const w2=wb.addWorksheet('Por agendar',{views:[{state:'frozen',ySplit:4}]});
+  const H2=['Documento','N.º documento','OC','Cód. Abasto','Descripción','Cantidad ref.','CEDI','Vence entrega','Vence OC','Planificador'];
+  encabezado(w2,'DOCUMENTOS POR AGENDAR — '+emp,H2.length);
+  w2.getCell(3,2).value='Órdenes y solicitudes de entrega vigentes que aún no tienen cita.'; w2.getCell(3,2).font={size:10,italic:true,color:{argb:'FF555555'}};
+  cabecera(w2,4,H2);
+  const tipo={ORDEN_COMPRA:'Orden de compra',SOLICITUD_ENTREGA:'Solicitud de entrega',ADELANTO:'Nota de adelanto'};
+  tr.forEach(t=>{ const tp=String(t.tipo||'').toUpperCase();
+    const r=w2.addRow([tipo[tp]||'Documento',t.n_documento||'',tp==='ORDEN_COMPRA'?(t.n_documento||''):(t.n_orden_compra||''),t.cod_abasto||t.cod_abasto_norm||'',t.descripcion||'',+t.cantidad||0,t.cedi||'',_xlsFecha(t.vencimiento_entrega),_xlsFecha(t.vencimiento_oc),t.planificador||'']);
+    r.font={size:9}; r.alignment={vertical:'top',wrapText:true}; r.eachCell({includeEmpty:true},c=>{ c.border=borde; }); r.getCell(6).numFmt='#,##0'; });
+  if(!tr.length){ w2.mergeCells(5,1,5,H2.length); w2.getCell(5,1).value='No hay documentos pendientes de agendar.'; w2.getCell(5,1).alignment={horizontal:'center'}; }
+  [20,16,13,13,44,13,8,13,13,18].forEach((w,i)=>{ w2.getColumn(i+1).width=w; });
+  const buf=await wb.xlsx.writeBuffer();
+  const n=new Date(), z=x=>String(x).padStart(2,'0');
+  const nombre='Citas_'+emp.replace(/[\\/:*?"<>|]/g,' ').trim().replace(/\s+/g,'_').slice(0,40)+'_'+n.getFullYear()+z(n.getMonth()+1)+z(n.getDate())+'_'+z(n.getHours())+z(n.getMinutes())+'.xlsx';
+  const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  const a=document.createElement('a'); a.href=url; a.download=nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  return nombre;
+}
+document.getElementById('btnExcelTraz').addEventListener('click',async function(){
+  if(!_empresaTraz){ alert('Seleccione su empresa primero.'); return; }
+  const btn=this, t0=btn.textContent; btn.textContent='Preparando…'; btn.disabled=true;
+  try{ await generarExcelCliente(); }
+  catch(e){ console.error(e); alert('No se pudo generar el Excel. Intente de nuevo en un momento.'); }
+  finally{ btn.textContent=t0; btn.disabled=false; }
 });
+// Precarga discreta del generador cuando el proveedor ya ve sus citas.
+document.getElementById('btnExcelTraz').addEventListener('pointerenter',()=>{ cargarExcelJS().catch(()=>{}); },{once:true});
 document.getElementById('btnAddLote').addEventListener('click', agregarLote);
 function agregarLote(){
   lotes.push({lote:'',venc:'',cant_lote:0,emp_terciario:0,emp_secundario:0,emp_primario:0,presentacion:'',total_bultos:0,pallets:0,clasif:''});
