@@ -233,10 +233,12 @@
     R=D.rows.map(function(r){ return { ab:r[ix.abasto], mat:r[ix.materialSAP], des:r[ix.descripcion], mod:r[ix.modulo]||'(sin módulo en SALMI)', um:r[ix.um], qs:r[ix.qSAP], qw:r[ix.qSALMI], dif:r[ix.dif],
       pr:r[ix.precio], vdif:r[ix.valorDif], vs:r[ix.valorSAP], vw:r[ix.valorSALMI], cat:r[ix.categoria], mov:r[ix.movDiaNeto], pend:r[ix.pendienteSAP], ldis:r[ix.lotesDistintos],
       vabs: r[ix.categoria]==='SOLO_SAP'?r[ix.valorSAP]:r[ix.categoria]==='SOLO_SALMI'?r[ix.valorSALMI]:Math.abs(r[ix.valorDif]) }; });
-    var m=D._meta; $('hCorte').textContent=m.fecha; $('hPub').textContent=m.generado;
+    var m=D._meta; $('hCorte').textContent=m.fechaMB52&&m.fechaMB52!==m.fecha?'SALMI '+m.fecha+' · MB52 '+m.fechaMB52:m.fecha; $('hPub').textContent=m.generado;
     var av=[];
     if (m.fechaInventarioSALMI && m.fechaInventarioSALMI!==m.fecha) av.push(['r','El valorizado de SALMI dice "Fecha Inventario '+m.fechaInventarioSALMI+'" y el archivo es del '+m.fecha+'. Verifique el archivo antes de usar las cifras.']);
     if ((m.ultimoMB52&&m.ultimoMB52>m.fecha)||(m.ultimoSALMI&&m.ultimoSALMI>m.fecha)) av.push(['a','Hay archivos más recientes sin pareja del mismo día (MB52 '+(m.ultimoMB52||'—')+' · SALMI '+(m.ultimoSALMI||'—')+'). Esta conciliación es del '+m.fecha+', la última fecha con los dos.']);
+    if (m.notaAjuste) av.push(['a',m.notaAjuste+' Las diferencias que deje ese ajuste pueden ser movimientos registrados a destiempo.']);
+    if (m.espera) av.push(['a',m.espera]);
     av.push(['n','Los archivos de SALMI y SAP se bajan a horas distintas del mismo día. Las diferencias iguales a un movimiento SAP de ese día ('+fN(m.archivos.movimientosDelDia)+' movimientos en el MB51) se separan como "movimiento del día".']);
     $('avisos').innerHTML=av.map(function(a){return '<div class="aviso '+a[0]+'">'+esc(a[1])+'</div>';}).join('');
     var mods={}; R.forEach(function(r){mods[r.mod]=1;});
