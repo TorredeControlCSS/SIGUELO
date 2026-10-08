@@ -259,7 +259,7 @@ function avpCelda_(saldo, cob) {
   return '<div style="font-family:Consolas,monospace;' + (saldo <= 0 ? 'color:#9b1c2c;font-weight:700' : '') + '">' + avpFmt_(saldo) + '</div><div style="margin-top:2px">' + avpPill_(cob) + '</div>';
 }
 
-function avpHtml_(p, saldosAl, franja) {
+function avpHtml_(p, saldosAl, franja, contacto) {
   var F = p.filas, hoy = avpHoy_();
   var crit = F.filter(function (x) { return x.pa != null && Math.round(x.pa * 10) / 10 < 1; }).length;
   var conPend = F.filter(function (x) { return x.pend > 0; }).length;
@@ -287,6 +287,7 @@ function avpHtml_(p, saldosAl, franja) {
     '<p>Estimado proveedor: los <b>' + F.length + ' renglones</b> que usted abastece a la CSS tienen hoy el inventario y la cobertura que se muestran abajo en los CEDIS Panamá, Chiriquí y Divisa —donde usted entrega— y en la red de unidades ejecutoras, con una cobertura conjunta en las UE de <b>' + ueTxt + '</b>. ' +
     (crit ? '<b>' + crit + (crit === 1 ? ' está' : ' están') + ' por debajo de un mes en CEDIS Panamá.</b> ' : '') +
     (conPend ? 'Usted tiene saldo pendiente de entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + ': le pedimos agendar su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Cuando tenga una orden de compra o solicitud de entrega, agende su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
+    '<p>Para gestionar solicitudes de entrega u órdenes de compra de estos renglones, si aplica, comuníquese con ' + (contacto || 'la Jefatura de Planificación de la Dirección Nacional de Logística') + '.</p>' +
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
     '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
     '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Control Operativo DINALOG.</p></div></div>';
@@ -337,7 +338,21 @@ function avpEnviar_(opc) {
     var asunto = (prueba ? '[PRUEBA] ' : '') + 'Cobertura de sus renglones en la CSS · ' + x.p.nombre;
     if (opc.simular) { usados += para.length + cc.length; enviados++; return; }
     try {
-      var html = avpHtml_(x.p, datos.saldosAl, franja);
+      // Contacto de Planificación que se nombra en el cuerpo: sus planificadores (con correo si lo hay) o la Jefatura.
+      // Un mismo planificador puede venir escrito de dos formas ("Selene Fernández" / "Selene itzel Fernandez vega"):
+      // se quita el nombre cuyas palabras ya están en otro, y el que comparte correo con otro.
+      var tok = function (s) { return String(s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/).filter(Boolean); };
+      var vistos = {}, planes = x.p.planificadores.slice().sort(function (a, b) { return tok(a).length - tok(b).length; }).filter(function (nm, i, arr) {
+        var t = tok(nm), m = dir.plan[avpNorm_(nm)];
+        if (m && vistos[m]) return false;
+        var dentro = arr.some(function (o, j) { if (j >= i) return false; var u = tok(o); return u.every(function (w) { return t.indexOf(w) >= 0; }); });
+        if (dentro) return false;
+        if (m) vistos[m] = true; return true;
+      });
+      var nombres = planes.map(function (n) { var m = dir.plan[avpNorm_(n)]; return '<b>' + avpEsc_(n) + '</b>' + (m ? ' (<a href="mailto:' + m + '">' + avpEsc_(m) + '</a>)' : ''); });
+      var contacto = nombres.length ? (nombres.length === 1 ? 'su planificador(a) asignado(a), ' : 'sus planificadores asignados: ') + nombres.join(', ')
+        : (dir.jefatura ? 'la Jefatura de Planificación (<a href="mailto:' + dir.jefatura + '">' + avpEsc_(dir.jefatura) + '</a>)' : '');
+      var html = avpHtml_(x.p, datos.saldosAl, franja, contacto);
       // Mientras la cuenta Brevo de proveedores no esté lista, las PRUEBAS salen por Gmail del script (un correo a usted).
       if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: dest.join(','), subject: asunto, htmlBody: html, name: 'Torre de Control · DINALOG' });
       else avpEnviarBrevo_(dest, copia, asunto, html);
