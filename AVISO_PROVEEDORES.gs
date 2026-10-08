@@ -350,7 +350,7 @@ function avpHtml_(p, saldosAl, franja, contacto) {
     '<p>Para gestionar solicitudes de entrega u órdenes de compra de estos renglones, si aplica, comuníquese con ' + (contacto || 'la Jefatura de Planificación de la Dirección Nacional de Logística') + '.</p>' +
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
     '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
-    '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Control Operativo DINALOG.</p></div></div>';
+    '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Planificación · DINALOG.</p></div></div>';
 }
 
 function avpEnviarBrevo_(para, cc, asunto, html) {
