@@ -131,6 +131,8 @@
   .fila .rs{padding-left:10px}
   .eje-l{fill:#fff;font-size:10px;font-family:"Segoe UI",system-ui,sans-serif}
   .mas{text-align:center;padding:10px}
+  .mk{position:relative;height:26px} .mk svg{display:block}
+  .pt{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #fff;box-sizing:content-box}
   .tt{position:fixed;z-index:60;pointer-events:none;background:#1b1f24;color:#fff;font-size:11.5px;padding:6px 8px;border-radius:4px;max-width:280px;display:none;line-height:1.4}
 </style>
 </head>
@@ -155,7 +157,8 @@
   <div class="kg" id="kpis"><div class="k g"><span class="n">…</span><span class="s">leyendo la conciliación publicada</span></div></div>
 
   <div class="tabs">
-    <button class="tab on" data-t="dif" type="button">Renglones conciliados</button>
+    <button class="tab on" data-t="a" type="button">Desviación por renglón</button>
+    <button class="tab" data-t="b" type="button">Huella por módulo + desviación</button>
     <button class="tab t-p" data-t="sp" type="button">Sin código puente <span id="nSP"></span></button>
   </div>
   <div class="panel" style="border-top-left-radius:0">
@@ -169,12 +172,15 @@
         <button class="btn" id="bLimpiar" type="button">Limpiar filtros</button>
         <span class="pie" id="cuenta" style="padding:0"></span>
       </div>
+      <div id="bloqHuella">
       <div class="ph">Huella de la desviación <span class="sub">· renglones por módulo y tramo de desviación SALMI contra SAP · el tono es el valor de la diferencia en B/. · clic en una celda para ver sus renglones</span></div>
       <div class="sc"><div class="huella" id="huella"></div></div>
       <div class="fact" id="fAct"></div>
-      <div class="ph">Desviación de cada renglón <span class="sub">· 0 % = los dos sistemas tienen lo mismo · a la derecha SALMI tiene más que SAP · a la izquierda, menos</span>
+      </div>
+      <div class="ph"><span id="tLista">Desviación de cada renglón</span> <span class="sub">· 0 % = los dos sistemas tienen lo mismo · a la derecha SALMI tiene más que SAP · a la izquierda, menos</span>
         <span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400;font-size:11.5px;color:var(--muted)">Eje <span class="seg" id="zoom"><button type="button" data-z="100" class="on">±100 %</button><button type="button" data-z="20">±20 %</button><button type="button" data-z="5">±5 %</button></span></span></div>
-      <div class="ley"><span><i style="background:#E24B4A"></i>SALMI tiene menos que SAP</span><span><i style="background:#378ADD"></i>SALMI tiene más que SAP</span><span><i style="background:#E24B4A;opacity:.5"></i><i style="background:#378ADD;opacity:.5"></i>Tono claro: diferencia explicada o menor al 1 %</span><span><i style="background:#1D9E75;border-radius:50%"></i>Cuadra</span><span>► la desviación pasa del borde del eje (la cifra real está en la columna)</span></div>
+      <div class="ley" id="leyA"><span><i style="background:#E24B4A;border-radius:50%"></i>Real · sin movimiento</span><span><i style="background:#EF9F27;border-radius:50%"></i>Real con movimiento / solo en un sistema</span><span><i style="background:#378ADD;border-radius:50%"></i>Explicada</span><span><i style="background:#888780;border-radius:50%"></i>Menor al 1 %</span><span><i style="background:#1D9E75;border-radius:50%"></i>Cuadra</span><span>Tamaño del punto = valor de la diferencia en B/.</span><span>► la desviación pasa del borde del eje (la cifra real está en la columna)</span></div>
+      <div class="ley" id="leyB"><span><i style="background:#E24B4A"></i>SALMI tiene menos que SAP</span><span><i style="background:#378ADD"></i>SALMI tiene más que SAP</span><span><i style="background:#E24B4A;opacity:.5"></i><i style="background:#378ADD;opacity:.5"></i>Tono claro: diferencia explicada o menor al 1 %</span><span><i style="background:#1D9E75;border-radius:50%"></i>Cuadra</span><span>► la desviación pasa del borde del eje (la cifra real está en la columna)</span></div>
       <div class="sc lst"><div id="lista"></div></div>
       <div class="mas" id="mas"></div>
     </div>
@@ -279,10 +285,12 @@
     else if (F.cat==='_SOLO'){ if(!/^SOLO_/.test(r.cat)) return false; } else if (F.cat && r.cat!==F.cat) return false;
     if (F.fam && r.fam!==F.fam) return false; if (F.gru && r.gru!==F.gru) return false;
     if (F.mod && r.mod!==F.mod) return false; if (F.ren && r.ab!==F.ren) return false;
-    if (!sinCelda && F.cel){ if(F.cel.mod!=='TOTAL'&&r.mod!==F.cel.mod) return false; if(tramo(r)!==F.cel.t) return false; }
+    if (!sinCelda && F.cel && VISTA==='b'){ if(F.cel.mod!=='TOTAL'&&r.mod!==F.cel.mod) return false; if(tramo(r)!==F.cel.t) return false; }
     return true; }); }
 
-  function pintar(){ kpis(); embudo(); modulos(); huella(); lista(); tablaSP(); }
+  function pintar(){ kpis(); embudo(); modulos(); vista(); if(VISTA==='b') huella(); lista(); tablaSP(); }
+  function vista(){ $('bloqHuella').style.display=VISTA==='b'?'':'none'; $('leyA').style.display=VISTA==='a'?'':'none'; $('leyB').style.display=VISTA==='b'?'':'none';
+    if(VISTA==='a'&&F.mod){ /* el módulo elegido abajo se muestra como filtro también en esta vista */ } }
   function kpis(){
     var m=D._meta, e=m.embudo, t=m.totales, tot=t.renglones||1, cu=e.CUADRA.renglones, pc=Math.round(100*cu/tot);
     var re=e.REAL_SIN_MOV.renglones+e.REAL_CON_MOV.renglones, rv=e.REAL_SIN_MOV.valorAbs+e.REAL_CON_MOV.valorAbs;
@@ -345,25 +353,28 @@
   }
 
   /* lista: barra divergente desde el 0 %; rojo = SALMI tiene menos, azul = tiene más; tono claro = explicada o menor */
-  var N=40, Z=100, ORD={k:'vabs',d:-1};
+  var VMAX=1, N=40, Z=100, ORD={k:'vabs',d:-1}, VISTA='a';
   function devTxt(r){ if(r.cat==='SOLO_SALMI') return 'solo SALMI'; if(r.cat==='SOLO_SAP') return '−100 %'; if(Math.abs(r.dif)<1e-9) return '0 %';
     var a=Math.abs(r.dev); return (r.dev>0?'+':'−')+(a>=100?fN(a):a>=10?fN(a,1):fN(a,2))+' %'; }
   function marca(r,W){
-    var H=26, c=W/2, pad=14, half=c-pad, x, fuera=false, d=r.dev;
+    var H=26, c=W/2, pad=14, half=c-pad, x, fuera=false, d=r.dev, PT='';
     if(r.cat==='SOLO_SALMI'||d>Z){ x=c+half; fuera=true; } else if(d<-Z){ x=c-half; fuera=true; } else x=c+half*d/Z;
     var y=H/2, s='<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
     [-1,-.5,.5,1].forEach(function(f){ s+='<line x1="'+(c+half*f)+'" x2="'+(c+half*f)+'" y1="3" y2="'+(H-3)+'" stroke="#e3e6ea" stroke-width="1"/>'; });
     s+='<line x1="'+c+'" x2="'+c+'" y1="0" y2="'+H+'" stroke="#8a929c" stroke-width="1.5"/>';
-    if(r.cat==='CUADRA') s+='<circle cx="'+c+'" cy="'+y+'" r="4.5" fill="#1D9E75" stroke="#fff" stroke-width="2"/>';
+    if(VISTA==='a'){ var col=BAR[(CAT[r.cat]||{c:'g'}).c]||'#888780', rad=Math.max(3.5,Math.min(9,3+6*Math.sqrt((r.vabs||0)/(VMAX||1))));
+      if(Math.abs(x-c)>1) s+='<line x1="'+c+'" x2="'+x+'" y1="'+y+'" y2="'+y+'" stroke="'+col+'" stroke-width="2"/>';
+      PT='<span class="pt" style="left:'+(100*x/W)+'%;width:'+(2*rad)+'px;height:'+(2*rad)+'px;background:'+col+'"></span>'; }
+    else if(r.cat==='CUADRA') PT='<span class="pt" style="left:50%;width:9px;height:9px;background:#1D9E75"></span>';
     else { var w=Math.max(Math.abs(x-c),2), col=x>=c?'#378ADD':'#E24B4A', op=/^REAL_|^SOLO_/.test(r.cat)?1:.45;
       s+='<rect x="'+(x>=c?c+1:c-w)+'" y="'+(y-6)+'" width="'+w+'" height="12" rx="3" fill="'+col+'" opacity="'+op+'"/>'; }
     if(fuera) s+='<text x="'+(x>c?W-2:2)+'" y="'+(y+3.5)+'" text-anchor="'+(x>c?'end':'start')+'" font-size="10" font-weight="700" fill="#1b1f24">'+(x>c?'►':'◄')+'</text>';
-    return s+'</svg>';
+    return '<div class="mk">'+s+'</svg>'+PT+'</div>';
   }
   function lista(){
     var L=filtrar(), k=ORD.k, d=ORD.d;
     L.sort(function(a,b){ var x=a[k],y=b[k]; if(k==='dev'){ x=isFinite(x)?x:1e12; y=isFinite(y)?y:1e12; } if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
-    var vis=L.slice(0,N), W=600, ticks=[-Z,-Z/2,0,Z/2,Z];
+    var vis=L.slice(0,N), W=600, ticks=[-Z,-Z/2,0,Z/2,Z]; VMAX=Math.max.apply(null,vis.map(function(r){return r.vabs||0;}).concat([1]));
     var th=function(kk,t,cl){ return '<div class="'+(cl||'')+'" data-k="'+kk+'">'+t+'<span class="o">'+(ORD.k===kk?(ORD.d<0?'▼':'▲'):'⇅')+'</span></div>'; };
     var h='<div class="cab">'+th('ab','Renglón')+'<div class="nos"><svg width="100%" height="14" viewBox="0 0 '+W+' 14" preserveAspectRatio="none" aria-hidden="true">'+
       ticks.map(function(v,i){ var x=W/2+(W/2-14)*v/Z; return '<text class="eje-l" x="'+x+'" y="11" text-anchor="'+(i===0?'start':i===4?'end':'middle')+'">'+(v>0?'+':v<0?'−':'')+Math.abs(v)+' %</text>'; }).join('')+'</svg></div>'+
@@ -373,7 +384,9 @@
          '<div class="n '+(r.dif>0?'pos':r.dif<0?'neg':'')+'">'+devTxt(r)+'</div><div class="n">'+(r.qs?fQ(r.qs):'—')+'</div><div class="n">'+(r.qw?fQ(r.qw):'—')+'</div><div class="n">'+fN(Math.round(r.vabs))+'</div><div class="rs"><span class="cat '+c.c+'">'+esc(c.n)+'</span></div></div>'; });
     if(!vis.length) h+='<div class="vacio">Ningún renglón con estos filtros.</div>';
     $('lista').innerHTML=h;
-    $('cuenta').textContent=fN(L.length)+' renglón(es) · '+fB(L.reduce(function(s,r){return s+r.vabs;},0));
+    $('cuenta').innerHTML=esc(fN(L.length)+' renglón(es) · '+fB(L.reduce(function(s,r){return s+r.vabs;},0)))+(F.mod&&VISTA==='a'?' · <span class="cat n">Módulo '+esc(cap(F.mod))+'</span> <a href="#" id="qMod">quitar</a>':'');
+    var qm=$('qMod'); if(qm) qm.onclick=function(ev){ ev.preventDefault(); F.mod=''; N=40; pintar(); };
+    $('tLista').textContent=VISTA==='a'?'Desviación de cada renglón':'Renglones de la huella';
     $('mas').innerHTML=L.length>N?'<button class="btn" type="button" id="bMas">Ver 40 más · se muestran '+fN(N)+' de '+fN(L.length)+'</button>':'';
     var bm=$('bMas'); if(bm) bm.onclick=function(){ N+=40; lista(); };
     Array.prototype.forEach.call($('lista').querySelectorAll('.cab [data-k]'),function(el){ el.onclick=function(){ var kk=el.dataset.k; ORD={k:kk,d:ORD.k===kk?-ORD.d:(/^(qs|qw|vabs|dev)$/.test(kk)?-1:1)}; lista(); }; });
@@ -413,8 +426,12 @@
       '<p><b>Pendiente en SAP</b> solo se puede medir en medicamentos y odontología: el reporte de Recepción no trae MQ, laboratorio ni radiología.</p>';
     $('velo').classList.add('on');
   }
-  function tabSel(t){ Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===t);}); $('vDif').style.display=t==='dif'?'':'none'; $('vSP').style.display=t==='sp'?'':'none'; }
+  function tabSel(t){ if(t==='dif') t=VISTA; Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===t);});
+    $('vDif').style.display=t!=='sp'?'':'none'; $('vSP').style.display=t==='sp'?'':'none';
+    if(t!=='sp'&&t!==VISTA){ VISTA=t; N=40; if(D) pintar(); }
+    try{ localStorage.setItem('conc_vista',VISTA); }catch(e){} }
   Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){ b.onclick=function(){ tabSel(b.dataset.t); }; });
+  try{ var vg=localStorage.getItem('conc_vista'); if(vg==='a'||vg==='b'){ VISTA=vg; Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===VISTA);}); } }catch(e){}
   $('mX').onclick=function(){ $('velo').classList.remove('on'); };
   $('velo').onclick=function(e){ if(e.target===$('velo')) $('velo').classList.remove('on'); };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('velo').classList.remove('on'); });
