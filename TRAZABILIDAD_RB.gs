@@ -106,6 +106,7 @@ function trzPost_(payload) {
     if (a === 'trzLogin')     return trzLogin_(d);
     if (a === 'trzRegistrar') return trzRegistrar_(d);
     if (a === 'trzAnular')    return trzAnular_(d);
+    if (a === 'trzAltaManual') return trzAltaManual_(d);
     return { success: false, error: 'Acción de trazabilidad no reconocida.' };
   } catch (err) {
     return { success: false, error: 'Error interno: ' + String(err && err.message || err) };
@@ -230,6 +231,9 @@ function trzLeerEventos_(exp) {
       id: String(v[i][c.ID_EVENTO]),
       idCliente: String(v[i][c.ID_CLIENTE] || ''),
       exp: String(v[i][c.EXPEDIENTE]),
+      oc: String(v[i][c.OC] || ''),
+      renglon: String(v[i][c.RENGLON] || ''),
+      proveedor: String(v[i][c.PROVEEDOR] || ''),
       paso: String(v[i][c.PASO]),
       tipo: String(v[i][c.RESULTADO]),
       dest: String(v[i][c.DESTINO] || '') || null,
@@ -458,9 +462,116 @@ function trzAnular_(d) {
       sh.getRange(i + 1, c.ANULADO_POR + 1).setValue(auth.usuario.nombre);
       sh.getRange(i + 1, c.ANULADO_TS + 1).setValue(new Date());
       sh.getRange(i + 1, c.ANULADO_MOTIVO + 1).setValue(motivo.slice(0, 300));
-      return { success: true, mensaje: 'Hito anulado. Queda en la bitácora como ANULADO.' };
+      SpreadsheetApp.flush();
+      try { trzPublicar_(false); } catch (eP) {}
+      return { success: true, mensaje: 'Registro anulado. Queda en la bitácora como ANULADO.' };
     }
     return { success: false, error: 'No se encontró el hito.' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+/* ------------------------------------------------------------------ */
+/*  Alta manual de una recepción que no trae el informe de Abasto       */
+/* ------------------------------------------------------------------ */
+/* Solo SUPERVISOR. Queda como un evento más de TRZ_EVENTOS (RESULTADO =
+   ALTA_MANUAL, PASO = ALTA), con evidencia obligatoria en Drive; nada se
+   borra y se anula con trzAnular_ como cualquier hito. El tablero la muestra
+   como "Manual" y la concilia sola cuando el informe de Abasto trae la misma
+   OC y renglón (±3 días) o cuando el kardex trae la entrada 101.
+   Antes de grabar se verifica contra el informe publicado que no exista ya. */
+var TRZ_ENTRADAS_URL = 'https://torredecontrolcss.github.io/SIGUELO/entradas_recepcion.json';
+
+function trzAltaManual_(d) {
+  var auth = trzAutenticar_(d.pin);
+  if (auth.error) return { success: false, error: auth.error };
+  var u = auth.usuario;
+  if (u.rol !== 'SUPERVISOR') return { success: false, error: 'Solo un supervisor puede registrar una recepción no listada.' };
+
+  var oc = String(d.oc || '').replace(/\D/g, '');
+  if (!/^100\d{7}$/.test(oc)) return { success: false, error: 'La OC debe tener 10 dígitos y empezar con 100.' };
+  var cod = String(d.renglon || '').replace(/\.0+$/, '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  if (!/^[0-9A-Z]{5,15}$/.test(cod)) return { success: false, error: 'Código de renglón no válido.' };
+  var prov = String(d.proveedor || '').replace(/\s+/g, ' ').trim();
+  if (!prov) return { success: false, error: 'Falta el proveedor.' };
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d.fRec || ''));
+  if (!m) return { success: false, error: 'Fecha de recepción no válida.' };
+  var fRec = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (fRec.getTime() > Date.now()) return { success: false, error: 'La fecha de recepción no puede ser futura.' };
+  if (fRec.getTime() < new Date(2026, 4, 5).getTime()) return { success: false, error: 'El tablero empieza el 05/05/2026.' };
+  var cant = Number(d.cant || 0);
+  if (!(cant > 0)) return { success: false, error: 'Indique la cantidad recibida.' };
+  var motivo = String(d.motivo || '').trim();
+  if (!motivo) return { success: false, error: 'Indique el motivo.' };
+  if (!d.evidencia || !d.evidencia.base64) return { success: false, error: 'Adjunte el informe de recepción firmado (foto o PDF).' };
+  var bytes = Utilities.base64Decode(String(d.evidencia.base64));
+  if (bytes.length > TRZ_MAX_BYTES) return { success: false, error: 'La evidencia supera 8 MB.' };
+  var mime = String(d.evidencia.mime || '');
+  if (!/^image\/|^application\/pdf$/.test(mime)) return { success: false, error: 'La evidencia debe ser foto o PDF.' };
+
+  var exp = 'RB-' + oc + '-' + m[1] + m[2] + m[3];
+  var dia = 864e5;
+
+  // 1) ¿Ya está en el informe de Abasto publicado? (misma OC y renglón, ±3 días)
+  try {
+    var r = UrlFetchApp.fetch(TRZ_ENTRADAS_URL + '?_=' + Date.now(), { muteHttpExceptions: true });
+    if (r.getResponseCode() === 200) {
+      var rows = JSON.parse(r.getContentText()).rows || [];
+      for (var i = 0; i < rows.length; i++) {
+        var e = rows[i];
+        if (String(e.oc) !== oc || String(e.cod) !== cod) continue;
+        var fe = new Date(String(e.fRec) + 'T00:00:00');
+        if (Math.abs(fe.getTime() - fRec.getTime()) <= 3 * dia)
+          return { success: false, existe: 'RB-' + oc + '-' + String(e.fRec).replace(/-/g, ''),
+                   error: 'Esa recepción ya está en el informe de Abasto (' + e.fRec + '). No hace falta darla de alta.' };
+      }
+    }
+  } catch (eF) { /* sin el informe, se valida solo contra la bitácora */ }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { success: false, error: 'El sistema está ocupado; reintente en unos segundos.' };
+  try {
+    // 2) ¿Ya hay un alta manual vigente igual?
+    var todos = trzLeerEventos_('');
+    for (var j = 0; j < todos.length; j++) {
+      var t = todos[j];
+      if (t.tipo !== 'ALTA_MANUAL' || t.estado === 'ANULADO') continue;
+      var mm = /-(\d{4})(\d{2})(\d{2})$/.exec(t.exp), ocT = t.exp.split('-')[1];
+      if (!mm || ocT !== oc) continue;
+      var info = {}; try { info = JSON.parse(t.obs || '{}'); } catch (eJ) {}
+      if (String(info.cod || '') !== cod) continue;
+      var ft = new Date(Number(mm[1]), Number(mm[2]) - 1, Number(mm[3]));
+      if (Math.abs(ft.getTime() - fRec.getTime()) <= 3 * dia)
+        return { success: false, existe: t.exp, error: 'Ya hay un alta manual de esa recepción: ' + t.exp + '.' };
+    }
+
+    var cTrz = trzCarpetaRaiz_();
+    var cMes = getOrCreateSubfolder_(cTrz, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'));
+    var cExp = getOrCreateSubfolder_(cMes, exp);
+    var ext = mime.indexOf('pdf') >= 0 ? '.pdf' : '.jpg';
+    var nombre = exp + '_ALTA_MANUAL_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + ext;
+    var archivo = cExp.createFile(Utilities.newBlob(bytes, mime, nombre));
+
+    var det = {
+      cod: cod, desc: String(d.desc || '').slice(0, 200), mat: String(d.mat || '').slice(0, 20),
+      safiro: String(d.safiro || '').replace(/\D/g, '').slice(0, 12), entrega: String(d.entrega || '').slice(0, 4),
+      cant: cant, valor: Number(d.valor || 0) || 0, motivo: motivo.slice(0, 120), nota: String(d.nota || '').slice(0, 300)
+    };
+    var idEv = 'EV-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
+    var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+    var fila = {
+      TS_SERVIDOR: new Date(), ID_EVENTO: idEv, ID_CLIENTE: String(d.idCliente || '').slice(0, 64), EXPEDIENTE: exp,
+      OC: oc, RENGLON: cod, PROVEEDOR: prov, PASO: 'ALTA', RESULTADO: 'ALTA_MANUAL', DESTINO: '', MOTIVO: det.motivo,
+      FECHA_HITO: fRec, USUARIO: u.nombre, AREA: u.area, OBSERVACION: JSON.stringify(det),
+      EVIDENCIA_URL: archivo.getUrl(), EVIDENCIA_NOMBRE: nombre, ESTADO: 'VIGENTE'
+    };
+    var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    sh.appendRow(hdr.map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
+    SpreadsheetApp.flush();
+    try { trzPublicar_(false); } catch (eP) {}   // que el tablero lo vea de inmediato
+    return { success: true, exp: exp, id: idEv, evidUrl: archivo.getUrl(), mensaje: 'Recepción registrada: ' + exp + '.' };
   } finally {
     lock.releaseLock();
   }

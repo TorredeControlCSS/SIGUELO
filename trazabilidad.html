@@ -314,6 +314,13 @@ body.modo-prov nav.tabs,body.modo-prov .internal,body.modo-prov #btnTour,body.mo
 .internal{font-size:.78rem;color:var(--muted);border-left:3px solid var(--warn);padding:4px 10px}
 footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.pill.man{background:var(--k-amb,#fff3d6);color:#8a5a00}.pill.man.ok{background:var(--k-green,#e3f4e8);color:#2d6a3e}.pill.man.bad{background:var(--k-red,#fde8ea);color:#9b1c2c}
+.alta{display:flex;justify-content:space-between;gap:10px;align-items:center;border-radius:8px;padding:8px 12px;margin:10px 0;font-size:.82rem;line-height:1.45;background:#fff8e1;border:1px solid #efdcae;color:#5a4400}
+.alta.ok{background:#eaf6ee;border-color:#b7dcc2;color:#244f31}.alta.bad{background:#fdeef0;border-color:#f1c2c9;color:#7d1a27}
+#altaOv{position:fixed;inset:0;z-index:1150;background:rgba(10,25,45,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
+.altabox{background:var(--surface);color:var(--ink);border-radius:12px;padding:16px 18px;width:100%;max-width:720px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.altah{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}.altah h3{margin:0}
+#altaF .ac-wrap{display:block;position:relative}#altaF .ac-wrap input{width:100%;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -368,6 +375,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
       <label for="fProv">Proveedor<select id="fProv"><option value="">Todos los proveedores</option></select></label>
       <label for="fRen">Renglón<span class="ac-wrap"><input type="text" id="fRen" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fRenAC" placeholder="Código o nombre del renglón"><button type="button" class="ac-clear" id="fRenX" aria-label="Limpiar renglón" hidden>×</button><span class="ac-panel" id="fRenAC" role="listbox"></span></span></label>
       <button class="btn ghost small" id="limpiar" type="button">Limpiar filtros</button>
+      <button class="btn small" id="bAlta" type="button" title="Solo supervisor: registrar una recepción que el informe de Abasto no trae">＋ Recepción no listada</button>
     </div>
     <div class="chips" id="fchips"></div>
     <div class="scroll"><table id="tab"><thead><tr>
@@ -427,21 +435,29 @@ const r1=v=>v==null?'—':(Math.round(v*10)/10).toString().replace('.',',');
 const BASE='https://torredecontrolcss.github.io/SIGUELO/';
 async function cargarVivo(){
   const j=u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u);return r.json();});
-  const [ent,cit,tra,idx]=await Promise.all([j(BASE+'entradas_recepcion.json'),j(BASE+'citas_trazabilidad.json').catch(()=>j(BASE+'citas_proveedores.json')),j(BASE+'transitos_evidencia.json'),j(BASE+'kardex/indice.json')]);
+  const [ent,cit,tra,idx,EV]=await Promise.all([j(BASE+'entradas_recepcion.json'),j(BASE+'citas_trazabilidad.json').catch(()=>j(BASE+'citas_proveedores.json')),j(BASE+'transitos_evidencia.json'),j(BASE+'kardex/indice.json'),j(BASE+'trazabilidad_eventos.json').catch(()=>null)]);
   const desde='2026-05-05';
   const E=ent.rows.filter(e=>e.fRec>=desde);
-  const peds=new Set(E.map(e=>String(e.safiro)));
+  const MAN=altasDe(EV);
+  const peds=new Set(E.map(e=>String(e.safiro)));MAN.forEach(m=>{if(m.safiro)peds.add(String(m.safiro));});
+  const matsMan=new Set(MAN.filter(m=>!m.safiro&&m.mat).map(m=>String(m.mat)));
   const K=[];
   const meses=await Promise.all(idx.meses.map(m=>j(BASE+'kardex/'+m.archivo)));
   meses.forEach(p=>{const o=p._meta.orden,dic=p.dic,pos={},isd={};o.forEach((c,i)=>{const k=c.replace('*','');pos[k]=i;isd[k]=c.endsWith('*');});
     const g=(r,k)=>{const v=r[pos[k]];return (isd[k]&&typeof v==='number'&&v>=0&&v<(dic[k]||[]).length)?dic[k][v]:v;};
-    p.rows.forEach(r=>{const m=String(g(r,'m'));if(m!=='101'&&m!=='102')return;const ped=String(g(r,'ped'));if(!peds.has(ped))return;K.push([ped,g(r,'mat'),m,g(r,'fd')||g(r,'f'),g(r,'f')]);});});
+    p.rows.forEach(r=>{const m=String(g(r,'m'));if(m!=='101'&&m!=='102')return;const ped=String(g(r,'ped'));if(!peds.has(ped)&&!(m==='101'&&matsMan.has(String(g(r,'mat')))))return;K.push([ped,g(r,'mat'),m,g(r,'fd')||g(r,'f'),g(r,'f')]);});});
   const cols=cit._meta.columnas,ci=['id','solicitadaEl','proveedor',cols.indexOf('ocBase')>=0?'ocBase':'oc','codigo','fechaSolicitada','fechaConfirmada','estado'].map(c=>cols.indexOf(c));
   const C=cit.rows.map(r=>ci.map(i=>r[i]));
   const T=tra.rows.filter(t=>t.evidencia&&t.evidencia.ocSap).map(t=>[t.doc,t.cod,t.emision,t.vencEntrega,t.situacion,t.evidencia.ocSap,t.evidencia.primeraEntrada]);
-  let EV=null;try{EV=await j(BASE+'trazabilidad_eventos.json');}catch(e){EV=null;}
-  return {corte:ent._meta.corte,generado:ent._meta.generado,E:E,K:K,C:C,T:T,EV:EV,vivo:true};
+  return {corte:ent._meta.corte,generado:ent._meta.generado,E:E,K:K,C:C,T:T,EV:EV,MAN:MAN,vivo:true};
 }
+/* Altas manuales (recepciones que no trae el informe de Abasto): eventos ALTA_MANUAL vigentes de la bitácora. */
+function altasDe(EV){const L=[];if(!EV||!Array.isArray(EV.eventos))return L;
+  EV.eventos.forEach(ev=>{if(ev.tipo!=='ALTA_MANUAL'||ev.estado==='ANULADO')return;let d={};try{d=JSON.parse(ev.obs||'{}');}catch(e){}
+    const m=/^RB-(\d+)-(\d{4})(\d{2})(\d{2})$/.exec(ev.exp);if(!m)return;
+    L.push({exp:ev.exp,oc:m[1],fRec:m[2]+'-'+m[3]+'-'+m[4],prov:ev.proveedor||ev.prov||'',cod:String(d.cod||ev.renglon||''),desc:d.desc||'',mat:d.mat||'',safiro:d.safiro||'',entrega:d.entrega||'',cant:Number(d.cant)||0,valor:Number(d.valor)||0,
+      alta:{evId:ev.id,quien:ev.quien,ts:ev.tsServidor||ev.ts,motivo:d.motivo||ev.motivo||'',nota:d.nota||'',evidUrl:ev.evidUrl||''}});});
+  return L;}
 function foto(){const s=JSON.parse($('#snap').textContent);s.vivo=false;return s;}
 
 /* ---------- unión de fuentes ---------- */
@@ -458,23 +474,41 @@ function construir(){
   const pk=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\(.*?\)/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\b(S ?A|SAS|INC|CORP|Y CIA|CIA|DE|PANAMA|LTDA)\b/g,' ').replace(/\s+/g,'');
   const pc=new Map(),pf=new Map();S.E.forEach(e=>{pf.set(e.prov,(pf.get(e.prov)||0)+1);});
   [...pf.keys()].forEach(p=>{const k=pk(p);const cur=pc.get(k);if(!cur||pf.get(p)>pf.get(cur))pc.set(k,p);});
-  S.E.forEach(e=>{const c=pc.get(pk(e.prov));if(c)e.prov=c;});
-  X=S.E.map(e=>{
-    const id='RB-'+e.oc+'-'+e.fRec.replace(/-/g,'');
+  S.E.forEach(e=>{const c=pc.get(pk(e.prov));if(c)e.prov=c;delete e._id;delete e.alta;delete e.altaConf;});
+  /* Conciliación: si el informe de Abasto ya trae la recepción dada de alta a mano
+     (misma OC y renglón, ±3 días), manda el informe y conserva el expediente del alta
+     para no perder los pasos ya registrados. Si no, el alta entra como expediente "Manual". */
+  const man=[];(S.MAN||[]).forEach(m=>{
+    const of=S.E.find(e=>String(e.oc)===String(m.oc)&&String(e.cod)===String(m.cod)&&Math.abs(D(e.fRec)-D(m.fRec))<=3*864e5);
+    if(of){of._id=m.exp;of.altaConf=m.alta;return;}
+    const c=pc.get(pk(m.prov));
+    man.push({oc:m.oc,fRec:m.fRec,prov:c||m.prov,cod:m.cod,desc:m.desc,mat:m.mat,safiro:m.safiro,cant:m.cant,valor:m.valor,fSalmi:null,cumpl:'',_id:m.exp,alta:Object.assign({entrega:m.entrega},m.alta)});});
+  const km=new Map();S.K.forEach(r=>{if(r[2]==='101')push(km,String(r[1]),r);});
+  X=S.E.concat(man).map(e=>{
+    const id=e._id||('RB-'+e.oc+'-'+e.fRec.replace(/-/g,''));
     const ks=ki.get(e.safiro+'|'+e.mat)||[];
     let k=null;ks.filter(r=>r[2]==='101'&&D(r[4])>=D(e.fRec)-3*864e5).forEach(r=>{const d=Math.abs(D(r[3])-D(e.fRec));if(!k||d<k._d)k={fd:r[3],f:r[4],_d:d};});
+    /* Alta manual sin pedido SAFIRO: se busca la entrada 101 del mismo material entre 3 días antes y 45 después. */
+    if(!k&&e.alta&&!e.safiro&&e.mat)(km.get(String(e.mat))||[]).filter(r=>D(r[4])>=D(e.fRec)-3*864e5&&D(r[4])<=D(e.fRec)+45*864e5).forEach(r=>{const d=Math.abs(D(r[4])-D(e.fRec));if(!k||d<k._d)k={fd:r[3],f:r[4],_d:d,ped:r[0],porMaterial:true};});
     const rev=ks.some(r=>r[2]==='102');
     let c=null;(cx.get(e.oc+'|'+e.cod)||[]).forEach(r=>{const fc=r[6]||r[5];if(!fc)return;const d=Math.abs(D(fc)-D(e.fRec));if(d<=20*864e5&&(!c||d<c._d))c={id:r[0],sol:r[1],fSol:r[5],fConf:r[6],estado:r[7],_d:d};});
     let t=null;(tx.get(e.oc+'|'+e.cod)||[]).forEach(r=>{const d=Math.abs(D(r[6])-D(e.fRec));if(d<=10*864e5&&(!t||d<t._d))t={doc:r[0],emision:r[2],venc:r[3],sit:r[4],_d:d};});
     const f101=k?k.f:null;
     const etapa=f101?'DOC':(e.fSalmi?'SALMI':'REC');
     const lag={sol:t?bd(t.emision,e.fRec):null,cita:(c&&c.fConf)?bd(c.fConf,e.fRec):null,salmi:e.fSalmi?bd(e.fRec,e.fSalmi):null,k101:f101?bd(e.fRec,f101):null};
-    return {id:id,e:e,k:k,rev:rev,c:c,t:t,f101:f101,etapa:etapa,lag:lag,edad:bd(e.fRec,HOY)};
+    const edad=bd(e.fRec,HOY);
+    /* Plazo para que el alta aparezca en el informe o en el kardex: 10 días hábiles desde que se registró. */
+    const espAlta=e.alta?bd(String(e.alta.ts||e.fRec).slice(0,10),HOY):null;
+    const man=e.alta?(f101?'K101':(espAlta>10?'SINRESP':'PEND')):null;
+    return {id:id,e:e,k:k,rev:rev,c:c,t:t,f101:f101,etapa:etapa,lag:lag,edad:edad,man:man,espAlta:espAlta};
   });
   const L=f=>X.map(f).filter(v=>v!=null&&v>=0);
   MED={sol:L(x=>x.lag.sol),cita:L(x=>x.lag.cita),salmi:L(x=>x.lag.salmi),k101:L(x=>x.lag.k101)};
 }
 const ETQ={REC:'Recibida',SALMI:'En inventario',DOC:'Entrada contable'};
+const MANT={PEND:['man','Manual · sin confirmar con Abasto'],K101:['man ok','Manual · con entrada 101 en kardex'],SINRESP:['man bad','Manual · sin respaldo en el informe']};
+function manPill(x){if(x.man){const t=MANT[x.man];return '<br><span class="pill '+t[0]+'" title="Alta manual por '+esc(x.e.alta.quien||'')+'">'+t[1]+'</span>';}
+  return x.e.altaConf?'<br><span class="pill man ok" title="Alta manual confirmada por el informe de Abasto">Alta manual · confirmada</span>':'';}
 
 /* ---------- Flujo ---------- */
 const nf=v=>Number(v).toLocaleString('es-PA');
@@ -574,7 +608,7 @@ function renderAge(thr){
 
 /* ---------- Expedientes ---------- */
 let FILT='TODOS',PAGE=0,SK='edad',SD=-1;const PS=50;
-function renderFlujoChips(){const C=[['TODOS','Todas las etapas'],['REC','Recibida'],['SALMI','En inventario'],['DOC','Entrada contable'],['ATR','Atrasados sin 101'],['REV','Con reverso 102']];
+function renderFlujoChips(){const C=[['TODOS','Todas las etapas'],['REC','Recibida'],['SALMI','En inventario'],['DOC','Entrada contable'],['ATR','Atrasados sin 101'],['REV','Con reverso 102']];if(X.some(x=>x.man))C.push(['MAN','Altas manuales']);
   $('#fchips').innerHTML=C.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(FILT===c[0])+'">'+c[1]+'</button>').join('');
   document.querySelectorAll('#fchips .chip').forEach(b=>b.addEventListener('click',()=>{FILT=b.dataset.f;PAGE=0;renderFlujoChips();renderTabla();}));}
 function llenarFiltros(){
@@ -586,7 +620,7 @@ function llenarFiltros(){
 const ORD={REC:0,SALMI:1,DOC:2};
 const SKF={oc:x=>x.e.oc,prov:x=>x.e.prov||'',desc:x=>x.e.desc||'',valor:x=>x.e.valor||0,etapa:x=>ORD[x.etapa],edad:x=>x.edad,cita:x=>(x.c&&x.c.fConf)||'',salmi:x=>x.e.fSalmi||'',k101:x=>x.f101||''};
 function filtrados(){const q=($('#q').value||'').trim().toUpperCase();const pv=$('#fProv').value;const rn=($('#fRen').value||'').split('·')[0].trim().toUpperCase();const thr=Math.round(pct(MED.k101,.85));
-  const f=X.filter(x=>{if(FILT==='REC'||FILT==='SALMI'||FILT==='DOC'){if(x.etapa!==FILT)return false;}else if(FILT==='ATR'){if(x.f101||x.edad<=thr)return false;}else if(FILT==='REV'){if(!x.rev)return false;}
+  const f=X.filter(x=>{if(FILT==='REC'||FILT==='SALMI'||FILT==='DOC'){if(x.etapa!==FILT)return false;}else if(FILT==='ATR'){if(x.f101||x.edad<=thr)return false;}else if(FILT==='REV'){if(!x.rev)return false;}else if(FILT==='MAN'){if(!x.man)return false;}
     if(pv&&x.e.prov!==pv)return false;
     if(rn&&String(x.e.cod).toUpperCase()!==rn&&(x.e.desc||'').toUpperCase().indexOf(rn)<0)return false;
     if(!q)return true;return (String(x.e.oc)+' '+(x.e.prov||'')+' '+(x.e.desc||'')+' '+(x.e.cod||'')+' '+x.id).toUpperCase().indexOf(q)>=0;});
@@ -595,11 +629,77 @@ function renderTabla(){const F=filtrados();const pages=Math.max(1,Math.ceil(F.le
   const thr=Math.round(pct(MED.k101,.85));
   document.querySelectorAll('#tab th.sort').forEach(th=>{th.querySelector('.ar').textContent=th.dataset.k===SK?(SD>0?'▲':'▼'):'↕';});
   $('#tab tbody').innerHTML=F.slice(PAGE*PS,PAGE*PS+PS).map(x=>{const at=!x.f101&&x.edad>thr;
-    return '<tr class="click" data-id="'+x.id+'"><td><span class="code">'+x.e.oc+'</span><br><span class="muted" style="font-size:.74rem">recibida '+fdf(x.e.fRec)+'</span></td><td>'+esc(x.e.prov)+'</td><td style="max-width:280px"><span class="code">'+esc(x.e.cod)+'</span> '+esc((x.e.desc||'').slice(0,60))+'</td><td class="num">'+money(x.e.valor)+'</td><td><span class="pill '+x.etapa.toLowerCase()+'">'+ETQ[x.etapa]+'</span>'+(x.rev?' <span class="pill bad">102</span>':'')+'</td><td class="num">'+(at?'<span class="pill bad">'+x.edad+'</span>':x.edad)+'</td><td class="mono" style="font-size:.76rem">'+(x.c&&x.c.fConf?fdm(x.c.fConf):'—')+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.e.fSalmi)+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.f101)+'</td></tr>';}).join('')||'<tr><td colspan="9" class="muted">Sin resultados con estos filtros.</td></tr>';
+    return '<tr class="click" data-id="'+x.id+'"><td><span class="code">'+x.e.oc+'</span><br><span class="muted" style="font-size:.74rem">recibida '+fdf(x.e.fRec)+'</span>'+manPill(x)+'</td><td>'+esc(x.e.prov)+'</td><td style="max-width:280px"><span class="code">'+esc(x.e.cod)+'</span> '+esc((x.e.desc||'').slice(0,60))+'</td><td class="num">'+money(x.e.valor)+'</td><td><span class="pill '+x.etapa.toLowerCase()+'">'+ETQ[x.etapa]+'</span>'+(x.rev?' <span class="pill bad">102</span>':'')+'</td><td class="num">'+(at?'<span class="pill bad">'+x.edad+'</span>':x.edad)+'</td><td class="mono" style="font-size:.76rem">'+(x.c&&x.c.fConf?fdm(x.c.fConf):'—')+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.e.fSalmi)+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.f101)+'</td></tr>';}).join('')||'<tr><td colspan="9" class="muted">Sin resultados con estos filtros.</td></tr>';
   $('#pager').innerHTML=nf(F.length)+' líneas · página '+(PAGE+1)+' de '+pages+' <button class="btn ghost small" id="pv"'+(PAGE?'':' disabled')+'>Anterior</button><button class="btn ghost small" id="pn"'+(PAGE<pages-1?'':' disabled')+'>Siguiente</button>';
   $('#pv').onclick=()=>{PAGE--;renderTabla();};$('#pn').onclick=()=>{PAGE++;renderTabla();};
   document.querySelectorAll('#tab tr.click').forEach(tr=>tr.addEventListener('click',()=>abrir(tr.dataset.id)));}
 
+/* ---------- Alta manual de recepciones no listadas (solo supervisor) ---------- */
+function altaBanner(x){const a=x.e.alta||x.e.altaConf;if(!a)return '';
+  const conf=!!x.e.altaConf,est=conf?['ok','Confirmada: el informe de Abasto ya trae esta recepción.']:(x.man==='K101'?['ok','La entrada contable 101 ya está en el kardex'+(x.k&&x.k.porMaterial?' (enlazada por material y fecha, pedido '+esc(x.k.ped||'')+'; confirme que corresponde)':'')+'. Falta que aparezca en el informe de Abasto.']:(x.man==='SINRESP'?['bad','Lleva '+x.espAlta+' días hábiles desde el alta sin aparecer en el informe de Abasto ni en el kardex. Revise si la recepción es correcta.']:['warn','Pendiente de aparecer en el informe de Abasto o de la entrada 101 en el kardex (plazo: 10 días hábiles desde el alta; van '+(x.espAlta||0)+').']));
+  const sup=SES&&SES.rol==='SUPERVISOR'&&!conf;
+  return '<div class="alta '+est[0]+'"><div><b>Recepción dada de alta a mano</b> por '+esc(a.quien||'—')+' el '+fdf(String(a.ts||'').slice(0,10))+' · motivo: '+esc(a.motivo||'—')+(a.entrega?' · entrega '+esc(a.entrega):'')+(a.nota?' · '+esc(a.nota):'')+(a.evidUrl?' · <a class="evlink" href="'+esc(a.evidUrl)+'" target="_blank" rel="noopener">informe firmado</a>':'')+'<br><span>'+est[1]+'</span></div>'+(sup?'<button class="btn ghost small" id="bAnuAlta">Anular alta</button>':'')+'</div>';}
+async function anularAlta(x){const a=x.e.alta;if(!a||!SES)return;
+  const mot=prompt('Motivo para anular el alta manual de '+x.id+' (queda en la bitácora):');if(mot==null)return;if(!mot.trim()){aviso('Indique el motivo.',true);return;}
+  let r;try{r=await apiPost('trzAnular',{pin:SES.pin,id:a.evId,motivo:mot.trim()});}catch(e){aviso('Sin conexión con SIGUELO.',true);return;}
+  if(!r.success){aviso(r.error||'No se pudo anular.',true);return;}
+  S.MAN=(S.MAN||[]).filter(m=>m.alta.evId!==a.evId);delete EVT[x.id];aviso('Alta anulada. Queda en la bitácora como ANULADO.');recalcular();showTab('p-exps');}
+function recalcular(){construir();llenarFiltros();renderFlujo();renderFlujoChips();renderTabla();provLlenar();}
+let CAT=null;
+function cargarCatalogo(){if(CAT)return Promise.resolve(CAT);return fetch(BASE+'maestro_renglones.json?v='+Math.floor(Date.now()/6e4),{cache:'no-store'}).then(r=>r.json()).then(j=>{CAT=j.catalogo||{};return CAT;});}
+function abrirAlta(){
+  if(!VIVO_REG){aviso('El alta manual funciona en la versión publicada.',true);return;}
+  if(!SES){pinModal(abrirAlta);return;}
+  if(SES.rol!=='SUPERVISOR'){aviso('Solo un supervisor puede registrar una recepción no listada.',true);return;}
+  if($('#altaOv'))return;const o=document.createElement('div');o.id='altaOv';const hoy=iso(new Date());
+  o.innerHTML='<div class="altabox" role="dialog" aria-modal="true" aria-labelledby="altaT"><div class="altah"><h3 id="altaT">Registrar recepción no listada</h3><button class="btn ghost small" id="altaX" aria-label="Cerrar">✕</button></div>'+
+   '<p class="muted" style="margin:0 0 10px;font-size:.8rem">Para recepciones que el informe de Abasto no trae. Quedan como <b>Manual</b> y se concilian solas cuando el informe trae la misma OC y renglón, o cuando el kardex trae la entrada 101. Cuentan en los indicadores desde ahora.</p>'+
+   '<form class="form" id="altaF" novalidate>'+
+   '<label for="aOc">Orden de compra *<input id="aOc" inputmode="numeric" maxlength="10" placeholder="100XXXXXXX" autocomplete="off"></label>'+
+   '<label for="aEnt">Entrega<select id="aEnt"><option value="">—</option>'+[2,3,4,5,6,7,8,9].map(n=>'<option>E'+n+'</option>').join('')+'</select></label>'+
+   '<label class="full" for="aProv">Proveedor *<span class="ac-wrap"><input id="aProv" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="aProvAC" placeholder="Escriba parte del nombre"><button type="button" class="ac-clear" id="aProvX" aria-label="Limpiar proveedor" hidden>×</button><span class="ac-panel" id="aProvAC" role="listbox"></span></span></label>'+
+   '<label class="full" for="aRen">Renglón *<span class="ac-wrap"><input id="aRen" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="aRenAC" placeholder="Primero elija el proveedor" disabled><button type="button" class="ac-clear" id="aRenX" aria-label="Limpiar renglón" hidden>×</button><span class="ac-panel" id="aRenAC" role="listbox"></span></span></label>'+
+   '<label for="aFec">Fecha de recepción *<input type="date" id="aFec" max="'+hoy+'" min="2026-05-05"></label>'+
+   '<label for="aPed">Pedido SAFIRO<input id="aPed" inputmode="numeric" maxlength="10" placeholder="3000XXXXXX · enlaza la 101"></label>'+
+   '<label for="aCant">Cantidad recibida *<input id="aCant" type="number" min="1" step="1"></label>'+
+   '<label for="aVal">Valor B/.<input id="aVal" type="number" min="0" step="0.01" placeholder="Opcional"></label>'+
+   '<label class="full" for="aMot">Motivo *<select id="aMot"><option value="">Elegir…</option><option>No aparece en el informe de Abasto</option><option>El informe de Abasto trae un error</option><option>Otro (detallar en la nota)</option></select></label>'+
+   '<div class="full" id="aDup" aria-live="polite"></div>'+
+   '<div class="full"><span style="font-size:.78rem;font-weight:600;color:var(--muted)">Evidencia (obligatoria): informe de recepción firmado, foto o PDF</span><label class="drop" for="aEv" id="aDrop" style="margin-top:4px">Toque para adjuntar foto o PDF<input type="file" id="aEv" accept="image/*,application/pdf" hidden></label></div>'+
+   '<label class="full" for="aNota">Nota<textarea id="aNota" rows="2" placeholder="Opcional"></textarea></label>'+
+   '<div class="full toolbar"><button class="btn" type="submit" id="aOk">Registrar recepción</button><button class="btn ghost" type="button" id="aNo">Cancelar</button><span class="err" id="aErr"></span></div></form></div>';
+  document.body.appendChild(o);
+  const cerrar=()=>o.remove();$('#altaX').onclick=cerrar;$('#aNo').onclick=cerrar;o.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar();});
+  let PROV='',REN=null,EVF=null;
+  const revisar=()=>{const oc=$('#aOc').value.replace(/\D/g,''),f=$('#aFec').value,box=$('#aDup');box.innerHTML='';$('#aOk').disabled=false;
+    if(!/^100\d{7}$/.test(oc))return;
+    const mismos=X.filter(x=>String(x.e.oc)===oc);
+    const dup=REN&&f?mismos.find(x=>String(x.e.cod)===REN.cod&&Math.abs(D(x.e.fRec)-D(f))<=3*864e5):null;
+    if(dup){box.innerHTML='<div class="alta bad"><div><b>Esa recepción ya existe:</b> '+dup.id+' ('+esc(dup.e.prov)+', recibida '+fdf(dup.e.fRec)+'). No hace falta darla de alta.</div><button type="button" class="btn ghost small" id="aVer">Abrir</button></div>';$('#aVer').onclick=()=>{cerrar();abrir(dup.id);};$('#aOk').disabled=true;return;}
+    if(mismos.length)box.innerHTML='<div class="alta warn"><div>Esta OC ya tiene '+mismos.length+' expediente(s): '+mismos.slice(0,4).map(x=>esc(x.e.cod)+' recibido '+fdf(x.e.fRec)).join(' · ')+(mismos.length>4?'…':'')+'. Verifique que el renglón o la fecha sean distintos.</div></div>';};
+  ['aOc','aFec'].forEach(i=>$('#'+i).addEventListener('input',revisar));
+  cargarCatalogo().then(cat=>{
+    const provs=Object.keys(cat).sort((a,b)=>a.localeCompare(b,'es'));
+    acMake($('#aProv'),$('#aProvAC'),$('#aProvX'),q=>{const t=normB(q);return provs.filter(p=>!t||normB(p).includes(t)).map(p=>({val:p,lab:p,sub:cat[p].length+' renglones'}));},
+      o2=>{PROV=o2?o2.val:'';REN=null;$('#aRen').value='';$('#aRenX').hidden=true;$('#aRen').disabled=!PROV;$('#aRen').placeholder=PROV?'Código o descripción del renglón':'Primero elija el proveedor';revisar();if(PROV)setTimeout(()=>$('#aRen').focus(),0);});
+    acMake($('#aRen'),$('#aRenAC'),$('#aRenX'),q=>{const t=normB(q);return (cat[PROV]||[]).filter(r=>!t||normB(r.cod_abasto+' '+r.desc).includes(t)).slice(0,60).map(r=>({val:r.cod_abasto+' · '+r.desc,lab:r.cod_abasto,sub:r.desc,r:r}));},
+      o2=>{REN=o2?{cod:String(o2.r.cod_abasto),desc:o2.r.desc,mat:o2.r.cod_sap||''}:null;revisar();});
+    $('#aOc').focus();
+  }).catch(()=>{$('#aErr').textContent='No se pudo leer el catálogo de proveedores. Reintente.';});
+  $('#aEv').onchange=ev=>{const f=ev.target.files[0];if(!f)return;EVF=f;$('#aDrop').textContent='Evidencia: '+f.name;};
+  $('#altaF').onsubmit=async ev=>{ev.preventDefault();const err=$('#aErr');err.textContent='';
+    const oc=$('#aOc').value.replace(/\D/g,''),f=$('#aFec').value,cant=Number($('#aCant').value),mot=$('#aMot').value;
+    const falta=[];if(!/^100\d{7}$/.test(oc))falta.push('OC de 10 dígitos que empiece con 100');if(!PROV)falta.push('proveedor');if(!REN)falta.push('renglón (elíjalo de la lista)');if(!f)falta.push('fecha de recepción');if(!(cant>0))falta.push('cantidad');if(!mot)falta.push('motivo');if(!EVF)falta.push('evidencia');
+    if(falta.length){err.textContent='Falta: '+falta.join(', ')+'.';return;}
+    if(f>iso(new Date())){err.textContent='La fecha de recepción no puede ser futura.';return;}
+    const b=$('#aOk');b.disabled=true;b.textContent='Registrando…';const listo=()=>{b.disabled=false;b.textContent='Registrar recepción';};
+    let evd;try{evd=await prepEvid(EVF);}catch(e2){err.textContent=e2.message||'No se pudo leer la evidencia.';listo();return;}
+    const d={pin:SES.pin,oc:oc,entrega:$('#aEnt').value,proveedor:PROV,renglon:REN.cod,desc:REN.desc,mat:REN.mat,fRec:f,safiro:$('#aPed').value.replace(/\D/g,''),cant:cant,valor:Number($('#aVal').value)||0,motivo:mot,nota:$('#aNota').value.trim(),evidencia:evd,idCliente:Date.now().toString(36)};
+    let r;try{r=await apiPost('trzAltaManual',d);}catch(e3){err.textContent='Sin conexión con SIGUELO. No se registró; reintente.';listo();return;}
+    if(!r.success){listo();err.textContent=r.error||'No se registró.';if(r.existe&&X.some(x=>x.id===r.existe)){err.innerHTML=esc(r.error)+' <a href="#" id="aIr">Abrir '+r.existe+'</a>';$('#aIr').onclick=e4=>{e4.preventDefault();cerrar();abrir(r.existe);};}if(/PIN|inactivo/i.test(r.error||'')){cerrar();salir();}return;}
+    (S.MAN=S.MAN||[]).push({exp:r.exp,oc:oc,fRec:f,prov:PROV,cod:REN.cod,desc:REN.desc,mat:REN.mat,safiro:d.safiro,entrega:d.entrega,cant:cant,valor:d.valor,alta:{evId:r.id,quien:SES.nombre,ts:iso(new Date()),motivo:mot,nota:d.nota,evidUrl:r.evidUrl||''}});
+    delete EVT[r.exp];cerrar();recalcular();aviso(r.mensaje||'Recepción registrada.');abrir(r.exp);};
+}
 /* ---------- Ficha y registro de hitos ---------- */
 const PASOS=[['P01','Coordinador','Recibe el expediente'],['P02','Control1','Distribuye a Cómputo y solicita factura'],['P03','DINALOG','Entrega la factura'],['P04','Cómputo','Confecciona el informe'],['P05','Control1','Integra el expediente'],['P06','Control2','Canaliza a firma'],['P07','Ventanilla Única','Revisa y firma'],['P08','Control2','Completa el expediente'],['P09','Control3','Firma cuenta y hoja remisoria'],['P10','Control2','Distribuye documentación'],['P11','Archivo','Archiva'],['P12','Coordinador','Envía el original a Contabilidad'],['C12','Contabilidad','Recibe y devuelve (tramo C·12→13)'],['P13','Coordinador','Reingresa y remite a Compras'],['P14','Equipo de Compras','Publica']];
 let HITOS={};try{HITOS=JSON.parse(localStorage.getItem('rb_hitos')||'{}');}catch(e){HITOS={};}
@@ -673,7 +773,7 @@ function abrir(id){SELID=id;try{history.replaceState(null,'','#'+id);}catch(e){}
 function stepper(x){const e=x.e,S2=[];
   S2.push({t:'Solicitud de entrega',d:x.t?x.t.emision:null,sub:x.t?esc(x.t.doc):'No enlazada'});
   S2.push({t:'Cita confirmada',d:x.c?x.c.fConf:null,sub:x.c?(esc(x.c.id)+' · '+esc(x.c.estado)):'No enlazada'});
-  S2.push({t:'Recepción física',d:e.fRec,sub:(x.lag.cita!=null?(x.lag.cita+' d háb. después de la cita'):'Informe de entradas')});
+  S2.push({t:'Recepción física',d:e.fRec,sub:(x.lag.cita!=null?(x.lag.cita+' d háb. después de la cita'):(e.alta?'Alta manual (informe firmado)':'Informe de entradas'))});
   S2.push({t:'Ingreso a inventario',d:e.fSalmi,sub:x.lag.salmi!=null?('+'+x.lag.salmi+' d háb.'):'Pendiente'});
   S2.push({t:'Entrada contable 101',d:x.f101,sub:x.f101?('+'+x.lag.k101+' d háb. desde la recepción'):'Pendiente · '+x.edad+' d háb. desde la recepción'});
   let firstPend=S2.findIndex((s,i)=>i>=2&&!s.d);
@@ -683,10 +783,11 @@ function renderFicha(){
   if(VIVO_REG&&x.f101&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
   if(VIVO_REG&&x.f101&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
   if(VIVO_REG&&x.f101)confirmarEnFondo(x.id);
-  const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
+  const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
   const sig=x.f101?PASOS.find(p=>!hechos.has(p[0])):null;
   let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+x.id+'</h2></div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
    '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
+   altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
   h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos con evidencia</h3><p>'+(x.f101?'Cada área registra su paso adjuntando la foto o el PDF del documento firmado':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
    (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'';
@@ -700,6 +801,7 @@ function renderFicha(){
   if($('#bSalir'))$('#bSalir').onclick=salir;
   if($('#bRelee'))$('#bRelee').onclick=()=>{delete EVT[x.id];renderFicha();};
   $('#bCar').onclick=()=>renderCaratula(x);
+  if($('#bAnuAlta'))$('#bAnuAlta').onclick=()=>anularAlta(x);
 }
 let PSEL=null,PSEL_ID=null,JUSTO=null;
 function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
@@ -752,7 +854,7 @@ function barraSesion(x){
 }
 function bitacora(x){
   const ev=EVT[x.id]||[];if(!ev.length)return '';
-  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(r.ts.replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':'completado')+' · '+esc(r.quien)+' ('+esc(r.area)+')'+(r.obs?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):'')+'</li>').join('')+'</ul></details>';
+  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':'completado'))+' · '+esc(r.quien)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):'')+'</li>').join('')+'</ul></details>';
 }
 function renderForm(x){
   const p=PASOS.find(z=>z[0]===PASOFORM);const now=new Date();const dv=iso(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
@@ -924,6 +1026,7 @@ acMake($('#fRen'),$('#fRenAC'),$('#fRenX'),q=>{const t=normB(q);const m=new Map(
   ()=>{PAGE=0;renderTabla();});
 $('#pProv').addEventListener('change',()=>provOcs());$('#pOc').addEventListener('change',provRens);$('#pRen').addEventListener('change',renderProv);
 $('#fProv').addEventListener('change',()=>{PAGE=0;renderTabla();});$('#fRen').addEventListener('input',()=>{PAGE=0;renderTabla();});
+$('#bAlta').addEventListener('click',abrirAlta);
 $('#limpiar').addEventListener('click',()=>{$('#q').value='';$('#fProv').value='';$('#fRen').value='';$('#fRenX').hidden=true;FILT='TODOS';SK='edad';SD=-1;PAGE=0;renderFlujoChips();renderTabla();});
 document.querySelectorAll('#tab th.sort').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.k;if(SK===k)SD=-SD;else{SK=k;SD=(k==='prov'||k==='desc'||k==='oc')?1:-1;}PAGE=0;renderTabla();}));
 function aplicarTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');$('#tema').title=(t==='dark')?'Cambiar a tema claro':'Cambiar a tema oscuro';}
