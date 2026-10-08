@@ -28,14 +28,14 @@
   .btn.pri:hover{background:var(--navy)}
   .btn:disabled{opacity:.6;cursor:wait}
   main{max-width:1320px;margin:0 auto;padding:12px 16px 40px}
-  .aviso{border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12.5px}
+  .aviso{border-radius:4px;padding:6px 10px;margin-bottom:8px;font-size:12px;line-height:1.35}
   .aviso.a{background:var(--a-bg);color:var(--a-tx)} .aviso.r{background:var(--r-bg);color:var(--r-tx)} .aviso.n{background:var(--n-bg);color:var(--n-tx)}
-  .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;margin-bottom:12px}
-  .k{border-radius:6px;padding:10px 12px;cursor:pointer;border:2px solid transparent}
-  .k:hover{border-color:rgba(0,0,0,.12)}
-  .k .l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-  .k .n{font-size:22px;font-weight:700;font-family:Consolas,monospace;margin-top:2px}
-  .k .s{font-size:11px;opacity:.9}
+  .kg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-bottom:10px}
+  @media (max-width:900px){.kg{grid-template-columns:repeat(3,minmax(0,1fr))}} @media (max-width:520px){.kg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .k{border-radius:4px;padding:6px 10px;cursor:pointer;border:1px solid transparent;display:flex;align-items:baseline;gap:8px;min-width:0}
+  .k:hover{border-color:rgba(0,0,0,.18)} .k.sel{border-color:var(--tinta)}
+  .k .n{font-size:16px;font-weight:700;font-family:Consolas,monospace;white-space:nowrap}
+  .k .s{font-size:11px;line-height:1.2;min-width:0}
   :is(.k,.cat).v,.mini .v{background:var(--v-bg);color:var(--v-tx)}
   :is(.k,.cat).a,.mini .a{background:var(--a-bg);color:var(--a-tx)}
   :is(.k,.cat).r,.mini .r{background:var(--r-bg);color:var(--r-tx)}
@@ -83,7 +83,7 @@
   tbody tr:nth-child(even) td{background:#fafbfc}
   tbody tr:hover td{background:#eef4fb}
   .cat{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
-  .neg{color:var(--r-tx)} .pos{color:var(--v-tx)}
+  .neg{color:var(--r-tx)} .pos{color:var(--n-tx)}
   .pie{font-size:11px;color:var(--muted);padding:8px 12px}
   .vacio{padding:24px;text-align:center;color:var(--muted)}
   /* detalle */
@@ -100,27 +100,37 @@
   .mini b{display:block;font-family:Consolas,monospace;font-size:15px}
   .mb table th{position:static}
   .ayuda dt{font-weight:700;margin-top:8px} .ayuda dd{margin:2px 0 0 0;color:#333}
-  /* Espejo SAP ↔ SALMI: lo común en gris, el exceso del lado mayor en el color de su resultado */
-  .vista{display:inline-flex;border:1px solid var(--borde);border-radius:4px;overflow:hidden}
-  .vista button{font:inherit;font-size:12px;font-weight:600;border:0;background:#fff;color:var(--g-tx);padding:5px 12px;cursor:pointer}
-  .vista button.on{background:var(--azul);color:#fff}
-  .esp{padding:0 12px 12px;overflow:auto;max-height:640px}
-  .eh,.er{display:grid;grid-template-columns:78px minmax(120px,1fr) 230px minmax(120px,1fr) 78px 215px;align-items:center;column-gap:0;min-width:880px}
-  .eh{position:sticky;top:0;background:#fff;z-index:3;font-size:11px;font-weight:700;color:var(--navy);padding:6px 0;border-bottom:1px solid var(--borde2)}
-  .eh .izq{text-align:right;padding-right:8px} .eh .der2{padding-left:8px} .eh .cen{text-align:center}
-  .er{padding:3px 0;cursor:pointer;border-radius:4px}
-  .er:hover{background:#f3f6fa} .er:focus{outline:2px solid var(--azul);outline-offset:-2px}
-  .er .q{font-family:Consolas,monospace;font-size:11.5px;color:var(--tinta)} .er .q.l{text-align:right;padding-right:6px} .er .q.r{padding-left:6px}
-  .er .q.no{color:var(--muted);font-style:italic;font-family:inherit}
-  .bar{height:14px;display:flex;gap:2px} .bar.l{justify-content:flex-end} .bar span{display:block;height:100%}
-  .bar.l span:first-child{border-radius:4px 0 0 4px} .bar.r span:last-child{border-radius:0 4px 4px 0}
-  .bar .co{background:#D3D1C7}
-  .er .cen{padding:0 8px;border-left:2px solid var(--navy);border-right:2px solid var(--navy);min-width:0}
-  .er .cen b{font-family:Consolas,monospace;font-size:11.5px;color:var(--navy)} .er .cen div{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .er .df{padding-left:10px;font-size:11px;line-height:1.25;white-space:nowrap} .er .df b{font-family:Consolas,monospace;font-size:11.5px}
-  .eleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding:8px 12px 0}
-  .eleg i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-  .emas{text-align:center;padding:10px}
+  /* Huella: módulos × tramos de desviación (0 % al centro) */
+  .huella{display:grid;grid-template-columns:150px repeat(15,minmax(46px,1fr));gap:2px;min-width:900px;padding:8px 12px 4px}
+  .huella .hd{font-size:10px;color:var(--muted);text-align:center;line-height:1.15;padding-bottom:2px;align-self:end}
+  .huella .hd.cero{color:var(--v-tx);font-weight:700}
+  .huella .mod{font-size:11.5px;align-self:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+  .huella .mod.tot{font-weight:700}
+  .celda{height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-size:11px;cursor:pointer;border:1px solid transparent}
+  .celda.vacia{cursor:default;color:transparent;background:#f6f7f9}
+  .celda.sel{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+  .celda:focus-visible,.fila:focus-visible{outline:2px solid var(--azul);outline-offset:1px}
+  .huella .lado{grid-column:2 / span 7;font-size:10.5px;color:var(--r-tx);padding-top:3px}
+  .huella .lado.d{grid-column:10 / span 7;text-align:right;color:var(--n-tx)} .huella .lado.c{grid-column:9;text-align:center;color:var(--v-tx)}
+  .fact{font-size:11.5px;color:var(--muted);padding:0 12px 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sc{overflow-x:auto}
+  .seg{display:inline-flex;border:1px solid var(--borde);border-radius:4px;overflow:hidden}
+  .seg button{font:inherit;font-size:11.5px;font-weight:600;border:0;background:#fff;color:var(--g-tx);padding:4px 10px;cursor:pointer} .seg button.on{background:var(--azul);color:#fff}
+  .ley{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 12px}
+  .ley i{display:inline-block;width:12px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  /* lista: renglón a la izquierda, barra que sale del 0 % */
+  .lst{max-height:640px;overflow:auto}
+  .cab,.fila{display:grid;grid-template-columns:minmax(220px,300px) minmax(340px,1fr) 84px 92px 92px 100px 190px;align-items:center;min-width:1120px}
+  .cab{font-size:10.5px;font-weight:700;color:#fff;background:var(--azul);text-transform:uppercase;letter-spacing:.03em;padding:5px 12px;position:sticky;top:0;z-index:2}
+  .cab>div{cursor:pointer;user-select:none} .cab>div.nos{cursor:default} .cab .o{opacity:.6;font-size:9px;margin-left:3px}
+  .cab .n,.fila .n{text-align:right} .fila .n{font-family:Consolas,monospace;font-size:11.5px;padding-left:6px}
+  .fila{padding:2px 12px;border-bottom:1px solid #eef0f3;cursor:pointer} .fila:hover{background:#eef4fb}
+  .ren{min-width:0;padding-right:10px}
+  .ren b{font-family:Consolas,monospace;font-size:11.5px;color:var(--azul)} .ren em{font-style:normal;font-size:10.5px;color:var(--muted);margin-left:6px}
+  .ren div{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fila .rs{padding-left:10px}
+  .eje-l{fill:#fff;font-size:10px;font-family:"Segoe UI",system-ui,sans-serif}
+  .mas{text-align:center;padding:10px}
   .tt{position:fixed;z-index:60;pointer-events:none;background:#1b1f24;color:#fff;font-size:11.5px;padding:6px 8px;border-radius:4px;max-width:280px;display:none;line-height:1.4}
 </style>
 </head>
@@ -142,18 +152,7 @@
 
 <main>
   <div id="avisos"></div>
-  <div class="kg" id="kpis"><div class="k g"><div class="l">Cargando</div><div class="n">…</div><div class="s">leyendo la conciliación publicada</div></div></div>
-
-  <div class="fila2">
-    <div class="panel">
-      <div class="ph">De qué se explican las diferencias <span class="sub">· renglones por categoría · clic para filtrar la tabla</span></div>
-      <div class="pb" id="embudo"></div>
-    </div>
-    <div class="panel">
-      <div class="ph">Diferencias reales por módulo de SALMI <span class="sub">· valor absoluto en B/.</span></div>
-      <div class="pb" id="modulos"></div>
-    </div>
-  </div>
+  <div class="kg" id="kpis"><div class="k g"><span class="n">…</span><span class="s">leyendo la conciliación publicada</span></div></div>
 
   <div class="tabs">
     <button class="tab on" data-t="dif" type="button">Renglones conciliados</button>
@@ -162,27 +161,22 @@
   <div class="panel" style="border-top-left-radius:0">
     <div id="vDif">
       <div class="filtros">
-        <label>Categoría</label><select id="fCat"></select>
-        <label>Módulo</label><select id="fMod"></select>
-        <label>Renglón</label>
+        <label for="fCat">Resultado</label><select id="fCat"></select>
+        <label for="fFam">Familia</label><select id="fFam"></select>
+        <label for="fGru">Grupo</label><select id="fGru"></select>
+        <label for="fRen">Renglón</label>
         <div class="ac"><input type="text" id="fRen" placeholder="Código o nombre del renglón" autocomplete="off"><ul id="acL"></ul></div>
         <button class="btn" id="bLimpiar" type="button">Limpiar filtros</button>
         <span class="pie" id="cuenta" style="padding:0"></span>
-        <span style="flex:1"></span>
-        <label>Vista</label><div class="vista" role="group" aria-label="Vista"><button type="button" class="on" data-v="esp">Espejo SAP ↔ SALMI</button><button type="button" data-v="tab">Tabla</button></div>
       </div>
-      <div id="vEsp">
-        <div class="eleg">
-          <span><i style="background:#D3D1C7"></i>Cantidad que coincide en los dos sistemas</span>
-          <span><i style="background:#E24B4A"></i>Exceso · diferencia real</span>
-          <span><i style="background:#EF9F27"></i>Exceso · solo en un sistema o real con movimiento</span>
-          <span><i style="background:#378ADD"></i>Exceso · explicado</span>
-          <span><i style="background:#888780"></i>Exceso · menor al 1 %</span>
-          <span style="margin-left:auto"><label>Escala</label> <select id="fEsc"><option value="p">Proporción de cada renglón</option><option value="v">Valor B/. (común a todos)</option></select></span>
-        </div>
-        <div class="esp" id="esp"></div>
-      </div>
-      <div class="tw" id="vTab" style="display:none"><table id="tDif"></table></div>
+      <div class="ph">Huella de la desviación <span class="sub">· renglones por módulo y tramo de desviación SALMI contra SAP · el tono es el valor de la diferencia en B/. · clic en una celda para ver sus renglones</span></div>
+      <div class="sc"><div class="huella" id="huella"></div></div>
+      <div class="fact" id="fAct"></div>
+      <div class="ph">Desviación de cada renglón <span class="sub">· 0 % = los dos sistemas tienen lo mismo · a la derecha SALMI tiene más que SAP · a la izquierda, menos</span>
+        <span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400;font-size:11.5px;color:var(--muted)">Eje <span class="seg" id="zoom"><button type="button" data-z="100" class="on">±100 %</button><button type="button" data-z="20">±20 %</button><button type="button" data-z="5">±5 %</button></span></span></div>
+      <div class="ley"><span><i style="background:#E24B4A"></i>SALMI tiene menos que SAP</span><span><i style="background:#378ADD"></i>SALMI tiene más que SAP</span><span><i style="background:#E24B4A;opacity:.5"></i><i style="background:#378ADD;opacity:.5"></i>Tono claro: diferencia explicada o menor al 1 %</span><span><i style="background:#1D9E75;border-radius:50%"></i>Cuadra</span><span>► la desviación pasa del borde del eje (la cifra real está en la columna)</span></div>
+      <div class="sc lst"><div id="lista"></div></div>
+      <div class="mas" id="mas"></div>
     </div>
     <div id="vSP" style="display:none">
       <div class="filtros">
@@ -190,6 +184,17 @@
         <button class="btn pri" id="bExcelSP" type="button">Excel para Planificación</button>
       </div>
       <div class="tw"><table id="tSP"></table></div>
+    </div>
+  </div>
+
+  <div class="fila2" style="margin-top:12px">
+    <div class="panel">
+      <div class="ph">De qué se explican las diferencias <span class="sub">· renglones por categoría · clic para filtrar</span></div>
+      <div class="pb" id="embudo"></div>
+    </div>
+    <div class="panel">
+      <div class="ph">Diferencias reales por módulo de SALMI <span class="sub">· valor absoluto en B/.</span></div>
+      <div class="pb" id="modulos"></div>
     </div>
   </div>
   <div class="pie" id="pie"></div>
@@ -215,7 +220,7 @@
   };
   var ORDEN = ['REAL_SIN_MOV','REAL_CON_MOV','SOLO_SALMI','SOLO_SAP','MENOR','PEND','UM','DESFASE','CUADRA'];
   var BAR = { v:'#1D9E75', n:'#378ADD', g:'#888780', r:'#E24B4A', a:'#EF9F27', p:'#7F77DD' };
-  var D=null, R=[], F={cat:'',mod:'',ren:''}, orden={k:'vabs',d:-1}, $=function(i){return document.getElementById(i);};
+  var D=null, R=[], F={cat:'_DIF',mod:'',ren:'',fam:'',gru:'',cel:null}, orden={k:'vabs',d:-1}, $=function(i){return document.getElementById(i);};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var fN=function(n,d){var v=Number(n);if(!isFinite(v))return '';return v.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
   var fB=function(n){return 'B/. '+fN(Math.round(n));};
@@ -225,111 +230,158 @@
   function traer(url,n){ n=n||0; return fetch(url+'?t='+Date.now(),{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .catch(function(e){ if(n>=3) throw e; return new Promise(function(ok){ setTimeout(ok,1500*(n+1)); }).then(function(){ return traer(url,n+1); }); }); }
 
-  traer(URL_JSON).then(function(j){ D=j; preparar(); pintar(); }).catch(function(e){
+  /* grupos del inventario de Curvas (si no carga, la familia sale del prefijo del código) */
+  var URL_GRUPOS='https://torredecontrolcss.github.io/Curvas_de_Inventario/kpi_inventario_renglones.json';
+  var pG=fetch(URL_GRUPOS+'?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(K){
+    if(K&&K.columnas&&K.renglones){ var ic=K.columnas.indexOf('codigo'), ig=K.columnas.indexOf('grupo'); if(ic>=0&&ig>=0) K.renglones.forEach(function(r){ if(r[ig]) GRUPOS[String(r[ic]).replace(/^0+/,'')]=String(r[ig]).trim(); }); } }).catch(function(){});
+  Promise.all([traer(URL_JSON),pG]).then(function(a){ D=a[0]; preparar(); pintar(); }).catch(function(e){
     $('kpis').innerHTML='<div class="k r"><div class="l">No se pudo cargar</div><div class="n">—</div><div class="s">'+esc(e.message)+' · revise la conexión y recargue</div></div>'; });
 
+  /* familia y grupo: el grupo sale del inventario de Curvas (misma fuente que Yarvis); si un renglón no lo trae, la familia sale del prefijo del código */
+  var GRUPOS={};
+  function familia(ab,g){ var k=String(ab), n=parseInt((String(g||'').match(/^G\s*-?\s*(\d+)/i)||[])[1],10), p3=k.slice(0,3);
+    if(p3>='101'&&p3<='105') return 'Medicamentos'; if(n===9||n===10) return 'Médico-quirúrgico'; if(n===11) return 'Odontología'; if(n===12||p3==='812') return 'Radiología';
+    if(n>=13&&n<=15) return 'Laboratorio'; if(k.charAt(0)==='2') return 'Médico-quirúrgico'; if(k.charAt(0)==='3') return 'Odontología'; if(k.charAt(0)==='9') return 'Laboratorio'; return 'Otros'; }
   function preparar(){
     var c=D._meta.columnas, ix={}; c.forEach(function(k,i){ix[k]=i;});
-    R=D.rows.map(function(r){ return { ab:r[ix.abasto], mat:r[ix.materialSAP], des:r[ix.descripcion], mod:r[ix.modulo]||'(sin módulo en SALMI)', um:r[ix.um], qs:r[ix.qSAP], qw:r[ix.qSALMI], dif:r[ix.dif],
+    R=D.rows.map(function(r){ var qs=+r[ix.qSAP]||0, qw=+r[ix.qSALMI]||0, ab=String(r[ix.abasto]||''), g=GRUPOS[ab.replace(/^0+/,'')]||'';
+      return { ab:ab, mat:r[ix.materialSAP], des:r[ix.descripcion], mod:r[ix.modulo]||'(sin módulo en SALMI)', um:r[ix.um], qs:qs, qw:qw, dif:r[ix.dif],
       pr:r[ix.precio], vdif:r[ix.valorDif], vs:r[ix.valorSAP], vw:r[ix.valorSALMI], cat:r[ix.categoria], mov:r[ix.movDiaNeto], pend:r[ix.pendienteSAP], ldis:r[ix.lotesDistintos],
+      gru:g||'(sin grupo)', fam:familia(ab,g), dev:qs>0?100*(qw-qs)/qs:(qw>0?Infinity:0),
       vabs: r[ix.categoria]==='SOLO_SAP'?r[ix.valorSAP]:r[ix.categoria]==='SOLO_SALMI'?r[ix.valorSALMI]:Math.abs(r[ix.valorDif]) }; });
     var m=D._meta; $('hCorte').textContent=m.fechaMB52&&m.fechaMB52!==m.fecha?'SALMI '+m.fecha+' · MB52 '+m.fechaMB52:m.fecha; $('hPub').textContent=m.generado;
-    var av=[];
-    if (m.fechaInventarioSALMI && m.fechaInventarioSALMI!==m.fecha) av.push(['r','El valorizado de SALMI dice "Fecha Inventario '+m.fechaInventarioSALMI+'" y el archivo es del '+m.fecha+'. Verifique el archivo antes de usar las cifras.']);
-    if ((m.ultimoMB52&&m.ultimoMB52>m.fecha)||(m.ultimoSALMI&&m.ultimoSALMI>m.fecha)) av.push(['a','Hay archivos más recientes sin pareja del mismo día (MB52 '+(m.ultimoMB52||'—')+' · SALMI '+(m.ultimoSALMI||'—')+'). Esta conciliación es del '+m.fecha+', la última fecha con los dos.']);
-    if (m.notaAjuste) av.push(['a',m.notaAjuste+' Las diferencias que deje ese ajuste pueden ser movimientos registrados a destiempo.']);
-    if (m.espera) av.push(['a',m.espera]);
-    av.push(['n','Los archivos de SALMI y SAP se bajan a horas distintas del mismo día. Las diferencias iguales a un movimiento SAP de ese día ('+fN(m.archivos.movimientosDelDia)+' movimientos en el MB51) se separan como "movimiento del día".']);
-    $('avisos').innerHTML=av.map(function(a){return '<div class="aviso '+a[0]+'">'+esc(a[1])+'</div>';}).join('');
-    var mods={}; R.forEach(function(r){mods[r.mod]=1;});
-    $('fMod').innerHTML='<option value="">Todos</option>'+Object.keys(mods).sort().map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
-    $('fCat').innerHTML='<option value="">Todas</option><option value="_REAL">Diferencias reales (las dos)</option><option value="_EXPL">Explicadas (todas)</option>'+ORDEN.map(function(k){return '<option value="'+k+'">'+CAT[k].n+'</option>';}).join('');
+    /* un solo aviso, una línea */
+    var t=['Corte '+m.fecha+(m.fechaMB52&&m.fechaMB52!==m.fecha?' (MB52 del '+m.fechaMB52+' llevado a ese día con el MB51)':'')+'.'], cl='n';
+    if((m.ultimoMB52&&m.ultimoMB52>(m.fechaMB52||m.fecha))||(m.ultimoSALMI&&m.ultimoSALMI>m.fecha)){ t.push('Hay archivos más nuevos sin pareja (MB52 '+(m.ultimoMB52||'—')+' · SALMI '+(m.ultimoSALMI||'—')+').'); cl='a'; }
+    if(m.espera){ t.push(m.espera); cl='a'; }
+    if(m.fechaInventarioSALMI&&m.fechaInventarioSALMI!==m.fecha){ t.push('Ojo: el valorizado dice "Fecha Inventario '+m.fechaInventarioSALMI+'".'); cl='r'; }
+    t.push('Los archivos se bajan a horas distintas: '+fN(m.embudo.DESFASE.renglones)+' diferencias se explican por los '+fN(m.archivos.movimientosDelDia)+' movimientos SAP del día.');
+    $('avisos').innerHTML='<div class="aviso '+cl+'">'+esc(t.join(' '))+'</div>';
+    var fams={}, gr={}; R.forEach(function(r){ fams[r.fam]=1; });
+    $('fFam').innerHTML='<option value="">Todas</option>'+['Medicamentos','Médico-quirúrgico','Odontología','Radiología','Laboratorio','Otros'].filter(function(f){return fams[f];}).map(function(f){return '<option>'+f+'</option>';}).join('');
+    grupos();
+    $('fCat').innerHTML='<option value="_DIF">Con diferencia (no cuadra)</option><option value="">Todos</option><option value="_REAL">Diferencias reales (las dos)</option><option value="_EXPL">Explicadas (todas)</option><option value="_SOLO">En un solo sistema</option>'+ORDEN.map(function(k){return '<option value="'+k+'">'+CAT[k].n+'</option>';}).join('');
+    $('fCat').value=F.cat;
     $('nSP').textContent='· '+fN(D.sinPuente.length);
-    $('pie').textContent=m.fuente+' · MB52: '+m.archivos.mb52+' · SALMI: '+m.archivos.salmi+' · MB51 '+(m.archivos.mb51Meses||[]).join(', ')+' · '+m.tolerancia;
+    $('pie').textContent=m.fuente+' · MB52: '+m.archivos.mb52+' · SALMI: '+m.archivos.salmi+' · MB51 '+(m.archivos.mb51Meses||[]).join(', ')+' · '+m.tolerancia+' · Grupo: inventario de Curvas.';
   }
-  function filtrar(){ return R.filter(function(r){
-    if (F.cat==='_REAL'){ if(!/^REAL_/.test(r.cat)) return false; } else if (F.cat==='_EXPL'){ if(!/^(DESFASE|UM|PEND)$/.test(r.cat)) return false; } else if (F.cat && r.cat!==F.cat) return false;
-    if (F.mod && r.mod!==F.mod) return false; if (F.ren && r.ab!==F.ren) return false; return true; }); }
+  function grupos(){ var gr={}; R.forEach(function(r){ if(!F.fam||r.fam===F.fam) gr[r.gru]=(gr[r.gru]||0)+1; });
+    $('fGru').innerHTML='<option value="">Todos</option>'+Object.keys(gr).sort(function(a,b){ var na=parseInt((a.match(/\d+/)||[99])[0],10), nb=parseInt((b.match(/\d+/)||[99])[0],10); return na-nb||a.localeCompare(b); })
+      .map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+' · '+gr[g]+'</option>';}).join('');
+    if(F.gru&&!gr[F.gru]) F.gru=''; $('fGru').value=F.gru; }
+  /* tramos de la huella (15 columnas, el 0 exacto al centro) */
+  var TR=['Solo SAP','−100 a −50','−50 a −20','−20 a −10','−10 a −5','−5 a −1','−1 a 0','0 %','0 a 1','1 a 5','5 a 10','10 a 20','20 a 50','más de 50','Solo SALMI'];
+  function trNom(k){ return TR[k]+(k>0&&k<14&&k!==7?' %':''); }
+  function tramo(r){ if(r.cat==='SOLO_SAP') return 0; if(r.cat==='SOLO_SALMI') return 14; if(Math.abs(r.dif)<1e-9) return 7; var d=r.dev;
+    if(d<0){ var a=-d; return a>50?1:a>20?2:a>10?3:a>5?4:a>1?5:6; } return d>50?13:d>20?12:d>10?11:d>5?10:d>1?9:8; }
+  function filtrar(sinCelda){ return R.filter(function(r){
+    if (F.cat==='_DIF'){ if(r.cat==='CUADRA') return false; } else if (F.cat==='_REAL'){ if(!/^REAL_/.test(r.cat)) return false; } else if (F.cat==='_EXPL'){ if(!/^(DESFASE|UM|PEND)$/.test(r.cat)) return false; }
+    else if (F.cat==='_SOLO'){ if(!/^SOLO_/.test(r.cat)) return false; } else if (F.cat && r.cat!==F.cat) return false;
+    if (F.fam && r.fam!==F.fam) return false; if (F.gru && r.gru!==F.gru) return false;
+    if (F.mod && r.mod!==F.mod) return false; if (F.ren && r.ab!==F.ren) return false;
+    if (!sinCelda && F.cel){ if(F.cel.mod!=='TOTAL'&&r.mod!==F.cel.mod) return false; if(tramo(r)!==F.cel.t) return false; }
+    return true; }); }
 
-  function pintar(){ kpis(); embudo(); modulos(); tabla(); tablaSP(); }
+  function pintar(){ kpis(); embudo(); modulos(); huella(); lista(); tablaSP(); }
   function kpis(){
     var m=D._meta, e=m.embudo, t=m.totales, tot=t.renglones||1, cu=e.CUADRA.renglones, pc=Math.round(100*cu/tot);
     var re=e.REAL_SIN_MOV.renglones+e.REAL_CON_MOV.renglones, rv=e.REAL_SIN_MOV.valorAbs+e.REAL_CON_MOV.valorAbs;
     var ex=e.DESFASE.renglones+e.UM.renglones+e.PEND.renglones, so=e.SOLO_SAP.renglones+e.SOLO_SALMI.renglones;
-    var k=function(cl,l,n,s,act){return '<div class="k '+cl+'" data-a="'+act+'"><div class="l">'+l+'</div><div class="n">'+n+'</div><div class="s">'+s+'</div></div>';};
+    var k=function(cl,n,s,act,ti){return '<div class="k '+cl+(act&&F.cat===act?' sel':'')+'" data-a="'+act+'" title="'+esc(ti||'')+'" role="button" tabindex="0"><span class="n">'+n+'</span><span class="s">'+s+'</span></div>';};
     $('kpis').innerHTML=
-      k(pc>=90?'v':pc>=70?'a':'r','Renglones que cuadran',pc+' %',fN(cu)+' de '+fN(tot)+' renglones','CUADRA')+
-      k(re?'r':'v','Diferencias reales',fN(re),fB(rv)+' · '+fN(e.REAL_SIN_MOV.renglones)+' sin movimiento ese día','_REAL')+
-      k('n','Explicadas',fN(ex),'movimiento del día, unidad de medida o pendiente en SAP','_EXPL')+
-      k(so?'a':'v','En un solo sistema',fN(so),fN(e.SOLO_SAP.renglones)+' solo SAP · '+fN(e.SOLO_SALMI.renglones)+' solo SALMI','')+
-      k(m.sinPuente.materiales?'p':'v','Sin código puente',fN(m.sinPuente.materiales),fB(m.sinPuente.valor)+' en SAP sin código de abasto','_SP')+
-      k('g','Valor del inventario','B/. '+(t.valorSAP/1e6).toFixed(1)+' M','SAP '+fB(t.valorSAP)+' · SALMI '+fB(t.valorSALMI)+' · SALMI − SAP '+(t.valorSALMI>=t.valorSAP?'+':'−')+fB(Math.abs(t.valorSALMI-t.valorSAP)),'');
+      k(pc>=90?'v':pc>=70?'a':'r',pc+'%','cuadran · '+fN(cu)+' de '+fN(tot),'CUADRA')+
+      k(re?'r':'v',fN(re),'reales · B/. '+(rv/1e6).toFixed(1)+' M','_REAL',fN(e.REAL_SIN_MOV.renglones)+' sin movimiento ese día')+
+      k('n',fN(ex),'explicadas','_EXPL','movimiento del día, unidad de medida o pendiente en SAP')+
+      k(so?'a':'v',fN(so),'en un solo sistema','_SOLO',fN(e.SOLO_SAP.renglones)+' solo SAP · '+fN(e.SOLO_SALMI.renglones)+' solo SALMI')+
+      k(m.sinPuente.materiales?'p':'v',fN(m.sinPuente.materiales),'sin código puente · B/. '+(m.sinPuente.valor/1e6).toFixed(1)+' M','_SP')+
+      k('g','B/. '+(t.valorSAP/1e6).toFixed(1)+' M','SAP · SALMI B/. '+(t.valorSALMI/1e6).toFixed(1)+' M','','SALMI − SAP '+(t.valorSALMI>=t.valorSAP?'+':'−')+fB(Math.abs(t.valorSALMI-t.valorSAP)));
     Array.prototype.forEach.call($('kpis').children,function(el){ el.onclick=function(){ var a=el.dataset.a; if(!a) return;
-      if(a==='_SP'){ tabSel('sp'); return; } tabSel('dif'); F.cat=a; $('fCat').value=a; tabla(); embudo(); }; });
+      if(a==='_SP'){ tabSel('sp'); return; } tabSel('dif'); F.cat=(F.cat===a?'_DIF':a); F.cel=null; $('fCat').value=F.cat; N=40; pintar(); }; });
   }
-  function tip(el,html){ el.onmousemove=function(ev){ var t=$('tt'); t.innerHTML=html; t.style.display='block'; t.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px'; t.style.top=(ev.clientY+12)+'px'; };
+  function tip(el,html){ el.onmousemove=function(ev){ var t=$('tt'); t.innerHTML=typeof html==='function'?html():html; t.style.display='block'; t.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px'; t.style.top=(ev.clientY+12)+'px'; };
     el.onmouseleave=function(){ $('tt').style.display='none'; }; }
   function embudo(){
     var e=D._meta.embudo, mx=Math.max.apply(null,ORDEN.map(function(k){return e[k].renglones;}))||1, box=$('embudo'); box.innerHTML='';
     ORDEN.slice().reverse().forEach(function(k){ var x=e[k], c=CAT[k], d=document.createElement('div'); d.className='barra'+(F.cat===k?' sel':'');
       d.innerHTML='<div class="et"><i style="background:'+BAR[c.c]+'"></i>'+c.n+'</div><div class="tr"><span style="width:'+(100*x.renglones/mx)+'%;background:'+BAR[c.c]+'"></span></div><div class="vl num">'+fN(x.renglones)+' <small>· '+(x.valorAbs?fB(x.valorAbs):'—')+'</small></div>';
       tip(d,'<b>'+c.n+'</b><br>'+fN(x.renglones)+' renglones · '+fB(x.valorAbs)+'<br>'+c.h);
-      d.onclick=function(){ F.cat=(F.cat===k?'':k); $('fCat').value=F.cat; tabSel('dif'); tabla(); embudo(); }; box.appendChild(d); });
+      d.onclick=function(){ F.cat=(F.cat===k?'_DIF':k); F.cel=null; $('fCat').value=F.cat; tabSel('dif'); N=40; pintar(); window.scrollTo({top:0,behavior:'smooth'}); }; box.appendChild(d); });
   }
   function modulos(){
     var P=D._meta.porModulo, ks=Object.keys(P).filter(function(m){return P[m].reales>0;}).sort(function(a,b){return P[b].valorAbsReal-P[a].valorAbsReal;}),
         mx=Math.max.apply(null,ks.map(function(m){return P[m].valorAbsReal;}))||1, box=$('modulos'); box.innerHTML='';
     if(!ks.length){ box.innerHTML='<div class="vacio">Sin diferencias reales.</div>'; return; }
     ks.forEach(function(m){ var x=P[m], d=document.createElement('div'); d.className='barra'+(F.mod===m?' sel':'');
-      d.innerHTML='<div class="et">'+esc(m.replace('ALMACEN DE ','').toLowerCase().replace(/^./,function(c){return c.toUpperCase();}))+'</div><div class="tr"><span style="width:'+(100*x.valorAbsReal/mx)+'%;background:'+BAR.r+'"></span></div><div class="vl num">'+fB(x.valorAbsReal)+'</div>';
+      d.innerHTML='<div class="et">'+esc(cap(m))+'</div><div class="tr"><span style="width:'+(100*x.valorAbsReal/mx)+'%;background:'+BAR.r+'"></span></div><div class="vl num">'+fB(x.valorAbsReal)+'</div>';
       tip(d,'<b>'+esc(m)+'</b><br>'+fN(x.reales)+' renglones con diferencia real de '+fN(x.renglones)+' · cuadran '+fN(x.cuadran)+' ('+Math.round(100*x.cuadran/x.renglones)+' %)');
-      d.onclick=function(){ F.mod=(F.mod===m?'':m); $('fMod').value=F.mod; tabSel('dif'); tabla(); modulos(); }; box.appendChild(d); });
+      d.onclick=function(){ F.mod=(F.mod===m?'':m); F.cel=null; tabSel('dif'); N=40; pintar(); window.scrollTo({top:0,behavior:'smooth'}); }; box.appendChild(d); });
   }
-  var COLS=[['ab','Renglón',''],['des','Descripción',''],['mod','Módulo SALMI',''],['qs','SAP (MB52)','n'],['qw','SALMI','n'],['dif','Diferencia (SALMI − SAP)','n'],['vabs','Valor diferencia B/.','n'],['cat','Categoría','']];
-  function tabla(){
-    var L=filtrar(), k=orden.k, d=orden.d;
-    L.sort(function(a,b){ var x=a[k],y=b[k]; if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
-    var h='<thead><tr>'+COLS.map(function(c){return '<th class="'+c[2]+'" data-k="'+c[0]+'">'+c[1]+'<span class="o">'+(orden.k===c[0]?(orden.d<0?'▼':'▲'):'⇅')+'</span></th>';}).join('')+'</tr></thead><tbody>';
-    var MAX=800; L.slice(0,MAX).forEach(function(r){ var c=CAT[r.cat]||{n:r.cat,c:'g'};
-      h+='<tr data-ab="'+esc(r.ab)+'"><td class="num">'+esc(r.ab)+'</td><td>'+esc(r.des)+(r.ldis&&r.cat==='CUADRA'?' <span class="cat a">lotes distintos</span>':'')+'</td><td>'+esc(r.mod.replace('ALMACEN DE ',''))+'</td><td class="n">'+fQ(r.qs)+'</td><td class="n">'+fQ(r.qw)+
-         '</td><td class="n '+(r.dif<0?'neg':r.dif>0?'pos':'')+'">'+(r.dif>0?'+':'')+fQ(r.dif)+'</td><td class="n">'+fN(Math.round(r.vabs))+'</td><td><span class="cat '+c.c+'">'+c.n+'</span></td></tr>'; });
-    h+='</tbody>'; if(!L.length) h+='<tbody><tr><td colspan="8" class="vacio">Ningún renglón con estos filtros.</td></tr></tbody>';
-    $('tDif').innerHTML=h; espN=60; espejo(L);
-    $('cuenta').textContent=fN(L.length)+' renglón(es) · '+fB(L.reduce(function(s,r){return s+r.vabs;},0))+(L.length>MAX?' · se muestran '+MAX+' (el Excel trae todos)':'');
-    Array.prototype.forEach.call($('tDif').querySelectorAll('th'),function(th){ th.onclick=function(){ var kk=th.dataset.k; orden={k:kk,d:orden.k===kk?-orden.d:(/^(qs|qw|dif|vabs)$/.test(kk)?-1:1)}; tabla(); }; });
-    Array.prototype.forEach.call($('tDif').querySelectorAll('tbody tr[data-ab]'),function(tr){ tr.onclick=function(){ detalle(tr.dataset.ab); }; });
+  function cap(m){ return String(m).replace('ALMACEN DE ','').toLowerCase().replace(/^./,function(c){return c.toUpperCase();}); }
+
+  /* huella: responde a resultado, familia, grupo y renglón; la celda filtra la lista */
+  function huella(){
+    /* la huella siempre muestra la columna del 0 %: el filtro por omisión "con diferencia" no la vacía */
+    var c0=F.cat; if(F.cat==='_DIF') F.cat=''; var B=filtrar(true); F.cat=c0; var tot={}, G={}, mx=0; B.forEach(function(r){ tot[r.mod]=(tot[r.mod]||0)+r.vabs; });
+    var L=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a];}); L.unshift('TOTAL');
+    B.forEach(function(r){ var k=tramo(r); [r.mod,'TOTAL'].forEach(function(md){ var g=G[md+'|'+k]=G[md+'|'+k]||{n:0,v:0}; g.n++; if(r.cat!=='CUADRA') g.v+=r.vabs; if(md!=='TOTAL') mx=Math.max(mx,g.v); }); });
+    var SEQ=['#E3EDF8','#C5DAF0','#97BDE4','#5E95D0','#2F6DB0','#0C447C'];
+    var tono=function(v){ if(!v||!mx) return SEQ[0]; return SEQ[Math.min(5,Math.floor(Math.sqrt(v/mx)*5.999))]; };
+    var h='<div></div>'+TR.map(function(x,i){return '<div class="hd'+(i===7?' cero':'')+'">'+trNom(i)+'</div>';}).join('');
+    L.forEach(function(md){ h+='<div class="mod'+(md==='TOTAL'?' tot':'')+'" title="'+esc(md)+'">'+(md==='TOTAL'?'Todos los módulos':esc(cap(md)))+'</div>';
+      for(var k=0;k<15;k++){ var g=G[md+'|'+k], sel=F.cel&&F.cel.mod===md&&F.cel.t===k;
+        if(!g){ h+='<div class="celda vacia">·</div>'; continue; }
+        var bg=k===7?'var(--v-bg)':(md==='TOTAL'?'var(--g-bg)':tono(g.v)), oscuro=md!=='TOTAL'&&k!==7&&mx&&Math.sqrt(g.v/mx)>0.62;
+        h+='<div class="celda'+(sel?' sel':'')+'" tabindex="0" role="button" data-m="'+esc(md)+'" data-t="'+k+'" data-n="'+g.n+'" data-v="'+Math.round(g.v)+'" style="background:'+bg+';color:'+(k===7?'var(--v-tx)':oscuro?'#fff':'var(--tinta)')+'">'+g.n+'</div>'; } });
+    if(L.length===1) h+='<div class="vacio" style="grid-column:1 / -1">Ningún renglón con estos filtros.</div>';
+    h+='<div></div><div class="lado">◄ SALMI tiene menos que SAP</div><div class="lado c">cuadra</div><div class="lado d">SALMI tiene más que SAP ►</div>';
+    $('huella').innerHTML=h;
+    Array.prototype.forEach.call($('huella').querySelectorAll('.celda[data-m]'),function(c){
+      tip(c,function(){ return '<b>'+esc(c.dataset.m==='TOTAL'?'Todos los módulos':c.dataset.m)+'</b><br>Desviación '+trNom(+c.dataset.t)+'<br>'+c.dataset.n+' renglones · '+fB(+c.dataset.v)+' de diferencia<br><i>clic para ver los renglones</i>'; });
+      var go=function(){ var md=c.dataset.m, k=+c.dataset.t; F.cel=(F.cel&&F.cel.mod===md&&F.cel.t===k)?null:{mod:md,t:k}; N=40; huella(); lista(); };
+      c.onclick=go; c.onkeydown=function(ev){ if(ev.key==='Enter') go(); }; });
+    var ch=[]; if(F.cel) ch.push((F.cel.mod==='TOTAL'?'Todos los módulos':cap(F.cel.mod))+' · '+trNom(F.cel.t)); if(F.mod) ch.push('Módulo '+cap(F.mod));
+    $('fAct').innerHTML=ch.length?'Lista filtrada por: '+ch.map(function(x){return '<span class="cat n">'+esc(x)+'</span>';}).join(' ')+' <button class="btn" type="button" id="qCel">Quitar</button>':'Clic en una celda para ver solo esos renglones abajo.';
+    var q=$('qCel'); if(q) q.onclick=function(){ F.cel=null; F.mod=''; N=40; pintar(); };
   }
-  /* ── Espejo: SAP a la izquierda, SALMI a la derecha, el renglón al centro ─────────────────
-     Escala "proporción": cada renglón contra su propio máximo (se ve qué tan lejos están los dos).
-     Escala "valor": cantidad × precio, común a todos (se ve cuáles pesan en B/.). */
-  var espN=60, espL=[];
-  function espejo(L){
-    if(L) espL=L; var box=$('esp'), esc2=$('fEsc').value, vis=espL.slice(0,espN);
-    var pr=function(r){ return r.pr||((r.vw&&r.qw)?r.vw/r.qw:0); };
-    var mxV=Math.max.apply(null,vis.map(function(r){ return Math.max(Math.abs(r.qs*pr(r)),Math.abs(r.qw*pr(r))); }).concat([1]));
-    var h='<div class="eh"><div class="izq">SAP (MB52)</div><div class="izq">◄ SAP-SAFIRO</div><div class="cen">Renglón</div><div class="der2">SALMI ►</div><div class="der2">SALMI</div><div class="der2">Diferencia</div></div>';
-    vis.forEach(function(r,i){ var c=CAT[r.cat]||{n:r.cat,c:'g'}, col=BAR[c.c], qs=Math.max(0,+r.qs||0), qw=Math.max(0,+r.qw||0), cm=Math.min(qs,qw);
-      var den=esc2==='v'?mxV/(pr(r)||1):Math.max(qs,qw,1e-9), w=function(x){ return Math.max(0,Math.min(100,100*x/den)); };
-      var exS=qs-cm, exW=qw-cm, pct=Math.max(qs,qw)?Math.round(1000*Math.abs(qw-qs)/Math.max(qs,qw))/10:0;
-      var lado=function(cmun,ex,izq){ var a=cmun>0?'<span class="co" style="width:'+w(cmun)+'%"></span>':'', b=ex>0?'<span style="width:'+Math.max(w(ex),ex>0?0.8:0)+'%;background:'+col+'"></span>':'';
-        return '<div class="bar '+(izq?'l':'r')+'">'+(izq?b+a:a+b)+'</div>'; };
-      h+='<div class="er" tabindex="0" data-i="'+i+'">'+
-        '<div class="q l'+(qs?'':' no')+'">'+(qs?fQ(qs):'no está')+'</div>'+lado(cm,exS,true)+
-        '<div class="cen"><b>'+esc(r.ab)+'</b><div>'+esc(r.des)+'</div></div>'+lado(cm,exW,false)+
-        '<div class="q r'+(qw?'':' no')+'">'+(qw?fQ(qw):'no está')+'</div>'+
-        '<div class="df"><span class="cat '+c.c+'">'+esc(c.n)+'</span><br><b class="'+(r.dif<0?'neg':r.dif>0?'pos':'')+'">'+(r.dif>0?'+':'')+fQ(r.dif)+'</b> · '+fB(r.vabs)+'</div></div>'; });
+
+  /* lista: barra divergente desde el 0 %; rojo = SALMI tiene menos, azul = tiene más; tono claro = explicada o menor */
+  var N=40, Z=100, ORD={k:'vabs',d:-1};
+  function devTxt(r){ if(r.cat==='SOLO_SALMI') return 'solo SALMI'; if(r.cat==='SOLO_SAP') return '−100 %'; if(Math.abs(r.dif)<1e-9) return '0 %';
+    var a=Math.abs(r.dev); return (r.dev>0?'+':'−')+(a>=100?fN(a):a>=10?fN(a,1):fN(a,2))+' %'; }
+  function marca(r,W){
+    var H=26, c=W/2, pad=14, half=c-pad, x, fuera=false, d=r.dev;
+    if(r.cat==='SOLO_SALMI'||d>Z){ x=c+half; fuera=true; } else if(d<-Z){ x=c-half; fuera=true; } else x=c+half*d/Z;
+    var y=H/2, s='<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
+    [-1,-.5,.5,1].forEach(function(f){ s+='<line x1="'+(c+half*f)+'" x2="'+(c+half*f)+'" y1="3" y2="'+(H-3)+'" stroke="#e3e6ea" stroke-width="1"/>'; });
+    s+='<line x1="'+c+'" x2="'+c+'" y1="0" y2="'+H+'" stroke="#8a929c" stroke-width="1.5"/>';
+    if(r.cat==='CUADRA') s+='<circle cx="'+c+'" cy="'+y+'" r="4.5" fill="#1D9E75" stroke="#fff" stroke-width="2"/>';
+    else { var w=Math.max(Math.abs(x-c),2), col=x>=c?'#378ADD':'#E24B4A', op=/^REAL_|^SOLO_/.test(r.cat)?1:.45;
+      s+='<rect x="'+(x>=c?c+1:c-w)+'" y="'+(y-6)+'" width="'+w+'" height="12" rx="3" fill="'+col+'" opacity="'+op+'"/>'; }
+    if(fuera) s+='<text x="'+(x>c?W-2:2)+'" y="'+(y+3.5)+'" text-anchor="'+(x>c?'end':'start')+'" font-size="10" font-weight="700" fill="#1b1f24">'+(x>c?'►':'◄')+'</text>';
+    return s+'</svg>';
+  }
+  function lista(){
+    var L=filtrar(), k=ORD.k, d=ORD.d;
+    L.sort(function(a,b){ var x=a[k],y=b[k]; if(k==='dev'){ x=isFinite(x)?x:1e12; y=isFinite(y)?y:1e12; } if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
+    var vis=L.slice(0,N), W=600, ticks=[-Z,-Z/2,0,Z/2,Z];
+    var th=function(kk,t,cl){ return '<div class="'+(cl||'')+'" data-k="'+kk+'">'+t+'<span class="o">'+(ORD.k===kk?(ORD.d<0?'▼':'▲'):'⇅')+'</span></div>'; };
+    var h='<div class="cab">'+th('ab','Renglón')+'<div class="nos"><svg width="100%" height="14" viewBox="0 0 '+W+' 14" preserveAspectRatio="none" aria-hidden="true">'+
+      ticks.map(function(v,i){ var x=W/2+(W/2-14)*v/Z; return '<text class="eje-l" x="'+x+'" y="11" text-anchor="'+(i===0?'start':i===4?'end':'middle')+'">'+(v>0?'+':v<0?'−':'')+Math.abs(v)+' %</text>'; }).join('')+'</svg></div>'+
+      th('dev','Desviación','n')+th('qs','SAP','n')+th('qw','SALMI','n')+th('vabs','Dif. B/.','n')+th('cat','Resultado','rs')+'</div>';
+    vis.forEach(function(r,i){ var c=CAT[r.cat]||{n:r.cat,c:'g'};
+      h+='<div class="fila" tabindex="0" data-i="'+i+'"><div class="ren"><b>'+esc(r.ab)+'</b><em>'+esc(r.gru!=='(sin grupo)'?r.gru:r.fam)+' · '+esc(cap(r.mod).toLowerCase())+'</em><div>'+esc(r.des)+(r.ldis&&r.cat==='CUADRA'?' <span class="cat a">lotes distintos</span>':'')+'</div></div><div>'+marca(r,W)+'</div>'+
+         '<div class="n '+(r.dif>0?'pos':r.dif<0?'neg':'')+'">'+devTxt(r)+'</div><div class="n">'+(r.qs?fQ(r.qs):'—')+'</div><div class="n">'+(r.qw?fQ(r.qw):'—')+'</div><div class="n">'+fN(Math.round(r.vabs))+'</div><div class="rs"><span class="cat '+c.c+'">'+esc(c.n)+'</span></div></div>'; });
     if(!vis.length) h+='<div class="vacio">Ningún renglón con estos filtros.</div>';
-    if(espL.length>espN) h+='<div class="emas"><button class="btn" type="button" id="bMas">Ver 60 más · se muestran '+fN(espN)+' de '+fN(espL.length)+'</button></div>';
-    box.innerHTML=h;
-    Array.prototype.forEach.call(box.querySelectorAll('.er'),function(el){ var r=vis[+el.dataset.i], c=CAT[r.cat]||{n:r.cat};
-      tip(el,'<b>'+esc(r.ab)+' · '+esc(r.des)+'</b><br>'+esc(r.mod.replace('ALMACEN DE ',''))+(r.um?' · '+esc(r.um):'')+'<br>SAP '+fQ(r.qs)+' ('+fB(r.vs||0)+') · SALMI '+fQ(r.qw)+' ('+fB(r.vw||0)+')<br>Diferencia '+(r.dif>0?'+':'')+fQ(r.dif)+' und · '+fB(r.vabs)+(r.mov?'<br>Movimiento SAP ese día: '+fQ(r.mov):'')+(r.pend?'<br>Pendiente de contabilizar: '+fQ(r.pend):'')+'<br><i>'+esc(c.n)+'</i> · clic para ver lotes y movimientos');
-      el.onclick=function(){ $('tt').style.display='none'; detalle(r.ab); }; el.onkeydown=function(ev){ if(ev.key==='Enter'){ detalle(r.ab); } }; });
-    var bm=$('bMas'); if(bm) bm.onclick=function(){ espN+=60; espejo(); };
+    $('lista').innerHTML=h;
+    $('cuenta').textContent=fN(L.length)+' renglón(es) · '+fB(L.reduce(function(s,r){return s+r.vabs;},0));
+    $('mas').innerHTML=L.length>N?'<button class="btn" type="button" id="bMas">Ver 40 más · se muestran '+fN(N)+' de '+fN(L.length)+'</button>':'';
+    var bm=$('bMas'); if(bm) bm.onclick=function(){ N+=40; lista(); };
+    Array.prototype.forEach.call($('lista').querySelectorAll('.cab [data-k]'),function(el){ el.onclick=function(){ var kk=el.dataset.k; ORD={k:kk,d:ORD.k===kk?-ORD.d:(/^(qs|qw|vabs|dev)$/.test(kk)?-1:1)}; lista(); }; });
+    Array.prototype.forEach.call($('lista').querySelectorAll('.fila'),function(el){ var r=vis[+el.dataset.i];
+      tip(el,function(){ return '<b>'+esc(r.ab)+' · '+esc(r.des)+'</b><br>'+esc(r.fam)+' · '+esc(r.gru)+' · '+esc(cap(r.mod))+(r.um?' · '+esc(r.um):'')+'<br>SAP '+fQ(r.qs)+' ('+fB(r.vs||0)+') · SALMI '+fQ(r.qw)+' ('+fB(r.vw||0)+')<br>Diferencia '+(r.dif>0?'+':'')+fQ(r.dif)+' und ('+devTxt(r)+') · '+fB(r.vabs)+(r.mov?'<br>Movimiento SAP ese día: '+fQ(r.mov):'')+(r.pend?'<br>Pendiente de contabilizar: '+fQ(r.pend):'')+'<br><i>'+esc((CAT[r.cat]||{}).n||r.cat)+'</i> · clic para ver lotes y movimientos'; });
+      el.onclick=function(){ $('tt').style.display='none'; detalle(r.ab); }; el.onkeydown=function(ev){ if(ev.key==='Enter') detalle(r.ab); }; });
   }
-  $('fEsc').onchange=function(){ espejo(); };
-  Array.prototype.forEach.call(document.querySelectorAll('.vista button'),function(b){ b.onclick=function(){
-    Array.prototype.forEach.call(document.querySelectorAll('.vista button'),function(x){ x.classList.toggle('on',x===b); });
-    $('vEsp').style.display=b.dataset.v==='esp'?'':'none'; $('vTab').style.display=b.dataset.v==='tab'?'':'none'; }; });
+  Array.prototype.forEach.call($('zoom').children,function(b){ b.onclick=function(){ Z=+b.dataset.z; Array.prototype.forEach.call($('zoom').children,function(x){x.classList.toggle('on',x===b);}); lista(); }; });
   var spOrden={i:4,d:-1};
   function tablaSP(){
     var L=D.sinPuente.slice(), i=spOrden.i, d=spOrden.d; L.sort(function(a,b){ return typeof a[i]==='number'?d*(a[i]-b[i]):d*String(a[i]).localeCompare(String(b[i])); });
@@ -367,16 +419,17 @@
   $('velo').onclick=function(e){ if(e.target===$('velo')) $('velo').classList.remove('on'); };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('velo').classList.remove('on'); });
   $('bAyuda').onclick=ayuda;
-  $('fCat').onchange=function(){ F.cat=this.value; tabla(); embudo(); };
-  $('fMod').onchange=function(){ F.mod=this.value; tabla(); modulos(); };
-  $('bLimpiar').onclick=function(){ F={cat:'',mod:'',ren:''}; $('fCat').value=''; $('fMod').value=''; $('fRen').value=''; tabla(); embudo(); modulos(); };
+  $('fCat').onchange=function(){ F.cat=this.value; F.cel=null; N=40; pintar(); };
+  $('fFam').onchange=function(){ F.fam=this.value; F.cel=null; grupos(); N=40; pintar(); };
+  $('fGru').onchange=function(){ F.gru=this.value; F.cel=null; N=40; pintar(); };
+  $('bLimpiar').onclick=function(){ F={cat:'_DIF',mod:'',ren:'',fam:'',gru:'',cel:null}; $('fCat').value='_DIF'; $('fFam').value=''; grupos(); $('fRen').value=''; N=40; pintar(); };
 
   /* buscador de renglón: código + descripción + módulo, flechas y Enter */
   var acI=-1, acL=[];
-  $('fRen').oninput=function(){ var q=this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); F.ren=''; if(!q){ $('acL').style.display='none'; tabla(); return; }
-    var w=q.split(/\s+/); acL=R.filter(function(r){ var t=(r.ab+' '+r.mat+' '+r.des).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); return w.every(function(x){return t.indexOf(x)>=0;}); }).slice(0,25); acI=-1;
+  $('fRen').oninput=function(){ var q=this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); F.ren=''; if(!q){ $('acL').style.display='none'; N=40; pintar(); return; }
+    var w=q.split(/\s+/); acL=R.filter(function(r){ if((F.fam&&r.fam!==F.fam)||(F.gru&&r.gru!==F.gru)) return false; var t=(r.ab+' '+r.mat+' '+r.des).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); return w.every(function(x){return t.indexOf(x)>=0;}); }).slice(0,25); acI=-1;
     $('acL').innerHTML=acL.map(function(r,i){return '<li data-i="'+i+'"><b>'+esc(r.ab)+'</b> '+esc(r.des)+'<small>'+esc(r.mod)+' · '+esc((CAT[r.cat]||{}).n||r.cat)+'</small></li>';}).join('')||'<li>Sin coincidencias</li>'; $('acL').style.display='block'; };
-  function elegir(i){ var r=acL[i]; if(!r) return; F.ren=r.ab; $('fRen').value=r.ab+' · '+r.des; $('acL').style.display='none'; tabla(); }
+  function elegir(i){ var r=acL[i]; if(!r) return; F.ren=r.ab; $('fRen').value=r.ab+' · '+r.des; $('acL').style.display='none'; F.cel=null; N=40; pintar(); }
   $('acL').onmousedown=function(e){ var li=e.target.closest('li[data-i]'); if(li) elegir(+li.dataset.i); };
   $('fRen').onkeydown=function(e){ var lis=$('acL').querySelectorAll('li[data-i]'); if(!lis.length) return;
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); acI=Math.max(0,Math.min(lis.length-1,acI+(e.key==='ArrowDown'?1:-1))); lis.forEach(function(l,i){l.classList.toggle('on',i===acI);}); }
@@ -406,9 +459,13 @@
     var m=D._meta, wb=new ExcelJS.Workbook(), meta='Corte '+m.fecha+' · MB52 '+m.archivos.mb52+' · SALMI '+m.archivos.salmi+' · '+m.tolerancia;
     hoja(wb,logo,'Resumen','Conciliación SALMI · SAP-SAFIRO · CEDIS Panamá',meta,['Categoría','Renglones','Valor absoluto B/.','Qué significa'],
       ORDEN.map(function(k){return [CAT[k].n,m.embudo[k].renglones,Math.round(m.embudo[k].valorAbs),CAT[k].h];}).concat([['Sin código puente',m.sinPuente.materiales,Math.round(m.sinPuente.valor),'Material SAP sin código de abasto (no entra a la conciliación).']]),[34,12,18,90]);
-    var L=filtrar(); hoja(wb,logo,'Renglones','Renglones conciliados'+(F.cat||F.mod||F.ren?' (filtrados)':''),meta,
-      ['Renglón','Material SAP','Descripción','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia','Precio B/.','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Categoría','Movimiento neto del día','Pendiente en SAP','Lotes distintos'],
-      L.map(function(r){return [r.ab,r.mat,r.des,r.mod,r.um,r.qs,r.qw,r.dif,r.pr,r.vdif,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null,r.pend||null,r.ldis?'Sí':''];}),[12,14,46,26,10,13,13,13,10,15,15,15,28,13,13,9]);
+    var L=filtrar(), fl=[]; if(F.cat&&F.cat!=='_DIF') fl.push($('fCat').selectedOptions[0].textContent); else if(F.cat==='_DIF') fl.push('con diferencia'); if(F.fam) fl.push(F.fam); if(F.gru) fl.push(F.gru); if(F.mod) fl.push(cap(F.mod)); if(F.cel) fl.push((F.cel.mod==='TOTAL'?'todos los módulos':cap(F.cel.mod))+' '+trNom(F.cel.t)); if(F.ren) fl.push('renglón '+F.ren);
+    var dv=function(r){ return r.cat==='SOLO_SALMI'?null:isFinite(r.dev)?Math.round(r.dev*100)/100:null; };
+    var ws=hoja(wb,logo,'Renglones','Renglones conciliados'+(fl.length?' · '+fl.join(' · '):' · todos'),meta,
+      ['Renglón','Material SAP','Descripción','Familia','Grupo','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia (SALMI − SAP)','Desviación % (sobre SAP)','Tramo de desviación','Precio B/.','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Resultado','Movimiento neto del día','Pendiente en SAP','Lotes distintos'],
+      L.map(function(r){return [r.ab,r.mat,r.des,r.fam,r.gru,r.mod,r.um,r.qs,r.qw,r.dif,dv(r),trNom(tramo(r)),r.pr,r.vdif,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null,r.pend||null,r.ldis?'Sí':''];}),[12,14,46,18,18,26,10,13,13,14,13,14,10,15,15,15,28,13,13,9]);
+    var PAS={v:'FFE1F5EE',a:'FFFAEEDA',r:'FFFCEBEB',n:'FFE6F1FB',g:'FFF1EFE8'};
+    L.forEach(function(r,i){ var cc=(CAT[r.cat]||{}).c; if(PAS[cc]) ws.getRow(8+i).getCell(17).fill={type:'pattern',pattern:'solid',fgColor:{argb:PAS[cc]}}; ws.getRow(8+i).getCell(11).numFmt='0.00" %"'; });
     var LT=[]; L.forEach(function(r){ (D.lotes[r.ab]||[]).forEach(function(l){ LT.push([r.ab,r.des,l[0],l[3],l[1],l[2],l[2]-l[1]]); }); });
     hoja(wb,logo,'Lotes','Detalle por lote',meta,['Renglón','Descripción','Lote','Vence','SAP','SALMI','Diferencia'],LT,[12,46,16,12,13,13,13]);
     return bajar(wb,'Conciliacion_SALMI_SAP_'+m.fecha+'.xlsx'); }); });
