@@ -32,7 +32,8 @@ for (const m of idx.meses) {
 const rows = E.map((e) => {
   const ks = K.get(e.safiro + '|' + e.mat) || [];
   let k = null;
-  ks.filter((r) => r[0] === '101').forEach((r) => { const d = Math.abs(D(r[1]) - D(e.fRec)); if (!k || d < k.d) k = { f: r[2], d }; });
+  // Un 101 contabilizado antes de la recepción es de otra entrega del mismo pedido.
+  ks.filter((r) => r[0] === '101' && D(r[2]) >= D(e.fRec) - 3 * 864e5).forEach((r) => { const d = Math.abs(D(r[1]) - D(e.fRec)); if (!k || d < k.d) k = { f: r[2], d }; });
   return [
     'RB-' + e.oc + '-' + e.fRec.replace(/-/g, ''), String(e.oc), String(e.cod || ''), String(e.desc || '').slice(0, 70),
     e.prov || '', e.fRec, Number(e.cant) || 0, e.fSalmi || null, k ? String(k.f).slice(0, 10) : null, ks.some((r) => r[0] === '102') ? 1 : 0

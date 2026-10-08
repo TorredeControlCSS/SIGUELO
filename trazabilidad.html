@@ -437,7 +437,7 @@ function construir(){
   X=S.E.map(e=>{
     const id='RB-'+e.oc+'-'+e.fRec.replace(/-/g,'');
     const ks=ki.get(e.safiro+'|'+e.mat)||[];
-    let k=null;ks.filter(r=>r[2]==='101').forEach(r=>{const d=Math.abs(D(r[3])-D(e.fRec));if(!k||d<k._d)k={fd:r[3],f:r[4],_d:d};});
+    let k=null;ks.filter(r=>r[2]==='101'&&D(r[4])>=D(e.fRec)-3*864e5).forEach(r=>{const d=Math.abs(D(r[3])-D(e.fRec));if(!k||d<k._d)k={fd:r[3],f:r[4],_d:d};});
     const rev=ks.some(r=>r[2]==='102');
     let c=null;(cx.get(e.oc+'|'+e.cod)||[]).forEach(r=>{const fc=r[6]||r[5];if(!fc)return;const d=Math.abs(D(fc)-D(e.fRec));if(d<=20*864e5&&(!c||d<c._d))c={id:r[0],sol:r[1],fSol:r[5],fConf:r[6],estado:r[7],_d:d};});
     let t=null;(tx.get(e.oc+'|'+e.cod)||[]).forEach(r=>{const d=Math.abs(D(r[6])-D(e.fRec));if(d<=10*864e5&&(!t||d<t._d))t={doc:r[0],emision:r[2],venc:r[3],sit:r[4],_d:d};});
