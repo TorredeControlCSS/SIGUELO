@@ -309,7 +309,7 @@ function admTarea_(d, u) {
     avp_directorio: function () {
       if (typeof avpConstruirDirectorio_ !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');
       var r = avpConstruirDirectorio_();
-      return 'Directorio al día: ' + r.proveedoresNuevos + ' proveedores nuevos, ' + r.proveedoresCompletados + ' con correos completados, ' + r.planificadoresNuevos + ' planificadores nuevos.';
+      return 'Directorio al día: ' + r.proveedoresNuevos + ' proveedores nuevos, ' + r.proveedoresCompletados + ' con correos completados, ' + r.planificadoresNuevos + ' planificadores nuevos · ' + r.correosSugeridos + ' correos de planificador sugeridos, ' + r.sinCorreo + ' sin correo (revise la columna NOTA).';
     },
     avp_prueba: function () {
       if (typeof avpProbar !== 'function') throw new Error('AVISO_PROVEEDORES.gs no está en el proyecto.');

@@ -146,18 +146,78 @@ function avpConstruirDirectorio_() {
 
   // Planificadores desde tránsitos
   var tr = avpJson_('transitos_oc.json').rows || [];
-  var shp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO']);
+  var shp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO', 'NOTA']);
+  if (String(shp.getRange(1, 4).getValue() || '').trim().toUpperCase() !== 'NOTA') shp.getRange(1, 4).setValue('NOTA').setFontWeight('bold');
   var dp = shp.getDataRange().getValues(), yp = {};
   for (var q = 1; q < dp.length; q++) yp[avpNorm_(dp[q][0])] = true;
   var planNuevos = 0;
-  if (!yp[avpNorm_(AVP_JEFATURA)]) { shp.appendRow([AVP_JEFATURA, '', 'SI']); yp[avpNorm_(AVP_JEFATURA)] = true; planNuevos++; }
+  if (!yp[avpNorm_(AVP_JEFATURA)]) { shp.appendRow([AVP_JEFATURA, '', 'SI', '']); yp[avpNorm_(AVP_JEFATURA)] = true; planNuevos++; }
   tr.forEach(function (t) {
     var nm = String(t.planificador || '').trim();
     if (!nm || /RECIEN NOMBRADOS/i.test(nm) || yp[avpNorm_(nm)]) return;
-    shp.appendRow([nm, '', 'SI']); yp[avpNorm_(nm)] = true; planNuevos++;
+    shp.appendRow([nm, '', 'SI', '']); yp[avpNorm_(nm)] = true; planNuevos++;
   });
+  var sug = avpSugerirCorreosPlanificadores_(shp);
   return { success: true, proveedoresNuevos: nuevos, proveedoresCompletados: completados, planificadoresNuevos: planNuevos,
+           correosSugeridos: sug.sugeridos, sinCorreo: sug.sinCorreo, fuentes: sug.fuentes,
            conCorreo: Object.keys(correos).length, totalProveedores: nombres.length };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Correos de planificadores: se toman de los libros donde ya existen  */
+/* ------------------------------------------------------------------ */
+/* Los correos institucionales siguen la forma <inicio del nombre><apellido>@css.gob.pa
+   (selfernandez = SELene FERNANDEZ, daiherrera = DAIra HERRERA). Se juntan los correos
+   que ya usan los tableros —ALERTAS_CONFIG_ANALISTAS del libro de Curvas (correo de
+   evaluación de planificadores), la lista del reporte diario de citas (REPORTE_BCC) y
+   TRZ_USUARIOS— y a cada planificador sin correo se le propone el que calza con su
+   nombre. Solo se llena una celda vacía, y queda NOTA "sugerido … · verificar". Si dos
+   correos calzan, no se elige: se anotan los dos para que usted decida. */
+var AVP_CURVAS_ID = '1ca5JUgogB25yAq2hvlLNSobUOMdTMe2oua6iUJ3c_Ew';
+var AVP_JEFATURA_SUGERIDA = ['Simón Sotillo', 'sisotillo@css.gob.pa'];
+
+function avpCorreosConocidos_() {
+  var out = {}, fuentes = [];
+  var add = function (m, f) { m = String(m || '').trim().toLowerCase(); if (avpCorreoOk_(m) && !out[m]) out[m] = f; };
+  try {
+    var id = avpProps_().getProperty('AVP_CURVAS_ID') || AVP_CURVAS_ID;
+    var sh = SpreadsheetApp.openById(id).getSheetByName('ALERTAS_CONFIG_ANALISTAS');
+    if (sh) { var v = sh.getDataRange().getValues(), c = avpIdx_(v[0]); for (var i = 1; i < v.length; i++) add(v[i][c.EMAIL], 'ALERTAS_CONFIG_ANALISTAS'); fuentes.push('ALERTAS_CONFIG_ANALISTAS (Curvas)'); }
+  } catch (e) { fuentes.push('Curvas sin acceso: ' + String(e.message || e).slice(0, 60)); }
+  try { if (typeof REPORTE_BCC !== 'undefined') { REPORTE_BCC.forEach(function (m) { add(m, 'REPORTE_BCC'); }); if (typeof REPORTE_PARA !== 'undefined') add(REPORTE_PARA, 'REPORTE_BCC'); fuentes.push('REPORTE_BCC (citas)'); } } catch (e2) {}
+  try {
+    var tu = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TRZ_USUARIOS');
+    if (tu) { var w = tu.getDataRange().getValues(), k = avpIdx_(w[0]); for (var j = 1; j < w.length; j++) add(w[j][k.CORREO], 'TRZ_USUARIOS'); fuentes.push('TRZ_USUARIOS'); }
+  } catch (e3) {}
+  return { correos: out, fuentes: fuentes };
+}
+
+function avpCalzaCorreo_(nombre, correo) {
+  var w = String(nombre).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z ]/g, ' ')
+    .split(/\s+/).filter(function (x) { return x.length > 1 && ['DE', 'LA', 'DEL', 'LOS'].indexOf(x) < 0; });
+  if (w.length < 2) return false;
+  var L = String(correo).split('@')[0].toUpperCase().replace(/[^A-Z]/g, '');
+  for (var i = 1; i < w.length; i++) {
+    var s = w[i];
+    if (L.length > s.length && L.slice(-s.length) === s && w[0].indexOf(L.slice(0, -s.length)) === 0) return true;
+  }
+  return false;
+}
+
+function avpSugerirCorreosPlanificadores_(shp) {
+  var con = avpCorreosConocidos_(), lista = Object.keys(con.correos);
+  var v = shp.getDataRange().getValues(), sugeridos = 0, sinCorreo = 0;
+  for (var i = 1; i < v.length; i++) {
+    var nm = String(v[i][0] || '').trim(); if (!nm || String(v[i][1] || '').trim()) continue;
+    var cand;
+    if (avpNorm_(nm) === avpNorm_(AVP_JEFATURA)) {
+      cand = lista.indexOf(AVP_JEFATURA_SUGERIDA[1]) >= 0 ? [AVP_JEFATURA_SUGERIDA[1]] : [];
+      if (cand.length) { shp.getRange(i + 1, 2).setValue(cand[0]); shp.getRange(i + 1, 4).setValue('sugerido: ' + AVP_JEFATURA_SUGERIDA[0] + ' (jefatura en Registro de Consumos) · verificar'); sugeridos++; continue; }
+    } else cand = lista.filter(function (m) { return avpCalzaCorreo_(nm, m); });
+    if (cand.length === 1) { shp.getRange(i + 1, 2).setValue(cand[0]); shp.getRange(i + 1, 4).setValue('sugerido desde ' + con.correos[cand[0]] + ' · verificar'); sugeridos++; }
+    else { sinCorreo++; shp.getRange(i + 1, 4).setValue(cand.length ? 'varios posibles: ' + cand.join(', ') : 'sin correo en los tableros: escríbalo'); }
+  }
+  return { sugeridos: sugeridos, sinCorreo: sinCorreo, fuentes: con.fuentes.join(' · ') };
 }
 
 function avpLeerDirectorios_() {
@@ -402,6 +462,7 @@ function avpInstalar() {
   ScriptApp.newTrigger('avpDiario').timeBased().everyDays(1).atHour(7).inTimezone('America/Panama').create();
   if (!avpProps_().getProperty('AVP_MODO')) avpProps_().setProperty('AVP_MODO', 'PRUEBA');
   Logger.log('Directorio: ' + r.totalProveedores + ' proveedores (' + r.proveedoresNuevos + ' nuevos, ' + r.conCorreo + ' con correo en SOLICITUDES) · ' + r.planificadoresNuevos + ' planificadores nuevos.');
+  Logger.log('Planificadores: ' + r.correosSugeridos + ' correos sugeridos · ' + r.sinCorreo + ' sin correo · fuentes: ' + r.fuentes);
   Logger.log('Disparador avpDiario creado (todos los días 7 a. m.; sábado y domingo no envía). Modo: ' + avpProps_().getProperty('AVP_MODO'));
   Logger.log(avpResumen_().mensaje);
 }
