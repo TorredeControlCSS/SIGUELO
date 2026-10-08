@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conciliación SALMI · SAP</title>
+<link rel="icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --navy:#0C447C; --azul:#1E5A9E; --fondo:#ececec; --borde:#a8a8a8; --borde2:#d4d7dc; --tinta:#1b1f24; --muted:#5f6670; --blanco:#fff;
+    --v-bg:#E1F5EE; --v-tx:#0F6E56; --a-bg:#FAEEDA; --a-tx:#854F0B; --r-bg:#FCEBEB; --r-tx:#791F1F;
+    --n-bg:#E6F1FB; --n-tx:#185FA5; --g-bg:#F1EFE8; --g-tx:#5F5E5A; --p-bg:#EEEDFE; --p-tx:#3C3489;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;font-size:13px}
+  .num,td.n{font-family:Consolas,"Courier New",monospace}
+  header{background:linear-gradient(90deg,var(--navy),var(--azul));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header img{width:44px;height:44px;display:block}
+  header .t1{font-size:17px;font-weight:700;line-height:1.2}
+  header .t2{font-size:11.5px;opacity:.9}
+  header .der{margin-left:auto;text-align:right;font-size:11.5px;line-height:1.5}
+  header .der b{font-family:Consolas,monospace}
+  .acc{display:flex;gap:6px;margin-top:4px;justify-content:flex-end;flex-wrap:wrap}
+  .btn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--borde);background:#fff;color:var(--navy);border-radius:4px;padding:5px 11px;cursor:pointer}
+  .btn:hover{background:#f3f6fa}
+  .btn.pri{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .btn.pri:hover{background:var(--navy)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  main{max-width:1320px;margin:0 auto;padding:12px 16px 40px}
+  .aviso{border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12.5px}
+  .aviso.a{background:var(--a-bg);color:var(--a-tx)} .aviso.r{background:var(--r-bg);color:var(--r-tx)} .aviso.n{background:var(--n-bg);color:var(--n-tx)}
+  .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;margin-bottom:12px}
+  .k{border-radius:6px;padding:10px 12px;cursor:pointer;border:2px solid transparent}
+  .k:hover{border-color:rgba(0,0,0,.12)}
+  .k .l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .k .n{font-size:22px;font-weight:700;font-family:Consolas,monospace;margin-top:2px}
+  .k .s{font-size:11px;opacity:.9}
+  :is(.k,.cat).v,.mini .v{background:var(--v-bg);color:var(--v-tx)}
+  :is(.k,.cat).a,.mini .a{background:var(--a-bg);color:var(--a-tx)}
+  :is(.k,.cat).r,.mini .r{background:var(--r-bg);color:var(--r-tx)}
+  :is(.k,.cat).g,.mini .g{background:var(--g-bg);color:var(--g-tx)}
+  :is(.k,.cat).n,.mini .n{background:var(--n-bg);color:var(--n-tx)}
+  :is(.k,.cat).p,.mini .p{background:var(--p-bg);color:var(--p-tx)}
+  .fila2{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-bottom:12px}
+  @media (max-width:900px){.fila2{grid-template-columns:1fr}}
+  .panel{background:#fff;border:1px solid var(--borde);border-radius:4px}
+  .ph{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--borde2);font-weight:700;color:var(--navy);font-size:12.5px}
+  .ph .sub{font-weight:400;color:var(--muted);font-size:11.5px}
+  .pb{padding:10px 12px}
+  .barra{display:grid;grid-template-columns:190px 1fr 120px;align-items:center;gap:8px;padding:3px 0;cursor:pointer;border-radius:4px}
+  .barra:hover{background:#f6f8fb}
+  .barra.sel{background:#eef4fb}
+  .barra .et{font-size:12px;display:flex;align-items:center;gap:6px}
+  .barra .et i{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+  .barra .tr{height:16px;background:#f2f3f5;border-radius:0 4px 4px 0;position:relative}
+  .barra .tr span{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;min-width:2px}
+  .barra .vl{font-size:11.5px;text-align:right;color:var(--tinta)}
+  .barra .vl small{color:var(--muted)}
+  @media (max-width:560px){.barra{grid-template-columns:120px 1fr 92px}}
+  .tabs{display:flex;gap:4px;margin:4px 0 0;flex-wrap:wrap}
+  .tab{font:inherit;font-size:12.5px;font-weight:600;padding:7px 14px;border:1px solid var(--borde);border-bottom:none;border-radius:4px 4px 0 0;background:#dfe3e8;color:var(--g-tx);cursor:pointer}
+  .tab.on{background:#fff;color:var(--navy)}
+  .tab.t-r.on{color:var(--r-tx)} .tab.t-p.on{color:var(--p-tx)}
+  .filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-bottom:1px solid var(--borde2)}
+  .filtros label{font-size:11px;color:var(--muted);font-weight:600}
+  select,input[type=text]{font:inherit;font-size:12.5px;border:1px solid var(--borde);border-radius:4px;padding:5px 8px;background:#fff;color:var(--tinta)}
+  .ac{position:relative}
+  .ac input{width:290px;max-width:70vw}
+  .ac ul{position:absolute;z-index:30;top:100%;left:0;right:0;margin:2px 0 0;padding:0;list-style:none;background:#fff;border:1px solid var(--borde);border-radius:4px;max-height:300px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.12);display:none}
+  .ac li{padding:6px 9px;cursor:pointer;font-size:12px;border-bottom:1px solid #f0f1f3}
+  .ac li b{font-family:Consolas,monospace;color:var(--navy)}
+  .ac li small{color:var(--muted);display:block}
+  .ac li.on,.ac li:hover{background:#eef4fb}
+  .tw{overflow:auto;max-height:620px}
+  table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+  th{position:sticky;top:0;z-index:2;background:var(--azul);color:#fff;font-weight:600;font-size:11px;padding:7px 8px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+  th.n{text-align:right}
+  th .o{opacity:.55;font-size:9px;margin-left:3px}
+  td{padding:6px 8px;border-bottom:1px solid #eef0f3;vertical-align:top}
+  td.n{text-align:right;white-space:nowrap}
+  tbody tr{cursor:pointer}
+  tbody tr:nth-child(even) td{background:#fafbfc}
+  tbody tr:hover td{background:#eef4fb}
+  .cat{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+  .neg{color:var(--r-tx)} .pos{color:var(--v-tx)}
+  .pie{font-size:11px;color:var(--muted);padding:8px 12px}
+  .vacio{padding:24px;text-align:center;color:var(--muted)}
+  /* detalle */
+  .velo{position:fixed;inset:0;background:rgba(15,25,40,.45);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+  .velo.on{display:flex}
+  .modal{background:#fff;border-radius:6px;max-width:880px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+  .mh{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid var(--borde2)}
+  .mh h3{margin:0;font-size:15px;color:var(--navy)}
+  .mh .x{margin-left:auto}
+  .mb{padding:12px 16px;font-size:12.5px;line-height:1.55}
+  .mb h4{margin:14px 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--navy)}
+  .mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin:6px 0}
+  .mini div{border-radius:6px;padding:7px 9px}
+  .mini b{display:block;font-family:Consolas,monospace;font-size:15px}
+  .mb table th{position:static}
+  .ayuda dt{font-weight:700;margin-top:8px} .ayuda dd{margin:2px 0 0 0;color:#333}
+  .tt{position:fixed;z-index:60;pointer-events:none;background:#1b1f24;color:#fff;font-size:11.5px;padding:6px 8px;border-radius:4px;max-width:280px;display:none;line-height:1.4}
+</style>
+</head>
+<body>
+<header>
+  <img src="icons/icon-192.png" alt="CSS">
+  <div>
+    <div class="t1">Conciliación de inventario · SALMI contra SAP-SAFIRO</div>
+    <div class="t2">Caja de Seguro Social · Dirección Nacional de Logística · CEDIS Panamá</div>
+  </div>
+  <div class="der">
+    <div>Corte: <b id="hCorte">—</b> · Publicado: <b id="hPub">—</b></div>
+    <div class="acc">
+      <button class="btn" id="bAyuda" type="button">? Cómo se calcula</button>
+      <button class="btn pri" id="bExcel" type="button">Descargar Excel</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="avisos"></div>
+  <div class="kg" id="kpis"><div class="k g"><div class="l">Cargando</div><div class="n">…</div><div class="s">leyendo la conciliación publicada</div></div></div>
+
+  <div class="fila2">
+    <div class="panel">
+      <div class="ph">De qué se explican las diferencias <span class="sub">· renglones por categoría · clic para filtrar la tabla</span></div>
+      <div class="pb" id="embudo"></div>
+    </div>
+    <div class="panel">
+      <div class="ph">Diferencias reales por módulo de SALMI <span class="sub">· valor absoluto en B/.</span></div>
+      <div class="pb" id="modulos"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-t="dif" type="button">Renglones conciliados</button>
+    <button class="tab t-p" data-t="sp" type="button">Sin código puente <span id="nSP"></span></button>
+  </div>
+  <div class="panel" style="border-top-left-radius:0">
+    <div id="vDif">
+      <div class="filtros">
+        <label>Categoría</label><select id="fCat"></select>
+        <label>Módulo</label><select id="fMod"></select>
+        <label>Renglón</label>
+        <div class="ac"><input type="text" id="fRen" placeholder="Código o nombre del renglón" autocomplete="off"><ul id="acL"></ul></div>
+        <button class="btn" id="bLimpiar" type="button">Limpiar filtros</button>
+        <span class="pie" id="cuenta" style="padding:0"></span>
+      </div>
+      <div class="tw"><table id="tDif"></table></div>
+    </div>
+    <div id="vSP" style="display:none">
+      <div class="filtros">
+        <span style="font-size:12.5px">Materiales del MB52 que no tienen código de abasto (o tienen más de uno). Hay que enviarlos a Planificación para que asigne el código en MAESTRO_RENGLONES.</span>
+        <button class="btn pri" id="bExcelSP" type="button">Excel para Planificación</button>
+      </div>
+      <div class="tw"><table id="tSP"></table></div>
+    </div>
+  </div>
+  <div class="pie" id="pie"></div>
+</main>
+
+<div class="velo" id="velo"><div class="modal"><div class="mh"><div><h3 id="mT"></h3><div id="mS" style="font-size:12px;color:var(--muted)"></div></div><button class="btn x" type="button" id="mX">Cerrar</button></div><div class="mb" id="mB"></div></div></div>
+<div class="tt" id="tt"></div>
+
+<script>
+(function(){
+  'use strict';
+  var URL_JSON = 'kardex/conciliacion_salmi_sap.json';
+  var CAT = {
+    CUADRA:       { n:'Cuadra',                         c:'v', h:'Misma cantidad en SALMI y en SAP.' },
+    DESFASE:      { n:'Explicada: movimiento del día',  c:'n', h:'La diferencia es igual a un movimiento SAP de ese mismo día: los archivos se bajan a horas distintas.' },
+    UM:           { n:'Explicada: unidad de medida',    c:'n', h:'Mismo valor total con cantidades distintas: los sistemas usan unidades de medida distintas.' },
+    PEND:         { n:'Explicada: pendiente en SAP',    c:'n', h:'Recibido en Recepción y todavía sin su entrada 101 en SAP: atraso de contabilización.' },
+    MENOR:        { n:'Diferencia menor (<1 %)',        c:'g', h:'Diferencia de menos del 1 % de la cantidad.' },
+    REAL_SIN_MOV: { n:'Real · sin movimiento ese día',  c:'r', h:'No cuadra y el renglón no se movió ese día: ninguna hora de descarga lo explica. Prioridad de investigación.' },
+    REAL_CON_MOV: { n:'Real · con movimiento ese día',  c:'a', h:'No cuadra; el renglón sí se movió ese día, pero ningún movimiento iguala la diferencia.' },
+    SOLO_SAP:     { n:'Solo en SAP',                    c:'a', h:'Existe en SAP (MB52) y no en el inventario de SALMI.' },
+    SOLO_SALMI:   { n:'Solo en SALMI',                  c:'a', h:'Existe en SALMI y no en SAP (o su material SAP no tiene código puente).' }
+  };
+  var ORDEN = ['REAL_SIN_MOV','REAL_CON_MOV','SOLO_SALMI','SOLO_SAP','MENOR','PEND','UM','DESFASE','CUADRA'];
+  var BAR = { v:'#1D9E75', n:'#378ADD', g:'#888780', r:'#E24B4A', a:'#EF9F27', p:'#7F77DD' };
+  var D=null, R=[], F={cat:'',mod:'',ren:''}, orden={k:'vabs',d:-1}, $=function(i){return document.getElementById(i);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var fN=function(n,d){var v=Number(n);if(!isFinite(v))return '';return v.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
+  var fB=function(n){return 'B/. '+fN(Math.round(n));};
+  var fQ=function(n){var v=Number(n);return Math.abs(v-Math.round(v))<1e-9?fN(v):fN(v,2);};
+
+  /* internet inestable en el almacén: hasta 4 intentos con espera creciente */
+  function traer(url,n){ n=n||0; return fetch(url+'?t='+Date.now(),{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .catch(function(e){ if(n>=3) throw e; return new Promise(function(ok){ setTimeout(ok,1500*(n+1)); }).then(function(){ return traer(url,n+1); }); }); }
+
+  traer(URL_JSON).then(function(j){ D=j; preparar(); pintar(); }).catch(function(e){
+    $('kpis').innerHTML='<div class="k r"><div class="l">No se pudo cargar</div><div class="n">—</div><div class="s">'+esc(e.message)+' · revise la conexión y recargue</div></div>'; });
+
+  function preparar(){
+    var c=D._meta.columnas, ix={}; c.forEach(function(k,i){ix[k]=i;});
+    R=D.rows.map(function(r){ return { ab:r[ix.abasto], mat:r[ix.materialSAP], des:r[ix.descripcion], mod:r[ix.modulo]||'(sin módulo en SALMI)', um:r[ix.um], qs:r[ix.qSAP], qw:r[ix.qSALMI], dif:r[ix.dif],
+      pr:r[ix.precio], vdif:r[ix.valorDif], vs:r[ix.valorSAP], vw:r[ix.valorSALMI], cat:r[ix.categoria], mov:r[ix.movDiaNeto], pend:r[ix.pendienteSAP], ldis:r[ix.lotesDistintos],
+      vabs: r[ix.categoria]==='SOLO_SAP'?r[ix.valorSAP]:r[ix.categoria]==='SOLO_SALMI'?r[ix.valorSALMI]:Math.abs(r[ix.valorDif]) }; });
+    var m=D._meta; $('hCorte').textContent=m.fecha; $('hPub').textContent=m.generado;
+    var av=[];
+    if (m.fechaInventarioSALMI && m.fechaInventarioSALMI!==m.fecha) av.push(['r','El valorizado de SALMI dice "Fecha Inventario '+m.fechaInventarioSALMI+'" y el archivo es del '+m.fecha+'. Verifique el archivo antes de usar las cifras.']);
+    if ((m.ultimoMB52&&m.ultimoMB52>m.fecha)||(m.ultimoSALMI&&m.ultimoSALMI>m.fecha)) av.push(['a','Hay archivos más recientes sin pareja del mismo día (MB52 '+(m.ultimoMB52||'—')+' · SALMI '+(m.ultimoSALMI||'—')+'). Esta conciliación es del '+m.fecha+', la última fecha con los dos.']);
+    av.push(['n','Los archivos de SALMI y SAP se bajan a horas distintas del mismo día. Las diferencias iguales a un movimiento SAP de ese día ('+fN(m.archivos.movimientosDelDia)+' movimientos en el MB51) se separan como "movimiento del día".']);
+    $('avisos').innerHTML=av.map(function(a){return '<div class="aviso '+a[0]+'">'+esc(a[1])+'</div>';}).join('');
+    var mods={}; R.forEach(function(r){mods[r.mod]=1;});
+    $('fMod').innerHTML='<option value="">Todos</option>'+Object.keys(mods).sort().map(function(x){return '<option>'+esc(x)+'</option>';}).join('');
+    $('fCat').innerHTML='<option value="">Todas</option><option value="_REAL">Diferencias reales (las dos)</option><option value="_EXPL">Explicadas (todas)</option>'+ORDEN.map(function(k){return '<option value="'+k+'">'+CAT[k].n+'</option>';}).join('');
+    $('nSP').textContent='· '+fN(D.sinPuente.length);
+    $('pie').textContent=m.fuente+' · MB52: '+m.archivos.mb52+' · SALMI: '+m.archivos.salmi+' · MB51 '+(m.archivos.mb51Meses||[]).join(', ')+' · '+m.tolerancia;
+  }
+  function filtrar(){ return R.filter(function(r){
+    if (F.cat==='_REAL'){ if(!/^REAL_/.test(r.cat)) return false; } else if (F.cat==='_EXPL'){ if(!/^(DESFASE|UM|PEND)$/.test(r.cat)) return false; } else if (F.cat && r.cat!==F.cat) return false;
+    if (F.mod && r.mod!==F.mod) return false; if (F.ren && r.ab!==F.ren) return false; return true; }); }
+
+  function pintar(){ kpis(); embudo(); modulos(); tabla(); tablaSP(); }
+  function kpis(){
+    var m=D._meta, e=m.embudo, t=m.totales, tot=t.renglones||1, cu=e.CUADRA.renglones, pc=Math.round(100*cu/tot);
+    var re=e.REAL_SIN_MOV.renglones+e.REAL_CON_MOV.renglones, rv=e.REAL_SIN_MOV.valorAbs+e.REAL_CON_MOV.valorAbs;
+    var ex=e.DESFASE.renglones+e.UM.renglones+e.PEND.renglones, so=e.SOLO_SAP.renglones+e.SOLO_SALMI.renglones;
+    var k=function(cl,l,n,s,act){return '<div class="k '+cl+'" data-a="'+act+'"><div class="l">'+l+'</div><div class="n">'+n+'</div><div class="s">'+s+'</div></div>';};
+    $('kpis').innerHTML=
+      k(pc>=90?'v':pc>=70?'a':'r','Renglones que cuadran',pc+' %',fN(cu)+' de '+fN(tot)+' renglones','CUADRA')+
+      k(re?'r':'v','Diferencias reales',fN(re),fB(rv)+' · '+fN(e.REAL_SIN_MOV.renglones)+' sin movimiento ese día','_REAL')+
+      k('n','Explicadas',fN(ex),'movimiento del día, unidad de medida o pendiente en SAP','_EXPL')+
+      k(so?'a':'v','En un solo sistema',fN(so),fN(e.SOLO_SAP.renglones)+' solo SAP · '+fN(e.SOLO_SALMI.renglones)+' solo SALMI','')+
+      k(m.sinPuente.materiales?'p':'v','Sin código puente',fN(m.sinPuente.materiales),fB(m.sinPuente.valor)+' en SAP sin código de abasto','_SP')+
+      k('g','Valor del inventario','B/. '+(t.valorSAP/1e6).toFixed(1)+' M','SAP '+fB(t.valorSAP)+' · SALMI '+fB(t.valorSALMI)+' · neta '+fB(t.difNeta),'');
+    Array.prototype.forEach.call($('kpis').children,function(el){ el.onclick=function(){ var a=el.dataset.a; if(!a) return;
+      if(a==='_SP'){ tabSel('sp'); return; } tabSel('dif'); F.cat=a; $('fCat').value=a; tabla(); embudo(); }; });
+  }
+  function tip(el,html){ el.onmousemove=function(ev){ var t=$('tt'); t.innerHTML=html; t.style.display='block'; t.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px'; t.style.top=(ev.clientY+12)+'px'; };
+    el.onmouseleave=function(){ $('tt').style.display='none'; }; }
+  function embudo(){
+    var e=D._meta.embudo, mx=Math.max.apply(null,ORDEN.map(function(k){return e[k].renglones;}))||1, box=$('embudo'); box.innerHTML='';
+    ORDEN.slice().reverse().forEach(function(k){ var x=e[k], c=CAT[k], d=document.createElement('div'); d.className='barra'+(F.cat===k?' sel':'');
+      d.innerHTML='<div class="et"><i style="background:'+BAR[c.c]+'"></i>'+c.n+'</div><div class="tr"><span style="width:'+(100*x.renglones/mx)+'%;background:'+BAR[c.c]+'"></span></div><div class="vl num">'+fN(x.renglones)+' <small>· '+(x.valorAbs?fB(x.valorAbs):'—')+'</small></div>';
+      tip(d,'<b>'+c.n+'</b><br>'+fN(x.renglones)+' renglones · '+fB(x.valorAbs)+'<br>'+c.h);
+      d.onclick=function(){ F.cat=(F.cat===k?'':k); $('fCat').value=F.cat; tabSel('dif'); tabla(); embudo(); }; box.appendChild(d); });
+  }
+  function modulos(){
+    var P=D._meta.porModulo, ks=Object.keys(P).filter(function(m){return P[m].reales>0;}).sort(function(a,b){return P[b].valorAbsReal-P[a].valorAbsReal;}),
+        mx=Math.max.apply(null,ks.map(function(m){return P[m].valorAbsReal;}))||1, box=$('modulos'); box.innerHTML='';
+    if(!ks.length){ box.innerHTML='<div class="vacio">Sin diferencias reales.</div>'; return; }
+    ks.forEach(function(m){ var x=P[m], d=document.createElement('div'); d.className='barra'+(F.mod===m?' sel':'');
+      d.innerHTML='<div class="et">'+esc(m.replace('ALMACEN DE ','').toLowerCase().replace(/^./,function(c){return c.toUpperCase();}))+'</div><div class="tr"><span style="width:'+(100*x.valorAbsReal/mx)+'%;background:'+BAR.r+'"></span></div><div class="vl num">'+fB(x.valorAbsReal)+'</div>';
+      tip(d,'<b>'+esc(m)+'</b><br>'+fN(x.reales)+' renglones con diferencia real de '+fN(x.renglones)+' · cuadran '+fN(x.cuadran)+' ('+Math.round(100*x.cuadran/x.renglones)+' %)');
+      d.onclick=function(){ F.mod=(F.mod===m?'':m); $('fMod').value=F.mod; tabSel('dif'); tabla(); modulos(); }; box.appendChild(d); });
+  }
+  var COLS=[['ab','Renglón',''],['des','Descripción',''],['mod','Módulo SALMI',''],['qs','SAP (MB52)','n'],['qw','SALMI','n'],['dif','Diferencia (SALMI − SAP)','n'],['vabs','Valor diferencia B/.','n'],['cat','Categoría','']];
+  function tabla(){
+    var L=filtrar(), k=orden.k, d=orden.d;
+    L.sort(function(a,b){ var x=a[k],y=b[k]; if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
+    var h='<thead><tr>'+COLS.map(function(c){return '<th class="'+c[2]+'" data-k="'+c[0]+'">'+c[1]+'<span class="o">'+(orden.k===c[0]?(orden.d<0?'▼':'▲'):'⇅')+'</span></th>';}).join('')+'</tr></thead><tbody>';
+    var MAX=800; L.slice(0,MAX).forEach(function(r){ var c=CAT[r.cat]||{n:r.cat,c:'g'};
+      h+='<tr data-ab="'+esc(r.ab)+'"><td class="num">'+esc(r.ab)+'</td><td>'+esc(r.des)+(r.ldis&&r.cat==='CUADRA'?' <span class="cat a">lotes distintos</span>':'')+'</td><td>'+esc(r.mod.replace('ALMACEN DE ',''))+'</td><td class="n">'+fQ(r.qs)+'</td><td class="n">'+fQ(r.qw)+
+         '</td><td class="n '+(r.dif<0?'neg':r.dif>0?'pos':'')+'">'+(r.dif>0?'+':'')+fQ(r.dif)+'</td><td class="n">'+fN(Math.round(r.vabs))+'</td><td><span class="cat '+c.c+'">'+c.n+'</span></td></tr>'; });
+    h+='</tbody>'; if(!L.length) h+='<tbody><tr><td colspan="8" class="vacio">Ningún renglón con estos filtros.</td></tr></tbody>';
+    $('tDif').innerHTML=h;
+    $('cuenta').textContent=fN(L.length)+' renglón(es) · '+fB(L.reduce(function(s,r){return s+r.vabs;},0))+(L.length>MAX?' · se muestran '+MAX+' (el Excel trae todos)':'');
+    Array.prototype.forEach.call($('tDif').querySelectorAll('th'),function(th){ th.onclick=function(){ var kk=th.dataset.k; orden={k:kk,d:orden.k===kk?-orden.d:(/^(qs|qw|dif|vabs)$/.test(kk)?-1:1)}; tabla(); }; });
+    Array.prototype.forEach.call($('tDif').querySelectorAll('tbody tr[data-ab]'),function(tr){ tr.onclick=function(){ detalle(tr.dataset.ab); }; });
+  }
+  var spOrden={i:4,d:-1};
+  function tablaSP(){
+    var L=D.sinPuente.slice(), i=spOrden.i, d=spOrden.d; L.sort(function(a,b){ return typeof a[i]==='number'?d*(a[i]-b[i]):d*String(a[i]).localeCompare(String(b[i])); });
+    var C=[['Material SAP',''],['Descripción',''],['Grupo de artículos',''],['Cantidad','n'],['Valor B/.','n'],['Códigos posibles','']];
+    var h='<thead><tr>'+C.map(function(c,j){return '<th class="'+c[1]+'" data-i="'+j+'">'+c[0]+'<span class="o">'+(spOrden.i===j?(spOrden.d<0?'▼':'▲'):'⇅')+'</span></th>';}).join('')+'</tr></thead><tbody>';
+    L.forEach(function(x){ h+='<tr><td class="num">'+esc(x[0])+'</td><td>'+esc(x[1])+'</td><td>'+esc(x[2])+'</td><td class="n">'+fQ(x[3])+'</td><td class="n">'+fN(Math.round(x[4]))+'</td><td>'+(x[5]?'<span class="cat a">varios: '+esc(x[5])+'</span>':'<span class="cat p">sin código</span>')+'</td></tr>'; });
+    $('tSP').innerHTML=h+'</tbody>';
+    Array.prototype.forEach.call($('tSP').querySelectorAll('th'),function(th){ th.onclick=function(){ var j=+th.dataset.i; spOrden={i:j,d:spOrden.i===j?-spOrden.d:(j>=3&&j<=4?-1:1)}; tablaSP(); }; });
+  }
+  function detalle(ab){
+    var r=R.filter(function(x){return x.ab===ab;})[0]; if(!r) return; var c=CAT[r.cat], m=D._meta, h='';
+    $('mT').textContent=r.ab+' · '+r.des; $('mS').textContent=(r.mat?'Material SAP '+r.mat+' · ':'')+r.mod+(r.um?' · unidad '+r.um:'');
+    h+='<div class="mini"><div class="g">SAP (MB52)<b>'+fQ(r.qs)+'</b>'+fB(r.vs)+'</div><div class="g">SALMI<b>'+fQ(r.qw)+'</b>'+fB(r.vw)+'</div><div class="'+c.c+'">Diferencia<b>'+(r.dif>0?'+':'')+fQ(r.dif)+'</b>'+fB(r.vdif)+'</div></div>';
+    h+='<div class="aviso '+(c.c==='v'?'n':c.c==='g'?'n':c.c)+'"><b>'+c.n+'.</b> '+esc(c.h)+'</div>';
+    var L=D.lotes[ab]; if(L&&L.length){ h+='<h4>Por lote</h4><div class="tw" style="max-height:260px"><table><thead><tr><th>Lote</th><th>Vence</th><th class="n">SAP</th><th class="n">SALMI</th><th class="n">Diferencia</th></tr></thead><tbody>'+
+      L.map(function(l){var d=l[2]-l[1];return '<tr><td class="num">'+esc(l[0]||'(sin lote)')+'</td><td>'+esc(l[3]||'')+'</td><td class="n">'+fQ(l[1])+'</td><td class="n">'+fQ(l[2])+'</td><td class="n '+(d<0?'neg':d>0?'pos':'')+'">'+(d>0?'+':'')+fQ(d)+'</td></tr>';}).join('')+'</tbody></table></div>'; }
+    var M=D.movDia[ab]; if(M&&M.length){ h+='<h4>Movimientos SAP del '+esc(m.fecha)+' (MB51)</h4><table><thead><tr><th>Hora</th><th>Clase</th><th class="n">Cantidad</th><th>Documento</th><th>Texto</th></tr></thead><tbody>'+
+      M.map(function(x){return '<tr><td class="num">'+esc(x[0])+'</td><td>'+esc(x[1])+'</td><td class="n">'+fQ(x[2])+'</td><td class="num">'+esc(x[3])+'</td><td>'+esc(x[4])+'</td></tr>';}).join('')+'</tbody></table>'; }
+    var P=D.pendientes[ab]; if(P&&P.length){ h+='<h4>Recibido en Recepción, pendiente de contabilizar en SAP · '+fQ(r.pend)+' und</h4><table><thead><tr><th>Recepción</th><th>OC</th><th>Pedido SAP</th><th>Proveedor</th><th class="n">Cantidad</th></tr></thead><tbody>'+
+      P.map(function(x){return '<tr><td>'+esc(x[0])+'</td><td class="num">'+esc(x[1])+'</td><td class="num">'+esc(x[2])+'</td><td>'+esc(x[3])+'</td><td class="n">'+fQ(x[4])+'</td></tr>';}).join('')+'</tbody></table>'; }
+    $('mB').innerHTML=h; $('velo').classList.add('on');
+  }
+  function ayuda(){
+    $('mT').textContent='Cómo se calcula'; $('mS').textContent=D?D._meta.tolerancia:'';
+    $('mB').innerHTML='<p>Se compara, renglón por renglón, el inventario de CEDIS Panamá en <b>SALMI</b> (Inventario físico valorizado) contra <b>SAP-SAFIRO</b> (MB52: libre utilización + en traslado + bloqueado), los dos del mismo día. El material SAP se traduce a código de abasto con MAESTRO_RENGLONES, INTERCAMBIOS_ABASTOVSSAP y las entradas de Recepción. El valor de la diferencia usa el precio de SAP (valor ÷ cantidad); si el renglón no está en SAP, el costo de SALMI.</p><dl class="ayuda">'+
+      ORDEN.slice().reverse().map(function(k){return '<dt><span class="cat '+CAT[k].c+'">'+CAT[k].n+'</span></dt><dd>'+CAT[k].h+'</dd>';}).join('')+
+      '<dt><span class="cat p">Sin código puente</span></dt><dd>Material SAP sin código de abasto, o con más de uno. No entra a la conciliación: se lista para que Planificación asigne el código.</dd></dl>'+
+      '<p><b>Orden de la clasificación:</b> solo en un sistema → cuadra → movimiento del día → unidad de medida → pendiente en SAP → menor de 1 % → real. Una diferencia "real" es la que ninguna de esas causas explica.</p>'+
+      '<p><b>Pendiente en SAP</b> solo se puede medir en medicamentos y odontología: el reporte de Recepción no trae MQ, laboratorio ni radiología.</p>';
+    $('velo').classList.add('on');
+  }
+  function tabSel(t){ Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===t);}); $('vDif').style.display=t==='dif'?'':'none'; $('vSP').style.display=t==='sp'?'':'none'; }
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){ b.onclick=function(){ tabSel(b.dataset.t); }; });
+  $('mX').onclick=function(){ $('velo').classList.remove('on'); };
+  $('velo').onclick=function(e){ if(e.target===$('velo')) $('velo').classList.remove('on'); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('velo').classList.remove('on'); });
+  $('bAyuda').onclick=ayuda;
+  $('fCat').onchange=function(){ F.cat=this.value; tabla(); embudo(); };
+  $('fMod').onchange=function(){ F.mod=this.value; tabla(); modulos(); };
+  $('bLimpiar').onclick=function(){ F={cat:'',mod:'',ren:''}; $('fCat').value=''; $('fMod').value=''; $('fRen').value=''; tabla(); embudo(); modulos(); };
+
+  /* buscador de renglón: código + descripción + módulo, flechas y Enter */
+  var acI=-1, acL=[];
+  $('fRen').oninput=function(){ var q=this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); F.ren=''; if(!q){ $('acL').style.display='none'; tabla(); return; }
+    var w=q.split(/\s+/); acL=R.filter(function(r){ var t=(r.ab+' '+r.mat+' '+r.des).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); return w.every(function(x){return t.indexOf(x)>=0;}); }).slice(0,25); acI=-1;
+    $('acL').innerHTML=acL.map(function(r,i){return '<li data-i="'+i+'"><b>'+esc(r.ab)+'</b> '+esc(r.des)+'<small>'+esc(r.mod)+' · '+esc((CAT[r.cat]||{}).n||r.cat)+'</small></li>';}).join('')||'<li>Sin coincidencias</li>'; $('acL').style.display='block'; };
+  function elegir(i){ var r=acL[i]; if(!r) return; F.ren=r.ab; $('fRen').value=r.ab+' · '+r.des; $('acL').style.display='none'; tabla(); }
+  $('acL').onmousedown=function(e){ var li=e.target.closest('li[data-i]'); if(li) elegir(+li.dataset.i); };
+  $('fRen').onkeydown=function(e){ var lis=$('acL').querySelectorAll('li[data-i]'); if(!lis.length) return;
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); acI=Math.max(0,Math.min(lis.length-1,acI+(e.key==='ArrowDown'?1:-1))); lis.forEach(function(l,i){l.classList.toggle('on',i===acI);}); }
+    else if(e.key==='Enter'){ e.preventDefault(); elegir(acI<0?0:acI); } };
+  $('fRen').onblur=function(){ setTimeout(function(){ $('acL').style.display='none'; },150); };
+
+  /* ── Excel institucional (ExcelJS: logo, membrete, metadatos, encabezado azul) ── */
+  function logoB64(){ return fetch('icons/icon-192.png').then(function(r){return r.blob();}).then(function(b){ return new Promise(function(ok){ var f=new FileReader(); f.onload=function(){ ok(String(f.result).split(',')[1]); }; f.readAsDataURL(b); }); }).catch(function(){ return null; }); }
+  function hoja(wb,logo,nombre,titulo,meta,cols,filas,anchos){
+    var ws=wb.addWorksheet(nombre,{views:[{state:'frozen',ySplit:7}]});
+    if(logo){ var id=wb.addImage({base64:logo,extension:'png'}); ws.addImage(id,{tl:{col:0,row:0},ext:{width:52,height:52}}); }
+    ws.getCell('B1').value='Caja de Seguro Social · Dirección Nacional de Logística'; ws.getCell('B1').font={size:10,color:{argb:'FF555555'}};
+    ws.getCell('B2').value=titulo; ws.getCell('B2').font={size:14,bold:true,color:{argb:'FF1E5A9E'}};
+    ws.getCell('B3').value=meta; ws.getCell('B3').font={size:9,italic:true,color:{argb:'FF666666'}};
+    ws.getCell('B4').value='Generado: '+new Date().toLocaleString('es-PA',{timeZone:'America/Panama'})+' (hora de Panamá)'; ws.getCell('B4').font={size:9,color:{argb:'FF666666'}};
+    var hr=ws.getRow(7); cols.forEach(function(c,i){ var cell=hr.getCell(i+1); cell.value=c; cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10}; cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E5A9E'}}; cell.alignment={vertical:'middle',wrapText:true}; });
+    hr.height=30;
+    filas.forEach(function(f,i){ var row=ws.getRow(8+i); f.forEach(function(v,j){ row.getCell(j+1).value=v; }); if(i%2) f.forEach(function(v,j){ row.getCell(j+1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F8FB'}}; }); });
+    (anchos||[]).forEach(function(w,i){ ws.getColumn(i+1).width=w; });
+    if(filas.length) ws.autoFilter={from:{row:7,column:1},to:{row:7+filas.length,column:cols.length}};
+    return ws;
+  }
+  function bajar(wb,nombre){ return wb.xlsx.writeBuffer().then(function(buf){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download=nombre; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000); }); }
+  function conBoton(b,fn){ return function(){ if(!D||typeof ExcelJS==='undefined'){ alert('El generador de Excel aún no está listo; intente en unos segundos.'); return; } var t=b.textContent; b.disabled=true; b.textContent='Generando…';
+    Promise.resolve().then(fn).catch(function(e){ alert('No se pudo generar el Excel: '+e.message); }).then(function(){ b.disabled=false; b.textContent=t; }); }; }
+  $('bExcel').onclick=conBoton($('bExcel'),function(){ return logoB64().then(function(logo){
+    var m=D._meta, wb=new ExcelJS.Workbook(), meta='Corte '+m.fecha+' · MB52 '+m.archivos.mb52+' · SALMI '+m.archivos.salmi+' · '+m.tolerancia;
+    hoja(wb,logo,'Resumen','Conciliación SALMI · SAP-SAFIRO · CEDIS Panamá',meta,['Categoría','Renglones','Valor absoluto B/.','Qué significa'],
+      ORDEN.map(function(k){return [CAT[k].n,m.embudo[k].renglones,Math.round(m.embudo[k].valorAbs),CAT[k].h];}).concat([['Sin código puente',m.sinPuente.materiales,Math.round(m.sinPuente.valor),'Material SAP sin código de abasto (no entra a la conciliación).']]),[34,12,18,90]);
+    var L=filtrar(); hoja(wb,logo,'Renglones','Renglones conciliados'+(F.cat||F.mod||F.ren?' (filtrados)':''),meta,
+      ['Renglón','Material SAP','Descripción','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia','Precio B/.','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Categoría','Movimiento neto del día','Pendiente en SAP','Lotes distintos'],
+      L.map(function(r){return [r.ab,r.mat,r.des,r.mod,r.um,r.qs,r.qw,r.dif,r.pr,r.vdif,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null,r.pend||null,r.ldis?'Sí':''];}),[12,14,46,26,10,13,13,13,10,15,15,15,28,13,13,9]);
+    var LT=[]; L.forEach(function(r){ (D.lotes[r.ab]||[]).forEach(function(l){ LT.push([r.ab,r.des,l[0],l[3],l[1],l[2],l[2]-l[1]]); }); });
+    hoja(wb,logo,'Lotes','Detalle por lote',meta,['Renglón','Descripción','Lote','Vence','SAP','SALMI','Diferencia'],LT,[12,46,16,12,13,13,13]);
+    return bajar(wb,'Conciliacion_SALMI_SAP_'+m.fecha+'.xlsx'); }); });
+  $('bExcelSP').onclick=conBoton($('bExcelSP'),function(){ return logoB64().then(function(logo){
+    var m=D._meta, wb=new ExcelJS.Workbook();
+    var ws=hoja(wb,logo,'Sin código puente','Materiales SAP sin código de abasto · para Planificación','Corte '+m.fecha+' · '+m.sinPuente.materiales+' materiales · '+fB(m.sinPuente.valor)+' en SAP. Complete la columna "Código de abasto" y devuelva el archivo a la Torre de Control.',
+      ['Material SAP','Descripción','Grupo de artículos','Cantidad en SAP','Valor B/.','Códigos posibles hoy','Código de abasto (a completar)','Observación'],
+      D.sinPuente.map(function(x){return [x[0],x[1],x[2],x[3],Math.round(x[4]),x[5],'',''];}),[14,46,14,14,14,22,22,30]);
+    for(var i=0;i<D.sinPuente.length;i++){ ws.getRow(8+i).getCell(7).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFAEEDA'}}; }
+    return bajar(wb,'Materiales_sin_codigo_puente_'+m.fecha+'.xlsx'); }); });
+})();
+</script>
+</body>
+</html>
