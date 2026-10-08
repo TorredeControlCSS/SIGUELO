@@ -330,6 +330,24 @@
   .adm-tr{font-size:11.5px;} .adm-tr.run{color:#6b7a8c;} .adm-tr.ok{color:#2d6a3e;font-weight:600;} .adm-tr.bad{color:#b00020;}
   .adm-bit{margin-top:10px;font-size:11.5px;color:#555;display:flex;flex-direction:column;gap:2px;}
   .adm-bit:empty{display:none;}
+  .adm-q{width:20px;height:20px;border-radius:50%;border:1px solid #9fbbe0;background:#fff;color:var(--azul-osc);font-weight:700;font-size:11.5px;line-height:1;cursor:pointer;flex:0 0 auto;padding:0;}
+  .adm-q:hover,.adm-q:focus-visible{background:var(--azul-osc);color:#fff;outline:none;}
+  .adm-tt{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+  .adm-auto{font-size:10.5px;font-weight:600;border-radius:10px;padding:2px 8px;display:inline-block;margin:0 0 6px;}
+  .adm-auto:empty{display:none;}
+  .adm-auto.auto{background:#eaf6ee;color:#2d6a3e;} .adm-auto.man{background:#eef1f5;color:#5d6b7a;} .adm-auto.warn{background:#fff3d6;color:#8a5a00;}
+  .adm-modo{display:flex;gap:0;margin:2px 0 4px;}
+  .adm-modo button{flex:1;font:inherit;font-size:12px;padding:6px 8px;border:1px solid #c9daf0;background:#f5f8fc;color:#5d6b7a;cursor:pointer;}
+  .adm-modo button:first-child{border-radius:6px 0 0 6px;} .adm-modo button:last-child{border-radius:0 6px 6px 0;margin-left:-1px;}
+  .adm-modo button[aria-selected="true"]{background:var(--azul-osc);color:#fff;border-color:var(--azul-osc);font-weight:600;}
+  .adm-catres{display:flex;flex-direction:column;gap:3px;max-height:330px;overflow:auto;}
+  .adm-cr{display:grid;grid-template-columns:88px 1fr auto;gap:8px;align-items:center;padding:5px 7px;border-radius:5px;background:#f8fafc;border:1px solid #eef1f5;}
+  .adm-cr.ya{opacity:.65;}
+  .adm-ya{font-size:11px;color:#2d6a3e;font-weight:600;white-space:nowrap;}
+  .adm-ach{position:sticky;top:0;background:#f5f8fc;border-bottom:1px solid #e3eaf3;padding:5px 10px;font-size:10.5px;color:#6b7a8c;display:flex;justify-content:space-between;}
+  .adm-ayuda{display:flex;flex-direction:column;gap:9px;font-size:13px;line-height:1.45;max-width:560px;}
+  .adm-ayuda .adm-auto{font-size:12px;padding:4px 10px;align-self:flex-start;}
+  .adm-aqt{font-size:10.5px;font-weight:700;color:#6b7a8c;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;}
   @media(max-width:900px){ .adm-cols{grid-template-columns:1fr;} .adm-prov{grid-template-columns:1fr;} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -3754,7 +3772,17 @@ function admRender(){
     </div>
     <div class="adm-cols" id="admCols" hidden>
       <form class="adm-form" id="admForm" autocomplete="off" novalidate>
-        <div class="adm-lbl"><span class="adm-n">2</span> Renglón nuevo</div>
+        <div class="adm-lbl"><span class="adm-n">2</span> Agregar renglón a este proveedor <button type="button" class="adm-q" data-ayuda="renglones" aria-label="Ayuda: agregar renglones">?</button></div>
+        <div class="adm-modo" role="tablist">
+          <button type="button" role="tab" data-modo="existe" aria-selected="true">Ya existe en el catálogo</button>
+          <button type="button" role="tab" data-modo="nuevo" aria-selected="false">Renglón nuevo</button>
+        </div>
+        <div id="admModoExiste">
+          <label class="adm-f"><span>Buscar por código o descripción</span><input id="admBusca" placeholder="Ej. 102075601 o warfarina 5mg" autocomplete="off"></label>
+          <div class="adm-res" id="admRes2" role="status" aria-live="polite"></div>
+          <div class="adm-catres" id="admCatRes"></div>
+        </div>
+        <div id="admModoNuevo" hidden>
         <label class="adm-f"><span>Código de abasto *</span><input id="admCod" inputmode="numeric" placeholder="Ej. 102075601" maxlength="15"></label>
         <div class="adm-hint" id="admCodHint" aria-live="polite"></div>
         <label class="adm-f"><span>Descripción *</span><textarea id="admDesc" rows="2" placeholder="Como aparece en la OC"></textarea></label>
@@ -3765,6 +3793,7 @@ function admRender(){
         <label class="adm-f"><span>Presentación</span><input id="admPres" placeholder="Opcional · ej. Caja x 100"></label>
         <div class="adm-acc"><button class="btn primary" id="admGuardar" type="submit">Guardar renglón</button><button class="btn" type="button" id="admLimpiarF">Limpiar</button></div>
         <div class="adm-res" id="admRes" role="status" aria-live="polite"></div>
+        </div>
       </form>
       <div class="adm-lista">
         <div class="adm-lbl"><span class="adm-n">3</span> Renglones de este proveedor <span class="adm-cnt" id="admCnt"></span></div>
@@ -3774,14 +3803,16 @@ function admRender(){
     </div>
   </section>
   <section class="adm-card" aria-labelledby="admT2">
-    <div class="adm-h"><h3 id="admT2">Tareas de SIGUELO</h3><span class="adm-sub">Las mismas del menú ⚙ SÍGUELO del libro. Las que modifican datos piden confirmación.</span></div>
+    <div class="adm-h"><h3 id="admT2">Tareas de SIGUELO</h3><span class="adm-sub">Las mismas del menú ⚙ SÍGUELO del libro. La mayoría ya corre sola; úselas cuando algo no se ve actualizado. Pulse <b>?</b> para ver qué hace cada una.</span></div>
     <div class="adm-tareas">${ADM_TAREAS.map(g=>'<div class="adm-g"><div class="adm-gt">'+esc(g.g)+'</div>'+g.items.map(x=>
-      '<div class="adm-t'+(x.w?' w':'')+'"><div class="adm-tt">'+esc(x.t)+(x.w?' <span class="adm-tag">modifica datos</span>':'')+'</div><div class="adm-td">'+esc(x.d)+'</div><div class="adm-tf"><button class="btn'+(x.w?'':' ')+'" data-tarea="'+x.k+'">Ejecutar</button><span class="adm-tr" id="admTr_'+x.k+'"></span></div></div>').join('')+'</div>').join('')}</div>
+      '<div class="adm-t'+(x.w?' w':'')+'"><div class="adm-tt"><span>'+esc(x.t)+(x.w?' <span class="adm-tag">modifica datos</span>':'')+'</span><button type="button" class="adm-q" data-ayuda="'+x.k+'" aria-label="Ayuda: '+esc(x.t)+'">?</button></div><div class="adm-td">'+esc(x.d)+'</div><div class="adm-auto" data-auto="'+x.k+'"></div><div class="adm-tf"><button class="btn" data-tarea="'+x.k+'">Ejecutar</button><span class="adm-tr" id="admTr_'+x.k+'"></span></div></div>').join('')+'</div>').join('')}</div>
     <div class="adm-bit" id="admBit"></div>
   </section></div>`;
   document.getElementById('admSalir').onclick=admSalir_;
   box.querySelectorAll('[data-tarea]').forEach(b=>b.addEventListener('click',()=>admTarea_(b.dataset.tarea,b)));
-  admProvPreparar_(); admFormPreparar_(); admBitPintar_();
+  box.querySelectorAll('[data-ayuda]').forEach(b=>b.addEventListener('click',()=>admAyuda_(b.dataset.ayuda)));
+  admProvPreparar_(); admFormPreparar_(); admBitPintar_(); admModoPreparar_(); admAutoPintar_();
+  if(!ADM.disp) admPost_('admDisparadores').then(r=>{ if(r&&r.success){ ADM.disp=r.disparadores||{}; admAutoPintar_(); } }).catch(()=>{});
   admCargarCatalogo_();
 }
 
@@ -3836,18 +3867,18 @@ function admProvElegir_(nombre,silencio){
     info.innerHTML='<span class="adm-warn">Proveedor nuevo: se creará con este nombre. Escríbalo como aparece en la orden de compra.</span>'+(par.length?' <span class="adm-mut">¿Quiso decir '+par.map(p=>'<a href="#" data-prov="'+esc(p)+'">'+esc(p)+'</a>').join(' o ')+'?</span>':'');
     info.querySelectorAll('[data-prov]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); admProvElegir_(a.dataset.prov); }));
   }
-  cols.hidden=false; admFilasPintar_(); admCodRevisar_();
+  cols.hidden=false; admFilasPintar_(); admCodRevisar_(); admBuscarPintar_();
 }
 function admProvPreparar_(){
   const inp=document.getElementById('admProv'), p=document.getElementById('admProvAC'), x=document.getElementById('admProvX');
   const cerrar=()=>{ p.classList.remove('open'); p.innerHTML=''; inp.setAttribute('aria-expanded','false'); ADM.acSel=-1; };
-  const pintar=()=>{ [...p.children].forEach((el,i)=>el.classList.toggle('sel',i===ADM.acSel)); };
+  const pintar=()=>{ [...p.querySelectorAll('.adm-it')].forEach((el,i)=>{ el.classList.toggle('sel',i===ADM.acSel); if(i===ADM.acSel) el.scrollIntoView({block:'nearest'}); }); };
   const sugerir=()=>{
     const q=admNormProv_(inp.value); x.hidden=!inp.value; const m=admProveedores_();
-    let L=Object.keys(m).filter(n=>!q||admNormProv_(n).indexOf(q)>=0).slice(0,12);
+    let L=Object.keys(m).filter(n=>!q||admNormProv_(n).indexOf(q)>=0);
     ADM.ac=L; ADM.acSel=L.length?0:-1;
     if(!L.length){ cerrar(); return; }
-    p.innerHTML=L.map((n,i)=>'<div class="adm-it" role="option" data-i="'+i+'">'+esc(n)+'<span>'+m[n].n+'</span></div>').join('');
+    p.innerHTML='<div class="adm-ach">'+(q?L.length+' de '+Object.keys(m).length+' proveedores':Object.keys(m).length+' proveedores · escriba para filtrar')+'<span>renglones</span></div>'+L.map((n,i)=>'<div class="adm-it" role="option" data-i="'+i+'">'+esc(n)+'<span>'+m[n].n+'</span></div>').join('');
     p.classList.add('open'); inp.setAttribute('aria-expanded','true'); pintar();
     p.querySelectorAll('.adm-it').forEach(el=>el.addEventListener('mousedown',e=>{ e.preventDefault(); admProvElegir_(ADM.ac[+el.dataset.i]); cerrar(); }));
   };
@@ -3956,6 +3987,151 @@ async function admTarea_(k,btn){
     else { if(r&&r.sesion) return admSalir_(); out.className='adm-tr bad'; out.textContent=(r&&r.error)||'No se pudo ejecutar.'; admLog_(def.t+': ERROR '+((r&&r.error)||'')); }
   }catch(e){ out.className='adm-tr bad'; out.textContent='Sin conexión con SIGUELO (la tarea pudo haber seguido en el servidor).'; }
   btn.disabled=false;
+}
+
+// ---- Paso 2a: renglón que ya existe en el catálogo (lo entregaba otro proveedor) ----
+function admSinTilde_(s){ return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function admIndice_(){
+  if(ADM._idxDe===ADM.filas) return ADM._idx;
+  const m=new Map();
+  (ADM.filas||[]).forEach(x=>{ let e=m.get(x.c); if(!e){ e={c:x.c,d:'',cat:'',s:'',pres:'',provs:[],_t:''}; m.set(x.c,e); }
+    if(!e.d&&x.d) e.d=x.d; if(!e.cat&&x.cat) e.cat=String(x.cat).toUpperCase(); if(!e.s&&x.s) e.s=x.s; if(!e.pres&&x.pres) e.pres=x.pres; e.provs.push({p:x.p,a:String(x.a).toUpperCase()==='NO'?'NO':'SI'}); });
+  m.forEach(e=>{ e._t=admSinTilde_(e.c+' '+e.d); });
+  ADM._idx=[...m.values()]; ADM._idxDe=ADM.filas; return ADM._idx;
+}
+function admModoPreparar_(){
+  document.querySelectorAll('.adm-modo [data-modo]').forEach(b=>b.addEventListener('click',()=>admModo_(b.dataset.modo)));
+  const inp=document.getElementById('admBusca'); if(!inp) return;
+  inp.addEventListener('input',()=>{ const r=document.getElementById('admRes2'); if(r){ r.textContent=''; r.className='adm-res'; } admBuscarPintar_(); });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const b=document.querySelector('#admCatRes [data-add]'); if(b) b.click(); } });
+}
+function admModo_(m){
+  document.querySelectorAll('.adm-modo [data-modo]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.modo===m)));
+  document.getElementById('admModoExiste').hidden=m!=='existe'; document.getElementById('admModoNuevo').hidden=m!=='nuevo';
+  const q=document.getElementById('admBusca').value.trim();
+  if(m==='nuevo'){ if(/^\d{5,}$/.test(q)&&!document.getElementById('admCod').value){ document.getElementById('admCod').value=q; admCodRevisar_(); } document.getElementById('admCod').focus(); }
+  else document.getElementById('admBusca').focus();
+}
+function admBuscarPintar_(){
+  const box=document.getElementById('admCatRes'); if(!box) return;
+  const raw=(document.getElementById('admBusca').value||'').trim(), idx=admIndice_();
+  if(!raw){ box.innerHTML='<div class="adm-vacio">Escriba un código o parte de la descripción. El catálogo tiene '+idx.length.toLocaleString('es-PA')+' renglones distintos; si alguno ya lo entregaba otro proveedor, se agrega con un clic.</div>'; return; }
+  const q=admSinTilde_(raw), cod=admCod_(raw), pal=q.split(/\s+/).filter(Boolean);
+  let L=idx.filter(e=>(cod&&e.c.indexOf(cod)>=0)||pal.every(w=>e._t.indexOf(w)>=0));
+  L.sort((a,b)=>(b.c.indexOf(cod)===0)-(a.c.indexOf(cod)===0)||a.d.localeCompare(b.d));
+  const tot=L.length; L=L.slice(0,30);
+  if(!tot){ box.innerHTML='<div class="adm-vacio">No está en el catálogo de ningún proveedor. <button type="button" class="btn adm-mini" id="admIrNuevo">Crearlo como renglón nuevo</button></div>';
+    document.getElementById('admIrNuevo').onclick=()=>admModo_('nuevo'); return; }
+  box.innerHTML=(tot>30?'<div class="adm-vacio" style="text-align:left;padding:2px 2px 6px">'+tot+' coincidencias; se muestran 30. Afine la búsqueda.</div>':'')+L.map(e=>{
+    const mio=e.provs.find(x=>x.p===ADM.prov), otros=e.provs.filter(x=>x.p!==ADM.prov).map(x=>x.p);
+    const btn=mio?(mio.a==='NO'?'<button type="button" class="btn adm-mini" data-react="'+esc(e.c)+'">Reactivar</button>':'<span class="adm-ya">Ya lo tiene</span>')
+                 :'<button type="button" class="btn primary adm-mini" data-add="'+esc(e.c)+'">Agregar</button>';
+    return '<div class="adm-cr'+(mio&&mio.a!=='NO'?' ya':'')+'"><div class="adm-rc">'+esc(e.c)+'</div><div class="adm-rd" title="'+esc(e.d)+'">'+esc(e.d)+'<span>'+esc(e.cat||'')+(otros.length?' · lo tiene'+(otros.length>1?'n':'')+': '+esc(otros.slice(0,2).join(' · '))+(otros.length>2?' y '+(otros.length-2)+' más':''):'')+'</span></div>'+btn+'</div>';
+  }).join('');
+  box.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>admAgregarExistente_(b.dataset.add,b)));
+  box.querySelectorAll('[data-react]').forEach(b=>b.addEventListener('click',()=>admActivar_(b.dataset.react,'SI',b)));
+}
+async function admAgregarExistente_(c,btn){
+  const e=admIndice_().find(x=>x.c===c), res=document.getElementById('admRes2'); if(!e||!ADM.prov) return;
+  if(!e.d||!e.cat){ admModo_('nuevo'); document.getElementById('admCod').value=c; admCodRevisar_(); return; }  // datos incompletos: se completan en el formulario
+  btn.disabled=true; btn.textContent='Agregando…'; res.className='adm-res'; res.textContent='';
+  try{
+    const r=await admPost_('admRenglonCrear',{proveedor:ADM.prov,cod_abasto:c,descripcion:e.d,categoria:e.cat,cod_sap:e.s,presentacion:e.pres});
+    if(r&&r.success){
+      ADM.filas=(ADM.filas||[]).concat([{p:r.proveedor||ADM.prov,c:c,s:e.s,d:e.d,cat:e.cat,pres:e.pres,o:'adjudicado',a:'SI',_nuevo:true}]);
+      res.className='adm-res ok'; res.textContent='✓ '+(r.mensaje||'Agregado.')+(r.publicado?' Ya está disponible en solicitud_cita.':'');
+      admLog_('Renglón '+c+' → '+(r.proveedor||ADM.prov)); admProvElegir_(r.proveedor||ADM.prov);
+    } else { if(r&&r.sesion) return admSalir_(); res.className='adm-res bad'; res.textContent=(r&&r.error)||'No se pudo agregar.'; btn.disabled=false; btn.textContent='Agregar'; }
+  }catch(err){ res.className='adm-res bad'; res.textContent='Sin conexión con SIGUELO. No se agregó; intente de nuevo.'; btn.disabled=false; btn.textContent='Agregar'; }
+}
+
+// ---- Ayuda de cada tarea (botón ?) y aviso de si corre sola ----
+const ADM_AYUDA={
+  renglones:{t:'Agregar renglones a un proveedor', q:[
+    ['Ya existe en el catálogo','Úselo cuando el renglón ya lo entregaba otro proveedor (por ejemplo, otro ganó la licitación). Busque por código o descripción y pulse Agregar: se copian descripción, categoría, código SAP y presentación. El renglón del proveedor anterior no se toca; desactívelo allí si ya no lo entregará.'],
+    ['Renglón nuevo','Solo para códigos que no tiene ningún proveedor. Código, descripción y categoría son obligatorios.'],
+    ['¿Hay que regenerar algo?','No. Al guardar, SIGUELO renueva la caché del catálogo y publica maestro_renglones.json. El proveedor lo ve en solicitud_cita en menos de un minuto (si ya tenía la página abierta, al recargarla).'],
+    ['Nombre del proveedor','Si escribe un nombre que ya existe con otra forma (tildes, S.A., comas), se usa el nombre oficial del catálogo. Si es un proveedor nuevo, se crea con el nombre tal como lo escribió: cópielo de la orden de compra.'],
+    ['Desactivar','Quita el renglón de solicitud_cita para ese proveedor sin borrarlo. Se puede reactivar.'],
+    ['Registro','Cada cambio queda en la hoja ADM_BITACORA con su nombre y la hora.']]},
+  precalentar:{h:'precalentarPanelTrigger_', cada:'cada 4 horas', q:[
+    ['Qué hace','Calcula la lista activa, el histórico del mes anterior y el calendario del mes, y los deja en la caché de SIGUELO para que el panel responda rápido.'],
+    ['Cuándo usarla','Si el panel tarda en confirmar los datos en vivo, o antes de una reunión.'],
+    ['Qué modifica','Ninguna hoja. Renueva la versión de datos, así que la primera consulta posterior ya sale fresca.'],
+    ['Tiempo','20 a 60 segundos.']]},
+  panel_json:{h:'publicarSaldosDiferido_', cada:'cada 15 minutos, solo si hubo cambios', q:[
+    ['Qué hace','Arma la copia que este panel muestra al abrir: lista activa y calendario del mes anterior a dos meses adelante, sin datos de contacto.'],
+    ['Cuándo usarla','Casi nunca: el panel siempre confirma en vivo segundos después de abrir. Úsela si hizo muchos cambios y quiere que la apertura ya los muestre.'],
+    ['Qué modifica','Solo el archivo panel_confirmacion.json en GitHub.'],
+    ['Tiempo','10 a 40 segundos.']]},
+  senal:{h:'recalcularSenalUE', cada:'todos los días a las 6 a. m. y cada vez que entran saldos nuevos', q:[
+    ['Qué hace','Recalcula la señal de demanda (unidades ejecutoras en cero, cobertura y consumo), que alimenta el IPR de cada cita.'],
+    ['Cuándo usarla','Si cargó saldos de unidades y el IPR no cambió.'],
+    ['Qué modifica','La hoja SENAL_UE.'],
+    ['Tiempo','30 a 90 segundos.']]},
+  invalidar:{cada:'', q:[
+    ['Qué hace','Le indica a SIGUELO que su caché está vieja: la próxima consulta lee de nuevo las hojas.'],
+    ['Cuándo usarla','Si alguien editó a mano la hoja SOLICITUDES y el panel no lo refleja. Las acciones del panel ya lo hacen solas.'],
+    ['Qué modifica','Ninguna hoja. La siguiente carga del panel será más lenta.'],
+    ['Tiempo','Inmediato.']]},
+  saldos:{h:'publicarSaldosDiferido_', cada:'cada 15 minutos, cuando hay saldos nuevos', q:[
+    ['Qué hace','Publica saldos_en_linea.json (saldos del CEDIS) para los tableros.'],
+    ['Cuándo usarla','Si cargó el archivo de saldos y los tableros siguen mostrando los anteriores.'],
+    ['Qué modifica','Solo el archivo en GitHub.'],
+    ['Tiempo','10 a 30 segundos.']]},
+  entradas:{cada:'al cargar el informe en cargar_reportes (no por reloj)', q:[
+    ['Qué hace','Lee el Excel más reciente de 01_RECEPCION y publica el informe de entradas (panel de entradas, seguimiento de entregas y trazabilidad).'],
+    ['Cuándo usarla','Normalmente se publica sola al cargar el informe en cargar_reportes. Úsela si el informe se dejó directo en la carpeta 01_RECEPCION, o si la carga falló.'],
+    ['Si se aborta','Pasa cuando el archivo trae menos datos que lo publicado. Si el archivo es correcto, use "Publicar FORZANDO" del menú del libro.'],
+    ['Tiempo','1 a 2 minutos; corre en segundo plano y aquí se ve el resultado.']]},
+  maestro:{cada:'cada vez que agrega, activa o desactiva un renglón desde esta pestaña', q:[
+    ['Qué hace','Copia la hoja MAESTRO_PROVEEDORES al catálogo que usa solicitud_cita y renueva su caché.'],
+    ['Cuándo usarla','Solo si alguien editó la hoja MAESTRO_PROVEEDORES a mano.'],
+    ['Qué modifica','Solo maestro_renglones.json en GitHub.'],
+    ['Tiempo','5 a 15 segundos.']]},
+  notas_sim:{cada:'', q:[
+    ['Qué hace','Cuenta las citas diferidas que no tienen número de nota.'],
+    ['Cuándo usarla','Antes de "Generar notas y PDF", para saber si hace falta.'],
+    ['Qué modifica','Nada.']]},
+  notas_apl:{cada:'', q:[
+    ['Qué hace','A cada cita diferida sin nota le asigna el correlativo y archiva el PDF en Drive.'],
+    ['Cuándo usarla','Cuando "Ver diferidas sin nota" da más de 0. Lo normal es que la nota se genere al diferir desde el panel.'],
+    ['Qué modifica','Columna de número de nota en SOLICITUDES y archivos en Drive. Los correlativos asignados no se devuelven.'],
+    ['Tiempo','Unos segundos por nota.']]},
+  notas_rearch:{cada:'', q:[
+    ['Qué hace','Vuelve a generar el PDF de todas las notas ya emitidas con el formato actual.'],
+    ['Cuándo usarla','Si cambió el formato de la nota o faltan PDF en Drive.'],
+    ['Qué modifica','Archivos PDF en Drive. No cambia los correlativos.'],
+    ['Tiempo','Varios minutos.']]},
+  motor_sim:{cada:'', q:[
+    ['Qué hace','Cuenta las citas que se enviarían a la hoja CALENDARIO del Motor de Asignaciones.'],
+    ['Cuándo usarla','Antes de sincronizar a mano, para comparar con lo que ve el Motor.'],
+    ['Qué modifica','Nada.']]},
+  motor_apl:{h:'syncMotorDiferido_', cada:'cada hora, cuando hubo cambios en citas', q:[
+    ['Qué hace','Reescribe la hoja CALENDARIO del Motor con las citas agendadas y las recibidas en los últimos 7 días.'],
+    ['Cuándo usarla','Si el Motor no muestra una cita que ya está confirmada.'],
+    ['Qué modifica','La hoja CALENDARIO del libro del Motor.'],
+    ['Tiempo','10 a 40 segundos.']]}
+};
+function admAutoTxt_(k){
+  const a=ADM_AYUDA[k]; if(!a) return null;
+  if(!a.cada) return {c:'man',t:'Solo manual'};
+  if(!a.h) return {c:'auto',t:'Automática · '+a.cada};
+  if(!ADM.disp) return {c:'auto',t:'Automática · '+a.cada};
+  return ADM.disp[a.h]?{c:'auto',t:'Automática · '+a.cada}:{c:'warn',t:'El disparador no está instalado: hoy solo corre a mano'};
+}
+function admAutoPintar_(){
+  document.querySelectorAll('[data-auto]').forEach(el=>{ const x=admAutoTxt_(el.dataset.auto); el.className='adm-auto '+(x?x.c:''); el.textContent=x?x.t:''; });
+}
+function admAyuda_(k){
+  const a=ADM_AYUDA[k]; if(!a) return;
+  const def=[].concat(...ADM_TAREAS.map(g=>g.items)).find(x=>x.k===k), au=admAutoTxt_(k);
+  document.getElementById('modalTitulo').textContent=(def?def.t:a.t);
+  document.getElementById('modalBody').innerHTML='<div class="adm-ayuda">'+(au&&k!=='renglones'?'<div class="adm-auto '+au.c+'">¿Se ejecuta sola? '+esc(au.t)+'</div>':'')+
+    a.q.map(x=>'<div class="adm-aq"><div class="adm-aqt">'+esc(x[0])+'</div><div>'+esc(x[1])+'</div></div>').join('')+
+    (def&&def.w?'<div class="adm-aq"><div class="adm-aqt">Confirmación</div><div>Esta tarea modifica datos: al pulsar Ejecutar se le pedirá confirmar.</div></div>':'')+
+    '<div style="text-align:right;margin-top:12px"><button class="btn primary" id="admAyOk">Entendido</button></div></div>';
+  abrirModal(); document.getElementById('admAyOk').onclick=cerrarModal; setTimeout(()=>document.getElementById('admAyOk').focus(),30);
 }
 function admLog_(t){ ADM.bit.unshift(new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})+' · '+t); ADM.bit=ADM.bit.slice(0,8); admBitPintar_(); }
 function admBitPintar_(){ const b=document.getElementById('admBit'); if(b) b.innerHTML=ADM.bit.length?'<div class="adm-gt">En esta sesión</div>'+ADM.bit.map(x=>'<div>'+esc(x)+'</div>').join(''):''; }

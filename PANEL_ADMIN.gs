@@ -66,6 +66,7 @@ function admPost_(payload) {
     if (a === 'admRenglonCrear')  return admRenglonCrear_(d, u);
     if (a === 'admRenglonActivo') return admRenglonActivo_(d, u);
     if (a === 'admTarea')         return admTarea_(d, u);
+    if (a === 'admDisparadores')  return admDisparadores_();
     return { success: false, error: 'Acción de administración no reconocida.' };
   } catch (err) {
     return { success: false, error: 'Error interno: ' + String(err && err.message || err) };
@@ -317,6 +318,17 @@ function admTarea_(d, u) {
     admBitacora_(u, 'TAREA ' + t, '', 'ERROR ' + msg);
     return { success: false, error: msg };
   }
+}
+
+/* Disparadores programados del proyecto: el panel los muestra en la ayuda de cada tarea
+   ("se ejecuta sola cada 15 min", "solo manual"). Solo lectura. */
+function admDisparadores_() {
+  var out = {};
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var f = t.getHandlerFunction();
+    out[f] = (out[f] || 0) + 1;
+  });
+  return { success: true, disparadores: out };
 }
 
 /* ------------------------------------------------------------------ */
