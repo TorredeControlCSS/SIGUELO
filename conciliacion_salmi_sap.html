@@ -133,6 +133,20 @@
   .eje-l{fill:#fff;font-size:10px;font-family:"Segoe UI",system-ui,sans-serif}
   .mas{text-align:center;padding:10px}
   .lt{font-family:Consolas,monospace;font-size:11px;background:#EEEDFE;color:#3C3489;border-radius:3px;padding:0 5px;margin-left:4px}
+  .xl{display:inline-flex;gap:6px;margin-left:auto}
+  .fila.gr{background:#f7f9fc;border-top:1px solid #dfe4ea}
+  .fila.gr .ren b{font-size:12px}
+  .fila.sub{border-bottom:1px dashed #eef0f3}
+  .fila.sub .ren{padding-left:22px;position:relative}
+  .fila.sub .ren:before{content:"";position:absolute;left:8px;top:-2px;bottom:50%;border-left:1px solid #b8c2cd;border-bottom:1px solid #b8c2cd;width:9px}
+  .fila.sub .ren div{color:var(--muted)}
+  .car{display:inline-block;width:16px;border:0;background:none;padding:0;cursor:pointer;color:var(--azul);font-size:11px}
+  .nl{font-size:10.5px;color:var(--muted);margin-left:6px}
+  .fx{background:#f6f8fb;border:1px solid var(--borde2);border-radius:4px;padding:8px 12px;font-family:Cambria,"Times New Roman",serif;font-size:14px;margin:6px 0 10px;line-height:1.7}
+  .fx i{font-style:italic} .fx .v{font-family:Consolas,monospace;font-size:12px;color:var(--muted)}
+  .ayuda2 table{font-size:12px} .ayuda2 td{vertical-align:top} .ayuda2 h4{margin-top:16px}
+  .val{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;margin:8px 0;font-size:12px}
+  .val div{background:#f6f8fb;border:1px solid var(--borde2);border-radius:4px;padding:6px 9px} .val b{display:block;font-family:Consolas,monospace;font-size:13px}
   .mk{position:relative;height:26px} .mk svg{display:block}
   .pt{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #fff;box-sizing:content-box}
   .tt{position:fixed;z-index:60;pointer-events:none;background:#1b1f24;color:#fff;font-size:11.5px;padding:6px 8px;border-radius:4px;max-width:280px;display:none;line-height:1.4}
@@ -149,7 +163,6 @@
     <div>Corte: <b id="hCorte">—</b> · Publicado: <b id="hPub">—</b></div>
     <div class="acc">
       <button class="btn" id="bAyuda" type="button">? Cómo se calcula</button>
-      <button class="btn pri" id="bExcel" type="button">Descargar Excel</button>
     </div>
   </div>
 </header>
@@ -173,6 +186,7 @@
         <label for="fRen">Renglón</label>
         <div class="ac"><input type="text" id="fRen" placeholder="Código o nombre del renglón" autocomplete="off"><ul id="acL"></ul></div>
         <button class="btn" id="bLimpiar" type="button">Limpiar filtros</button>
+        <span class="xl"><button class="btn pri" id="bExcel" type="button" title="Lo que se ve en pantalla: pestaña, base (lote o renglón) y filtros">Excel · vista actual</button><button class="btn" id="bExcelT" type="button" title="Toda la conciliación, sin filtros: lotes, renglones, resúmenes y sin código puente">Excel · informe completo</button></span>
         <span class="pie" id="cuenta" style="padding:0"></span>
       </div>
       <div id="bloqHuella">
@@ -236,6 +250,7 @@
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var fN=function(n,d){var v=Number(n);if(!isFinite(v))return '';return v.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
   var fB=function(n){return 'B/. '+fN(Math.round(n));};
+  var fB2=function(n){ var v=Number(n)||0; return 'B/. '+fN(v,v<10?4:2); };
   var fQ=function(n){var v=Number(n);return Math.abs(v-Math.round(v))<1e-9?fN(v):fN(v,2);};
 
   /* internet inestable en el almacén: hasta 4 intentos con espera creciente */
@@ -258,7 +273,7 @@
     var c=D._meta.columnas, ix={}; c.forEach(function(k,i){ix[k]=i;});
     R=D.rows.map(function(r){ var qs=+r[ix.qSAP]||0, qw=+r[ix.qSALMI]||0, ab=String(r[ix.abasto]||''), g=GRUPOS[ab.replace(/^0+/,'')]||'';
       return { ab:ab, mat:r[ix.materialSAP], des:r[ix.descripcion], mod:r[ix.modulo]||'(sin módulo en SALMI)', um:r[ix.um], qs:qs, qw:qw, dif:r[ix.dif],
-      pr:r[ix.precio], vdif:r[ix.valorDif], vs:r[ix.valorSAP], vw:r[ix.valorSALMI], cat:r[ix.categoria], mov:r[ix.movDiaNeto], pend:r[ix.pendienteSAP], ldis:r[ix.lotesDistintos],
+      pr:r[ix.precio], fp:ix.fuentePrecio!==undefined?r[ix.fuentePrecio]:'', vdif:r[ix.valorDif], vs:r[ix.valorSAP], vw:r[ix.valorSALMI], cat:r[ix.categoria], mov:r[ix.movDiaNeto], pend:r[ix.pendienteSAP], ldis:r[ix.lotesDistintos],
       gru:g||'(sin grupo)', fam:familia(ab,g), dev:qs>0?100*(qw-qs)/qs:(qw>0?Infinity:0),
       vabs: r[ix.categoria]==='SOLO_SAP'?r[ix.valorSAP]:r[ix.categoria]==='SOLO_SALMI'?r[ix.valorSALMI]:Math.abs(r[ix.valorDif]) }; });
     R.forEach(function(r){ RX[r.ab]=r; });
@@ -271,14 +286,18 @@
     try{ var bg=localStorage.getItem('conc_base'); if(bg==='ren'||(bg==='lote'&&RL.length)) BASE=bg; }catch(e){}
     Array.prototype.forEach.call($('base').children,function(b){ b.classList.toggle('on',b.dataset.b===BASE); b.disabled=b.dataset.b==='lote'&&!RL.length; });
     var m=D._meta; $('hCorte').textContent=m.fechaMB52&&m.fechaMB52!==m.fecha?'SALMI '+m.fecha+' · MB52 '+m.fechaMB52:m.fecha; $('hPub').textContent=m.generado;
-    /* un solo aviso, una línea */
-    var t=['Corte '+m.fecha+(m.fechaMB52&&m.fechaMB52!==m.fecha?' (MB52 del '+m.fechaMB52+' llevado a ese día con el MB51)':'')+'.'], cl='n';
-    if((m.ultimoMB52&&m.ultimoMB52>(m.fechaMB52||m.fecha))||(m.ultimoSALMI&&m.ultimoSALMI>m.fecha)){ t.push('Hay archivos más nuevos sin pareja (MB52 '+(m.ultimoMB52||'—')+' · SALMI '+(m.ultimoSALMI||'—')+').'); cl='a'; }
+    /* un solo aviso, una línea: qué día se concilia y por qué */
+    var fM=m.fechasMB52||[], fS=m.fechasSALMI||[], dm=function(d){ return d?d.slice(8,10)+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+d.slice(5,7)-1]:'—'; }, cl='n', t=[];
+    var ajus=m.fechaMB52&&m.fechaMB52!==m.fecha;
+    t.push('Conciliación del '+dm(m.fecha)+(ajus?' (SALMI del '+dm(m.fecha)+' contra MB52 del '+dm(m.fechaMB52)+', llevado a ese día con el MB51)':': último día con MB52 y SALMI del mismo día')+'.');
+    if(m.ultimoMB52>(m.fechaMB52||m.fecha)||m.ultimoSALMI>m.fecha){ cl='a';
+      var sinS=m.ultimoMB52>(m.fechaMB52||m.fecha)&&fS.indexOf(m.ultimoMB52)<0, sinM=m.ultimoSALMI>m.ultimoMB52;
+      t.push((sinS?'El MB52 del '+dm(m.ultimoMB52)+' no tiene SALMI de ese día. ':'')+(sinM?'El SALMI del '+dm(m.ultimoSALMI)+' todavía no tiene MB52 (SAP llega un día de por medio). ':'')+'Se actualiza sola cuando llegue el par que falta.'); }
+    if(fM.length||fS.length) t.push('Recibidos · MB52: '+fM.slice(-5).map(dm).join(', ')+' · SALMI: '+fS.slice(-5).map(dm).join(', ')+'.');
     if(m.espera){ t.push(m.espera); cl='a'; }
-    if(!RL.length) t.push('El cuadre por lote aparece cuando se publique con la versión nueva del cálculo.');
+        if(!RL.length) t.push('El cuadre por lote aparece cuando se publique con la versión nueva del cálculo.');
     if(m.fechaInventarioSALMI&&m.fechaInventarioSALMI!==m.fecha){ t.push('Ojo: el valorizado dice "Fecha Inventario '+m.fechaInventarioSALMI+'".'); cl='r'; }
-    t.push('Los archivos se bajan a horas distintas: '+fN(m.embudo.DESFASE.renglones)+' diferencias se explican por los '+fN(m.archivos.movimientosDelDia)+' movimientos SAP del día.');
-    $('avisos').innerHTML='<div class="aviso '+cl+'">'+esc(t.join(' '))+'</div>';
+    $('avisos').innerHTML='<div class="aviso '+cl+'">'+esc(t.join(' '))+' <a href="#" id="aAy">Cómo se calcula</a></div>'; $('aAy').onclick=function(e){ e.preventDefault(); ayuda(); };
     var fams={}, gr={}; R.forEach(function(r){ fams[r.fam]=1; });
     $('fFam').innerHTML='<option value="">Todas</option>'+['Medicamentos','Médico-quirúrgico','Odontología','Radiología','Laboratorio','Otros'].filter(function(f){return fams[f];}).map(function(f){return '<option>'+f+'</option>';}).join('');
     grupos();
@@ -392,26 +411,40 @@
     if(fuera) s+='<text x="'+(x>c?W-2:2)+'" y="'+(y+3.5)+'" text-anchor="'+(x>c?'end':'start')+'" font-size="10" font-weight="700" fill="#1b1f24">'+(x>c?'►':'◄')+'</text>';
     return '<div class="mk">'+s+'</svg>'+PT+'</div>';
   }
+  var CERR={};
   function lista(){
-    var L=filtrar(), k=ORD.k, d=ORD.d;
+    var L=filtrar(), k=ORD.k, d=ORD.d, AG=BASE==='lote';
     L.sort(function(a,b){ var x=a[k],y=b[k]; if(k==='dev'){ x=isFinite(x)?x:1e12; y=isFinite(y)?y:1e12; } if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
-    var vis=L.slice(0,N), W=600, ticks=[-Z,-Z/2,0,Z/2,Z]; VMAX=Math.max.apply(null,vis.map(function(r){return r.vabs||0;}).concat([1]));
+    var W=600, ticks=[-Z,-Z/2,0,Z/2,Z], vis=[], grupos=[];
+    if(AG){ var GX={}; L.forEach(function(x){ var g=GX[x.ab]; if(!g){ g=GX[x.ab]={ab:x.ab,lotes:[],v:0,r:RX[x.ab]||null}; grupos.push(g); } g.lotes.push(x); g.v+=x.vabs; });
+      grupos.sort(function(a,b){ if(k==='vabs') return d*(a.v-b.v); var x=a.r?a.r[k]:a.lotes[0][k], y=b.r?b.r[k]:b.lotes[0][k]; if(k==='dev'){ x=isFinite(x)?x:1e12; y=isFinite(y)?y:1e12; }
+        if(typeof x==='number'&&typeof y==='number') return d*(x-y); return d*String(x||'').localeCompare(String(y||'')); });
+      grupos.slice(0,N).forEach(function(g){ var r0=g.r||g.lotes[0]; vis.push({gr:true,g:g,r:Object.assign({},r0,{vabs:g.v,esLote:false})}); if(!CERR[g.ab]) g.lotes.forEach(function(x){ vis.push({r:x}); }); });
+    } else vis=L.slice(0,N).map(function(r){ return {r:r}; });
+    VMAX=Math.max.apply(null,vis.map(function(v){return v.gr?0:(v.r.vabs||0);}).concat(AG?grupos.slice(0,N).map(function(g){return g.v;}):[]).concat([1]));
     var th=function(kk,t,cl){ return '<div class="'+(cl||'')+'" data-k="'+kk+'">'+t+'<span class="o">'+(ORD.k===kk?(ORD.d<0?'▼':'▲'):'⇅')+'</span></div>'; };
     var h='<div class="cab">'+th('ab',BASE==='lote'?'Renglón · lote':'Renglón')+'<div class="nos"><svg width="100%" height="14" viewBox="0 0 '+W+' 14" preserveAspectRatio="none" aria-hidden="true">'+
       ticks.map(function(v,i){ var x=W/2+(W/2-14)*v/Z; return '<text class="eje-l" x="'+x+'" y="11" text-anchor="'+(i===0?'start':i===4?'end':'middle')+'">'+(v>0?'+':v<0?'−':'')+Math.abs(v)+' %</text>'; }).join('')+'</svg></div>'+
       th('dev','Desviación','n')+th('qs','SAP','n')+th('qw','SALMI','n')+th('vabs','Dif. B/.','n')+th('cat','Resultado','rs')+'</div>';
-    vis.forEach(function(r,i){ var c=CAT[r.cat]||{n:r.cat,c:'g'};
-      h+='<div class="fila" tabindex="0" data-i="'+i+'"><div class="ren"><b>'+esc(r.ab)+'</b>'+(r.esLote?' <span class="lt">'+esc(r.lote)+'</span>'+(r.fv?'<em>vence '+esc(r.fv)+'</em>':''):'<em>'+esc(r.gru!=='(sin grupo)'?r.gru:r.fam)+' · '+esc(cap(r.mod).toLowerCase())+'</em>')+'<div>'+(r.par?'<span class="cat p">≈ '+esc(r.par)+'</span> ':'')+esc(r.des)+(!r.esLote&&r.ldis&&r.cat==='CUADRA'?' <span class="cat a">lotes distintos</span>':'')+'</div></div><div>'+marca(r,W)+'</div>'+
+    vis.forEach(function(v,i){ var r=v.r, c=CAT[r.cat]||{n:r.cat,c:'g'};
+      if(v.gr){ var g=v.g, nT=RL.filter(function(x){return x.ab===g.ab;}).length, nC=RL.filter(function(x){return x.ab===g.ab&&x.cat==='CUADRA';}).length;
+        h+='<div class="fila gr" tabindex="0" data-i="'+i+'"><div class="ren"><button class="car" type="button" data-c="'+esc(g.ab)+'" aria-label="Mostrar u ocultar lotes">'+(CERR[g.ab]?'▸':'▾')+'</button><b>'+esc(r.ab)+'</b><span class="nl">'+g.lotes.length+' de '+nT+' lotes · '+nC+' cuadran</span><div>'+esc(r.des)+'</div></div><div>'+marca(r,W)+'</div>'+
+           '<div class="n '+(r.dif>0?'pos':r.dif<0?'neg':'')+'">'+devTxt(r)+'</div><div class="n">'+(r.qs?fQ(r.qs):'—')+'</div><div class="n">'+(r.qw?fQ(r.qw):'—')+'</div><div class="n">'+fN(Math.round(g.v))+'</div><div class="rs"><span class="cat '+c.c+'" title="Resultado del renglón completo (suma de sus lotes)">'+esc(c.n)+'</span></div></div>';
+        return; }
+      h+='<div class="fila'+(AG?' sub':'')+'" tabindex="0" data-i="'+i+'"><div class="ren">'+(AG?'':'<b>'+esc(r.ab)+'</b>')+(r.esLote?(AG?'':' ')+'<span class="lt">'+esc(r.lote)+'</span>'+(r.fv?'<em>vence '+esc(r.fv)+'</em>':''):'<em>'+esc(r.gru!=='(sin grupo)'?r.gru:r.fam)+' · '+esc(cap(r.mod).toLowerCase())+'</em>')+'<div>'+(r.par?'<span class="cat p">≈ '+esc(r.par)+'</span> ':'')+esc(r.des)+(!r.esLote&&r.ldis&&r.cat==='CUADRA'?' <span class="cat a">lotes distintos</span>':'')+'</div></div><div>'+marca(r,W)+'</div>'+
          '<div class="n '+(r.dif>0?'pos':r.dif<0?'neg':'')+'">'+devTxt(r)+'</div><div class="n">'+(r.qs?fQ(r.qs):'—')+'</div><div class="n">'+(r.qw?fQ(r.qw):'—')+'</div><div class="n">'+fN(Math.round(r.vabs))+'</div><div class="rs"><span class="cat '+c.c+'">'+esc(c.n)+'</span></div></div>'; });
     if(!vis.length) h+='<div class="vacio">Ningún renglón con estos filtros.</div>';
     $('lista').innerHTML=h;
-    $('cuenta').innerHTML=esc(fN(L.length)+(BASE==='lote'?' lote(s) · ':' renglón(es) · ')+fB(L.reduce(function(s,r){return s+r.vabs;},0)))+(F.mod&&VISTA==='a'?' · <span class="cat n">Módulo '+esc(cap(F.mod))+'</span> <a href="#" id="qMod">quitar</a>':'');
+    $('cuenta').innerHTML=esc(fN(L.length)+(AG?' lote(s) en '+fN(grupos.length)+' renglones · ':' renglón(es) · ')+fB(L.reduce(function(s,r){return s+r.vabs;},0)))+(F.mod&&VISTA==='a'?' · <span class="cat n">Módulo '+esc(cap(F.mod))+'</span> <a href="#" id="qMod">quitar</a>':'');
     var qm=$('qMod'); if(qm) qm.onclick=function(ev){ ev.preventDefault(); F.mod=''; N=40; pintar(); };
     $('tLista').textContent=VISTA==='a'?'Desviación de cada renglón':'Renglones de la huella';
-    $('mas').innerHTML=L.length>N?'<button class="btn" type="button" id="bMas">Ver 40 más · se muestran '+fN(N)+' de '+fN(L.length)+'</button>':'';
+    var tot=AG?grupos.length:L.length;
+    $('mas').innerHTML=(tot>N?'<button class="btn" type="button" id="bMas">Ver 40 más · se muestran '+fN(Math.min(N,tot))+' de '+fN(tot)+(AG?' renglones':'')+'</button> ':'')+(AG&&grupos.length?'<button class="btn" type="button" id="bCerr">'+(Object.keys(CERR).length?'Mostrar todos los lotes':'Ocultar los lotes')+'</button>':'');
+    var bc=$('bCerr'); if(bc) bc.onclick=function(){ if(Object.keys(CERR).length) CERR={}; else grupos.forEach(function(g){ CERR[g.ab]=1; }); lista(); };
+    Array.prototype.forEach.call($('lista').querySelectorAll('.car'),function(b){ b.onclick=function(ev){ ev.stopPropagation(); var a=b.dataset.c; if(CERR[a]) delete CERR[a]; else CERR[a]=1; lista(); }; });
     var bm=$('bMas'); if(bm) bm.onclick=function(){ N+=40; lista(); };
     Array.prototype.forEach.call($('lista').querySelectorAll('.cab [data-k]'),function(el){ el.onclick=function(){ var kk=el.dataset.k; ORD={k:kk,d:ORD.k===kk?-ORD.d:(/^(qs|qw|vabs|dev)$/.test(kk)?-1:1)}; lista(); }; });
-    Array.prototype.forEach.call($('lista').querySelectorAll('.fila'),function(el){ var r=vis[+el.dataset.i];
+    Array.prototype.forEach.call($('lista').querySelectorAll('.fila'),function(el){ var r=vis[+el.dataset.i].r;
       tip(el,function(){ return '<b>'+esc(r.ab)+' · '+esc(r.des)+'</b>'+(r.esLote?'<br>Lote '+esc(r.lote)+(r.fv?' · vence '+esc(r.fv):'')+(r.par?' · se parece al lote '+esc(r.par):''):'')+'<br>'+esc(r.fam)+' · '+esc(r.gru)+' · '+esc(cap(r.mod))+(r.um?' · '+esc(r.um):'')+'<br>SAP '+fQ(r.qs)+' ('+fB(r.vs||0)+') · SALMI '+fQ(r.qw)+' ('+fB(r.vw||0)+')<br>Diferencia '+(r.dif>0?'+':'')+fQ(r.dif)+' und ('+devTxt(r)+') · '+fB(r.vabs)+(r.mov?'<br>Movimiento SAP ese día: '+fQ(r.mov):'')+(r.pend?'<br>Pendiente de contabilizar: '+fQ(r.pend):'')+'<br><i>'+esc((CAT[r.cat]||{}).n||r.cat)+'</i> · clic para ver lotes y movimientos'; });
       el.onclick=function(){ $('tt').style.display='none'; detalle(r.ab); }; el.onkeydown=function(ev){ if(ev.key==='Enter') detalle(r.ab); }; });
   }
@@ -432,7 +465,14 @@
     $('mT').textContent=r.ab+' · '+r.des; $('mS').textContent=(r.mat?'Material SAP '+r.mat+' · ':'')+r.mod+(r.um?' · unidad '+r.um:'');
     h+='<div class="mini"><div class="g">SAP (MB52)<b>'+fQ(r.qs)+'</b>'+fB(r.vs)+'</div><div class="g">SALMI<b>'+fQ(r.qw)+'</b>'+fB(r.vw)+'</div><div class="'+c.c+'">Diferencia<b>'+(r.dif>0?'+':'')+fQ(r.dif)+'</b>'+fB(r.vdif)+'</div></div>';
     h+='<div class="aviso '+(c.c==='v'?'n':c.c==='g'?'n':c.c)+'"><b>'+c.n+'.</b> '+esc(c.h)+'</div>';
-    var L=D.lotes[ab]; if(L&&L.length){ h+='<h4>Por lote</h4><div class="tw" style="max-height:260px"><table><thead><tr><th>Lote</th><th>Vence</th><th class="n">SAP</th><th class="n">SALMI</th><th class="n">Diferencia</th></tr></thead><tbody>'+
+    var fp=r.fp||(r.qs>0&&r.vs>0?'SAP':'SALMI');
+    h+='<h4>De dónde sale el valor</h4><div class="val"><div>Precio usado'+'<b>'+fB2(r.pr)+' por '+esc(r.um||'unidad')+'</b>'+(fp==='SAP'?'MB52 de SAP-SAFIRO: (valor libre util. + valor en traslado) ÷ (libre + traslado)':'Costo unitario del valorizado SALMI: el renglón no tiene precio en SAP')+'</div>'+
+      '<div>Valor SAP<b>'+fB(r.vs)+'</b>Precio SAP × '+fQ(r.qs)+' (libre + traslado + bloqueado)</div><div>Valor SALMI<b>'+fB(r.vw)+'</b>Columna "Costo total" del valorizado SALMI</div>'+
+      '<div>Valor de la diferencia<b>'+fB(r.vdif)+'</b>'+(r.dif>0?'+':'')+fQ(r.dif)+' × '+fB2(r.pr)+'</div></div>';
+    var LZ=RL.filter(function(x){return x.ab===ab;}).sort(function(a,b){return Math.abs(b.dif)-Math.abs(a.dif);});
+    if(LZ.length){ h+='<h4>Por lote</h4><div class="tw" style="max-height:300px"><table><thead><tr><th>Lote</th><th>Vence</th><th class="n">SAP</th><th class="n">SALMI</th><th class="n">Diferencia</th><th class="n">Dif. B/.</th><th>Resultado del lote</th></tr></thead><tbody>'+
+      LZ.map(function(l){ var cc=CAT[l.cat]||{n:l.cat,c:'g'}; return '<tr><td class="num">'+esc(l.lote)+(l.par?'<br><span class="cat p">≈ '+esc(l.par)+'</span>':'')+'</td><td>'+esc(l.fv||'')+'</td><td class="n">'+fQ(l.qs)+'</td><td class="n">'+fQ(l.qw)+'</td><td class="n '+(l.dif<0?'neg':l.dif>0?'pos':'')+'">'+(l.dif>0?'+':'')+fQ(l.dif)+'</td><td class="n">'+fN(Math.round(l.vdif))+'</td><td><span class="cat '+cc.c+'">'+esc(cc.n)+'</span></td></tr>'; }).join('')+'</tbody></table></div>'; }
+    var L=LZ.length?null:D.lotes[ab]; if(L&&L.length){ h+='<h4>Por lote</h4><div class="tw" style="max-height:260px"><table><thead><tr><th>Lote</th><th>Vence</th><th class="n">SAP</th><th class="n">SALMI</th><th class="n">Diferencia</th></tr></thead><tbody>'+
       L.map(function(l){var d=l[2]-l[1];return '<tr><td class="num">'+esc(l[0]||'(sin lote)')+'</td><td>'+esc(l[3]||'')+'</td><td class="n">'+fQ(l[1])+'</td><td class="n">'+fQ(l[2])+'</td><td class="n '+(d<0?'neg':d>0?'pos':'')+'">'+(d>0?'+':'')+fQ(d)+'</td></tr>';}).join('')+'</tbody></table></div>'; }
     var M=D.movDia[ab]; if(M&&M.length){ h+='<h4>Movimientos SAP del '+esc(m.fecha)+' (MB51)</h4><table><thead><tr><th>Hora</th><th>Clase</th><th class="n">Cantidad</th><th>Documento</th><th>Texto</th></tr></thead><tbody>'+
       M.map(function(x){return '<tr><td class="num">'+esc(x[0])+'</td><td>'+esc(x[1])+'</td><td class="n">'+fQ(x[2])+'</td><td class="num">'+esc(x[3])+'</td><td>'+esc(x[4])+'</td></tr>';}).join('')+'</tbody></table>'; }
@@ -441,12 +481,32 @@
     $('mB').innerHTML=h; $('velo').classList.add('on');
   }
   function ayuda(){
-    $('mT').textContent='Cómo se calcula'; $('mS').textContent=D?D._meta.tolerancia:'';
-    $('mB').innerHTML='<p>Se compara, renglón por renglón, el inventario de CEDIS Panamá en <b>SALMI</b> (Inventario físico valorizado) contra <b>SAP-SAFIRO</b> (MB52: libre utilización + en traslado + bloqueado), los dos del mismo día. El material SAP se traduce a código de abasto con MAESTRO_RENGLONES, INTERCAMBIOS_ABASTOVSSAP y las entradas de Recepción. El valor de la diferencia usa el precio de SAP (valor ÷ cantidad); si el renglón no está en SAP, el costo de SALMI.</p><dl class="ayuda">'+
-      ORDEN.slice().reverse().map(function(k){return '<dt><span class="cat '+CAT[k].c+'">'+CAT[k].n+'</span></dt><dd>'+CAT[k].h+'</dd>';}).join('')+
-      '<dt><span class="cat p">Sin código puente</span></dt><dd>Material SAP sin código de abasto, o con más de uno. No entra a la conciliación: se lista para que Planificación asigne el código.</dd></dl>'+
-      '<p><b>Orden de la clasificación:</b> solo en un sistema → cuadra → movimiento del día → unidad de medida → pendiente en SAP → menor de 1 % → real. Una diferencia "real" es la que ninguna de esas causas explica.</p>'+
-      '<p><b>Pendiente en SAP</b> solo se puede medir en medicamentos y odontología: el reporte de Recepción no trae MQ, laboratorio ni radiología.</p>';
+    var m=D?D._meta:{}; $('mT').textContent='Cómo se calcula'; $('mS').textContent='Conciliación del '+(m.fecha||'')+' · CEDIS Panamá';
+    var F_=function(x){ return '<div class="fx">'+x+'</div>'; };
+    $('mB').innerHTML='<div class="ayuda2">'+
+      '<h4>1 · Qué se compara</h4><p>El inventario de CEDIS Panamá en <b>SALMI</b> (Inventario físico valorizado) contra <b>SAP-SAFIRO</b> (MB52), los dos del mismo día. Cada material SAP se traduce a código de abasto con MAESTRO_RENGLONES, INTERCAMBIOS_ABASTOVSSAP y las entradas de Recepción. La comparación se hace <b>por lote</b> (base normativa) y también por renglón.</p>'+
+      '<h4>2 · Cantidades</h4>'+F_('<i>Q</i><sub>SAP</sub> = Libre utilización + Trans./Trasl. + Bloqueado <span class="v">(MB52)</span><br><i>Q</i><sub>SALMI</sub> = Cantidad <span class="v">(valorizado SALMI)</span><br><i>D</i> = <i>Q</i><sub>SALMI</sub> − <i>Q</i><sub>SAP</sub> <span class="v">(positivo: SALMI tiene más)</span>')+
+      '<p>Por lote se usa la misma fórmula con las cantidades de ese lote. El renglón es la suma de sus lotes.</p>'+
+      '<h4>3 · Desviación</h4>'+F_('Desviación % = <i>D</i> ÷ <i>Q</i><sub>SAP</sub> × 100<br><span class="v">0 % al centro del eje · si Q<sub>SAP</sub> = 0 el lote o renglón está "solo en SALMI" y se dibuja en el borde derecho; si Q<sub>SALMI</sub> = 0 la desviación es −100 %.</span>')+
+      '<h4>4 · Valor en B/. (de dónde sale)</h4>'+F_('<i>P</i><sub>SAP</sub> = (Valor libre util. + Val.trans.c/cond.) ÷ (Libre utilización + Trans./Trasl.) <span class="v">(MB52)</span><br>'+
+        'Valor SAP = <i>P</i><sub>SAP</sub> × <i>Q</i><sub>SAP</sub><br>Valor SALMI = Costo total <span class="v">(valorizado SALMI = costo unitario × cantidad)</span><br>'+
+        'Valor de la diferencia = <i>D</i> × <i>P</i><sub>SAP</sub> <span class="v">· sin precio en SAP: D × costo unitario SALMI</span>')+
+      '<p>El precio es por unidad de medida del renglón, el mismo para todos sus lotes. En el detalle de cada renglón se ve el precio usado y su fuente. Los totales en B/. de las tarjetas son la suma de |valor de la diferencia|.</p>'+
+      '<h4>5 · Cómo se clasifica cada lote (en este orden)</h4><table><thead><tr><th>Resultado</th><th>Condición</th></tr></thead><tbody>'+
+      [['CUADRA','<i>D</i> = 0 (exacto, sin tolerancia)'],
+       ['DIGITACION','dos lotes del mismo renglón, uno con <i>D</i><sub>1</sub> &lt; 0 y otro con <i>D</i><sub>2</sub> &gt; 0, cuyos códigos difieren en un carácter (o en O↔0, I↔1, L↔1, S↔5, B↔8, Z↔2, G↔6) y |<i>D</i><sub>1</sub> + <i>D</i><sub>2</sub>| ≤ máx(1, 1 % · máx(|<i>D</i><sub>1</sub>|, |<i>D</i><sub>2</sub>|))'],
+       ['REASIGNACION','la suma de <i>D</i> de todos los lotes del renglón = 0, pero algún lote ≠ 0'],
+       ['DESFASE','|<i>D</i> − <i>M</i>| ≤ máx(1, 0.5 % · máx(|<i>D</i>|, |<i>M</i>|)), donde <i>M</i> es el neto o uno de los movimientos MB51 de ese material y lote ese día (los archivos se bajan a horas distintas)'],
+       ['UM','el renglón tiene cantidades en razón ≥ 1.9 y valores iguales (± 1 %): distinta unidad de medida'],
+       ['PEND','<i>D</i> &gt; 0 y <i>D</i> ≤ 1.05 × lo recibido en Recepción que SAP aún no contabiliza (entrada 101); se reparte entre los lotes del renglón donde SALMI tiene más'],
+       ['SOLO_SAP / SOLO_SALMI','el lote existe en un solo sistema'],
+       ['MENOR','|<i>D</i>| ≤ 1 % · máx(<i>Q</i><sub>SAP</sub>, <i>Q</i><sub>SALMI</sub>)'],
+       ['REAL_CON_MOV / REAL_SIN_MOV','ninguna de las anteriores; se separa si el lote tuvo o no movimientos MB51 ese día']].map(function(x){ var c=CAT[x[0].split(' ')[0]]||{n:x[0],c:'g'}; return '<tr><td><span class="cat '+c.c+'">'+esc(x[0].indexOf('/')>0?x[0].replace('SOLO_SAP / SOLO_SALMI','Solo en un sistema').replace('REAL_CON_MOV / REAL_SIN_MOV','Diferencia real'):c.n)+'</span></td><td>'+x[1]+'</td></tr>'; }).join('')+'</tbody></table>'+
+      '<p>Por renglón se aplican las mismas reglas sobre el total del renglón (sin DIGITACION ni REASIGNACION).</p>'+
+      '<h4>6 · Cuando SAP y SALMI no son del mismo día</h4>'+F_('<i>Q</i><sub>SAP</sub>(día S) = MB52(día M) − Σ movimientos MB51 de los días S+1 … M <span class="v">(por material y lote; S = día del SALMI, M = día del MB52, hasta 3 días)</span>')+
+      '<p>Solo se hace si el MB51 publicado llega al día M. Nunca se compara un SALMI más nuevo que el MB52, porque no hay movimientos para llevar SAP hacia adelante.</p>'+
+      '<h4>7 · Sin código puente</h4><p>Material SAP sin código de abasto, o con más de uno. No entra a la conciliación: se lista para que Planificación asigne el código.</p>'+
+      (m.tolerancia?'<p class="pie" style="padding:0">'+esc(m.tolerancia)+'</p>':'')+'</div>';
     $('velo').classList.add('on');
   }
   function tabSel(t){ if(t==='dif') t=VISTA; Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===t);});
@@ -495,25 +555,35 @@
   function bajar(wb,nombre){ return wb.xlsx.writeBuffer().then(function(buf){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download=nombre; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000); }); }
   function conBoton(b,fn){ return function(){ if(!D||typeof ExcelJS==='undefined'){ alert('El generador de Excel aún no está listo; intente en unos segundos.'); return; } var t=b.textContent; b.disabled=true; b.textContent='Generando…';
     Promise.resolve().then(fn).catch(function(e){ alert('No se pudo generar el Excel: '+e.message); }).then(function(){ b.disabled=false; b.textContent=t; }); }; }
-  $('bExcel').onclick=conBoton($('bExcel'),function(){ return logoB64().then(function(logo){
+  function excel(completo){ var F0=F, B0=BASE; if(completo){ F={cat:'',mod:'',ren:'',fam:'',gru:'',cel:null}; } return logoB64().then(function(logo){
     var m=D._meta, wb=new ExcelJS.Workbook(), meta='Corte '+m.fecha+' · MB52 '+m.archivos.mb52+' · SALMI '+m.archivos.salmi+' · '+m.tolerancia;
     hoja(wb,logo,'Resumen','Conciliación SALMI · SAP-SAFIRO · CEDIS Panamá',meta,['Categoría','Renglones','Valor absoluto B/.','Qué significa'],
       ORDEN.map(function(k){return [CAT[k].n,m.embudo[k].renglones,Math.round(m.embudo[k].valorAbs),CAT[k].h];}).concat([['Sin código puente',m.sinPuente.materiales,Math.round(m.sinPuente.valor),'Material SAP sin código de abasto (no entra a la conciliación).']]),[34,12,18,90]);
     var L=filtrar(false,'ren'), fl=[]; if(F.cat&&F.cat!=='_DIF') fl.push($('fCat').selectedOptions[0].textContent); else if(F.cat==='_DIF') fl.push('con diferencia'); if(F.fam) fl.push(F.fam); if(F.gru) fl.push(F.gru); if(F.mod) fl.push(cap(F.mod)); if(F.cel) fl.push((F.cel.mod==='TOTAL'?'todos los módulos':cap(F.cel.mod))+' '+trNom(F.cel.t)); if(F.ren) fl.push('renglón '+F.ren);
     var dv=function(r){ return r.cat==='SOLO_SALMI'?null:isFinite(r.dev)?Math.round(r.dev*100)/100:null; };
     var ws=hoja(wb,logo,'Renglones','Renglones conciliados'+(fl.length?' · '+fl.join(' · '):' · todos'),meta,
-      ['Renglón','Material SAP','Descripción','Familia','Grupo','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia (SALMI − SAP)','Desviación % (sobre SAP)','Tramo de desviación','Precio B/.','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Resultado','Movimiento neto del día','Pendiente en SAP','Lotes distintos'],
-      L.map(function(r){return [r.ab,r.mat,r.des,r.fam,r.gru,r.mod,r.um,r.qs,r.qw,r.dif,dv(r),trNom(tramo(r)),r.pr,r.vdif,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null,r.pend||null,r.ldis?'Sí':''];}),[12,14,46,18,18,26,10,13,13,14,13,14,10,15,15,15,28,13,13,9]);
+      ['Renglón','Material SAP','Descripción','Familia','Grupo','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia (SALMI − SAP)','Desviación % (sobre SAP)','Tramo de desviación','Precio B/.','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Resultado','Movimiento neto del día','Pendiente en SAP','Lotes distintos','Fuente del precio'],
+      L.map(function(r){return [r.ab,r.mat,r.des,r.fam,r.gru,r.mod,r.um,r.qs,r.qw,r.dif,dv(r),trNom(tramo(r)),r.pr,r.vdif,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null,r.pend||null,r.ldis?'Sí':'',r.fp==='SAP'?'MB52 (valor ÷ cantidad)':r.fp==='SALMI'?'Costo unitario SALMI':''];}),[12,14,46,18,18,26,10,13,13,14,13,14,10,15,15,15,28,13,13,9,22]);
     var PAS={v:'FFE1F5EE',a:'FFFAEEDA',r:'FFFCEBEB',n:'FFE6F1FB',g:'FFF1EFE8'};
     L.forEach(function(r,i){ var cc=(CAT[r.cat]||{}).c; if(PAS[cc]) ws.getRow(8+i).getCell(17).fill={type:'pattern',pattern:'solid',fgColor:{argb:PAS[cc]}}; ws.getRow(8+i).getCell(11).numFmt='0.00" %"'; });
-    if(RL.length){ var LL=filtrar(false,'lote');
+    if(RL.length&&(completo||BASE==='lote')){ var LL=filtrar(false,'lote');
       var wl=hoja(wb,logo,'Lotes conciliados','Cuadre por lote (base normativa)'+(fl.length?' · '+fl.join(' · '):' · todos'),meta,
         ['Renglón','Lote','Vence','Lote parecido','Descripción','Familia','Grupo','Módulo SALMI','Unidad','Cantidad SAP','Cantidad SALMI','Diferencia (SALMI − SAP)','Desviación % (sobre SAP)','Valor diferencia B/.','Valor SAP B/.','Valor SALMI B/.','Resultado','Movimiento del lote ese día'],
         LL.map(function(r){ return [r.ab,r.lote,r.fv,r.par,r.des,r.fam,r.gru,r.mod,r.um,r.qs,r.qw,r.dif,dv(r),Math.round(r.vdif*100)/100,r.vs,r.vw,(CAT[r.cat]||{}).n||r.cat,r.mov||null]; }),[12,16,11,16,44,18,18,26,10,13,13,14,13,15,15,15,30,13]);
       LL.forEach(function(r,i){ var cc=(CAT[r.cat]||{}).c, P2={v:'FFE1F5EE',a:'FFFAEEDA',r:'FFFCEBEB',n:'FFE6F1FB',g:'FFF1EFE8',p:'FFEEEDFE'}; if(P2[cc]) wl.getRow(8+i).getCell(17).fill={type:'pattern',pattern:'solid',fgColor:{argb:P2[cc]}}; wl.getRow(8+i).getCell(13).numFmt='0.00" %"'; });
       var eL=m.embudoLote; hoja(wb,logo,'Resumen por lote','Cuadre por lote · resumen',meta,['Resultado','Lotes','Valor absoluto B/.','Qué significa'],
         ORDEN_L.map(function(k){ return [CAT[k].n,(eL[k]||{}).lotes||0,Math.round((eL[k]||{}).valorAbs||0),CAT[k].h]; }),[34,12,18,90]); }
-    return bajar(wb,'Conciliacion_SALMI_SAP_'+m.fecha+'.xlsx'); }); });
+    if(completo&&D.sinPuente.length) hoja(wb,logo,'Sin código puente','Materiales SAP sin código de abasto',meta,['Material SAP','Descripción','Grupo de artículos','Cantidad en SAP','Valor B/.','Códigos posibles'],
+      D.sinPuente.map(function(x){return [x[0],x[1],x[2],x[3],Math.round(x[4]),x[5]];}),[14,46,14,14,14,22]);
+    hoja(wb,logo,'Cómo se calcula','Fórmulas de la conciliación',meta,['Concepto','Fórmula / fuente'],[
+      ['Cantidad SAP','Libre utilización + Trans./Trasl. + Bloqueado (MB52)'],['Cantidad SALMI','Cantidad del valorizado SALMI'],['Diferencia','SALMI − SAP'],['Desviación %','Diferencia ÷ Cantidad SAP × 100'],
+      ['Precio SAP','(Valor libre util. + Val.trans.c/cond.) ÷ (Libre utilización + Trans./Trasl.)  ·  MB52'],['Valor SAP','Precio SAP × Cantidad SAP'],['Valor SALMI','Costo total del valorizado SALMI'],
+      ['Valor de la diferencia','Diferencia × Precio SAP (sin precio SAP: × costo unitario SALMI)'],['Cuadra','Diferencia = 0 exacto'],['Explicada por movimiento del día','|D − M| ≤ máx(1; 0,5 %) con M = movimiento MB51 del lote ese día'],
+      ['Lote mal digitado o cruzado','Códigos que difieren en un carácter (o O/0, I/1, L/1, S/5, B/8) y diferencias que se compensan (± 1 %)'],['Menor','|D| ≤ 1 % de la cantidad mayor']],[30,100]);
+    var nom='Conciliacion_SALMI_SAP_'+m.fecha+(completo?'_informe_completo':'_vista_'+(BASE==='lote'?'lotes':'renglones'))+'.xlsx';
+    F=F0; BASE=B0; return bajar(wb,nom); }).catch(function(e){ F=F0; BASE=B0; throw e; }); }
+  $('bExcel').onclick=conBoton($('bExcel'),function(){ return excel(false); });
+  $('bExcelT').onclick=conBoton($('bExcelT'),function(){ return excel(true); });
   $('bExcelSP').onclick=conBoton($('bExcelSP'),function(){ return logoB64().then(function(logo){
     var m=D._meta, wb=new ExcelJS.Workbook();
     var ws=hoja(wb,logo,'Sin código puente','Materiales SAP sin código de abasto · para Planificación','Corte '+m.fecha+' · '+m.sinPuente.materiales+' materiales · '+fB(m.sinPuente.valor)+' en SAP. Complete la columna "Código de abasto" y devuelva el archivo a la Torre de Control.',
