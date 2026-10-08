@@ -113,14 +113,27 @@ function trzPost_(payload) {
 /* ------------------------------------------------------------------ */
 
 function trzHoja_(nombre, encabezados) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(nombre);
-  if (!sh) {
-    sh = ss.insertSheet(nombre);
-    sh.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
-    sh.setFrozenRows(1);
+  // El libro de citas es pesado: Sheets a veces responde "timed out".
+  // Reintenta hasta 4 veces con espera creciente antes de rendirse.
+  var ultimoError = null;
+  for (var intento = 1; intento <= 4; intento++) {
+    try {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sh = ss.getSheetByName(nombre);
+      if (!sh) {
+        sh = ss.insertSheet(nombre, ss.getNumSheets());
+        sh.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
+        sh.setFrozenRows(1);
+        SpreadsheetApp.flush();
+      }
+      return sh;
+    } catch (e) {
+      ultimoError = e;
+      Logger.log('trzHoja_(' + nombre + ') intento ' + intento + ' falló: ' + e);
+      Utilities.sleep(2000 * intento);
+    }
   }
-  return sh;
+  throw ultimoError;
 }
 
 function trzIdx_(hdr) {
@@ -436,14 +449,16 @@ function trzInstalar() {
   // Listas desplegables en AREA, ROL y ACTIVO; PIN como texto (conserva ceros).
   var areas = [];
   TRZ_PASOS.forEach(function (p) { if (areas.indexOf(p[1]) < 0) areas.push(p[1]); });
-  su.getRange('A2:A').setNumberFormat('@');
-  su.getRange('C2:C').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(areas, true).build());
-  su.getRange('D2:D').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['OPERADOR', 'SUPERVISOR'], true).build());
-  su.getRange('E2:E').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build());
+  su.getRange('A2:A300').setNumberFormat('@');
+  su.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(areas, true).build());
+  su.getRange('D2:D300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['OPERADOR', 'SUPERVISOR'], true).build());
+  su.getRange('E2:E300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build());
+  SpreadsheetApp.flush();
 
   // Protección: solo el dueño del libro edita usuarios y bitácora.
   [TRZ_HOJA_USUARIOS, TRZ_HOJA_EVENTOS, TRZ_HOJA_ACCESOS].forEach(function (n) {
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(n);
+    if (sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).length) return; // ya protegida (re-ejecución)
     var pr = sh.protect().setDescription('Trazabilidad RB · solo script y Torre de Control');
     pr.removeEditors(pr.getEditors());
     if (pr.canDomainEdit()) pr.setDomainEdit(false);
