@@ -92,6 +92,36 @@ function avpEsc_(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').r
 function avpFmt_(n) { return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
 /* ------------------------------------------------------------------ */
+/*  Alias de proveedor: la misma matriz que usan los demás tableros     */
+/* ------------------------------------------------------------------ */
+/* Devuelve una función nombre → nombre del maestro ('' si no lo reconoce).
+   1) igualdad normalizada contra el maestro; 2) la matriz MAESTRO_ALIAS_PROVEEDOR
+   del libro; 3) los alias que publica entradas_recepcion.json (aliasProveedor),
+   que salen de esa misma matriz. Una escritura nueva se agrega en la hoja de
+   alias, no aquí. */
+function avpAlias_(maestroNombres, entMeta) {
+  var canon = {}, map = {};
+  maestroNombres.forEach(function (p) { canon[avpNorm_(p)] = p; });
+  var add = function (raw, can) { var c = canon[avpNorm_(can)]; var k = avpNorm_(raw); if (c && k && !map[k]) map[k] = c; };
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MAESTRO_ALIAS_PROVEEDOR');
+    if (sh && sh.getLastRow() > 1) {
+      var v = sh.getDataRange().getValues();
+      var h = v[0].map(function (x) { return String(x || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); });
+      var iC = -1, iA = -1;
+      h.forEach(function (x, i) { if (iC < 0 && /CANON|OFICIAL|MAESTRO|NORMALIZ|ESTANDAR/.test(x)) iC = i; });
+      h.forEach(function (x, i) { if (iA < 0 && i !== iC && /ALIAS|ESCRIT|ORIGEN|RAW|VARIANTE|COMO|DIGIT/.test(x)) iA = i; });
+      if (iC >= 0 && iA >= 0) for (var i = 1; i < v.length; i++) add(v[i][iA], v[i][iC]);
+    }
+  } catch (e) {}
+  try {
+    var al = (entMeta || avpJson_('entradas_recepcion.json')._meta || {}).aliasProveedor || [];
+    al.forEach(function (a) { add(a.raw, a.canon); });
+  } catch (e2) {}
+  return function (nombre) { var k = avpNorm_(nombre); return canon[k] || map[k] || ''; };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Directorios                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -103,20 +133,26 @@ function avpConstruirDirectorio_() {
   var maestro = avpJson_('maestro_renglones.json');
   var canon = {};
   Object.keys(maestro.catalogo || {}).forEach(function (p) { canon[avpNorm_(p)] = p; });
+  var resolver = avpAlias_(Object.keys(canon).map(function (k) { return canon[k]; }));
 
   // Correos por proveedor desde SOLICITUDES (más recientes primero)
   var ss = SpreadsheetApp.getActiveSpreadsheet(), sol = ss.getSheetByName('SOLICITUDES');
   var correos = {};
   if (sol && sol.getLastRow() > 1) {
     var v = sol.getDataRange().getValues(), c = avpIdx_(v[0]);
-    var iE = c.EMPRESA, iC = c.CORREO, iM = c.MARCA_TEMPORAL;
+    // Columnas por nombre, tolerando variantes del encabezado.
+    var busca = function (re) { for (var h in c) if (re.test(h)) return c[h]; return undefined; };
+    var iE = c.EMPRESA != null ? c.EMPRESA : busca(/PROVEEDOR|EMPRESA/);
+    var iC = c.CORREO != null ? c.CORREO : busca(/CORREO|EMAIL|E-MAIL/);
+    var iM = c.MARCA_TEMPORAL != null ? c.MARCA_TEMPORAL : busca(/MARCA|FECHA/);
     var filas = [];
-    for (var i = 1; i < v.length; i++) {
-      var k = avpNorm_(v[i][iE]);
-      if (!k || !canon[k]) continue;
+    for (var i = 1; i < v.length && iE != null && iC != null; i++) {
+      var nombreCanon = resolver(v[i][iE]);
+      if (!nombreCanon) continue;
+      var k = avpNorm_(nombreCanon);
       String(v[i][iC] || '').split(/[,;\s]+/).forEach(function (m) {
         m = m.trim().toLowerCase();
-        if (avpCorreoOk_(m)) filas.push([k, m, v[i][iM] instanceof Date ? v[i][iM].getTime() : 0]);
+        if (avpCorreoOk_(m) && !/@(css\.gob\.pa|torrecontrolcss\.org)$/.test(m)) filas.push([k, m, iM != null && v[i][iM] instanceof Date ? v[i][iM].getTime() : 0]);
       });
     }
     filas.sort(function (a, b) { return b[2] - a[2]; });
@@ -247,24 +283,27 @@ function avpLeerDirectorios_() {
 
 function avpDatos_() {
   var maestro = avpJson_('maestro_renglones.json').catalogo || {};
-  var ent = avpJson_('entradas_recepcion.json').rows || [];
+  var entJ = avpJson_('entradas_recepcion.json'), ent = entJ.rows || [];
   var ct = avpJson_('citas_trazabilidad.json');
   var tr = avpJson_('transitos_oc.json').rows || [];
   var sal = avpJson_('saldos_en_linea.json');
   var corte = Utilities.formatDate(new Date(Date.now() - AVP_DIAS_VIGENCIA * 864e5), 'America/Panama', 'yyyy-MM-dd');
+  var entMeta = entJ._meta || {};
+  var resolver = avpAlias_(Object.keys(maestro), entMeta);
+  var kProv = function (n) { return avpNorm_(resolver(n) || n); };   // nombre de cualquier fuente → llave del maestro
 
   var ultima = {};
-  ent.forEach(function (e) { var k = avpNorm_(e.prov) + '|' + avpCod_(e.cod); if (String(e.fRec) > (ultima[k] || '')) ultima[k] = String(e.fRec); });
+  ent.forEach(function (e) { var k = kProv(e.prov) + '|' + avpCod_(e.cod); if (String(e.fRec) > (ultima[k] || '')) ultima[k] = String(e.fRec); });
   var col = ct._meta.columnas, ix = {}; col.forEach(function (c, i) { ix[c] = i; });
   ct.rows.forEach(function (r) {
     var est = String(r[ix.estado] || '').toUpperCase();
     if (est !== 'ASISTIO' && est !== 'ENTREGADO') return;
-    var k = avpNorm_(r[ix.proveedor]) + '|' + avpCod_(r[ix.codigo]);
+    var k = kProv(r[ix.proveedor]) + '|' + avpCod_(r[ix.codigo]);
     var f = String(r[ix.fechaConfirmada] || r[ix.fechaSolicitada] || '');
     if (f > (ultima[k] || '')) ultima[k] = f;
   });
   var trans = {};
-  tr.forEach(function (t) { var k = avpNorm_(t.prov) + '|' + avpCod_(t.cod); (trans[k] = trans[k] || []).push(t); });
+  tr.forEach(function (t) { var k = kProv(t.prov) + '|' + avpCod_(t.cod); (trans[k] = trans[k] || []).push(t); });
 
   var out = {};
   Object.keys(maestro).forEach(function (p) {
