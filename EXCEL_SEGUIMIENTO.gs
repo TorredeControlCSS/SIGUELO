@@ -65,11 +65,21 @@ function excelSeguimiento_(citas) {
   });
 }
 
+/* Desde el editor no se pueden pasar argumentos: sin empresa, prueba con
+   el proveedor que más citas tiene en SOLICITUDES. */
 function excelSeguimientoProbar(empresa) {
-  var r = getCitasProveedor(empresa || '');
+  empresa = String(empresa || '').trim();
+  if (!empresa) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SOLICITUDES_SHEET_NAME);
+    var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim().toUpperCase(); });
+    var iE = hdr.indexOf('EMPRESA'), cuenta = {};
+    sh.getRange(2, iE + 1, sh.getLastRow() - 1, 1).getValues().forEach(function (r) { var e = String(r[0] || '').trim(); if (e) cuenta[e] = (cuenta[e] || 0) + 1; });
+    empresa = Object.keys(cuenta).sort(function (a, b) { return cuenta[b] - cuenta[a]; })[0] || '';
+  }
+  var r = getCitasProveedor(empresa);
   var citas = (r && r.citas) || [];
   var s = excelSeguimiento_(citas);
   var n = 0;
   citas.forEach(function (c, i) { if (s[i][0]) { n++; if (n <= 10) Logger.log(c.oc + ' · ' + c.cod_abasto + ' → ' + JSON.stringify(s[i])); } });
-  Logger.log('Citas: ' + citas.length + ' · con seguimiento: ' + n);
+  Logger.log('Proveedor: ' + empresa + ' · citas: ' + citas.length + ' · con seguimiento: ' + n);
 }
