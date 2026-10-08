@@ -1,0 +1,36 @@
+name: Seguimiento de entregas
+# Recalcula seguimiento_entregas.json cuando SIGUELO publica entradas o kardex.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'entradas_recepcion.json'
+      - 'kardex/**'
+      - 'scripts/seguimiento_entregas.js'
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: seguimiento-entregas
+  cancel-in-progress: false
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Construir seguimiento_entregas.json
+        run: node scripts/seguimiento_entregas.js
+      - name: Publicar si cambió
+        run: |
+          if git diff --quiet -- seguimiento_entregas.json; then echo "Sin cambios"; exit 0; fi
+          git config user.name "Diego Bethancourth"
+          git config user.email "diego.bethancourth@gmail.com"
+          git add seguimiento_entregas.json
+          git commit -m "Actualizar seguimiento_entregas.json"
+          for i in 1 2 3; do git pull --rebase origin main && git push && exit 0; sleep 5; done
+          exit 1
