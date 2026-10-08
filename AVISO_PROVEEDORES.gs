@@ -226,7 +226,8 @@ function avpDatos_() {
       filas.push({
         cod: c, desc: r.desc || '',
         pa: pa ? pa.cobertura : null, ch: ch ? ch.cobertura : null, dv: dv ? dv.cobertura : null,
-        saldoPa: pa ? Number(pa.saldo) || 0 : 0,
+        sPa: pa ? Number(pa.saldo) || 0 : null, sCh: ch ? Number(ch.saldo) || 0 : null, sDv: dv ? Number(dv.saldo) || 0 : null,
+        nac: Number(s.total_nacional) || 0,
         ue: s.total_consumo_ue ? (Number(s.total_ue) || 0) / Number(s.total_consumo_ue) : null,
         ueSaldo: Number(s.total_ue) || 0,
         ueEsc: conCob.filter(function (x) { return Number(x.cobertura) < 1; }).length, ueN: conCob.length,
@@ -252,6 +253,12 @@ function avpPill_(m) {
   return '<span style="background:' + c[0] + ';color:' + c[1] + ';padding:1px 7px;border-radius:9px;font-weight:600;white-space:nowrap">' + r.toFixed(1) + ' m</span>';
 }
 
+/* Celda de un punto: saldo en unidades arriba y su cobertura debajo. */
+function avpCelda_(saldo, cob) {
+  if (saldo == null) return '<span style="color:#999">—</span>';
+  return '<div style="font-family:Consolas,monospace;' + (saldo <= 0 ? 'color:#9b1c2c;font-weight:700' : '') + '">' + avpFmt_(saldo) + '</div><div style="margin-top:2px">' + avpPill_(cob) + '</div>';
+}
+
 function avpHtml_(p, saldosAl, franja) {
   var F = p.filas, hoy = avpHoy_();
   var crit = F.filter(function (x) { return x.pa != null && Math.round(x.pa * 10) / 10 < 1; }).length;
@@ -264,10 +271,11 @@ function avpHtml_(p, saldosAl, franja) {
   var filas = F.slice(0, AVP_MAX_FILAS).map(function (x) {
     var vencTxt = x.pend > 0 && x.venc ? (x.venc < hoy ? '<div style="font-size:11px;color:#9b1c2c">venció ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>' : '<div style="font-size:11px;color:#777">vence ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>') : '';
     return '<tr><td style="padding:7px 8px;border-bottom:1px solid #e6e9ee"><b style="color:#0C447C;font-family:Consolas,monospace">' + x.cod + '</b> ' + avpEsc_(String(x.desc).slice(0, 70)) + '</td>' +
-      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.pa) + '</td>' +
-      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.ch) + '</td>' +
-      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.dv) + '</td>' +
-      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpPill_(x.ue) + '<div style="font-size:11px;color:#777">' + x.ueEsc + ' de ' + x.ueN + ' UE bajo 1 mes</div></td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.sPa, x.pa) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.sCh, x.ch) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.sDv, x.dv) + '</td>' +
+      '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.ueSaldo, x.ue) + '<div style="font-size:11px;color:#777">' + x.ueEsc + ' de ' + x.ueN + ' UE bajo 1 mes</div></td>' +
+      '<td style="text-align:right;padding-right:6px;border-bottom:1px solid #e6e9ee;font-family:Consolas,monospace;font-weight:600">' + avpFmt_(x.nac) + '</td>' +
       '<td style="text-align:right;padding-right:8px;border-bottom:1px solid #e6e9ee;font-family:Consolas,monospace">' + (x.pend > 0 ? avpFmt_(x.pend) : '—') + vencTxt + '</td></tr>';
   }).join('');
   var resto = F.length > AVP_MAX_FILAS ? '<p style="font-size:12px;color:#666">Se muestran los ' + AVP_MAX_FILAS + ' más críticos de ' + F.length + '. Los demás se consultan en Solicitud de Cita al elegir el renglón.</p>' : '';
@@ -276,11 +284,11 @@ function avpHtml_(p, saldosAl, franja) {
     '<div style="font-size:19px;font-weight:700">Cobertura de sus renglones · ' + avpEsc_(p.nombre) + '</div>' +
     '<div style="font-size:12.5px;opacity:.9">Caja de Seguro Social · Dirección Nacional de Logística · Saldos al ' + saldosAl.split('-').reverse().join('/') + '</div></td></tr></table></div>' +
     '<div style="padding:16px 20px;font-size:14px;line-height:1.5;border:1px solid #ddd;border-top:0">' +
-    '<p>Estimado proveedor: los <b>' + F.length + ' renglones</b> que usted abastece a la CSS tienen hoy las coberturas que se muestran abajo en los CEDIS Panamá, Chiriquí y Divisa, con una cobertura conjunta en la red de unidades ejecutoras de <b>' + ueTxt + '</b>. ' +
+    '<p>Estimado proveedor: los <b>' + F.length + ' renglones</b> que usted abastece a la CSS tienen hoy el inventario y la cobertura que se muestran abajo en los CEDIS Panamá, Chiriquí y Divisa —donde usted entrega— y en la red de unidades ejecutoras, con una cobertura conjunta en las UE de <b>' + ueTxt + '</b>. ' +
     (crit ? '<b>' + crit + (crit === 1 ? ' está' : ' están') + ' por debajo de un mes en CEDIS Panamá.</b> ' : '') +
     (conPend ? 'Usted tiene saldo pendiente de entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + ': le pedimos agendar su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Cuando tenga una orden de compra o solicitud de entrega, agende su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
-    '<p style="font-size:12px;color:#666;margin-top:12px">Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
+    '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
     '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Control Operativo DINALOG.</p></div></div>';
 }
 
