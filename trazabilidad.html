@@ -212,6 +212,38 @@ tr.click:hover td{background:var(--surface2)}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1300;background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:8px;font-size:.84rem;max-width:92vw;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none}
 #toast.err{background:var(--bad);color:#fff}
 .evlink{font-size:.76rem;font-weight:600;color:var(--accent-ink)}
+/* flujo documental */
+.fl{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px}
+.flg{border:1px solid var(--line);border-radius:10px;padding:6px 8px 8px;background:var(--surface)}
+.flg.ok{border-color:var(--ok);background:var(--ok-soft)}
+.flg.ghost{border-style:dashed;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line) 6px 7px)}
+.flg-h{font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:5px;display:flex;justify-content:space-between;gap:8px}
+.flg-b{display:flex;flex-wrap:wrap;align-items:center;row-gap:6px}
+.fn{font:inherit;color:var(--ink);border:1.5px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 7px;min-width:70px;text-align:left;cursor:pointer;display:flex;flex-direction:column;line-height:1.2;position:relative}
+.fn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fn .c{font-family:var(--f-mono);font-size:.68rem;font-weight:700;color:var(--accent-ink)}
+.fn .a{font-size:.68rem;white-space:nowrap}
+.fn .d{font-size:.62rem;color:var(--muted)}
+.fn.done{background:var(--ok-soft);border-color:var(--ok)}
+.fn.done .d{color:var(--ok);font-weight:600}
+.fn.now{background:var(--warn-soft);border-color:var(--warn);animation:latido 1.6s ease-in-out infinite}
+.fn.now .d{color:var(--warn);font-weight:700}
+.fn.sel{box-shadow:0 0 0 2px var(--accent)}
+.fn.ghostn{cursor:default;background:transparent;border-style:dashed}
+.fn .dev{position:absolute;top:-7px;right:-6px;background:var(--bad);color:#fff;border-radius:9px;font-size:.58rem;font-weight:700;padding:0 5px}
+@keyframes latido{0%,100%{box-shadow:0 0 0 0 rgba(168,112,15,.45)}50%{box-shadow:0 0 0 5px rgba(168,112,15,0)}}
+.fla{display:inline-block;width:14px;height:2px;background:var(--border);position:relative;flex:none}
+.fla::after{content:'';position:absolute;right:-2px;top:-4px;border:5px solid transparent;border-left:6px solid var(--border);border-right:0}
+.fla.big{width:22px;height:3px}
+.fla.ok{background:var(--ok)}.fla.ok::after{border-left-color:var(--ok)}
+.fla.vivo{background:repeating-linear-gradient(90deg,var(--warn) 0 4px,transparent 4px 8px);background-size:16px 100%;animation:fluye .7s linear infinite}
+.fla.vivo::after{border-left-color:var(--warn)}
+@keyframes fluye{to{background-position:16px 0}}
+@media (prefers-reduced-motion:reduce){.fn.now,.fla.vivo{animation:none}}
+.fdet{margin-top:10px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:9px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface)}
+.fdet-t{display:flex;gap:10px;align-items:flex-start;font-size:.86rem}
+.fdet-t .c{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink);font-size:.8rem;padding-top:2px}
+.fdet .st{font-size:.78rem;color:var(--muted)}.fdet .st.ok{color:var(--ok);font-weight:600}.fdet .st.now{color:var(--warn);font-weight:600}
 @media print{body *{visibility:hidden} #caratula,#caratula *{visibility:visible} #caratula{position:absolute;left:0;top:0;border:0}}
 
 /* portal del proveedor (imita solicitud_cita.html) */
@@ -597,18 +629,45 @@ function renderFicha(){
    '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
   h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos con evidencia</h3><p>'+(x.f101?'Cada área registra su paso adjuntando la foto o el PDF del documento firmado':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
-   (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'<div class="doclist">';
-  PASOS.forEach(p=>{const r=reg.filter(z=>z.paso===p[0]);const last=r[r.length-1];
-    h+='<div class="drow'+(last?' reg':'')+'"><span class="cd">'+(p[0]==='C12'?'C·12→13':p[0])+'</span><div><b style="font-size:.86rem">'+esc(p[1])+'</b> · <span style="font-size:.84rem">'+esc(p[2])+'</span><div class="st">'+(last?((last.tipo==='DEVUELVE'?'Devuelto a '+last.dest+' · '+esc(last.motivo):'Registrado')+' · '+esc(last.quien)+' · '+last.ts.replace('T',' ')):'Sin registro')+'</div></div>'+
-      '<div class="toolbar">'+(last&&last.evidUrl?'<a class="evlink" href="'+esc(last.evidUrl)+'" target="_blank" rel="noopener">Ver evidencia</a>':(last&&last.thumb?'<img class="thumb" alt="Evidencia" src="'+last.thumb+'">':(last&&last.evid?'<span class="mono" style="font-size:.72rem">'+esc(last.evid)+'</span>':'')))+(sig&&sig[0]===p[0]?(puede(p[0])?'<button class="btn small" data-reg="'+p[0]+'">Registrar</button>':'<span class="st">Le corresponde a '+esc(p[1])+'</span>'):'')+'</div></div>';});
-  h+='</div>'+(VIVO_REG?bitacora(x):'')+'<div id="formBox"></div></div><div id="carBox"></div>';
+   (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'';
+  h+=flujoDoc(x,reg,hechos,sig);
+  h+=(VIVO_REG?bitacora(x):'')+'<div id="formBox"></div></div><div id="carBox"></div>';
   box.innerHTML=h;
   box.querySelectorAll('[data-reg]').forEach(b=>b.addEventListener('click',()=>{PASOFORM=b.dataset.reg;EVID=null;
-    if(VIVO_REG&&!SES){pinModal(()=>{renderFicha();if(puede(PASOFORM))renderForm(X.find(v=>v.id===SELID));else aviso('Ese paso le corresponde a otra área.',true);});return;}renderForm(x);}));
-  if($('#bPin'))$('#bPin').onclick=()=>pinModal();
+    if(VIVO_REG&&!SES){pinModal(()=>{renderFicha();if(puede(PASOFORM)){renderForm(X.find(v=>v.id===SELID));bajarA('#frm');}else{aviso('Ese paso le corresponde a otra área.',true);bajarA('#fdet');}});return;}renderForm(x);bajarA('#frm');}));
+  box.querySelectorAll('.fn[data-p]').forEach(b=>b.addEventListener('click',()=>{PSEL=b.dataset.p;renderFicha();}));
+  if($('#bPin'))$('#bPin').onclick=()=>pinModal(()=>{renderFicha();bajarA('#fdet');});
   if($('#bSalir'))$('#bSalir').onclick=salir;
   if($('#bRelee'))$('#bRelee').onclick=()=>{delete EVT[x.id];renderFicha();};
   $('#bCar').onclick=()=>renderCaratula(x);
+}
+let PSEL=null,PSEL_ID=null;
+function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
+const GRUPOS=[['Control documental · Recepción y Control',['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11']],['Contabilidad',['P12','C12','P13']],['Publicación',['P14']]];
+function flujoDoc(x,reg,hechos,sig){
+  if(PSEL_ID!==x.id){PSEL_ID=x.id;PSEL=null;}
+  const cod=p=>p==='C12'?'C·12→13':p;
+  const info=p=>PASOS.find(z=>z[0]===p);
+  const tsHecho=p=>{if(!hechos.has(p))return null;const t=reg.filter(r=>r.tipo==='TRANSFIERE'&&r.paso===p);return t.length?t[t.length-1].ts:null;};
+  const devs=p=>reg.filter(r=>r.tipo==='DEVUELVE'&&r.paso===p).length;
+  const sel=PSEL||(sig?sig[0]:'P14');
+  const node=p=>{const q=info(p),done=hechos.has(p),now=sig&&sig[0]===p,t=tsHecho(p),dv=devs(p);
+    const cls='fn '+(done?'done':(now?'now':'pend'))+(p===sel?' sel':'');
+    return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(now?'Le toca':'—'))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
+  const flecha=(a,b)=>'<span class="fla'+(hechos.has(a)&&hechos.has(b)?' ok':(hechos.has(a)&&sig&&sig[0]===b?' vivo':''))+'" aria-hidden="true"></span>';
+  let h='<div class="fl" role="list" aria-label="Recorrido documental del expediente">';
+  GRUPOS.forEach((g,gi)=>{const ps=g[1];const gdone=ps.every(p=>hechos.has(p));
+    h+=(gi?flecha(GRUPOS[gi-1][1].slice(-1)[0],ps[0]).replace('fla','fla big'):'')+'<div class="flg'+(gdone?' ok':'')+'" role="listitem"><div class="flg-h">'+g[0]+' <span>'+ps.filter(p=>hechos.has(p)).length+'/'+ps.length+'</span></div><div class="flg-b">'+ps.map((p,i)=>(i?flecha(ps[i-1],p):'')+node(p)).join('')+'</div></div>';});
+  h+=flecha('P14','X').replace('fla','fla big')+'<div class="flg ghost" role="listitem"><div class="flg-h">Contraloría y pago</div><div class="flg-b"><span class="fn pend ghostn"><span class="a">Sin registro digital</span><span class="d">fuera de SIGUELO</span></span></div></div></div>';
+  // detalle del paso seleccionado
+  const q=info(sel),done=hechos.has(sel),now=sig&&sig[0]===sel;
+  const r=reg.filter(z=>z.paso===sel),last=r[r.length-1];
+  const est=done?'Completado':(now?'Le toca ahora':(x.f101?'Pendiente':'Se habilita con la entrada contable 101'));
+  const quien=last?((last.tipo==='DEVUELVE'?'Devuelto a '+esc(last.dest)+' · '+esc(last.motivo||'')+' · ':'')+esc(last.quien||'')+' · '+esc(String(last.ts||'').replace('T',' '))):'';
+  const ev=last&&last.evidUrl?'<a class="evlink" href="'+esc(last.evidUrl)+'" target="_blank" rel="noopener">Ver evidencia</a>':(last&&last.thumb?'<img class="thumb" alt="Evidencia" src="'+last.thumb+'">':'');
+  const acc=now?(puede(sel)?'<button class="btn" data-reg="'+sel+'">Registrar '+cod(sel)+'</button>':'<span class="st">Le corresponde a '+esc(q[1])+'</span>'):'';
+  h+='<div class="fdet" id="fdet"><div class="fdet-t"><span class="c">'+cod(sel)+'</span><div><b>'+esc(q[1])+'</b> · '+esc(q[2])+'<div class="st '+(done?'ok':(now?'now':''))+'">'+est+(quien?' · '+quien:'')+'</div></div></div><div class="toolbar">'+ev+acc+'</div></div>';
+  return h;
 }
 function barraSesion(x){
   const nc=COLA.filter(c=>c.exp===x.id).length;
