@@ -887,7 +887,7 @@ async function init(){
       const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
     });
     if(!MAESTRO.proveedores || !MAESTRO.proveedores.length){
-      mostrarAlerta('err','El catálogo de renglones llegó vacío. Avise a Torre de Control.');
+      mostrarAlerta('err','El catálogo de renglones llegó vacío. Avise a Control Operativo DINALOG.');
     }
   }catch(e){
     mostrarAlerta('err','No se pudo cargar el catálogo de renglones.');
@@ -1318,7 +1318,7 @@ function mcDetalle(d){
   const dias=e&&cur>=0?mcDiasHab(e.fRec,new Date().toISOString().slice(0,10)):null;
   return '<div class="mc-det" role="region" aria-label="Avance de la entrega"><div class="mc-det-h"><span><b>'+escAttr(d.descripcion||'')+'</b></span><span class="ids">OC '+escAttr(mcOC(d.oc)||d.oc||'')+' · renglón '+escAttr(mcCod(d.cod_abasto))+'</span></div>'+
     '<div class="mc-steps">'+s.map((x,j)=>'<div class="mc-step '+((x.f||x.f2)?'d':(j===cur?'c':(x.na?'na':'')))+'"><span class="t">'+((x.f||x.f2)?'✓ ':'')+x.t+'</span><span class="f">'+(x.f?escAttr(x.f.split('-').reverse().join('/')):(x.f2?'Sin fecha registrada':(j===cur?'En esta etapa':(x.na?'Aún sin registro digital':'Pendiente'))))+'</span>'+(x.n&&x.f?'<span>'+escAttr(x.n)+'</span>':'')+'</div>').join('')+'</div>'+
-    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Dudas: Torre de Control, ext. 86322.</div></div>';
+    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Consultas: Control Operativo DINALOG.</div></div>';
 }
 function mcDiasHab(a,b){ let n=0; const d=new Date(a+'T12:00:00'), f=new Date(b+'T12:00:00'); while(d<f){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w&&w<6) n++; } return n; }
 function mcCargarSeguimiento(){
@@ -1453,7 +1453,7 @@ function usarTransito(t){
     selR.dispatchEvent(new Event('change'));
     mostrarAlerta('ok','OC '+(t.n_documento||'')+' cargada. Verifique los datos y capture sus lotes (cantidad de referencia: '+_fmtNumCita(t.cantidad)+').');
   }else{
-    mostrarAlerta('err','Cargué la OC '+(t.n_documento||'')+', pero el renglón '+(t.cod_abasto||'')+' no aparece en su catálogo. Selecciónelo manualmente o avise a Torre de Control.');
+    mostrarAlerta('err','Cargué la OC '+(t.n_documento||'')+', pero el renglón '+(t.cod_abasto||'')+' no aparece en su catálogo. Selecciónelo manualmente o avise a Control Operativo DINALOG.');
     selR.focus();
   }
   // Lleva al formulario ya prellenado (la lista vive ahora en la pestaña Por agendar).

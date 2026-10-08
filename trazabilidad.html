@@ -255,6 +255,18 @@ tr.click:hover td{background:var(--surface2)}
 .favbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#3fa45b);border-radius:5px;transition:width .6s ease}
 .fdev{background:var(--bad-soft);border:1px solid var(--bad);border-radius:8px;padding:7px 10px;font-size:.8rem;margin-bottom:6px;color:var(--ink)}
 .fdev b{color:var(--bad)}.fdev span{color:var(--muted)}
+.flg{background:var(--k-blue);border-color:transparent}
+.flg:nth-child(3){background:var(--k-amb)}
+.flg:nth-child(5){background:var(--k-green)}
+.flg.ok{background:var(--ok-soft);border-color:var(--ok)}
+.fn.pend{background:var(--surface);border-color:var(--line)}
+.fn.now.sem-v{background:var(--k-green);border-color:var(--ok)}
+.fn.now.sem-v .d{color:var(--ok)}
+.fn.now.sem-a{background:var(--k-amb);border-color:var(--warn)}
+.fn.now.sem-r{background:var(--k-red);border-color:var(--bad);animation:latidoRojo 1.4s ease-in-out infinite}
+.fn.now.sem-r .d{color:var(--bad)}
+.fsem{display:flex;gap:12px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);margin-top:4px}
+.fsem i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 @media (prefers-reduced-motion:reduce){.fn.now,.fla.vivo,.fn.devuelto,.fn.recien{animation:none}}
 .fdet{margin-top:10px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:9px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface)}
 .fdet-t{display:flex;gap:10px;align-items:flex-start;font-size:.86rem}
@@ -595,7 +607,7 @@ const guardar=()=>{try{localStorage.setItem('rb_hitos',JSON.stringify(HITOS));}c
 /* ---------- registro en vivo: usuarios por PIN, bitácora en SIGUELO, evidencia en Drive ---------- */
 const API='https://script.google.com/macros/s/AKfycbwVw0ACNMhdN6d-JsI1lyP2iKHBVgWXI5nK3rA6blEhF3l8t2Wuwk2TpRmaanB186Dk/exec';
 const VIVO_REG=location.hostname.endsWith('github.io');
-let SES=null;try{SES=JSON.parse(sessionStorage.getItem('rb_ses')||'null');}catch(e){SES=null;}
+let SES=null;try{SES=JSON.parse(localStorage.getItem('rb_ses')||'null');if(SES&&(!SES.exp||SES.exp<Date.now())){SES=null;localStorage.removeItem('rb_ses');}}catch(e){SES=null;}
 const EVT={};let RES={},RESOK=false;
 let COLA=[];try{COLA=JSON.parse(localStorage.getItem('rb_cola')||'[]');}catch(e){COLA=[];}
 const guardarCola=()=>{try{localStorage.setItem('rb_cola',JSON.stringify(COLA));return true;}catch(e){return false;}};
@@ -622,7 +634,7 @@ function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(
 const puede=p=>!VIVO_REG||!SES||SES.pasos.indexOf(p)>=0;
 function pinModal(luego){
   if($('#pinOv'))return;const o=document.createElement('div');o.id='pinOv';
-  o.innerHTML='<div class="pinbox" role="dialog" aria-modal="true" aria-labelledby="pinT"><img src="./icons/icon-192.png" alt="" width="44" height="44"><h3 id="pinT">Ingreso con PIN</h3><p>Su PIN identifica quién registra cada paso del expediente. La sesión se cierra al cerrar la pestaña.</p><input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••" aria-label="PIN"><div class="err" id="pinErr" role="alert"></div><div class="toolbar" style="justify-content:center"><button class="btn" id="pinOk">Ingresar</button><button class="btn ghost" id="pinNo">Cancelar</button></div></div>';
+  o.innerHTML='<div class="pinbox" role="dialog" aria-modal="true" aria-labelledby="pinT"><img src="./icons/icon-192.png" alt="" width="44" height="44"><h3 id="pinT">Ingreso con PIN</h3><p>Su PIN identifica quién registra cada paso del expediente. La sesión dura la jornada (12 horas) en este equipo; use Salir si comparte la computadora.</p><input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••" aria-label="PIN"><div class="err" id="pinErr" role="alert"></div><div class="toolbar" style="justify-content:center"><button class="btn" id="pinOk">Ingresar</button><button class="btn ghost" id="pinNo">Cancelar</button></div></div>';
   document.body.appendChild(o);const inp=$('#pinIn');inp.focus();
   const cerrar=()=>o.remove();
   $('#pinNo').onclick=cerrar;o.addEventListener('click',ev=>{if(ev.target===o)cerrar();});
@@ -631,11 +643,11 @@ function pinModal(luego){
     let r;try{r=await apiPost('trzLogin',{pin:pin});}catch(err){r={success:false,error:'Sin conexión con SIGUELO. Reintente cuando tenga señal.'};}
     $('#pinOk').disabled=false;$('#pinOk').textContent='Ingresar';
     if(!r.success){$('#pinErr').textContent=r.error||'PIN incorrecto.';inp.value='';inp.focus();return;}
-    SES={pin:pin,nombre:r.nombre,area:r.area,rol:r.rol,pasos:r.pasos||[]};try{sessionStorage.setItem('rb_ses',JSON.stringify(SES));}catch(e){}
+    SES={pin:pin,nombre:r.nombre,area:r.area,rol:r.rol,pasos:r.pasos||[],exp:Date.now()+12*3600e3};try{localStorage.setItem('rb_ses',JSON.stringify(SES));}catch(e){}
     cerrar();aviso('Bienvenido(a), '+r.nombre+' · '+r.area);enviarCola();if(luego)luego();else renderFicha();};
   $('#pinOk').onclick=ok;inp.addEventListener('keydown',ev=>{if(ev.key==='Enter')ok();if(ev.key==='Escape')cerrar();});
 }
-function salir(){SES=null;try{sessionStorage.removeItem('rb_ses');}catch(e){}$('#formBox')&&($('#formBox').innerHTML='');renderFicha();}
+function salir(){SES=null;try{localStorage.removeItem('rb_ses');}catch(e){}$('#formBox')&&($('#formBox').innerHTML='');renderFicha();}
 async function enviarCola(){
   if(!SES||!COLA.length||!navigator.onLine||enviarCola.ocup)return;enviarCola.ocup=true;
   try{for(let i=0;i<COLA.length;){const it=COLA[i];if(it.nombre!==SES.nombre){i++;continue;}
@@ -704,9 +716,12 @@ function flujoDoc(x,reg,hechos,sig){
   const dev=ultimo&&ultimo.tipo==='DEVUELVE'?ultimo:null;
   const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
   const nHechos=ord.filter(p=>hechos.has(p)).length;
+  const ultTs=reg.length?String(reg[reg.length-1].ts||'').slice(0,10):'';
+  const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
+  const sem=espera==null?'':(espera<=2?' sem-v':(espera<=5?' sem-a':' sem-r'));
   const node=p=>{const q=info(p),done=hechos.has(p),now=sig&&sig[0]===p,t=tsHecho(p),dv=devs(p);
-    const cls='fn '+(done?'done':(now?'now':'pend'))+(now&&dev?' devuelto':'')+(!done&&!now&&reab.has(p)?' reab':'')+(p===sel?' sel':'')+(p===JUSTO?' recien':'');
-    return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(now?(dev?'Corregir':'Le toca'):(reab.has(p)?'Repetir':'—')))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
+    const cls='fn '+(done?'done':(now?'now'+(dev?'':sem):'pend'))+(now&&dev?' devuelto':'')+(!done&&!now&&reab.has(p)?' reab':'')+(p===sel?' sel':'')+(p===JUSTO?' recien':'');
+    return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(now?(dev?'Corregir':'Le toca · '+espera+' d'):(reab.has(p)?'Repetir':'—')))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
   const flecha=(a,b)=>'<span class="fla'+(hechos.has(a)&&hechos.has(b)?' ok':(hechos.has(a)&&sig&&sig[0]===b?' vivo':''))+'" aria-hidden="true"></span>';
   const pct=Math.round(100*nHechos/ord.length);
   let h='<div class="favance"><span><b>Avance documental:</b> '+nHechos+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nHechos+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
@@ -716,15 +731,16 @@ function flujoDoc(x,reg,hechos,sig){
   GRUPOS.forEach((g,gi)=>{const ps=g[1];const gdone=ps.every(p=>hechos.has(p));
     h+=(gi?flecha(GRUPOS[gi-1][1].slice(-1)[0],ps[0]).replace('fla','fla big'):'')+'<div class="flg'+(gdone?' ok':'')+(ps.some(p=>sig&&sig[0]===p)?' activo':'')+'" role="listitem"><div class="flg-h">'+g[0]+' <span>'+ps.filter(p=>hechos.has(p)).length+'/'+ps.length+'</span></div><div class="flg-bar"><i style="width:'+Math.round(100*ps.filter(p=>hechos.has(p)).length/ps.length)+'%"></i></div><div class="flg-b">'+ps.map((p,i)=>(i?flecha(ps[i-1],p):'')+node(p)).join('')+'</div></div>';});
   h+=flecha('P14','X').replace('fla','fla big')+'<div class="flg ghost" role="listitem"><div class="flg-h">Contraloría y pago</div><div class="flg-b"><span class="fn pend ghostn"><span class="a">Sin registro digital</span><span class="d">fuera de SIGUELO</span></span></div></div></div>';
+  h+='<div class="fsem" aria-label="Leyenda"><span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>Completado</span><span><i style="background:var(--k-green)"></i>Le toca · hasta 2 días hábiles</span><span><i style="background:var(--k-amb)"></i>3 a 5 días</span><span><i style="background:var(--k-red)"></i>Más de 5 días</span><span><i style="background:var(--bad-soft);border:1px dashed var(--bad)"></i>Devuelto o a repetir</span></div>';
   // detalle del paso seleccionado
   const q=info(sel),done=hechos.has(sel),now=sig&&sig[0]===sel;
   const r=reg.filter(z=>z.paso===sel),last=r[r.length-1];
-  const est=done?'Completado':(now?(dev?'Devuelto: corregir y volver a registrar':'Le toca ahora'):(reab.has(sel)?'Se repite después de la devolución':(x.f101?'Pendiente':'Se habilita con la entrada contable 101')));
+  const est=done?'Completado':(now?(dev?'Devuelto: corregir y volver a registrar':'Le toca ahora · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+' en espera'):(reab.has(sel)?'Se repite después de la devolución':(x.f101?'Pendiente':'Se habilita con la entrada contable 101')));
   setTimeout(()=>{JUSTO=null;},50);
   const quien=last?((last.tipo==='DEVUELVE'?'Devuelto a '+esc(last.dest)+' · '+esc(last.motivo||'')+' · ':'')+esc(last.quien||'')+' · '+esc(String(last.ts||'').replace('T',' '))):'';
   const ev=last&&last.evidUrl?'<a class="evlink" href="'+esc(last.evidUrl)+'" target="_blank" rel="noopener">Ver evidencia</a>':(last&&last.thumb?'<img class="thumb" alt="Evidencia" src="'+last.thumb+'">':'');
   const acc=now?(puede(sel)?'<button class="btn" data-reg="'+sel+'">Registrar '+cod(sel)+'</button>':'<span class="st">Le corresponde a '+esc(q[1])+'</span>'):'';
-  h+='<div class="fdet" id="fdet"><div class="fdet-t"><span class="c">'+cod(sel)+'</span><div><b>'+esc(q[1])+'</b> · '+esc(q[2])+'<div class="st '+(done?'ok':(now?(dev?'bad':'now'):''))+'">'+est+(quien&&!(now&&dev)?' · '+quien:'')+'</div></div></div><div class="toolbar">'+ev+acc+'</div></div>';
+  h+='<div class="fdet" id="fdet"><div class="fdet-t"><span class="c">'+cod(sel)+'</span><div><b>'+esc(q[1])+'</b> · '+esc(q[2])+'<div class="st '+(done?'ok':(now?(dev?'bad':(espera>5?'bad':(espera>2?'now':'ok'))):''))+'">'+est+(quien&&!(now&&dev)?' · '+quien:'')+'</div></div></div><div class="toolbar">'+ev+acc+'</div></div>';
   return h;
 }
 function barraSesion(x){
@@ -818,7 +834,7 @@ function modoProveedor(qp){
   const oc=String(qp.get('oc')||'').replace(/\D/g,'').slice(0,10),ren=String(qp.get('ren')||'').trim();
   const x=X.find(v=>String(v.e.oc)===oc);
   if(!x){$('#pOc').innerHTML='<option>'+esc(oc||'—')+'</option>';$('#pRen').innerHTML='<option value="">—</option>';
-    $('#pRes').innerHTML='<p style="font-size:.86rem">No encontramos recepciones de la OC <b class="mono">'+esc(oc||'—')+'</b> en el CEDIS Panamá desde el 5 de mayo de 2026.</p><p style="font-size:.8rem;color:var(--sg-tenue)">Si entregó hace pocos días, el registro de recepción puede tardar en aparecer. Verifique que el número sea el de la orden de compra (10 dígitos, empieza con 100). Dudas: Torre de Control, ext. 86322.</p>';return;}
+    $('#pRes').innerHTML='<p style="font-size:.86rem">No encontramos recepciones de la OC <b class="mono">'+esc(oc||'—')+'</b> en el CEDIS Panamá desde el 5 de mayo de 2026.</p><p style="font-size:.8rem;color:var(--sg-tenue)">Si entregó hace pocos días, el registro de recepción puede tardar en aparecer. Verifique que el número sea el de la orden de compra (10 dígitos, empieza con 100). Consultas: Control Operativo DINALOG.</p>';return;}
   $('#pProv').innerHTML='<option>'+esc(x.e.prov)+'</option>';
   $('#pOc').innerHTML='<option>'+esc(oc)+'</option>';
   provRens();
@@ -838,7 +854,7 @@ function renderProv(){
      S3.map((s,i)=>{const done=!!s[1];const now=(i===cur&&i<LIM);const na=i>=LIM||(i===0&&!done);const cls=done?'done':(now?'now':(na?'na':''));
        const dd=done?fdf(s[1]):(now?('En esta etapa · '+x.edad+' días hábiles desde la recepción'):(na?(i===0?'Sin cita enlazada a esta entrega':'Aún sin registro digital: lo informaremos cuando el área lo registre'):'Pendiente'));
        return '<div class="s '+cls+'"><span class="ic">'+(done?'✓':(i+1))+'</span><div><div class="tt">'+s[0]+'</div><div class="dd">'+dd+(s[2]&&(done||(na&&i>0))?' · '+s[2]:'')+'</div></div></div>';}).join('')+'</div></div>';}).join('')+
-   '<p style="font-size:.78rem;color:var(--sg-tenue)">Esta consulta no muestra montos ni datos de otros proveedores. Dudas: Torre de Control, ext. 86322.</p>';
+   '<p style="font-size:.78rem;color:var(--sg-tenue)">Esta consulta no muestra montos ni datos de otros proveedores. Consultas: Control Operativo DINALOG.</p>';
 }
 
 /* ---------- Tooltip y tutorial guiado ---------- */
