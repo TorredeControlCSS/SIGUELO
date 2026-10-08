@@ -186,11 +186,13 @@ function avpConstruirDirectorio_() {
   if (String(shp.getRange(1, 4).getValue() || '').trim().toUpperCase() !== 'NOTA') shp.getRange(1, 4).setValue('NOTA').setFontWeight('bold');
   var dp = shp.getDataRange().getValues(), yp = {};
   for (var q = 1; q < dp.length; q++) yp[avpNorm_(dp[q][0])] = true;
-  var planNuevos = 0;
-  if (!yp[avpNorm_(AVP_JEFATURA)]) { shp.appendRow([AVP_JEFATURA, '', 'SI', '']); yp[avpNorm_(AVP_JEFATURA)] = true; planNuevos++; }
+  var planNuevos = 0, dl = avpLeerDirectorios_();
+  // La jefatura puede estar como fila propia o con el nombre de quien la ocupa: no se duplica.
+  if (!yp[avpNorm_(AVP_JEFATURA)] && !dl.jefatura) { shp.appendRow([AVP_JEFATURA, '', 'SI', '']); yp[avpNorm_(AVP_JEFATURA)] = true; planNuevos++; }
   tr.forEach(function (t) {
     var nm = String(t.planificador || '').trim();
-    if (!nm || /RECIEN NOMBRADOS/i.test(nm) || yp[avpNorm_(nm)]) return;
+    // Un nombre que ya se reconoce en el directorio (otra forma de escribirlo) no se agrega.
+    if (!nm || /RECIEN NOMBRADOS/i.test(nm) || yp[avpNorm_(nm)] || dl.planDe(nm)) return;
     shp.appendRow([nm, '', 'SI', '']); yp[avpNorm_(nm)] = true; planNuevos++;
   });
   var sug = avpSugerirCorreosPlanificadores_(shp);
