@@ -184,6 +184,7 @@ function avpConstruirDirectorio_() {
   var tr = avpJson_('transitos_oc.json').rows || [];
   var shp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO', 'NOTA']);
   if (String(shp.getRange(1, 4).getValue() || '').trim().toUpperCase() !== 'NOTA') shp.getRange(1, 4).setValue('NOTA').setFontWeight('bold');
+  if (String(shp.getRange(1, 5).getValue() || '').trim().toUpperCase() !== 'COPIA') shp.getRange(1, 5).setValue('COPIA').setFontWeight('bold');
   var dp = shp.getDataRange().getValues(), yp = {};
   for (var q = 1; q < dp.length; q++) yp[avpNorm_(dp[q][0])] = true;
   var planNuevos = 0, dl = avpLeerDirectorios_();
@@ -288,12 +289,18 @@ function avpLeerDirectorios_(resolver) {
   // "Selene itzel Fernandez vega"): si no calza exacto, se busca por primer nombre +
   // apellidos del directorio (una inicial vale por el apellido). Solo si hay un único correo.
   var sp = avpHoja_(AVP_HOJA_PLAN, ['NOMBRE', 'CORREO', 'ACTIVO']);
-  var dp = sp.getDataRange().getValues(), plan = {}, nombreDe = {}, lista = [];
+  var dp = sp.getDataRange().getValues(), plan = {}, nombreDe = {}, lista = [], fijosCc = [], fijosCco = [];
+  // Columna COPIA (opcional): CC = copia visible en TODOS los avisos; CCO = copia oculta en todos.
+  // Sirve para jefaturas que no son planificadores. Vacía = solo cuando es el planificador del proveedor.
+  var iCopia = avpIdx_(dp[0]).COPIA;
   var toks = function (s) { return String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z ]/g, ' ').split(/\s+/).filter(Boolean); };
   for (var j = 1; j < dp.length; j++) {
     if (String(dp[j][2] || 'SI').trim().toUpperCase() === 'NO') continue;
     var nm = String(dp[j][0] || '').trim(), m = String(dp[j][1] || '').trim().toLowerCase();
     if (!nm || !avpCorreoOk_(m)) continue;
+    var cop = iCopia != null ? String(dp[j][iCopia] || '').trim().toUpperCase() : '';
+    if ((cop === 'CC' || cop === 'SI') && fijosCc.indexOf(m) < 0) fijosCc.push(m);
+    else if ((cop === 'CCO' || cop === 'BCC') && fijosCco.indexOf(m) < 0) fijosCco.push(m);
     plan[avpNorm_(nm)] = m; nombreDe[avpNorm_(nm)] = nm;
     lista.push({ n: nm, m: m, t: toks(nm).filter(function (w) { return w.length > 1 && ['DE', 'LA', 'DEL', 'LOS'].indexOf(w) < 0; }) });
   }
@@ -312,7 +319,7 @@ function avpLeerDirectorios_(resolver) {
     return (cache[k] = ks.length === 1 ? { m: ks[0], n: ms[ks[0]] } : null);
   };
   var jefatura = plan[avpNorm_(AVP_JEFATURA)] || plan[avpNorm_(AVP_JEFATURA_SUGERIDA[0])] || '';
-  return { prov: prov, plan: plan, jefatura: jefatura,
+  return { prov: prov, plan: plan, jefatura: jefatura, fijosCc: fijosCc, fijosCco: fijosCco,
            planDe: function (n) { var b = buscar(n); return b ? b.m : ''; },
            planNombre: function (n) { var b = buscar(n); return b ? b.n : String(n || '').trim(); } };
 }
@@ -432,11 +439,12 @@ function avpHtml_(p, saldosAl, franja, contacto) {
     '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Planificación · DINALOG.</p></div></div>';
 }
 
-function avpEnviarBrevo_(para, cc, asunto, html) {
+function avpEnviarBrevo_(para, cc, asunto, html, cco) {
   var key = avpProps_().getProperty('AVP_BREVO_KEY'), rem = avpProps_().getProperty('AVP_REMITENTE');
   if (!key || !rem) throw new Error('Faltan AVP_BREVO_KEY o AVP_REMITENTE en las propiedades del script.');
   var body = { sender: { name: 'Torre de Control · DINALOG', email: rem }, to: para.map(function (m) { return { email: m }; }), subject: asunto, htmlContent: html };
   if (cc.length) body.cc = cc.map(function (m) { return { email: m }; });
+  if (cco && cco.length) body.bcc = cco.map(function (m) { return { email: m }; });
   var r = UrlFetchApp.fetch('https://api.brevo.com/v3/smtp/email', { method: 'post', contentType: 'application/json',
     headers: { 'api-key': key, accept: 'application/json' }, payload: JSON.stringify(body), muteHttpExceptions: true });
   if (r.getResponseCode() >= 300) throw new Error('Brevo respondió ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
@@ -481,13 +489,15 @@ function avpEnviar_(opc) {
     var cc = [];
     x.p.planificadores.forEach(function (n) { var m = dir.planDe(n); if (m && cc.indexOf(m) < 0) cc.push(m); });
     if (!cc.length && dir.jefatura) cc.push(dir.jefatura);
+    dir.fijosCc.forEach(function (m) { if (cc.indexOf(m) < 0) cc.push(m); });
+    var cco = dir.fijosCco.filter(function (m) { return cc.indexOf(m) < 0; });
     var crit = x.p.filas.filter(function (f) { return f.pa != null && Math.round(f.pa * 10) / 10 < 1; }).length;
     if (!para.length) { sinCorreo.push(x.p.nombre); if (!prueba) { bit.appendRow([new Date(), modo, x.p.nombre, '', cc.join(', '), x.p.filas.length, crit, 'SIN CORREO']); return; } }
-    var dest = prueba ? [correoPrueba] : para, copia = prueba ? [] : cc;
-    if (usados + dest.length + copia.length > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
-    var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + (cc.length ? ' · copia: ' + avpEsc_(cc.join(', ')) : ' · sin copia (falta correo del planificador)') + '</div>' : '';
+    var dest = prueba ? [correoPrueba] : para, copia = prueba ? [] : cc, oculta = prueba ? [] : cco;
+    if (usados + dest.length + copia.length + oculta.length > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
+    var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + (cc.length ? ' · copia: ' + avpEsc_(cc.join(', ')) : ' · sin copia (falta correo del planificador)') + (cco.length ? ' · copia oculta: ' + avpEsc_(cco.join(', ')) : '') + '</div>' : '';
     var asunto = (prueba ? '[PRUEBA] ' : '') + 'Cobertura de sus renglones en la CSS · ' + x.p.nombre;
-    if (opc.simular) { usados += para.length + cc.length; enviados++; return; }
+    if (opc.simular) { usados += para.length + cc.length + cco.length; enviados++; return; }
     try {
       // Contacto de Planificación que se nombra en el cuerpo: sus planificadores (con correo si lo hay) o la Jefatura.
       // Un mismo planificador puede venir escrito de dos formas ("Selene Fernández" / "Selene itzel Fernandez vega"):
@@ -506,8 +516,8 @@ function avpEnviar_(opc) {
       var html = avpHtml_(x.p, datos.saldosAl, franja, contacto);
       // Mientras la cuenta Brevo de proveedores no esté lista, las PRUEBAS salen por Gmail del script (un correo a usted).
       if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: dest.join(','), subject: asunto, htmlBody: html, name: 'Torre de Control · DINALOG' });
-      else avpEnviarBrevo_(dest, copia, asunto, html);
-      usados += dest.length + copia.length; enviados++;
+      else avpEnviarBrevo_(dest, copia, asunto, html, oculta);
+      usados += dest.length + copia.length + oculta.length; enviados++;
       bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.join(', '), x.p.filas.length, crit, prueba ? 'PRUEBA → ' + correoPrueba : 'ENVIADO']);
     } catch (e) {
       errores.push(x.p.nombre + ': ' + e.message);
