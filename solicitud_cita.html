@@ -782,13 +782,40 @@ function abrirCoberturaNacional(sig, desc){
   cargarInventarioRankeado(sig.cod_abasto || (renglonActual && renglonActual.cod_abasto));
 }
 
+// Inventario por punto: primero saldos_en_linea.json (publicado por SIGUELO con cada carga de saldos,
+// lo mismo que devuelve getExistenciasRenglon); si no está o no trae el renglón, se consulta SIGUELO.
+let _saldosJson=null;
+function saldosJson_(){
+  if(_saldosJson) return _saldosJson;
+  _saldosJson=fetch('./saldos_en_linea.json',{cache:'default'}).then(r=>r.ok?r.json():null).catch(()=>null);
+  return _saldosJson;
+}
 function cargarInventarioRankeado(cod){
   const box=document.getElementById('pvInventario');
   if(!box) return;
   if(!cod){ box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin código para consultar.</div>'; return; }
+  const k=normCod_(cod);
+  Promise.race([saldosJson_(), new Promise(r=>setTimeout(()=>r(null),8000))]).then(j=>{
+    const resp=j&&j.renglones&&j.renglones[k];
+    if(resp&&resp.puntos&&resp.puntos.length){ pintarInventario_(resp, j._meta&&j._meta.generado); return; }
+    cargarInventarioVivo_(cod);
+  });
+}
+function cargarInventarioVivo_(cod){
+  const box=document.getElementById('pvInventario');
   const cb='cbInv'+Date.now();
   window[cb]=function(resp){
     try{ delete window[cb]; }catch(e){}
+    pintarInventario_(resp,'');
+  };
+  const s=document.createElement('script');
+  s.src=API_URL+'?action=getExistenciasRenglon&cod='+encodeURIComponent(cod)+'&callback='+cb;
+  s.onerror=function(){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudo consultar el inventario.</div>'; };
+  document.body.appendChild(s);
+}
+function pintarInventario_(resp,corte){
+  const box=document.getElementById('pvInventario'); if(!box) return;
+  {
     if(!resp || !resp.success || !resp.puntos || !resp.puntos.length){
       box.innerHTML='<div style="color:#999;font-size:12.5px;">Sin inventario en línea para este renglón.</div>'; return;
     }
@@ -811,13 +838,11 @@ function cargarInventarioRankeado(cod){
         '<div class="pv-res-item"><div class="l">CEDIS</div><div class="v">'+fmt(resp.total_cedis)+'</div></div>'+
         '<div class="pv-res-item"><div class="l">UE</div><div class="v">'+fmt(resp.total_ue)+'</div></div>'+
       '</div>'+
-      '<table class="pv-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>';
-  };
-  const s=document.createElement('script');
-  s.src=API_URL+'?action=getExistenciasRenglon&cod='+encodeURIComponent(cod)+'&callback='+cb;
-  s.onerror=function(){ box.innerHTML='<div style="color:#999;font-size:12.5px;">No se pudo consultar el inventario.</div>'; };
-  document.body.appendChild(s);
+      '<table class="pv-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'+
+      (corte?'<div style="font-size:11px;color:#888;margin-top:6px;">Saldos en línea al '+escAttr(String(corte).slice(0,16))+'.</div>':'');
+  }
 }
+['pointerenter','focus'].forEach(ev=>document.getElementById('cobNacionalCaja').addEventListener(ev,()=>{ if(document.getElementById('cobNacionalCaja')._sig) saldosJson_(); }));
 document.getElementById('cobNacionalCaja').addEventListener('click',function(){
   if(this._sig){ this._sig.cod_abasto = this._sig.cod_abasto || this._cod; abrirCoberturaNacional(this._sig, this._desc); }
 });
