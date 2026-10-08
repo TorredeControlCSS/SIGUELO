@@ -371,8 +371,7 @@ function trzRegistrar_(d) {
     }
 
     // 5. Evidencia a Drive: Sustento / Trazabilidad RB / AAAA-MM / expediente
-    var base = DriveApp.getFolderById(CARPETA_SUSTENTO_ID);
-    var cTrz = getOrCreateSubfolder_(base, TRZ_CARPETA_NOMBRE);
+    var cTrz = trzCarpetaRaiz_();
     var cMes = getOrCreateSubfolder_(cTrz, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'));
     var cExp = getOrCreateSubfolder_(cMes, exp.replace(/[\/\\:*?"<>|]/g, '-'));
     var ext = (typeof inferirExtension_ === 'function') ? inferirExtension_(String(d.evidencia.nombre || ''), mime) : (mime.indexOf('pdf') >= 0 ? '.pdf' : '.jpg');
@@ -398,6 +397,31 @@ function trzRegistrar_(d) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* Carpeta raíz de evidencias. Orden: 1) la guardada en Propiedades del
+   script (TRZ_CARPETA_ID); 2) subcarpeta dentro de la carpeta de sustento
+   de SIGUELO, si esta cuenta tiene acceso; 3) una carpeta propia en "Mi
+   unidad" de la cuenta del script. La que funcione se guarda y se reutiliza. */
+function trzCarpetaRaiz_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('TRZ_CARPETA_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { Logger.log('TRZ_CARPETA_ID inválido: ' + e); } }
+  var carpeta = null;
+  try {
+    if (typeof CARPETA_SUSTENTO_ID !== 'undefined' && CARPETA_SUSTENTO_ID) {
+      carpeta = getOrCreateSubfolder_(DriveApp.getFolderById(CARPETA_SUSTENTO_ID), TRZ_CARPETA_NOMBRE);
+    }
+  } catch (e) {
+    Logger.log('Sin acceso a CARPETA_SUSTENTO_ID desde esta cuenta; se usa carpeta propia. ' + e);
+  }
+  if (!carpeta) {
+    var it = DriveApp.getRootFolder().getFoldersByName(TRZ_CARPETA_NOMBRE + ' · Evidencias');
+    carpeta = it.hasNext() ? it.next() : DriveApp.getRootFolder().createFolder(TRZ_CARPETA_NOMBRE + ' · Evidencias');
+  }
+  props.setProperty('TRZ_CARPETA_ID', carpeta.getId());
+  Logger.log('Carpeta de evidencias: ' + carpeta.getName() + ' · ' + carpeta.getUrl());
+  return carpeta;
 }
 
 function trzParseFecha_(s) {
