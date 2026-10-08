@@ -14,6 +14,7 @@
   --accent:#0C447C; --accent-ink:#0C447C; --accent-soft:#dbe6f3; --hdr:#0C447C; --hdr-ink:#ffffff;
   --ok:#1e7e34; --ok-soft:#e1f2e5; --warn:#a8700f; --warn-soft:#f6edd6; --bad:#b3362e; --bad-soft:#f8e1df;
   --s-rec:#c0453a; --s-salmi:#d29a2c; --s-doc:#1e5a9e; --hatch:#cfd6df;
+  --k-blue:#e6edf6; --k-red:#f7e3e3; --k-amb:#faf0d7; --k-green:#e2f0e6; --k-grey:#eceff3; --k-ink:#3d4a5a;
   --f-body:'Segoe UI',Tahoma,Arial,sans-serif; --f-mono:Consolas,'Courier New',monospace;
   --sg-bg:#ececec; --sg-panel:#ffffff; --sg-azul:#1e5a9e; --sg-azul-claro:#e8f0f8; --sg-borde:#c8c8c8; --sg-texto:#222; --sg-tenue:#555;
   color-scheme:light;
@@ -24,6 +25,7 @@
   --accent:#7fb0e6; --accent-ink:#9cc3ef; --accent-soft:#1d3150; --hdr:#0a2a4c; --hdr-ink:#ffffff;
   --ok:#62c38a; --ok-soft:#173326; --warn:#e3b04f; --warn-soft:#3a2f14; --bad:#ec7068; --bad-soft:#3d1c1a;
   --s-rec:#e06b60; --s-salmi:#e0ad48; --s-doc:#5d9be0; --hatch:#33435a;
+  --k-blue:#1d2c40; --k-red:#3d1c1a; --k-amb:#3a2f14; --k-green:#173326; --k-grey:#253041; --k-ink:#b9c4d3;
   --sg-bg:#1a1d22; --sg-panel:#22262d; --sg-azul:#6aa5e6; --sg-azul-claro:#1d2c40; --sg-borde:#3a414b; --sg-texto:#e6e6e6; --sg-tenue:#a9b0ba;
   color-scheme:dark;}
 *{box-sizing:border-box}
@@ -57,11 +59,15 @@ nav.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 section.panel{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:1px}
-.kpi .k{font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.kpi .v{font-size:1.35rem;font-weight:600;color:var(--accent-ink);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.kpi .d{font-size:.76rem;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px}
+.kpi{background:var(--k-blue);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:0}
+.kpi .k{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--k-ink);font-weight:600}
+.kpi .v{font-size:20px;font-weight:700;color:var(--accent-ink);font-family:var(--f-mono);font-variant-numeric:tabular-nums;line-height:1.25}
+.kpi .d{font-size:10.5px;color:var(--muted)}
+.kpi.rojo{background:var(--k-red)}.kpi.rojo .v{color:var(--bad)}
+.kpi.amb{background:var(--k-amb)}.kpi.amb .v{color:var(--warn)}
+.kpi.verde{background:var(--k-green)}.kpi.verde .v{color:var(--ok)}
+.kpi.gris{background:var(--k-grey)}.kpi.gris .v{color:var(--muted)}
 .block{background:var(--surface);border:1px solid var(--border);border-radius:0;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .block-h{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;justify-content:space-between}
 .block-h p{font-size:.8rem;color:var(--muted)}
@@ -70,25 +76,59 @@ section.panel{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 .scroll{overflow-x:auto}
 
 /* franja de flujo conectada */
-.flow-wrap{overflow-x:auto}
-.flow{display:grid;grid-template-columns:minmax(96px,1fr) 60px minmax(96px,1fr) 60px minmax(96px,1fr) 60px minmax(96px,1fr) 60px minmax(96px,1fr) 60px minmax(150px,1.3fr);min-width:940px;align-items:stretch}
-.stg{min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:2px;text-align:left;border:0;font:inherit;color:var(--ink);background:var(--accent-soft);padding:10px 12px;border-radius:6px;cursor:pointer}
-.stg .c{font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--accent-ink)}
-.stg .r{font-weight:700;font-size:.86rem;line-height:1.2}
-.stg b{font-size:1.3rem;font-variant-numeric:tabular-nums;line-height:1.15}
-.stg small{font-size:.72rem;color:var(--muted);line-height:1.3}
-.stg.cuello{background:var(--bad-soft)}
-.stg.cuello .c,.stg.cuello .al{color:var(--bad)}
-.stg.box{background:repeating-linear-gradient(135deg,var(--surface2) 0 7px,var(--hatch) 7px 9px);cursor:default;border:1px dashed var(--muted)}
-.stg.box .c{color:var(--muted)}
-.stg.up{background:var(--surface2);border:1px solid var(--line)}
-.stg[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent)}
-.al{font-weight:700}
-.conn{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.7rem;color:var(--muted);text-align:center;padding:0 2px}
-.conn .arw{width:100%;height:2px;background:var(--muted);position:relative}
-.conn .arw::after{content:'';position:absolute;right:-1px;top:-4px;border-left:8px solid var(--muted);border-top:5px solid transparent;border-bottom:5px solid transparent}
-.conn b{color:var(--ink);font-size:.8rem;font-variant-numeric:tabular-nums}
-.conn.na .arw{background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 8px)}
+/* recorrido en flechas conectadas */
+.chevs{display:flex;overflow-x:auto;padding:2px 0 0}
+.chev{flex:1 1 0;min-width:132px;margin-right:-11px;padding:10px 12px 10px 24px;background:var(--k-blue);color:var(--ink);border:0;font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:1px;
+  clip-path:polygon(0 0,calc(100% - 15px) 0,100% 50%,calc(100% - 15px) 100%,0 100%,15px 50%);transition:filter .15s ease}
+.chev:first-child{clip-path:polygon(0 0,calc(100% - 15px) 0,100% 50%,calc(100% - 15px) 100%,0 100%);padding-left:12px}
+.chev:hover{filter:brightness(.95)}
+.chev .c{font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--accent-ink)}
+.chev .r{font-weight:700;font-size:12.5px;line-height:1.2}
+.chev b{font-size:19px;font-family:var(--f-mono);line-height:1.2}
+.chev small{font-size:10.5px;color:var(--muted);line-height:1.3}
+.chev.up{background:var(--k-grey)}
+.chev.ok{background:var(--k-green)}.chev.ok .c{color:var(--ok)}
+.chev.cuello{background:linear-gradient(110deg,var(--k-red) 40%,color-mix(in srgb,var(--k-red) 70%,var(--surface)) 50%,var(--k-red) 60%);background-size:300% 100%;animation:brillo 3.2s linear infinite}
+.chev.cuello .c,.chev .al{color:var(--bad)}
+.chev.box{background:repeating-linear-gradient(135deg,var(--k-grey) 0 8px,var(--hatch) 8px 10px);cursor:default;flex:1.35 1 0}
+.chev.box .c{color:var(--muted)}
+.chev[aria-pressed="true"]{filter:brightness(.9)}
+@keyframes brillo{from{background-position:100% 0}to{background-position:-200% 0}}
+.lats{display:flex;margin-top:6px}
+.lat{flex:1 1 0;min-width:132px;margin-right:-11px;position:relative;height:30px}
+.lat.wide{flex:1.35 1 0}
+.lat span{position:absolute;right:-8px;top:0;transform:translateX(50%);white-space:nowrap;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.25}
+.lat span b{display:block;color:var(--ink);font-family:var(--f-mono);font-size:12px}
+#sankeyR .cinta{transition:opacity .15s ease}
+#sankeyR .cinta:hover{opacity:.95}
+#sankeyR .flujo{stroke-dasharray:2 16;animation:corre 1.6s linear infinite;pointer-events:none}
+@keyframes corre{to{stroke-dashoffset:-18}}
+@media (prefers-reduced-motion:reduce){.chev.cuello{animation:none}#sankeyR .flujo{animation:none;display:none}}
+#tip{position:fixed;z-index:900;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--border);padding:6px 9px;font-size:12px;max-width:280px;box-shadow:0 4px 14px rgba(0,0,0,.18);display:none}
+th.sort{cursor:pointer;user-select:none}
+th.sort .ar{opacity:.55;margin-left:4px;font-size:9px}
+.fbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fbar label{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.fbar select,.fbar input{min-width:200px}
+.icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.35);border-radius:8px;background:transparent;color:#fff;cursor:pointer;padding:0}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn .i-sun{display:none}
+:root[data-theme="dark"] .icon-btn .i-sun{display:block}
+:root[data-theme="dark"] .icon-btn .i-moon{display:none}
+#btnTour{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.55);padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px;font-weight:700}
+#btnTour:hover{background:#fff;color:#0C447C;border-color:#fff}
+.hbtns{display:flex;gap:8px;align-items:center}
+#tourOverlay{position:fixed;inset:0;z-index:1000}
+#tourBackdrop{position:absolute;inset:0;background:rgba(15,25,40,.55)}
+.tour-spot{position:absolute;border:3px solid #1E5A9E;border-radius:4px;box-shadow:0 0 0 9999px rgba(15,25,40,.55);z-index:1001;pointer-events:none;transition:all .25s ease}
+#tourBox{position:absolute;z-index:1002;background:#fff;color:#333;border:1px solid #a8a8a8;max-width:380px;width:calc(100% - 32px);padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#tourTitulo{font-size:14px;font-weight:700;color:#0C447C;margin-bottom:6px}
+#tourTexto{font-size:12.5px;line-height:1.55;color:#333}
+#tourNav{display:flex;align-items:center;gap:8px;margin-top:12px}
+#tourPaso{font-size:11px;color:#666;font-family:Consolas,monospace}
+.btn-plano{background:transparent;border:none;color:#666;text-decoration:underline;padding:6px 4px;cursor:pointer;font-family:inherit;font-size:12px}
+#tourNext{background:#0C447C;color:#fff;font-weight:700;border:1px solid #0C447C;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.76rem;color:var(--muted)}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
@@ -193,7 +233,8 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
     <h1>Trazabilidad Documental de la Recepción</h1>
     <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
   </div>
-  <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div><button class="tema" id="tema" type="button">Modo oscuro</button></div>
+  <div class="hbtns"><button id="btnTour" type="button" title="Recorrido guiado por el tablero">&#9654; Ver tutorial guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
+  <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div></div>
 </header>
 <div class="wrap">
 
@@ -206,18 +247,23 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 
 <section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo">
   <div class="kpis" id="kpis"></div>
-  <div class="block">
-    <div class="block-h"><h2>Recorrido del expediente</h2><p>Entre etapas: mediana y p85 en días hábiles · en rojo, la etapa con más expedientes atrasados</p></div>
-    <div class="flow-wrap"><div class="flow" id="flow"></div></div>
+  <div class="block" id="bRecorrido">
+    <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: mediana y p85 en días hábiles · en rojo, la etapa con más líneas atrasadas</p></div>
+    <div id="chevs"></div>
+  </div>
+  <div class="block" id="bSankey">
+    <div class="block-h"><h2>Flujo de las líneas recibidas</h2><p>Grosor proporcional a las líneas · pase el cursor sobre una cinta para ver su cifra</p></div>
+    <div class="scroll" id="sankeyR"></div>
   </div>
   <div class="grid2">
-    <div class="block">
-      <div class="block-h"><h2>Recepciones por semana</h2><p>Dónde está hoy cada línea recibida</p></div>
+    <div class="block" id="bWk">
+      <div class="block-h"><h2>Recepciones por semana</h2><p>Etapa en que está hoy cada línea, por semana de recepción</p></div>
       <div class="legend"><span><i style="background:var(--s-doc)"></i>Con entrada contable 101</span><span><i style="background:var(--s-salmi)"></i>En inventario, sin 101</span><span><i style="background:var(--s-rec)"></i>Recibida, sin SALMI ni 101</span></div>
       <div class="scroll" id="wk"></div>
     </div>
-    <div class="block">
-      <div class="block-h"><h2>Atascados antes de la entrada contable</h2><p>Días hábiles desde la recepción, líneas sin 101</p></div>
+    <div class="block" id="bAge">
+      <div class="block-h"><h2>Atascados antes de la entrada contable</h2><p>Líneas sin 101 según días hábiles desde la recepción</p></div>
+      <div class="legend"><span><i style="background:var(--s-salmi)"></i>En inventario, sin 101</span><span><i style="background:var(--s-rec)"></i>Recibida, sin SALMI ni 101</span></div>
       <div class="scroll" id="age"></div>
     </div>
   </div>
@@ -225,11 +271,16 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 
 <section class="panel" id="p-exps" role="tabpanel" aria-labelledby="t-exps" hidden>
   <div class="block">
-    <div class="toolbar">
-      <label for="q" style="font-size:11px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;gap:4px;flex:1;min-width:260px">BUSCAR POR N.º DE OC, CÓDIGO DE RENGLÓN, DESCRIPCIÓN O PROVEEDOR<input type="search" id="q" placeholder="ej. 1001106332 · 101001101 · paracetamol · LANCO"></label>
-      <div class="chips" id="fchips"></div>
+    <div class="fbar" id="fbar">
+      <label for="q" style="flex:1;min-width:240px">Buscar por OC, renglón, descripción o proveedor<input type="search" id="q" placeholder="ej. 1001106332 · 101001101 · paracetamol"></label>
+      <label for="fProv">Proveedor<select id="fProv"><option value="">Todos los proveedores</option></select></label>
+      <label for="fRen">Renglón<input type="search" id="fRen" list="rens" placeholder="Código o nombre del renglón"><datalist id="rens"></datalist></label>
+      <button class="btn ghost small" id="limpiar" type="button">Limpiar filtros</button>
     </div>
-    <div class="scroll"><table id="tab"><thead><tr><th>Expediente</th><th>Proveedor</th><th>Renglón</th><th class="num">Valor B/.</th><th>Etapa</th><th class="num">Días háb. desde recepción</th><th>Cita</th><th>SALMI</th><th>101</th></tr></thead><tbody></tbody></table></div>
+    <div class="chips" id="fchips"></div>
+    <div class="scroll"><table id="tab"><thead><tr>
+      <th class="sort" data-k="oc">Expediente<span class="ar"></span></th><th class="sort" data-k="prov">Proveedor<span class="ar"></span></th><th class="sort" data-k="desc">Renglón<span class="ar"></span></th><th class="sort num" data-k="valor">Valor B/.<span class="ar"></span></th><th class="sort" data-k="etapa">Etapa<span class="ar"></span></th><th class="sort num" data-k="edad">Días háb. desde recepción<span class="ar"></span></th><th class="sort" data-k="cita">Cita<span class="ar"></span></th><th class="sort" data-k="salmi">SALMI<span class="ar"></span></th><th class="sort" data-k="k101">101<span class="ar"></span></th>
+    </tr></thead><tbody></tbody></table></div>
     <div class="pager" id="pager"></div>
   </div>
 </section>
@@ -240,16 +291,16 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 </section>
 
 <section class="panel" id="p-prov" role="tabpanel" aria-labelledby="t-prov" hidden>
-  <p class="internal">Prototipo de la sección que se agregaría a solicitud_cita.html. El proveedor consulta con su número de OC; en producción debe pedirse también el código de confirmación de la cita para que nadie vea entregas ajenas.</p>
-  <div class="sg">
+  <p class="internal">Prototipo de la sección que se agregará a solicitud_cita.html. En el portal real el proveedor solo verá sus propias entregas: entrará con su OC y el código de confirmación de su cita. El selector de proveedor existe solo en esta demo interna.</p>
+  <div class="sg" id="sgBox">
     <div class="h">Solicitud de Cita de Entrega de Proveedores — Almacén CEDIS PANAMÁ</div>
     <div class="pan">
       <div class="pan-h"><span class="num">6</span>Seguimiento de mi entrega</div>
       <div class="pan-b">
         <div class="row">
-          <label for="pOc">Número de Orden de Compra<input id="pOc" type="text" inputmode="numeric" placeholder="ej. 1001074620"></label>
-          <label for="pCod">Código de confirmación de la cita (opcional en la demo)<input id="pCod" type="text" placeholder="ej. SOL-20260904-091204"></label>
-          <div><button class="bt" id="pBuscar">Consultar</button></div>
+          <label for="pProv">Proveedor (solo demo interna)<select id="pProv"></select></label>
+          <label for="pOc">Orden de compra<select id="pOc"></select></label>
+          <label for="pRen">Renglón<select id="pRen"><option value="">Todos los renglones</option></select></label>
         </div>
         <div id="pRes"></div>
       </div>
@@ -257,6 +308,8 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
   </div>
 </section>
 
+<div id="tip"></div>
+<div id="tourOverlay" style="display:none"><div id="tourBackdrop"></div><div id="tourBox"><div id="tourTitulo"></div><div id="tourTexto"></div><div id="tourNav"><span id="tourPaso"></span><span style="flex:1"></span><button id="tourSkip" class="btn-plano" type="button">Saltar</button><button id="tourPrev" class="btn-plano" type="button">&#9666; Atrás</button><button id="tourNext" type="button">Siguiente &#9656;</button></div></div></div>
 <footer id="foot">Fuentes: informe de entradas de Abasto (panel_entradas), kardex MB51 (panel_kardex), citas de SIGUELO y tránsitos de planificación. El proceso documental posterior a la entrada contable todavía no tiene registros digitales.</footer>
 </div>
 
@@ -325,66 +378,125 @@ function construir(){
 const ETQ={REC:'Recibida',SALMI:'En inventario',DOC:'Entrada contable'};
 
 /* ---------- Flujo ---------- */
+const nf=v=>Number(v).toLocaleString('es-PA');
+function kpiH(cls,k,v,d){return '<div class="kpi '+cls+'"><span class="k">'+k+'</span><span class="v">'+v+'</span><span class="d">'+d+'</span></div>';}
 function renderFlujo(){
   const n=X.length,con101=X.filter(x=>x.f101).length,sinSalmi=X.filter(x=>x.etapa==='REC'),enSalmi=X.filter(x=>x.etapa==='SALMI');
   const thrRec=Math.round(pct(MED.salmi,.85)),thrSal=Math.round(pct(MED.k101,.85));
   const atRec=sinSalmi.filter(x=>x.edad>thrRec).length,atSal=enSalmi.filter(x=>x.edad>thrSal).length;
   const conCita=X.filter(x=>x.c&&x.c.fConf).length,conSol=X.filter(x=>x.t).length;
   const valorAt=X.filter(x=>!x.f101&&x.edad>thrSal).reduce((s,x)=>s+(x.e.valor||0),0);
-  const K=[['Líneas recibidas',n.toLocaleString('es-PA'),'desde 05/05/2026 · '+new Set(X.map(x=>x.e.oc)).size+' OC'],
-    ['Con entrada contable 101',Math.round(100*con101/n)+' %',con101+' líneas'],
-    ['Recepción → 101',r1(pct(MED.k101,.5))+' d háb.','mediana · p85 '+r1(pct(MED.k101,.85))],
-    ['Sin 101 y atrasadas',(atRec+atSal).toLocaleString('es-PA'),'más de '+thrSal+' días hábiles'],
-    ['Valor detenido','B/. '+(valorAt/1e6).toFixed(1)+' M','líneas atrasadas sin 101'],
-    ['Sin trazabilidad digital',con101.toLocaleString('es-PA'),'expedientes después de la entrada contable']];
-  $('#kpis').innerHTML=K.map(k=>'<div class="kpi"><span class="k">'+k[0]+'</span><span class="v">'+k[1]+'</span><span class="d">'+k[2]+'</span></div>').join('');
+  $('#kpis').innerHTML=
+    kpiH('','Líneas recibidas',nf(n),'desde 05/05/2026 · '+nf(new Set(X.map(x=>x.e.oc)).size)+' OC')+
+    kpiH('verde','Con entrada contable 101',Math.round(100*con101/n)+' %',nf(con101)+' líneas')+
+    kpiH('','Recepción → 101',r1(pct(MED.k101,.5))+' d háb.','mediana · p85 '+r1(pct(MED.k101,.85)))+
+    kpiH('rojo','Sin 101 y atrasadas',nf(atRec+atSal),'más de '+thrSal+' días hábiles')+
+    kpiH('amb','Valor detenido','B/. '+(valorAt/1e6).toFixed(1)+' M','líneas atrasadas sin 101')+
+    kpiH('gris','Sin trazabilidad digital',nf(con101),'después de la entrada contable');
   const cu=atRec>=atSal?'REC':'SALMI';
-  const conn=(arr,lbl)=>arr&&arr.length?'<div class="conn"><span>'+lbl+'</span><div class="arw"></div><b>'+r1(pct(arr,.5))+' d</b><span>p85 '+r1(pct(arr,.85))+' · n '+arr.length+'</span></div>':'<div class="conn na"><span>'+lbl+'</span><div class="arw"></div><b>sin dato</b><span>no se registra</span></div>';
-  const stg=(key,c,r,big,small,extra)=>'<button class="stg'+(extra||'')+'" data-f="'+key+'" aria-pressed="'+(FILT===key)+'"><span class="c">'+c+'</span><span class="r">'+r+'</span><b>'+big+'</b><small>'+small+'</small></button>';
-  $('#flow').innerHTML=
-    stg('SOL','Planificación','Solicitud de entrega',conSol,'expedientes enlazados a su solicitud',' up')+conn(MED.sol,'emisión → recepción')+
-    stg('CIT','Proveedor · SIGUELO','Cita confirmada',conCita,'enlazados por OC y renglón',' up')+conn(MED.cita,'cita → recepción')+
-    stg('REC','Almacén','Recepción física',sinSalmi.length,'detenidas aquí · <span class="al">'+atRec+' con más de '+thrRec+' d</span>',cu==='REC'?' cuello':'')+conn(MED.salmi,'recepción → SALMI')+
-    stg('SALMI','WMS','Ingreso a inventario',enSalmi.length,'detenidas aquí · <span class="al">'+atSal+' con más de '+thrSal+' d</span>',cu==='SALMI'?' cuello':'')+conn(MED.k101,'recepción → 101')+
-    stg('DOC','SAP SAFIRO','Entrada contable 101',con101,'pasan al proceso documental','')+conn(null,'hasta el pago')+
-    '<div class="stg box"><span class="c">Sin registro digital</span><span class="r" style="font-size:.8rem">Control documental P01–P14 · Contabilidad · Publicación · Pago</span><small>Aquí empieza la caja negra. Los hitos se registrarán desde la ficha del expediente, con evidencia.</small></div>';
-  document.querySelectorAll('#flow .stg[data-f]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;if(f==='SOL'||f==='CIT')return;FILT=f;PAGE=0;showTab('p-exps');renderTabla();renderFlujoChips();}));
-  renderWeeks();renderAge(thrSal);
+  const ch=(key,cls,c,r,big,small,tip)=>'<button class="chev '+cls+'" data-f="'+key+'" aria-pressed="'+(FILT===key)+'" title="'+esc(tip)+'"><span class="c">'+c+'</span><span class="r">'+r+'</span><b>'+big+'</b><small>'+small+'</small></button>';
+  const lat=(arr,lbl,wide)=>'<div class="lat'+(wide?' wide':'')+'">'+(lbl?'<span>'+lbl+'<b>'+(arr&&arr.length?r1(pct(arr,.5))+' d':'sin dato')+'</b>'+(arr&&arr.length?'p85 '+r1(pct(arr,.85)):'no se registra')+'</span>':'')+'</div>';
+  $('#chevs').innerHTML='<div class="chevs">'+
+    ch('SOL','up','Planificación','Solicitud de entrega',nf(conSol),'enlazadas a su solicitud','Solicitudes de entrega de planificación enlazadas a la línea recibida (tránsitos)')+
+    ch('CIT','up','Proveedor · SIGUELO','Cita confirmada',nf(conCita),'enlazadas por OC y renglón','Citas del portal de proveedores enlazadas por OC y renglón')+
+    ch('REC',cu==='REC'?'cuello':'','Almacén','Recepción física',nf(sinSalmi.length),'detenidas aquí · <span class="al">'+atRec+' con más de '+thrRec+' d</span>','Líneas recibidas que aún no aparecen en SALMI. Toque para verlas')+
+    ch('SALMI',cu==='SALMI'?'cuello':'','WMS','Ingreso a inventario',nf(enSalmi.length),'detenidas aquí · <span class="al">'+atSal+' con más de '+thrSal+' d</span>','Líneas en SALMI que aún no tienen entrada contable 101. Toque para verlas')+
+    ch('DOC','ok','SAP SAFIRO','Entrada contable 101',nf(con101),'pasan al proceso documental','Líneas con movimiento 101 en el kardex. Toque para verlas')+
+    '<div class="chev box"><span class="c">Sin registro digital</span><span class="r">Control documental P01–P14 · Contabilidad · Publicación · Pago</span><small>Se registrará desde la ficha del expediente, con evidencia</small></div>'+
+    '</div><div class="lats">'+lat(MED.sol,'emisión → recepción')+lat(MED.cita,'cita → recepción')+lat(MED.salmi,'recepción → SALMI')+lat(MED.k101,'recepción → 101')+lat(null,'101 → pago')+lat(null,'',true)+'</div>';
+  document.querySelectorAll('#chevs .chev[data-f]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;if(f==='SOL'||f==='CIT')return;FILT=f;PAGE=0;showTab('p-exps');renderFlujoChips();renderTabla();}));
+  renderSankey(thrSal);renderWeeks();renderAge(thrSal);
 }
+function renderSankey(thr){
+  const cnt=f=>X.filter(f).length;
+  const N=[
+    {id:'o1',c:0,l:'Solicitud y cita',v:cnt(x=>x.t&&x.c),col:'--s-doc'},
+    {id:'o2',c:0,l:'Solo cita',v:cnt(x=>!x.t&&x.c),col:'--s-doc'},
+    {id:'o3',c:0,l:'Solo solicitud',v:cnt(x=>x.t&&!x.c),col:'--s-doc'},
+    {id:'o4',c:0,l:'Sin enlace previo',v:cnt(x=>!x.t&&!x.c),col:'--muted'},
+    {id:'r',c:1,l:'Recepción física',v:X.length,col:'--accent'},
+    {id:'s1',c:2,l:'En SALMI',v:cnt(x=>x.e.fSalmi),col:'--s-salmi'},
+    {id:'s0',c:2,l:'Sin SALMI',v:cnt(x=>!x.e.fSalmi),col:'--s-rec'},
+    {id:'k1',c:3,l:'Entrada contable 101',v:cnt(x=>x.f101),col:'--s-doc'},
+    {id:'k2',c:3,l:'Sin 101 · al día',v:cnt(x=>!x.f101&&x.edad<=thr),col:'--s-salmi'},
+    {id:'k3',c:3,l:'Sin 101 · atrasada',v:cnt(x=>!x.f101&&x.edad>thr),col:'--s-rec'},
+    {id:'b',c:4,l:'Proceso documental',v:cnt(x=>x.f101),col:'--muted'}];
+  const L=[['o1','r',N[0].v],['o2','r',N[1].v],['o3','r',N[2].v],['o4','r',N[3].v],
+    ['r','s1',N[5].v],['r','s0',N[6].v],
+    ['s1','k1',cnt(x=>x.e.fSalmi&&x.f101)],['s1','k2',cnt(x=>x.e.fSalmi&&!x.f101&&x.edad<=thr)],['s1','k3',cnt(x=>x.e.fSalmi&&!x.f101&&x.edad>thr)],
+    ['s0','k1',cnt(x=>!x.e.fSalmi&&x.f101)],['s0','k2',cnt(x=>!x.e.fSalmi&&!x.f101&&x.edad<=thr)],['s0','k3',cnt(x=>!x.e.fSalmi&&!x.f101&&x.edad>thr)],
+    ['k1','b',N[7].v]].filter(l=>l[2]>0);
+  const W=1180,H=350,T=30,B=14,nw=14,gap=20,cols=[30,280,530,780,1010];
+  const byC=c=>N.filter(n=>n.c===c&&n.v>0);
+  const maxTot=Math.max.apply(null,[0,1,2,3,4].map(c=>byC(c).reduce((s,n)=>s+n.v,0)));
+  const maxG=Math.max.apply(null,[0,1,2,3,4].map(c=>byC(c).length-1));
+  const sc=(H-T-B-gap*maxG)/maxTot;const M={};
+  [0,1,2,3,4].forEach(c=>{let y=T;byC(c).forEach(n=>{n.x=cols[c];n.y=y;n.h=Math.max(2,n.v*sc);n.o=0;n.i=0;y+=n.h+gap;M[n.id]=n;});});
+  let g='';
+  ['Antes de llegar','Almacén','Inventario (SALMI)','Contabilidad (SAP)','Después de la 101'].forEach((t,c)=>{g+='<text x="'+(cols[c])+'" y="16" font-size="11" font-weight="700" text-anchor="start" fill="var(--muted)">'+t.toUpperCase()+'</text>';});
+  L.forEach(l=>{const a=M[l[0]],b=M[l[1]];if(!a||!b)return;const h=l[2]*sc,ya=a.y+a.o,yb=b.y+b.i;a.o+=h;b.i+=h;const x1=a.x+nw,x2=b.x,xm=(x1+x2)/2;
+    const tip=esc(a.l)+' → '+esc(b.l)+': <b>'+nf(l[2])+'</b> líneas ('+Math.round(100*l[2]/X.length)+' %)';
+    g+='<path class="cinta" data-tip="'+tip+'" d="M'+x1+' '+ya+'C'+xm+' '+ya+' '+xm+' '+yb+' '+x2+' '+yb+'L'+x2+' '+(yb+h)+'C'+xm+' '+(yb+h)+' '+xm+' '+(ya+h)+' '+x1+' '+(ya+h)+'Z" fill="var('+b.col+')" opacity=".35"/>';
+    const yc1=ya+h/2,yc2=yb+h/2;if(h>3)g+='<path class="flujo" d="M'+x1+' '+yc1+'C'+xm+' '+yc1+' '+xm+' '+yc2+' '+x2+' '+yc2+'" stroke="var(--surface)" stroke-width="'+Math.min(3,Math.max(1,h/8)).toFixed(1)+'" fill="none" opacity=".8"/>';});
+  N.filter(n=>n.v>0).forEach(n=>{g+='<rect x="'+n.x+'" y="'+n.y+'" width="'+nw+'" height="'+n.h+'" rx="2" fill="var('+n.col+')" data-tip="'+esc(n.l)+': <b>'+nf(n.v)+'</b>"/>';
+    const right=true;const tx=n.x+nw+7;const ty=n.y+n.h/2;
+    g+='<text x="'+tx+'" y="'+(ty-1)+'" font-size="11.5" font-weight="700" text-anchor="'+(right?'start':'end')+'" fill="var(--ink)">'+esc(n.l)+'</text><text x="'+tx+'" y="'+(ty+13)+'" font-size="11" text-anchor="'+(right?'start':'end')+'" fill="var(--muted)" font-family="Consolas,monospace">'+nf(n.v)+' · '+Math.round(100*n.v/X.length)+' %</text>'+(n.id==='b'?'<text x="'+tx+'" y="'+(ty+27)+'" font-size="11" fill="var(--muted)">sin registro digital</text>':'');});
+  $('#sankeyR').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:880px" role="img" aria-label="Flujo de las líneas recibidas">'+g+'</svg>';
+}
+function axisY(g,L,T,iw,ih,top,step,title){for(let v=0;v<=top;v+=step){const y=T+ih-ih*v/top;g.push('<line x1="'+L+'" x2="'+(L+iw)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-6)+'" y="'+(y+3.5)+'" font-size="10" text-anchor="end" fill="var(--muted)">'+v+'</text>');}
+  g.push('<text transform="translate(12,'+(T+ih/2)+') rotate(-90)" font-size="10.5" text-anchor="middle" fill="var(--muted)">'+title+'</text>');}
 function renderWeeks(){
   const wk={};X.forEach(x=>{const d=D(x.e.fRec);const m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const k=iso(m);(wk[k]=wk[k]||{DOC:0,SALMI:0,REC:0})[x.etapa]++;});
-  const ks=Object.keys(wk).sort();const W=640,H=250,L=34,T=14,B=30,iw=W-L-10,ih=H-T-B;
-  const mx=Math.max.apply(null,ks.map(k=>wk[k].DOC+wk[k].SALMI+wk[k].REC));const top=Math.ceil(mx/20)*20;const bw=iw/ks.length;let g='';
-  for(let v=0;v<=top;v+=top>60?20:10){const y=T+ih-ih*v/top;g+='<line x1="'+L+'" x2="'+(L+iw)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(y+3.5)+'" font-size="10" text-anchor="end" fill="var(--muted)">'+v+'</text>';}
-  ks.forEach((k,i)=>{let y=T+ih;[['DOC','--s-doc'],['SALMI','--s-salmi'],['REC','--s-rec']].forEach(s=>{const v=wk[k][s[0]];if(!v)return;const h=ih*v/top;y-=h;g+='<rect x="'+(L+i*bw+1.5)+'" y="'+y+'" width="'+Math.max(1,bw-3)+'" height="'+h+'" fill="var('+s[1]+')"><title>Semana '+fdm(k)+' · '+ETQ[s[0]]+': '+v+'</title></rect>';});
-    if(i%3===0)g+='<text x="'+(L+i*bw+bw/2)+'" y="'+(H-12)+'" font-size="10" text-anchor="middle" fill="var(--muted)">'+fdm(k)+'</text>';});
-  $('#wk').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:480px" role="img" aria-label="Recepciones por semana">'+g+'</svg>';
+  const ks=Object.keys(wk).sort();const W=640,H=270,L=46,T=16,B=40,iw=W-L-10,ih=H-T-B;
+  const mx=Math.max.apply(null,ks.map(k=>wk[k].DOC+wk[k].SALMI+wk[k].REC));const top=Math.ceil(mx/20)*20;const bw=iw/ks.length;const g=[];
+  axisY(g,L,T,iw,ih,top,20,'Líneas recibidas');
+  ks.forEach((k,i)=>{let y=T+ih;const tot=wk[k].DOC+wk[k].SALMI+wk[k].REC;
+    [['DOC','--s-doc'],['SALMI','--s-salmi'],['REC','--s-rec']].forEach(s=>{const v=wk[k][s[0]];if(!v)return;const h=ih*v/top;y-=h;g.push('<rect x="'+(L+i*bw+1.5)+'" y="'+y+'" width="'+Math.max(1,bw-3)+'" height="'+h+'" fill="var('+s[1]+')" data-tip="Semana del '+fdm(k)+'<br>'+ETQ[s[0]]+': <b>'+v+'</b> de '+tot+'"/>');});
+    g.push('<text x="'+(L+i*bw+bw/2)+'" y="'+(y-3)+'" font-size="9" text-anchor="middle" fill="var(--muted)">'+tot+'</text>');
+    if(i%3===0)g.push('<text x="'+(L+i*bw+bw/2)+'" y="'+(T+ih+14)+'" font-size="10" text-anchor="middle" fill="var(--muted)">'+fdm(k)+'</text>');});
+  g.push('<text x="'+(L+iw/2)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--muted)">Semana de recepción (lunes de cada semana)</text>');
+  $('#wk').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:480px" role="img" aria-label="Recepciones por semana">'+g.join('')+'</svg>';
 }
 function renderAge(thr){
-  const bins=[[0,5,'0–5'],[6,10,'6–10'],[11,20,'11–20'],[21,40,'21–40'],[41,9999,'41+']];
-  const rows=bins.map(b=>{const l=X.filter(x=>!x.f101&&x.edad>=b[0]&&x.edad<=b[1]);return {l:b[2],rec:l.filter(x=>x.etapa==='REC').length,sal:l.filter(x=>x.etapa==='SALMI').length,lo:b[0]};});
-  const W=640,H=250,L=34,T=18,B=34,iw=W-L-10,ih=H-T-B;const mx=Math.max.apply(null,rows.map(r=>r.rec+r.sal));const top=Math.ceil(mx/20)*20||10;const bw=iw/rows.length;let g='';
-  for(let v=0;v<=top;v+=top>60?20:10){const y=T+ih-ih*v/top;g+='<line x1="'+L+'" x2="'+(L+iw)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(y+3.5)+'" font-size="10" text-anchor="end" fill="var(--muted)">'+v+'</text>';}
-  rows.forEach((r,i)=>{const x=L+i*bw+10,w=bw-20;let y=T+ih;const h1=ih*r.sal/top;y-=h1;g+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h1+'" fill="var(--s-salmi)"/>';const h2=ih*r.rec/top;y-=h2;g+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h2+'" fill="var(--s-rec)"/>';
-    g+='<text x="'+(x+w/2)+'" y="'+(y-5)+'" font-size="11" font-weight="600" text-anchor="middle" fill="var(--ink)">'+(r.rec+r.sal)+'</text><text x="'+(x+w/2)+'" y="'+(T+ih+15)+'" font-size="10.5" text-anchor="middle" fill="'+(r.lo>thr?'var(--bad)':'var(--muted)')+'">'+r.l+' d</text>';});
-  g+='<text x="'+(L+iw/2)+'" y="'+(H-4)+'" font-size="10" text-anchor="middle" fill="var(--muted)">en rojo los tramos por encima del p85 ('+thr+' d) · rojo: sin SALMI · ámbar: en inventario</text>';
-  $('#age').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:480px" role="img" aria-label="Antigüedad sin entrada contable">'+g+'</svg>';
+  const bins=[[0,5,'0–5'],[6,10,'6–10'],[11,20,'11–20'],[21,40,'21–40'],[41,9999,'41 o más']];
+  const rows=bins.map(b=>{const l=X.filter(x=>!x.f101&&x.edad>=b[0]&&x.edad<=b[1]);return {l:b[2],rec:l.filter(x=>x.etapa==='REC').length,sal:l.filter(x=>x.etapa==='SALMI').length,v:l.reduce((s,x)=>s+(x.e.valor||0),0),lo:b[0]};});
+  const W=640,H=270,L=46,T=22,B=40,iw=W-L-10,ih=H-T-B;const mx=Math.max.apply(null,rows.map(r=>r.rec+r.sal));const top=Math.ceil(mx/50)*50||10;const bw=iw/rows.length;const g=[];
+  axisY(g,L,T,iw,ih,top,top>100?50:20,'Líneas sin 101');
+  rows.forEach(r=>{});
+  rows.forEach((r,i)=>{const x=L+i*bw+14,w=bw-28;let y=T+ih;const tip=r.l+' días hábiles<br>En inventario: <b>'+r.sal+'</b> · Sin SALMI: <b>'+r.rec+'</b><br>Valor: B/. '+money(r.v);
+    const h1=ih*r.sal/top;y-=h1;g.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h1+'" fill="var(--s-salmi)" data-tip="'+tip+'"/>');
+    const h2=ih*r.rec/top;y-=h2;g.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h2+'" fill="var(--s-rec)" data-tip="'+tip+'"/>');
+    g.push('<text x="'+(x+w/2)+'" y="'+(y-14)+'" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--ink)">'+(r.rec+r.sal)+'</text><text x="'+(x+w/2)+'" y="'+(y-3)+'" font-size="9.5" text-anchor="middle" fill="var(--muted)">B/. '+(r.v>=1e6?(r.v/1e6).toFixed(1)+' M':Math.round(r.v/1e3)+' mil')+'</text>');
+    g.push('<text x="'+(x+w/2)+'" y="'+(T+ih+14)+'" font-size="10.5" text-anchor="middle" font-weight="'+(r.lo>thr?700:400)+'" fill="'+(r.lo>thr?'var(--bad)':'var(--muted)')+'">'+r.l+'</text>');});
+  g.push('<text x="'+(L+iw/2)+'" y="'+(H-6)+'" font-size="10.5" text-anchor="middle" fill="var(--muted)">Días hábiles desde la recepción · en rojo, por encima del p85 ('+thr+' d)</text>');
+  $('#age').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="min-width:480px" role="img" aria-label="Antigüedad sin entrada contable">'+g.join('')+'</svg>';
 }
 
 /* ---------- Expedientes ---------- */
-let FILT='TODOS',PAGE=0;const PS=50;
-function renderFlujoChips(){const C=[['TODOS','Todos'],['REC','Recibida'],['SALMI','En inventario'],['DOC','Entrada contable'],['ATR','Atrasados sin 101'],['REV','Con reverso 102']];
+let FILT='TODOS',PAGE=0,SK='edad',SD=-1;const PS=50;
+function renderFlujoChips(){const C=[['TODOS','Todas las etapas'],['REC','Recibida'],['SALMI','En inventario'],['DOC','Entrada contable'],['ATR','Atrasados sin 101'],['REV','Con reverso 102']];
   $('#fchips').innerHTML=C.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(FILT===c[0])+'">'+c[1]+'</button>').join('');
   document.querySelectorAll('#fchips .chip').forEach(b=>b.addEventListener('click',()=>{FILT=b.dataset.f;PAGE=0;renderFlujoChips();renderTabla();}));}
-function filtrados(){const q=($('#q').value||'').trim().toUpperCase();const thr=Math.round(pct(MED.k101,.85));
-  return X.filter(x=>{if(FILT==='REC'||FILT==='SALMI'||FILT==='DOC'){if(x.etapa!==FILT)return false;}else if(FILT==='ATR'){if(x.f101||x.edad<=thr)return false;}else if(FILT==='REV'){if(!x.rev)return false;}
-    if(!q)return true;return (String(x.e.oc)+' '+(x.e.prov||'')+' '+(x.e.desc||'')+' '+(x.e.cod||'')+' '+x.id).toUpperCase().indexOf(q)>=0;})
-   .sort((a,b)=>(a.etapa==='DOC')-(b.etapa==='DOC')||b.edad-a.edad);}
+function llenarFiltros(){
+  const provs=[...new Set(X.map(x=>x.e.prov).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  $('#fProv').innerHTML='<option value="">Todos los proveedores</option>'+provs.map(p=>'<option>'+esc(p)+'</option>').join('');
+  const rm=new Map();X.forEach(x=>{if(x.e.cod&&!rm.has(x.e.cod))rm.set(x.e.cod,x.e.desc||'');});
+  $('#rens').innerHTML=[...rm.entries()].sort((a,b)=>a[1].localeCompare(b[1],'es')).map(r=>'<option value="'+esc(r[0])+' · '+esc((r[1]||'').slice(0,60))+'">').join('');
+}
+const ORD={REC:0,SALMI:1,DOC:2};
+const SKF={oc:x=>x.e.oc,prov:x=>x.e.prov||'',desc:x=>x.e.desc||'',valor:x=>x.e.valor||0,etapa:x=>ORD[x.etapa],edad:x=>x.edad,cita:x=>(x.c&&x.c.fConf)||'',salmi:x=>x.e.fSalmi||'',k101:x=>x.f101||''};
+function filtrados(){const q=($('#q').value||'').trim().toUpperCase();const pv=$('#fProv').value;const rn=($('#fRen').value||'').split('·')[0].trim().toUpperCase();const thr=Math.round(pct(MED.k101,.85));
+  const f=X.filter(x=>{if(FILT==='REC'||FILT==='SALMI'||FILT==='DOC'){if(x.etapa!==FILT)return false;}else if(FILT==='ATR'){if(x.f101||x.edad<=thr)return false;}else if(FILT==='REV'){if(!x.rev)return false;}
+    if(pv&&x.e.prov!==pv)return false;
+    if(rn&&String(x.e.cod).toUpperCase()!==rn&&(x.e.desc||'').toUpperCase().indexOf(rn)<0)return false;
+    if(!q)return true;return (String(x.e.oc)+' '+(x.e.prov||'')+' '+(x.e.desc||'')+' '+(x.e.cod||'')+' '+x.id).toUpperCase().indexOf(q)>=0;});
+  const kf=SKF[SK];f.sort((a,b)=>{const va=kf(a),vb=kf(b);return (va<vb?-1:va>vb?1:0)*SD;});return f;}
 function renderTabla(){const F=filtrados();const pages=Math.max(1,Math.ceil(F.length/PS));if(PAGE>=pages)PAGE=pages-1;
   const thr=Math.round(pct(MED.k101,.85));
+  document.querySelectorAll('#tab th.sort').forEach(th=>{th.querySelector('.ar').textContent=th.dataset.k===SK?(SD>0?'▲':'▼'):'↕';});
   $('#tab tbody').innerHTML=F.slice(PAGE*PS,PAGE*PS+PS).map(x=>{const at=!x.f101&&x.edad>thr;
-    return '<tr class="click" data-id="'+x.id+'"><td><span class="code">'+x.e.oc+'</span><br><span class="muted" style="font-size:.74rem">recibida '+fdf(x.e.fRec)+'</span></td><td>'+esc(x.e.prov)+'</td><td style="max-width:260px">'+esc((x.e.desc||'').slice(0,60))+'</td><td class="num">'+money(x.e.valor)+'</td><td><span class="pill '+x.etapa.toLowerCase()+'">'+ETQ[x.etapa]+'</span>'+(x.rev?' <span class="pill bad">102</span>':'')+'</td><td class="num">'+(at?'<span class="pill bad">'+x.edad+'</span>':x.edad)+'</td><td class="mono" style="font-size:.76rem">'+(x.c&&x.c.fConf?fdm(x.c.fConf):'—')+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.e.fSalmi)+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.f101)+'</td></tr>';}).join('')||'<tr><td colspan="9" class="muted">Sin resultados.</td></tr>';
-  $('#pager').innerHTML=F.length+' expedientes · página '+(PAGE+1)+' de '+pages+' <button class="btn ghost small" id="pv"'+(PAGE?'':' disabled')+'>Anterior</button><button class="btn ghost small" id="pn"'+(PAGE<pages-1?'':' disabled')+'>Siguiente</button>';
+    return '<tr class="click" data-id="'+x.id+'"><td><span class="code">'+x.e.oc+'</span><br><span class="muted" style="font-size:.74rem">recibida '+fdf(x.e.fRec)+'</span></td><td>'+esc(x.e.prov)+'</td><td style="max-width:280px"><span class="code">'+esc(x.e.cod)+'</span> '+esc((x.e.desc||'').slice(0,60))+'</td><td class="num">'+money(x.e.valor)+'</td><td><span class="pill '+x.etapa.toLowerCase()+'">'+ETQ[x.etapa]+'</span>'+(x.rev?' <span class="pill bad">102</span>':'')+'</td><td class="num">'+(at?'<span class="pill bad">'+x.edad+'</span>':x.edad)+'</td><td class="mono" style="font-size:.76rem">'+(x.c&&x.c.fConf?fdm(x.c.fConf):'—')+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.e.fSalmi)+'</td><td class="mono" style="font-size:.76rem">'+fdm(x.f101)+'</td></tr>';}).join('')||'<tr><td colspan="9" class="muted">Sin resultados con estos filtros.</td></tr>';
+  $('#pager').innerHTML=nf(F.length)+' líneas · página '+(PAGE+1)+' de '+pages+' <button class="btn ghost small" id="pv"'+(PAGE?'':' disabled')+'>Anterior</button><button class="btn ghost small" id="pn"'+(PAGE<pages-1?'':' disabled')+'>Siguiente</button>';
   $('#pv').onclick=()=>{PAGE--;renderTabla();};$('#pn').onclick=()=>{PAGE++;renderTabla();};
   document.querySelectorAll('#tab tr.click').forEach(tr=>tr.addEventListener('click',()=>abrir(tr.dataset.id)));}
 
@@ -459,21 +571,72 @@ function renderCaratula(x){
 }
 
 /* ---------- Vista del proveedor ---------- */
+function provLlenar(){
+  const provs=[...new Set(X.map(x=>x.e.prov).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const demo=X.find(x=>x.f101&&x.c&&x.t)||X[0];
+  $('#pProv').innerHTML=provs.map(p=>'<option'+(p===demo.e.prov?' selected':'')+'>'+esc(p)+'</option>').join('');
+  provOcs(demo.e.oc);
+}
+function provOcs(sel){
+  const pv=$('#pProv').value;const ocs=[...new Set(X.filter(x=>x.e.prov===pv).map(x=>String(x.e.oc)))].sort().reverse();
+  $('#pOc').innerHTML=ocs.map(o=>'<option'+(String(sel)===o?' selected':'')+'>'+o+'</option>').join('');provRens();
+}
+function provRens(){
+  const oc=$('#pOc').value;const L=X.filter(x=>String(x.e.oc)===oc);const rm=new Map();L.forEach(x=>rm.set(x.e.cod,x.e.desc||''));
+  $('#pRen').innerHTML='<option value="">Todos los renglones</option>'+[...rm.entries()].map(r=>'<option value="'+esc(r[0])+'">'+esc(r[0])+' · '+esc(r[1].slice(0,50))+'</option>').join('');renderProv();
+}
 function renderProv(){
-  const oc=($('#pOc').value||'').replace(/\D/g,'');const cod=($('#pCod').value||'').trim().toUpperCase();
-  const box=$('#pRes');if(!oc){box.innerHTML='<p style="font-size:.84rem;color:var(--sg-tenue)">Ingrese su número de orden de compra.</p>';return;}
-  let L=X.filter(x=>String(x.e.oc)===oc);if(cod)L=L.filter(x=>x.c&&String(x.c.id).toUpperCase()===cod);
-  if(!L.length){box.innerHTML='<p style="font-size:.84rem;color:var(--sg-tenue)">No encontramos entregas recibidas para esa orden desde el 5 de mayo de 2026. Si su entrega es reciente, el registro puede tardar hasta un día hábil.</p>';return;}
-  box.innerHTML=L.sort((a,b)=>b.e.fRec<a.e.fRec?-1:1).map(x=>{const e=x.e;
-    const S3=[['Cita confirmada',x.c&&x.c.fConf,x.c?('Código '+esc(x.c.id)):'Sin cita enlazada'],['Mercancía recibida en el CEDIS',e.fRec,'Cantidad recibida: '+(e.cant||0).toLocaleString('es-PA')],['Ingreso al inventario',e.fSalmi,''],['Entrada registrada en SAP',x.f101,''],
+  const oc=$('#pOc').value,rn=$('#pRen').value,pv=$('#pProv').value;const box=$('#pRes');
+  let L=X.filter(x=>String(x.e.oc)===oc);if(rn)L=L.filter(x=>x.e.cod===rn);
+  if(!L.length){box.innerHTML='<p style="font-size:.84rem;color:var(--sg-tenue)">No encontramos entregas recibidas para esa orden desde el 5 de mayo de 2026.</p>';return;}
+  box.innerHTML='<div style="font-size:.95rem;font-weight:700;color:var(--sg-azul)">'+esc(pv)+' · OC '+esc(oc)+'</div>'+L.sort((a,b)=>b.e.fRec<a.e.fRec?-1:1).map(x=>{const e=x.e;
+    const S3=[['Cita confirmada',x.c&&x.c.fConf,x.c?('Código '+esc(x.c.id)):''],['Mercancía recibida en el CEDIS',e.fRec,'Cantidad recibida: '+nf(e.cant||0)],['Ingreso al inventario',e.fSalmi,''],['Entrada registrada en SAP',x.f101,''],
       ['Revisión y firma del informe de recepción',null,'Control · Ventanilla Única'],['Contabilidad',null,''],['Publicación',null,''],['Envío a Contraloría y pago',null,'']];
     let cur=S3.findIndex((s,i)=>i>=1&&!s[1]);
-    return '<div class="ent"><div class="ent-h"><span>Entrega del <b>'+fdf(e.fRec)+'</b> · renglón <span style="font-family:Consolas,monospace">'+esc(e.cod)+'</span></span><span>'+esc((e.desc||'').slice(0,60))+'</span></div><div class="vt">'+
+    return '<div class="ent"><div class="ent-h"><span>Entrega del <b>'+fdf(e.fRec)+'</b> · renglón <span style="font-family:Consolas,monospace">'+esc(e.cod)+'</span></span><span>'+esc((e.desc||'').slice(0,70))+'</span></div><div class="vt">'+
      S3.map((s,i)=>{const done=!!s[1];const now=(i===cur&&i<4);const na=i>=4||(i===0&&!done);const cls=done?'done':(now?'now':(na?'na':''));
        const dd=done?fdf(s[1]):(now?('En esta etapa · '+x.edad+' días hábiles desde la recepción'):(na?(i===0?'Sin cita enlazada a esta entrega':'Aún sin registro digital: lo informaremos cuando el área lo registre'):'Pendiente'));
-       return '<div class="s '+cls+'"><span class="ic">'+(done?'✓':(i+1))+'</span><div><div class="tt">'+s[0]+'</div><div class="dd">'+dd+(s[2]&&(done||na)?' · '+s[2]:'')+'</div></div></div>';}).join('')+'</div></div>';}).join('')+
+       return '<div class="s '+cls+'"><span class="ic">'+(done?'✓':(i+1))+'</span><div><div class="tt">'+s[0]+'</div><div class="dd">'+dd+(s[2]&&(done||(na&&i>0))?' · '+s[2]:'')+'</div></div></div>';}).join('')+'</div></div>';}).join('')+
    '<p style="font-size:.78rem;color:var(--sg-tenue)">Esta consulta no muestra montos ni datos de otros proveedores. Dudas: Torre de Control, ext. 86322.</p>';
 }
+
+/* ---------- Tooltip y tutorial guiado ---------- */
+document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.closest('[data-tip]');const tip=$('#tip');if(!t){tip.style.display='none';return;}
+  tip.innerHTML=t.getAttribute('data-tip');tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+14,y=ev.clientY+14;if(x+w>window.innerWidth-8)x=ev.clientX-w-14;if(y+h>window.innerHeight-8)y=ev.clientY-h-14;tip.style.left=x+'px';tip.style.top=y+'px';});
+const TOUR=[
+  {sel:'header.top .meta',tab:'p-flujo',tit:'1. De dónde salen los datos',txt:'La esquina dice si el tablero está <b>en vivo</b>, de qué fuentes lee (informe de entradas de Abasto, kardex MB51, citas de SIGUELO y tránsitos de planificación) y la fecha de la última recepción publicada.'},
+  {sel:'#kpis',tab:'p-flujo',tit:'2. El pulso en seis cifras',txt:'Cuántas líneas se recibieron, qué parte ya tiene entrada contable 101, cuánto tarda en llegar, cuántas están atrasadas y el valor detenido. <b>Sin trazabilidad digital</b> son las líneas que ya pasaron a la caja negra del proceso documental.'},
+  {sel:'#bRecorrido',tab:'p-flujo',tit:'3. El recorrido del expediente',txt:'Cada flecha es una etapa con registro en algún sistema. Bajo cada unión está la mediana y el p85 en días hábiles. La flecha en <b>rojo</b> es donde más líneas se atrasan. Toque Recepción, Inventario o Entrada contable para ver esas líneas.'},
+  {sel:'#bSankey',tab:'p-flujo',tit:'4. Por dónde pasa cada línea',txt:'El grosor de cada cinta es proporcional a las líneas. Muestra de dónde vienen (solicitud y cita), si pasaron por SALMI, si ya tienen 101 y cuántas siguen atrasadas. Pase el cursor sobre una cinta para su cifra.'},
+  {sel:'#bWk',tab:'p-flujo',tit:'5. Semana por semana',txt:'Cada barra es una semana de recepción, con el total arriba. Los colores dicen en qué etapa está hoy cada línea: lo rojo y ámbar son pendientes.'},
+  {sel:'#bAge',tab:'p-flujo',tit:'6. Lo que se quedó atrás',txt:'Líneas sin entrada contable según cuántos días hábiles llevan desde la recepción, con su valor. Los tramos en rojo ya superan el p85.'},
+  {sel:'#fbar',tab:'p-exps',tit:'7. Buscar y filtrar',txt:'Busque por número de OC, código de renglón, descripción o proveedor. Filtre por proveedor, por renglón y por etapa. <b>Limpiar filtros</b> regresa a la vista completa.'},
+  {sel:'#tab thead',tab:'p-exps',tit:'8. La tabla manda',txt:'Toque el encabezado de cualquier columna para ordenar de forma ascendente o descendente. Toque una fila para abrir la ficha del expediente.'},
+  {sel:'#ficha',tab:'p-ficha',tit:'9. La ficha y el registro de hitos',txt:'Arriba, los hitos con fecha real de los sistemas. Abajo, los 14 pasos del proceso documental: cada área registra su paso <b>con evidencia</b> (foto o PDF del documento firmado). La devolución exige motivo y no borra lo anterior.'},
+  {sel:'#bCar',tab:'p-ficha',tit:'10. La carátula del folder',txt:'Se imprime y viaja dentro del folder del proveedor, con casillas de firma por paso y un código QR que abre este expediente. La foto de la carátula firmada sirve como evidencia del hito.'},
+  {sel:'#sgBox',tab:'p-prov',tit:'11. Lo que verá el proveedor',txt:'Prototipo de la sección que se agregará al portal de citas: el proveedor consulta su OC y ve en qué etapa está cada entrega, hasta el pago.'}
+];
+let TOUR_I=0;
+function tourIniciar(){TOUR_I=0;$('#tourOverlay').style.display='block';tourPaso();}
+function tourCerrar(){$('#tourOverlay').style.display='none';const sp=document.querySelector('.tour-spot');if(sp)sp.style.display='none';}
+function tourPaso(){const st=TOUR[TOUR_I];if(!st){tourCerrar();return;}
+  $('#tourTitulo').textContent=st.tit;$('#tourTexto').innerHTML=st.txt;$('#tourPaso').textContent='Paso '+(TOUR_I+1)+' de '+TOUR.length;
+  $('#tourPrev').style.visibility=TOUR_I===0?'hidden':'visible';$('#tourNext').textContent=TOUR_I===TOUR.length-1?'Terminar':'Siguiente ▸';
+  const vis=document.getElementById(st.tab);const cambia=vis&&vis.hidden;if(cambia){showTab(st.tab);if(st.tab==='p-ficha')renderFicha();}
+  setTimeout(()=>tourPosicionar(st),cambia?220:0);}
+function tourPosicionar(st){const target=document.querySelector(st.sel);const box=$('#tourBox');let sp=document.querySelector('.tour-spot');
+  if(!sp){sp=document.createElement('div');sp.className='tour-spot';$('#tourOverlay').appendChild(sp);}
+  if(!target){sp.style.display='none';box.style.top='50%';box.style.left='50%';box.style.transform='translate(-50%,-50%)';return;}
+  try{target.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+  const place=()=>{const r=target.getBoundingClientRect();sp.style.top=(r.top-6)+'px';sp.style.left=(r.left-6)+'px';sp.style.width=(r.width+12)+'px';sp.style.height=(r.height+12)+'px';sp.style.display='block';
+    const bh=box.offsetHeight||180,bw=box.offsetWidth||360;let t=r.bottom+14;if(t+bh>window.innerHeight-10)t=Math.max(10,r.top-bh-14);const l=Math.min(Math.max(10,r.left),window.innerWidth-bw-10);box.style.transform='';box.style.top=t+'px';box.style.left=l+'px';};
+  place();setTimeout(place,320);}
+$('#btnTour').onclick=tourIniciar;
+$('#tourNext').onclick=()=>{if(TOUR_I===TOUR.length-1){tourCerrar();return;}TOUR_I++;tourPaso();};
+$('#tourPrev').onclick=()=>{if(TOUR_I>0){TOUR_I--;tourPaso();}};
+$('#tourSkip').onclick=tourCerrar;$('#tourBackdrop').onclick=tourCerrar;
+document.addEventListener('keydown',e=>{if($('#tourOverlay').style.display!=='block')return;if(e.key==='Escape')tourCerrar();else if(e.key==='ArrowRight')$('#tourNext').click();else if(e.key==='ArrowLeft')$('#tourPrev').click();});
+window.addEventListener('resize',()=>{if($('#tourOverlay').style.display==='block')tourPosicionar(TOUR[TOUR_I]);});
 
 /* ---------- pestañas y arranque ---------- */
 function showTab(id){document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===id)));document.querySelectorAll('section.panel').forEach(s=>s.hidden=(s.id!==id));}
@@ -481,8 +644,11 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('clic
 $('#q').addEventListener('input',()=>{PAGE=0;renderTabla();});
 function irA(){const v=$('#selid').value.trim().toUpperCase();if(!v)return;let x=X.find(z=>z.id===v);if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
 $('#go').addEventListener('click',irA);$('#selid').addEventListener('keydown',ev=>{if(ev.key==='Enter')irA();});
-$('#pBuscar').addEventListener('click',renderProv);
-function aplicarTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');$('#tema').textContent=(t==='dark')?'Modo claro':'Modo oscuro';}
+$('#pProv').addEventListener('change',()=>provOcs());$('#pOc').addEventListener('change',provRens);$('#pRen').addEventListener('change',renderProv);
+$('#fProv').addEventListener('change',()=>{PAGE=0;renderTabla();});$('#fRen').addEventListener('input',()=>{PAGE=0;renderTabla();});
+$('#limpiar').addEventListener('click',()=>{$('#q').value='';$('#fProv').value='';$('#fRen').value='';FILT='TODOS';SK='edad';SD=-1;PAGE=0;renderFlujoChips();renderTabla();});
+document.querySelectorAll('#tab th.sort').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.k;if(SK===k)SD=-SD;else{SK=k;SD=(k==='prov'||k==='desc'||k==='oc')?1:-1;}PAGE=0;renderTabla();}));
+function aplicarTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');$('#tema').title=(t==='dark')?'Cambiar a tema claro':'Cambiar a tema oscuro';}
 let TEMA='light';try{TEMA=localStorage.getItem('rb_tema')||'light';}catch(e){}
 aplicarTema(TEMA);
 $('#tema').addEventListener('click',()=>{TEMA=(TEMA==='dark')?'light':'dark';aplicarTema(TEMA);try{localStorage.setItem('rb_tema',TEMA);}catch(e){}});
@@ -490,8 +656,8 @@ function iniciar(){
   construir();
   $('#status').innerHTML=(S.vivo?'<span class="dot"></span><b>En vivo</b>':'<span class="dot snap"></span><b>Foto de datos</b>')+' · Fuente: informe de entradas (Abasto), kardex MB51, citas SIGUELO, tránsitos<br>Última recepción: '+fdf(S.corte)+' · Generado '+esc(String(S.generado||'—').slice(0,16));
   $('#ids').innerHTML=X.slice(0,2000).map(x=>'<option value="'+x.id+'">').join('');
-  renderFlujo();renderFlujoChips();renderTabla();
-  const demo=X.find(x=>x.f101&&x.c&&x.t)||X.find(x=>x.f101&&x.c);if(demo){$('#pOc').value=demo.e.oc;}renderProv();
+  llenarFiltros();renderFlujo();renderFlujoChips();renderTabla();provLlenar();
+  const demo=X.find(x=>x.f101&&x.c&&x.t)||X.find(x=>x.f101&&x.c);
   const h=(location.hash||'').slice(1);if(h&&X.some(x=>x.id===h)){abrir(h);}else{SELID=(demo||X[0]).id;}
 }
 (async function(){
