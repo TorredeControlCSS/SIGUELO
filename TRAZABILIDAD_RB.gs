@@ -515,3 +515,52 @@ function trzPrueba() {
     su.deleteRow(filaUsr);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Publicación de la bitácora a GitHub Pages (lectura instantánea)     */
+/* ------------------------------------------------------------------ */
+/* El tablero lee primero trazabilidad_eventos.json (rápido, desde Pages)
+   y después confirma contra SIGUELO en segundo plano. Se publica solo si
+   cambió (huella MD5). Lo llama citasTrazDiferido_ cada 15 minutos y
+   trzRegistrar_/trzAnular_ marcan la bitácora como cambiada. */
+var TRZ_GH_PATH = 'trazabilidad_eventos.json';
+var TRZ_PROP_HASH = 'TRZ_HUELLA';
+
+function trzPublicar_(forzar) {
+  var props = PropertiesService.getScriptProperties(), token = props.getProperty('GH_TOKEN');
+  if (!token) return { success: false, error: 'Falta GH_TOKEN en las propiedades del script.' };
+  var ev = trzLeerEventos_('').map(function (x) { delete x.fila; delete x.idCliente; return x; });
+  var cuerpo = JSON.stringify(ev);
+  var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, cuerpo, Utilities.Charset.UTF_8));
+  if (!forzar && props.getProperty(TRZ_PROP_HASH) === huella) return { success: true, sinCambios: true, filas: ev.length };
+  var obj = { _meta: { fuente: 'TRZ_EVENTOS (bitácora de hitos documentales · SIGUELO)', filas: ev.length,
+    generado: Utilities.formatDate(new Date(), 'America/Panama', 'yyyy-MM-dd HH:mm') + ' PTY' }, eventos: ev };
+  var apiBase = 'https://api.github.com/repos/' + SALDOS_GH_OWNER + '/' + SALDOS_GH_REPO + '/contents/' + TRZ_GH_PATH;
+  var headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }, sha = null;
+  try {
+    var g = UrlFetchApp.fetch(apiBase + '?ref=' + SALDOS_GH_BRANCH, { method: 'get', headers: headers, muteHttpExceptions: true });
+    if (g.getResponseCode() === 200) sha = JSON.parse(g.getContentText()).sha;
+  } catch (e) {}
+  var payload = { message: 'Actualizar trazabilidad_eventos.json (' + obj._meta.generado + ')',
+    content: Utilities.base64Encode(JSON.stringify(obj), Utilities.Charset.UTF_8), branch: SALDOS_GH_BRANCH };
+  if (sha) payload.sha = sha;
+  var p = UrlFetchApp.fetch(apiBase, { method: 'put', headers: headers, contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
+  if (p.getResponseCode() === 200 || p.getResponseCode() === 201) { props.setProperty(TRZ_PROP_HASH, huella); return { success: true, filas: ev.length }; }
+  return { success: false, error: 'GitHub respondió ' + p.getResponseCode() + ': ' + p.getContentText().slice(0, 300) };
+}
+
+/* Nunca lanza. */
+function trzDiferido_() {
+  try {
+    var r = trzPublicar_(false);
+    if (r && r.success && !r.sinCambios) Logger.log('trazabilidad_eventos.json publicado: ' + r.filas + ' eventos.');
+    if (r && !r.success) Logger.log('trzDiferido_: ' + r.error);
+  } catch (e) { Logger.log('trzDiferido_ ERROR: ' + e); }
+}
+
+/* Ejecutar una vez desde el editor para la primera publicación. */
+function trzPublicarAhora() {
+  var r = trzPublicar_(true);
+  Logger.log(r.success ? ('trazabilidad_eventos.json publicado: ' + r.filas + ' eventos.') : ('No publicado: ' + r.error));
+  return r;
+}

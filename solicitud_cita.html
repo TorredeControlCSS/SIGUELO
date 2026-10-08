@@ -1329,7 +1329,14 @@ function mcCargarSeguimiento(){
     MC.seg={idx:idx,corte:j._meta.corteEntradas}; mcPintar();
   }).catch(()=>{});
   // Hitos del control documental (SIGUELO): si aún no está publicado, se omite sin error.
-  fetch(API_URL+'?action=trzResumen&_='+Date.now()).then(r=>r.json()).then(j=>{ if(j&&j.success){ MC.res=j.expedientes||{}; mcPintar(); } }).catch(()=>{});
+  // Primero la bitácora publicada en Pages (rápida); si aún no existe, se consulta SIGUELO.
+  fetch('./trazabilidad_eventos.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||!Array.isArray(j.eventos)) throw 0;
+    const ord=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11','P12','C12','P13','P14'], g={}, res={};
+    j.eventos.forEach(e=>{ (g[e.exp]=g[e.exp]||[]).push(e); });
+    Object.keys(g).forEach(k=>{ const h={}; g[k].forEach(ev=>{ if(ev.estado==='ANULADO') return; if(ev.tipo==='TRANSFIERE') h[ev.paso]=ev.ts; if(ev.tipo==='DEVUELVE'){ ord.slice(ord.indexOf(ev.dest)).forEach(p=>{ delete h[p]; }); } }); res[k]={hitos:{P11:h.P11||null,C12:h.C12||null,P14:h.P14||null}}; });
+    MC.res=res; mcPintar();
+  }).catch(()=>{ fetch(API_URL+'?action=trzResumen&_='+Date.now()).then(r=>r.json()).then(j=>{ if(j&&j.success){ MC.res=j.expedientes||{}; mcPintar(); } }).catch(()=>{}); });
   return MC.segCarga;
 }
 // Buscador propio, mismo lenguaje que Curvas de Inventario.

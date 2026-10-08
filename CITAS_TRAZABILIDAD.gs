@@ -128,6 +128,8 @@ function ctzPublicar_(forzar) {
 
 /* Lo llama citasDiferido_. Nunca lanza. */
 function citasTrazDiferido_() {
+  // También publica la bitácora de hitos documentales (TRAZABILIDAD_RB.gs).
+  try { if (typeof trzDiferido_ === 'function') trzDiferido_(); } catch (eT) {}
   try {
     var r = ctzPublicar_(false);
     if (r && r.success && !r.sinCambios) Logger.log('citas_trazabilidad.json publicado: ' + r.filas + ' filas.');
