@@ -348,6 +348,8 @@
   .adm-ayuda{display:flex;flex-direction:column;gap:9px;font-size:13px;line-height:1.45;max-width:560px;}
   .adm-ayuda .adm-auto{font-size:12px;padding:4px 10px;align-self:flex-start;}
   .adm-aqt{font-size:10.5px;font-weight:700;color:#6b7a8c;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;}
+  .adm [hidden]{display:none!important;}
+  .adm-reset{margin-left:auto;font-size:11.5px;padding:3px 10px;}
   @media(max-width:900px){ .adm-cols{grid-template-columns:1fr;} .adm-prov{grid-template-columns:1fr;} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -3764,7 +3766,7 @@ function admRender(){
   box.innerHTML=`<div class="adm">
   <div class="adm-ses"><span>👤 <b>${esc(ADM.ses.nombre)}</b> · ${esc(ADM.ses.area||'')} · ${esc(ADM.ses.rol||'')}</span><button class="btn" id="admSalir">Salir</button></div>
   <section class="adm-card adm-main" aria-labelledby="admT1">
-    <div class="adm-h"><h3 id="admT1">Renglones por proveedor</h3><span class="adm-sub">Catálogo que ve el proveedor en solicitud_cita. Lo que guarde aquí aparece allí en menos de un minuto.</span></div>
+    <div class="adm-h"><h3 id="admT1">Renglones por proveedor</h3><span class="adm-sub">Catálogo que ve el proveedor en solicitud_cita. Lo que guarde aquí aparece allí en menos de un minuto.</span><button type="button" class="btn adm-reset" id="admReset" title="Vuelve a la vista inicial: sin proveedor, sin búsqueda y con el formulario vacío">↺ Limpiar todo</button></div>
     <div class="adm-prov">
       <label class="adm-lbl" for="admProv"><span class="adm-n">1</span> Proveedor</label>
       <div class="adm-ac-w"><input id="admProv" autocomplete="off" placeholder="Escriba parte del nombre…" role="combobox" aria-expanded="false" aria-controls="admProvAC"><button type="button" class="adm-x" id="admProvX" aria-label="Limpiar proveedor" hidden>×</button><div class="adm-ac" id="admProvAC" role="listbox"></div></div>
@@ -3774,15 +3776,15 @@ function admRender(){
       <form class="adm-form" id="admForm" autocomplete="off" novalidate>
         <div class="adm-lbl"><span class="adm-n">2</span> Agregar renglón a este proveedor <button type="button" class="adm-q" data-ayuda="renglones" aria-label="Ayuda: agregar renglones">?</button></div>
         <div class="adm-modo" role="tablist">
-          <button type="button" role="tab" data-modo="existe" aria-selected="true">Ya existe en el catálogo</button>
-          <button type="button" role="tab" data-modo="nuevo" aria-selected="false">Renglón nuevo</button>
+          <button type="button" role="tab" data-modo="nuevo" aria-selected="true">Renglón nuevo</button>
+          <button type="button" role="tab" data-modo="existe" aria-selected="false">Ya existe en el catálogo</button>
         </div>
-        <div id="admModoExiste">
+        <div id="admModoExiste" hidden>
           <label class="adm-f"><span>Buscar por código o descripción</span><input id="admBusca" placeholder="Ej. 102075601 o warfarina 5mg" autocomplete="off"></label>
           <div class="adm-res" id="admRes2" role="status" aria-live="polite"></div>
           <div class="adm-catres" id="admCatRes"></div>
         </div>
-        <div id="admModoNuevo" hidden>
+        <div id="admModoNuevo">
         <label class="adm-f"><span>Código de abasto *</span><input id="admCod" inputmode="numeric" placeholder="Ej. 102075601" maxlength="15"></label>
         <div class="adm-hint" id="admCodHint" aria-live="polite"></div>
         <label class="adm-f"><span>Descripción *</span><textarea id="admDesc" rows="2" placeholder="Como aparece en la OC"></textarea></label>
@@ -3812,6 +3814,7 @@ function admRender(){
   box.querySelectorAll('[data-tarea]').forEach(b=>b.addEventListener('click',()=>admTarea_(b.dataset.tarea,b)));
   box.querySelectorAll('[data-ayuda]').forEach(b=>b.addEventListener('click',()=>admAyuda_(b.dataset.ayuda)));
   admProvPreparar_(); admFormPreparar_(); admBitPintar_(); admModoPreparar_(); admAutoPintar_();
+  document.getElementById('admReset').onclick=admReiniciar_;
   if(!ADM.disp) admPost_('admDisparadores').then(r=>{ if(r&&r.success){ ADM.disp=r.disparadores||{}; admAutoPintar_(); } }).catch(()=>{});
   admCargarCatalogo_();
 }
@@ -4009,6 +4012,7 @@ function admModo_(m){
   document.querySelectorAll('.adm-modo [data-modo]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.modo===m)));
   document.getElementById('admModoExiste').hidden=m!=='existe'; document.getElementById('admModoNuevo').hidden=m!=='nuevo';
   const q=document.getElementById('admBusca').value.trim();
+  if(document.getElementById('admCols').hidden) return;
   if(m==='nuevo'){ if(/^\d{5,}$/.test(q)&&!document.getElementById('admCod').value){ document.getElementById('admCod').value=q; admCodRevisar_(); } document.getElementById('admCod').focus(); }
   else document.getElementById('admBusca').focus();
 }
@@ -4132,6 +4136,15 @@ function admAyuda_(k){
     (def&&def.w?'<div class="adm-aq"><div class="adm-aqt">Confirmación</div><div>Esta tarea modifica datos: al pulsar Ejecutar se le pedirá confirmar.</div></div>':'')+
     '<div style="text-align:right;margin-top:12px"><button class="btn primary" id="admAyOk">Entendido</button></div></div>';
   abrirModal(); document.getElementById('admAyOk').onclick=cerrarModal; setTimeout(()=>document.getElementById('admAyOk').focus(),30);
+}
+// Vuelve a la vista inicial de la sección de renglones.
+function admReiniciar_(){
+  ['admCod','admDesc','admSap','admPres','admBusca','admFiltro'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+  const c=document.getElementById('admCat'); if(c) c.value='';
+  ['admRes','admRes2'].forEach(i=>{ const el=document.getElementById(i); if(el){ el.textContent=''; el.className='adm-res'; } });
+  (ADM.filas||[]).forEach(x=>{ delete x._nuevo; });
+  admModo_('nuevo'); document.getElementById('admProv').value=''; admProvElegir_('');
+  document.getElementById('admProv').focus();
 }
 function admLog_(t){ ADM.bit.unshift(new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})+' · '+t); ADM.bit=ADM.bit.slice(0,8); admBitPintar_(); }
 function admBitPintar_(){ const b=document.getElementById('admBit'); if(b) b.innerHTML=ADM.bit.length?'<div class="adm-gt">En esta sesión</div>'+ADM.bit.map(x=>'<div>'+esc(x)+'</div>').join(''):''; }
