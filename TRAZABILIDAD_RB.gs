@@ -120,8 +120,9 @@ function trzHoja_(nombre, encabezados) {
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sh = ss.getSheetByName(nombre);
-      if (!sh) {
-        sh = ss.insertSheet(nombre, ss.getNumSheets());
+      if (!sh) sh = ss.insertSheet(nombre, ss.getNumSheets());
+      // Si la hoja quedó creada sin encabezados (p. ej. tras un timeout), se completan.
+      if (sh.getLastColumn() === 0 || String(sh.getRange(1, 1).getValue()).trim() === '') {
         sh.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
         sh.setFrozenRows(1);
         SpreadsheetApp.flush();
