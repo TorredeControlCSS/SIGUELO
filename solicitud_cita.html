@@ -839,7 +839,8 @@ function pintarInventario_(resp,corte){
         '<div class="pv-res-item"><div class="l">UE</div><div class="v">'+fmt(resp.total_ue)+'</div></div>'+
       '</div>'+
       '<table class="pv-tabla"><thead><tr><th>Punto / UE</th><th style="text-align:right;">Inventario</th><th style="text-align:right;">Cobertura</th></tr></thead><tbody>'+filas+'</tbody></table>'+
-      (corte?'<div style="font-size:11px;color:#888;margin-top:6px;">Saldos en línea al '+escAttr(String(corte).slice(0,16))+'.</div>':'');
+      (corte?'<div style="font-size:11px;color:#888;margin-top:6px;">Saldos en línea al '+escAttr(String(corte).slice(0,16))+'.</div>':'')+
+      '<div style="font-size:11px;color:#888;margin-top:4px;line-height:1.4;">Estado de existencias publicado por la Dirección Nacional de Logística conforme al Procedimiento P‑240 (rev. 7.0). La información proviene de los sistemas institucionales a la fecha de corte indicada y puede variar. No constituye Orden de Solicitud de Entrega, orden de compra ni modificación de contrato. Valide estos datos con el planificador correspondiente.</div>';
   }
 }
 ['pointerenter','focus'].forEach(ev=>document.getElementById('cobNacionalCaja').addEventListener(ev,()=>{ if(document.getElementById('cobNacionalCaja')._sig) saldosJson_(); }));
@@ -1343,7 +1344,7 @@ function mcDetalle(d){
   const dias=e&&cur>=0?mcDiasHab(e.fRec,new Date().toISOString().slice(0,10)):null;
   return '<div class="mc-det" role="region" aria-label="Etapa documental de la entrega"><div class="mc-det-h"><span><b>'+escAttr(d.descripcion||'')+'</b></span><span class="ids">OC '+escAttr(mcOC(d.oc)||d.oc||'')+' · renglón '+escAttr(mcCod(d.cod_abasto))+'</span></div>'+
     '<div class="mc-steps">'+s.map((x,j)=>'<div class="mc-step '+((x.f||x.f2)?'d':(j===cur?'c':(x.na?'na':'')))+'"><span class="t">'+((x.f||x.f2)?'✓ ':'')+x.t+'</span><span class="f">'+(x.f?escAttr(x.f.split('-').reverse().join('/')):(x.f2?'Sin fecha registrada':(j===cur?'En esta etapa':(x.na?'Aún sin registro digital':'Pendiente'))))+'</span>'+(x.n&&x.f?'<span>'+escAttr(x.n)+'</span>':'')+'</div>').join('')+'</div>'+
-    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Información referencial según los registros del sistema a la fecha; puede variar. DINALOG gestiona la documentación de la recepción; el pago no se gestiona aquí, corresponde a la Contraloría. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</div></div>';
+    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Etapa referencial de la documentación de su entrega. La información proviene de los sistemas institucionales a la fecha de corte indicada y puede variar. DINALOG gestiona la documentación de la recepción; el pago no se gestiona aquí, corresponde a la Contraloría. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</div></div>';
 }
 function mcDiasHab(a,b){ let n=0; const d=new Date(a+'T12:00:00'), f=new Date(b+'T12:00:00'); while(d<f){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w&&w<6) n++; } return n; }
 function mcCargarSeguimiento(){

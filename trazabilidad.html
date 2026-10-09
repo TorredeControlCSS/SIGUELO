@@ -956,7 +956,7 @@ function renderProv(){
      S3.map((s,i)=>{const done=!!s[1];const now=(i===cur&&i<LIM);const na=i>=LIM||(i===0&&!done);const cls=done?'done':(now?'now':(na?'na':''));
        const dd=done?fdf(s[1]):(now?('En esta etapa · '+x.edad+' días hábiles desde la recepción'):(na?(i===0?'Sin cita enlazada a esta entrega':'Aún sin registro digital en este sistema'):'Pendiente'));
        return '<div class="s '+cls+'"><span class="ic">'+(done?'✓':(i+1))+'</span><div><div class="tt">'+s[0]+'</div><div class="dd">'+dd+(s[2]&&(done||(na&&i>0))?' · '+s[2]:'')+'</div></div></div>';}).join('')+'</div></div>';}).join('')+
-   '<p style="font-size:.78rem;color:var(--sg-tenue)">Información referencial según los registros del sistema; puede variar. DINALOG gestiona la documentación de la recepción; el pago corresponde a la Contraloría. No muestra montos ni datos de otros proveedores. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</p>';
+   '<p style="font-size:.78rem;color:var(--sg-tenue)">Etapa referencial de la documentación de su entrega. La información proviene de los sistemas institucionales a la fecha de corte indicada y puede variar. DINALOG gestiona la documentación de la recepción; el pago corresponde a la Contraloría. No muestra montos ni datos de otros proveedores. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</p>';
 }
 
 /* ---------- Tooltip y tutorial guiado ---------- */

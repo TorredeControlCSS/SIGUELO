@@ -63,6 +63,11 @@ var AVP_DIAS_VIGENCIA = 183;
 var AVP_MAX_FILAS = 60;           // renglones por correo; el resto se ve en solicitud_cita
 var AVP_DIAS = ['', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
 
+/* Pies oficiales (texto de la Jefatura, P-240 rev. 7.0). El proveedor recibe su versión;
+   Planificación recibe una copia interna aparte, con su propio pie. */
+var AVP_PIE_PROV = 'Aviso. Este mensaje es generado por la Torre de Control de Operaciones Logísticas de la Dirección Nacional de Logística, en aplicación del Procedimiento P‑240 (revisión 7.0), que faculta a esta Dirección a establecer las normas de planificación y control de existencias y a publicar por medio tecnológico el estado de las existencias y los indicadores logísticos de los renglones adquiridos por la institución (medidas 3, 24 y 26). Su finalidad es informarle el nivel de existencias, el alcance y los saldos pendientes de entrega de sus renglones, para que programe su capacidad de suministro y nos indique fechas estimadas de disponibilidad. No constituye Orden de Solicitud de Entrega, orden de compra ni modificación de contrato; las entregas se requieren únicamente mediante el formulario de Orden de Solicitud de Entrega o la orden de compra correspondiente (P‑240, glosario 10 y VII.C.1.4), y las citas de recepción se asignan por el mecanismo de citas del CEDIS. La información proviene de los sistemas institucionales a la fecha de corte indicada y puede variar.';
+var AVP_PIE_PLAN = 'Aviso. Conforme al Procedimiento P‑240 (revisión 7.0), los almacenes reportan semanalmente las existencias físicas al Departamento de Planeación de Suministros (medida 27) y comunican a la Dirección las situaciones no frecuentes de demanda (medida 31); corresponde al planificador de inventarios confrontar el nivel de existencia con el punto de reorden y los niveles máximo, mínimo y de seguridad, y elaborar la Proforma de Pedido cuando corresponda (medida 18), considerando los pedidos en trámite, los pedidos en manos del proveedor y las órdenes o contratos pendientes de entrega (glosario 5). Este reporte de la Torre de Control se emite para ese fin: al recibirlo, el planificador debe verificar el saldo contra el sistema, requerir al proveedor la programación estimada de sus entregas y dejar constancia de la gestión en el expediente del renglón. No sustituye la Lista Semanal de Existencias ni la Proforma de Pedido, que siguen siendo los instrumentos oficiales del procedimiento.';
+
 /* ------------------------------------------------------------------ */
 /*  Utilidades                                                          */
 /* ------------------------------------------------------------------ */
@@ -405,7 +410,7 @@ function avpCelda_(saldo, cob) {
   return '<div style="font-family:Consolas,monospace;' + (saldo <= 0 ? 'color:#9b1c2c;font-weight:700' : '') + '">' + avpFmt_(saldo) + '</div><div style="margin-top:2px">' + avpPill_(cob) + '</div>';
 }
 
-function avpHtml_(p, saldosAl, franja, contacto) {
+function avpHtml_(p, saldosAl, franja, contacto, version) {
   var F = p.filas, hoy = avpHoy_();
   var crit = F.filter(function (x) { return x.pa != null && Math.round(x.pa * 10) / 10 < 1; }).length;
   var conPend = F.filter(function (x) { return x.pend > 0; }).length;
@@ -432,11 +437,12 @@ function avpHtml_(p, saldosAl, franja, contacto) {
     '<div style="padding:16px 20px;font-size:14px;line-height:1.5;border:1px solid #ddd;border-top:0">' +
     '<p>Estimado proveedor: a título informativo, le compartimos una <b>estimación</b> del inventario y la cobertura de los <b>' + F.length + ' renglones</b> que tiene adjudicados con la CSS, según los datos registrados en nuestros sistemas a la fecha de corte, en los CEDIS Panamá, Chiriquí y Divisa y en la red de unidades ejecutoras. La cobertura conjunta estimada en las UE es de <b>' + ueTxt + '</b>. ' +
     (crit ? 'Según estos datos, ' + crit + (crit === 1 ? ' renglón estaría' : ' renglones estarían') + ' por debajo de un mes de cobertura en CEDIS Panamá. ' : '') +
-    (conPend ? 'Los registros muestran saldo pendiente por entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + '; de corresponder, se sugiere revisarlo con su planificador. Las citas de entrega se agendan en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Las citas de entrega se agendan en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
+    (conPend ? 'Los registros muestran saldo pendiente de entrega en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + '. ' : '') +
+    'Con base en esta información, se sugiere programar su capacidad de suministro e indicar a su planificador las fechas estimadas de disponibilidad. Las entregas se requieren mediante la Orden de Solicitud de Entrega o la orden de compra, y las citas de recepción se agendan en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.</p>' +
     '<p style="background:#eef4fb;border-left:4px solid #1e5a9e;padding:8px 12px"><b>Valide estos datos con el planificador correspondiente</b> antes de programar entregas o gestionar órdenes de compra. ' + (contacto || 'Jefatura de Planificación de la Dirección Nacional de Logística') + '.</p>' +
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente según registros</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
     '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente según registros" = saldo de órdenes de compra y solicitudes de entrega registrado por Planificación a la fecha de corte. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
-    '<p style="font-size:12px;color:#666">Este informe es referencial y se basa en los datos disponibles a la fecha de corte; las cifras pueden variar. No constituye una orden, una instrucción de entrega ni una modificación de los términos de su orden de compra o contrato. Valide estos datos con el planificador correspondiente.</p>' +
+    '<p style="font-size:11.5px;color:#555;line-height:1.45;border-top:1px solid #ddd;padding-top:10px;margin-top:14px">' + avpEsc_(version === 'PLAN' ? AVP_PIE_PLAN : AVP_PIE_PROV) + '</p>' +
     '<p style="font-size:12px;color:#666">Se envía una vez por semana. Consultas: Planificación · DINALOG.</p></div></div>';
 }
 
@@ -479,7 +485,7 @@ function avpEnviar_(opc) {
     var bv = bit.getDataRange().getValues(), bh = avpIdx_(bv[0]), lim = Date.now() - 6 * 864e5;
     for (var b = 1; b < bv.length; b++) {
       var f = bv[b][bh.FECHA];
-      if (String(bv[b][bh.RESULTADO]) === 'ENVIADO' && f instanceof Date && f.getTime() >= lim) recientes[avpNorm_(bv[b][bh.PROVEEDOR])] = true;
+      if (/^(ENVIADO|SIN CORREO · )/.test(String(bv[b][bh.RESULTADO])) && f instanceof Date && f.getTime() >= lim) recientes[avpNorm_(bv[b][bh.PROVEEDOR])] = true;
     }
     lista = lista.filter(function (x) { if (recientes[x.k]) { omitidos++; return false; } return true; });
   }
@@ -493,12 +499,18 @@ function avpEnviar_(opc) {
     dir.fijosCc.forEach(function (m) { if (cc.indexOf(m) < 0) cc.push(m); });
     var cco = dir.fijosCco.filter(function (m) { return cc.indexOf(m) < 0; });
     var crit = x.p.filas.filter(function (f) { return f.pa != null && Math.round(f.pa * 10) / 10 < 1; }).length;
-    if (!para.length) { sinCorreo.push(x.p.nombre); if (!prueba) { bit.appendRow([new Date(), modo, x.p.nombre, '', cc.join(', '), x.p.filas.length, crit, 'SIN CORREO']); return; } }
-    var dest = prueba ? [correoPrueba] : para, copia = prueba ? [] : cc, oculta = prueba ? [] : cco;
-    if (usados + dest.length + copia.length + oculta.length > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
-    var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + (cc.length ? ' · copia: ' + avpEsc_(cc.join(', ')) : ' · sin copia (falta correo del planificador)') + (cco.length ? ' · copia oculta: ' + avpEsc_(cco.join(', ')) : '') + '</div>' : '';
+    // Dos correos por proveedor: (1) al proveedor, con el pie para proveedores; (2) copia interna a
+    // Planificación (planificadores o Jefatura, más las copias fijas), con el pie para planificadores.
+    // Si el proveedor no tiene correo, Planificación igual recibe su copia para gestionarlo.
+    if (!para.length) sinCorreo.push(x.p.nombre);
+    var nDest = para.length + cc.length + cco.length;
+    if (!prueba && usados + nDest > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
+    var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA · versión proveedor</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + '</div>' : '';
+    var franjaPlan = '<div style="background:#e8f0fa;border:1px solid #9db8dc;padding:8px 12px;font-size:12.5px;margin-bottom:8px">' + (prueba ? '<b>PRUEBA · copia interna</b> · habría ido a: ' + avpEsc_(cc.join(', ') || 'nadie (falta correo de planificador y de Jefatura)') + (cco.length ? ' · copia oculta: ' + avpEsc_(cco.join(', ')) : '') + '<br>' : '') +
+      '<b>Copia interna para Planificación.</b> Este es el aviso que recibió el proveedor ' + avpEsc_(x.p.nombre) + (para.length ? ' (' + avpEsc_(para.join(', ')) + ')' : ' — <b>sin correo registrado: no se le envió</b>') + '.</div>';
     var asunto = (prueba ? '[PRUEBA] ' : '') + 'Informe referencial de cobertura de sus renglones · CSS · ' + x.p.nombre;
-    if (opc.simular) { usados += para.length + cc.length + cco.length; enviados++; return; }
+    var asuntoPlan = (prueba ? '[PRUEBA] ' : '') + '[Copia interna] Cobertura de renglones · ' + x.p.nombre;
+    if (opc.simular) { usados += nDest; enviados++; return; }
     try {
       // Contacto de Planificación que se nombra en el cuerpo: sus planificadores (con correo si lo hay) o la Jefatura.
       // Un mismo planificador puede venir escrito de dos formas ("Selene Fernández" / "Selene itzel Fernandez vega"):
@@ -514,12 +526,22 @@ function avpEnviar_(opc) {
       var nombres = planes.map(function (n) { var m = dir.planDe(n); return '<b>' + avpEsc_(dir.planNombre(n)) + '</b>' + (m ? ' (<a href="mailto:' + m + '">' + avpEsc_(m) + '</a>)' : ''); });
       var contacto = nombres.length ? (nombres.length === 1 ? 'Planificador(a) correspondiente: ' : 'Planificadores correspondientes: ') + nombres.join(', ')
         : (dir.jefatura ? 'Contacto: Jefatura de Planificación (<a href="mailto:' + dir.jefatura + '">' + avpEsc_(dir.jefatura) + '</a>)' : '');
-      var html = avpHtml_(x.p, datos.saldosAl, franja, contacto);
-      // Mientras la cuenta Brevo de proveedores no esté lista, las PRUEBAS salen por Gmail del script (un correo a usted).
-      if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: dest.join(','), subject: asunto, htmlBody: html, name: 'Torre de Control · DINALOG' });
-      else avpEnviarBrevo_(dest, copia, asunto, html, oculta);
-      usados += dest.length + copia.length + oculta.length; enviados++;
-      bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.join(', '), x.p.filas.length, crit, prueba ? 'PRUEBA → ' + correoPrueba : 'ENVIADO']);
+      var html = avpHtml_(x.p, datos.saldosAl, franja, contacto, 'PROV');
+      var htmlPlan = avpHtml_(x.p, datos.saldosAl, franjaPlan, contacto, 'PLAN');
+      // Sin clave Brevo, las PRUEBAS salen por Gmail del script (a usted).
+      var envia = function (a, as, h, b) {
+        if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: a.join(','), subject: as, htmlBody: h, name: 'Torre de Control · DINALOG' });
+        else avpEnviarBrevo_(a, [], as, h, b || []);
+      };
+      var res = [];
+      if (para.length) { envia(prueba ? [correoPrueba] : para, asunto, html); res.push('proveedor'); }
+      if (cc.length || cco.length) {
+        try { envia(prueba ? [correoPrueba] : (cc.length ? cc : cco), asuntoPlan, htmlPlan, prueba || !cc.length ? [] : cco); res.push('copia interna'); }
+        catch (ePlan) { res.push('copia interna ERROR ' + ePlan.message); errores.push(x.p.nombre + ' (copia interna): ' + ePlan.message); }
+      }
+      usados += prueba ? res.length : nDest; if (para.length) enviados++;
+      bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.concat(cco).join(', '), x.p.filas.length, crit,
+        (prueba ? 'PRUEBA → ' + correoPrueba + ' · ' : (para.length ? 'ENVIADO' : 'SIN CORREO')) + (res.length ? ' · ' + res.join(' + ') : '')]);
     } catch (e) {
       errores.push(x.p.nombre + ': ' + e.message);
       bit.appendRow([new Date(), modo, x.p.nombre, para.join(', '), cc.join(', '), x.p.filas.length, crit, 'ERROR ' + e.message]);
