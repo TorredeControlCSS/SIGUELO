@@ -535,8 +535,8 @@ function renderFlujo(){
     ch('REC',cu==='REC'?'cuello':'','Almacén','Recepción física',nf(sinSalmi.length),'detenidas aquí · <span class="al">'+atRec+' con más de '+thrRec+' d</span>','Líneas recibidas que aún no aparecen en SALMI. Toque para verlas')+
     ch('SALMI',cu==='SALMI'?'cuello':'','WMS','Ingreso a inventario',nf(enSalmi.length),'detenidas aquí · <span class="al">'+atSal+' con más de '+thrSal+' d</span>','Líneas en SALMI que aún no tienen entrada contable 101. Toque para verlas')+
     ch('DOC','ok','SAP SAFIRO','Entrada contable 101',nf(con101),'pasan al proceso documental','Líneas con movimiento 101 en el kardex. Toque para verlas')+
-    '<div class="chev box"><span class="c">Sin registro digital</span><span class="r">Control documental P01–P14 · Contabilidad · Publicación · Pago</span><small>Se registrará desde la ficha del expediente, con evidencia</small></div>'+
-    '</div><div class="lats">'+lat(MED.sol,'emisión → recepción')+lat(MED.cita,'cita → recepción')+lat(MED.salmi,'recepción → SALMI')+lat(MED.k101,'recepción → 101')+lat(null,'101 → pago')+lat(null,'',true)+'</div>';
+    '<div class="chev box"><span class="c">Sin registro digital</span><span class="r">Control documental P01–P14 · Contabilidad · Publicación · Remisión a Contraloría</span><small>Se registrará desde la ficha del expediente, con evidencia</small></div>'+
+    '</div><div class="lats">'+lat(MED.sol,'emisión → recepción')+lat(MED.cita,'cita → recepción')+lat(MED.salmi,'recepción → SALMI')+lat(MED.k101,'recepción → 101')+lat(null,'101 → Contraloría')+lat(null,'',true)+'</div>';
   document.querySelectorAll('#chevs .chev[data-f]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;if(f==='SOL'||f==='CIT')return;FILT=f;PAGE=0;showTab('p-exps');renderFlujoChips();renderTabla();}));
   renderSankey(thrSal);renderWeeks();renderAge(thrSal);
 }
@@ -832,7 +832,7 @@ function flujoDoc(x,reg,hechos,sig){
   h+='<div class="fl" role="list" aria-label="Recorrido documental del expediente">';
   GRUPOS.forEach((g,gi)=>{const ps=g[1];const gdone=ps.every(p=>hechos.has(p));
     h+=(gi?flecha(GRUPOS[gi-1][1].slice(-1)[0],ps[0]).replace('fla','fla big'):'')+'<div class="flg'+(gdone?' ok':'')+(ps.some(p=>sig&&sig[0]===p)?' activo':'')+'" role="listitem"><div class="flg-h">'+g[0]+' <span>'+ps.filter(p=>hechos.has(p)).length+'/'+ps.length+'</span></div><div class="flg-bar"><i style="width:'+Math.round(100*ps.filter(p=>hechos.has(p)).length/ps.length)+'%"></i></div><div class="flg-b">'+ps.map((p,i)=>(i?flecha(ps[i-1],p):'')+node(p)).join('')+'</div></div>';});
-  h+=flecha('P14','X').replace('fla','fla big')+'<div class="flg ghost" role="listitem"><div class="flg-h">Contraloría y pago</div><div class="flg-b"><span class="fn pend ghostn"><span class="a">Sin registro digital</span><span class="d">fuera de SIGUELO</span></span></div></div></div>';
+  h+=flecha('P14','X').replace('fla','fla big')+'<div class="flg ghost" role="listitem"><div class="flg-h">Remisión a Contraloría</div><div class="flg-b"><span class="fn pend ghostn"><span class="a">Sin registro digital</span><span class="d">fuera de SIGUELO</span></span></div></div></div>';
   h+='<div class="fsem" aria-label="Leyenda"><span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>Completado</span><span><i style="background:var(--k-green)"></i>Le toca · hasta 2 días hábiles</span><span><i style="background:var(--k-amb)"></i>3 a 5 días</span><span><i style="background:var(--k-red)"></i>Más de 5 días</span><span><i style="background:var(--bad-soft);border:1px dashed var(--bad)"></i>Devuelto o a repetir</span></div>';
   // detalle del paso seleccionado
   const q=info(sel),done=hechos.has(sel),now=sig&&sig[0]===sel;
@@ -949,14 +949,14 @@ function renderProv(){
   if(!L.length){box.innerHTML='<p style="font-size:.84rem;color:var(--sg-tenue)">No encontramos entregas recibidas para esa orden desde el 5 de mayo de 2026.</p>';return;}
   box.innerHTML='<div style="font-size:.95rem;font-weight:700;color:var(--sg-azul)">'+esc(pv)+' · OC '+esc(oc)+'</div>'+L.sort((a,b)=>b.e.fRec<a.e.fRec?-1:1).map(x=>{const e=x.e;
     const S3=[['Cita confirmada',x.c&&x.c.fConf,x.c?('Código '+esc(x.c.id)):''],['Mercancía recibida en el CEDIS',e.fRec,'Cantidad recibida: '+nf(e.cant||0)],['Ingreso al inventario',e.fSalmi,''],['Entrada registrada en SAP',x.f101,''],
-      ['Revisión y firma del informe de recepción',hit(x,'P11'),'Control · Ventanilla Única'],['Contabilidad',hit(x,'C12'),''],['Publicación',hit(x,'P14'),''],['Envío a Contraloría y pago',null,'']];
+      ['Revisión y firma del informe de recepción',hit(x,'P11'),'Control · Ventanilla Única'],['Contabilidad',hit(x,'C12'),''],['Publicación',hit(x,'P14'),''],['Remisión a Contraloría',null,'']];
     const LIM=RESOK?7:4;
     let cur=S3.findIndex((s,i)=>i>=1&&!s[1]);
     return '<div class="ent"><div class="ent-h"><span>Entrega del <b>'+fdf(e.fRec)+'</b> · renglón <span style="font-family:Consolas,monospace">'+esc(e.cod)+'</span></span><span>'+esc((e.desc||'').slice(0,70))+'</span></div><div class="vt">'+
      S3.map((s,i)=>{const done=!!s[1];const now=(i===cur&&i<LIM);const na=i>=LIM||(i===0&&!done);const cls=done?'done':(now?'now':(na?'na':''));
-       const dd=done?fdf(s[1]):(now?('En esta etapa · '+x.edad+' días hábiles desde la recepción'):(na?(i===0?'Sin cita enlazada a esta entrega':'Aún sin registro digital: lo informaremos cuando el área lo registre'):'Pendiente'));
+       const dd=done?fdf(s[1]):(now?('En esta etapa · '+x.edad+' días hábiles desde la recepción'):(na?(i===0?'Sin cita enlazada a esta entrega':'Aún sin registro digital en este sistema'):'Pendiente'));
        return '<div class="s '+cls+'"><span class="ic">'+(done?'✓':(i+1))+'</span><div><div class="tt">'+s[0]+'</div><div class="dd">'+dd+(s[2]&&(done||(na&&i>0))?' · '+s[2]:'')+'</div></div></div>';}).join('')+'</div></div>';}).join('')+
-   '<p style="font-size:.78rem;color:var(--sg-tenue)">Esta consulta no muestra montos ni datos de otros proveedores. Consultas: Control Operativo DINALOG.</p>';
+   '<p style="font-size:.78rem;color:var(--sg-tenue)">Información referencial según los registros del sistema; puede variar. DINALOG gestiona la documentación de la recepción; el pago corresponde a la Contraloría. No muestra montos ni datos de otros proveedores. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</p>';
 }
 
 /* ---------- Tooltip y tutorial guiado ---------- */
@@ -973,7 +973,7 @@ const TOUR=[
   {sel:'#tab thead',tab:'p-exps',tit:'8. La tabla manda',txt:'Toque el encabezado de cualquier columna para ordenar de forma ascendente o descendente. Toque una fila para abrir la ficha del expediente.'},
   {sel:'#ficha',tab:'p-ficha',tit:'9. La ficha y el registro de hitos',txt:'Arriba, los hitos con fecha real de los sistemas. Abajo, los 14 pasos del proceso documental: cada área registra su paso <b>con evidencia</b> (foto o PDF del documento firmado). La devolución exige motivo y no borra lo anterior.'},
   {sel:'#bCar',tab:'p-ficha',tit:'10. La carátula del folder',txt:'Se imprime y viaja dentro del folder del proveedor, con casillas de firma por paso y un código QR que abre este expediente. La foto de la carátula firmada sirve como evidencia del hito.'},
-  {sel:'#sgBox',tab:'p-prov',tit:'11. Lo que verá el proveedor',txt:'Prototipo de la sección que se agregará al portal de citas: el proveedor consulta su OC y ve en qué etapa está cada entrega, hasta el pago.'}
+  {sel:'#sgBox',tab:'p-prov',tit:'11. Lo que verá el proveedor',txt:'Prototipo de la sección que se agregará al portal de citas: el proveedor consulta su OC y ve, de forma referencial, en qué etapa registra el sistema la documentación de cada entrega.'}
 ];
 let TOUR_I=0;
 function tourIniciar(){TOUR_I=0;$('#tourOverlay').style.display='block';tourPaso();}

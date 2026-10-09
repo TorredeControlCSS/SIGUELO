@@ -59,7 +59,7 @@ function excelSeguimiento_(citas) {
       ['Revisión del informe', h.P11], ['Contabilidad', h.C12], ['Publicación', h.P14]
     ];
     var ultimo = -1; et.forEach(function (x, i) { if (x[1]) ultimo = i; });
-    var actual = ultimo + 1 < et.length ? et[ultimo + 1][0] : 'Contraloría y pago';
+    var actual = ultimo + 1 < et.length ? et[ultimo + 1][0] : 'Remisión a Contraloría';
     var celda = function (i) { return et[i][1] ? xsgFecha_(et[i][1]) : (i < ultimo ? 'Sin fecha registrada' : (i <= 2 ? 'Pendiente' : (res ? 'Pendiente' : 'Sin registro digital'))); };
     return [celda(0), Number(best.cant) || 0, celda(1), celda(2), celda(3), celda(4), celda(5), actual];
   });

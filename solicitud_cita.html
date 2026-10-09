@@ -277,9 +277,9 @@
             <div class="mc-head">
               <div>
                 <div class="mc-tit">Mis citas y entregas</div>
-                <div class="mc-sub">Busque una orden o un renglón, o use las pestañas. En las entregas recibidas verá en qué etapa va su pago.</div>
+                <div class="mc-sub">Busque una orden o un renglón, o use las pestañas. En las entregas recibidas verá, de forma referencial, en qué etapa registra el sistema la documentación de su entrega.</div>
               </div>
-              <button type="button" id="btnExcelTraz" class="mc-btn-sec">⬇ Excel (historial y avance del pago)</button>
+              <button type="button" id="btnExcelTraz" class="mc-btn-sec">⬇ Excel (historial y etapa documental)</button>
             </div>
             <div class="mc-bar">
               <div class="ac-wrap">
@@ -1216,7 +1216,7 @@ function renderTransitosDisponibles(lista){
 // ================== MIS CITAS Y ENTREGAS ==================
 // Una sola vista acotada al proveedor: buscador propio (no el datalist del
 // navegador), pestañas con conteo, tarjetas en rejilla y, en las entregas
-// recibidas, el avance hasta el pago con datos de recepción, SAP y SIGUELO.
+// recibidas, la etapa documental referencial con datos de recepción, SAP y SIGUELO.
 var MC={citas:[],trans:[],tab:'',q:null,lim:12,abierta:null,seg:null,segCarga:null,res:null};
 const MC_TABS=[['aten','Requieren atención'],['trans','Por agendar'],['agen','Agendadas'],['entr','Entregadas'],['todas','Todas']];
 function mcOC(oc){ const m=String(oc||'').replace(/\s+/g,'').match(/(100\d{7})(?!\d)/)||String(oc||'').match(/(100\d{7})(?!\d)/); return m?m[1]:''; }
@@ -1295,7 +1295,7 @@ function mcCard(d,i){
   if(g==='entr'){ const s=mcEtapas(d); const cur=mcActual(s);
     seg='<div class="mc-mini" aria-hidden="true">'+s.map((x,j)=>'<i class="'+((x.f||x.f2)?'d':(j===cur?'c':''))+'"></i>').join('')+'</div>'+
       '<div class="mc-mini-t">'+(cur<0?'Todas las etapas registradas':('Etapa actual: <b>'+s[cur].t+'</b>'))+'</div>'+
-      '<button type="button" class="mc-ver" data-k="'+escAttr(k)+'" aria-expanded="'+(MC.abierta===k)+'">'+(MC.abierta===k?'Ocultar avance':'Ver avance del pago')+'</button>'; }
+      '<button type="button" class="mc-ver" data-k="'+escAttr(k)+'" aria-expanded="'+(MC.abierta===k)+'">'+(MC.abierta===k?'Ocultar etapas':'Ver etapa documental')+'</button>'; }
   return '<div class="mc-card'+(MC.abierta===k?' abierta':'')+'"><div class="top"><span class="mc-pill" style="background:'+st[0]+';color:'+st[1]+'">'+st[2]+'</span><span class="ids">'+(oc?'OC '+oc:escAttr(d.oc||''))+(ent?' · entrega '+ent:'')+'</span></div>'+
     '<div class="prod" title="'+escAttr(d.descripcion||'')+'">'+escAttr(d.descripcion||'')+'</div>'+
     '<div class="ids">Renglón '+escAttr(mcCod(d.cod_abasto))+(d.cant_unidades?' · '+_fmtNumCita(d.cant_unidades)+' und':'')+'</div>'+
@@ -1313,7 +1313,7 @@ function mcCardTr(t,i){
     '<div class="lin" style="color:'+col+';font-weight:600">'+escAttr(txt)+(t.vencimiento_entrega?' (entrega '+escAttr(t.vencimiento_entrega)+')':'')+'</div>'+
     '<button type="button" class="mc-ver" style="background:#0C447C;color:#fff;border-color:#0C447C" data-usar="'+i+'">Usar esta OC para pedir cita</button></div>';
 }
-// Etapas de una entrega: cita → recepción → SALMI → SAP 101 → revisión → Contabilidad → publicación → pago
+// Etapas de una entrega: cita → recepción → SALMI → SAP 101 → revisión → Contabilidad → publicación → remisión a Contraloría
 function mcEntregaDe(d){
   if(!MC.seg) return null;
   const oc=mcOC(d.oc), cod=mcCod(d.cod_abasto), fc=String(d.fecha_confirmada||d.fecha_solicitada||'').slice(0,10);
@@ -1334,16 +1334,16 @@ function mcEtapas(d){
     {t:'Revisión y firma del informe',f:h.P11?String(h.P11).slice(0,10):null,na:!docOk},
     {t:'Contabilidad',f:h.C12?String(h.C12).slice(0,10):null,na:!docOk},
     {t:'Publicación',f:h.P14?String(h.P14).slice(0,10):null,na:!docOk},
-    {t:'Contraloría y pago',f:null,na:true}
+    {t:'Remisión a Contraloría',f:null,na:true}
   ];
 }
 function mcActual(s){ let u=-1; s.forEach((x,j)=>{ if(x.f) u=j; }); s.forEach((x,j)=>{ if(j<u&&!x.f){ x.f2=true; } }); for(let j=u+1;j<s.length;j++){ if(!s[j].na) return j; } return -1; }
 function mcDetalle(d){
   const s=mcEtapas(d), e=mcEntregaDe(d), cur=mcActual(s);
   const dias=e&&cur>=0?mcDiasHab(e.fRec,new Date().toISOString().slice(0,10)):null;
-  return '<div class="mc-det" role="region" aria-label="Avance de la entrega"><div class="mc-det-h"><span><b>'+escAttr(d.descripcion||'')+'</b></span><span class="ids">OC '+escAttr(mcOC(d.oc)||d.oc||'')+' · renglón '+escAttr(mcCod(d.cod_abasto))+'</span></div>'+
+  return '<div class="mc-det" role="region" aria-label="Etapa documental de la entrega"><div class="mc-det-h"><span><b>'+escAttr(d.descripcion||'')+'</b></span><span class="ids">OC '+escAttr(mcOC(d.oc)||d.oc||'')+' · renglón '+escAttr(mcCod(d.cod_abasto))+'</span></div>'+
     '<div class="mc-steps">'+s.map((x,j)=>'<div class="mc-step '+((x.f||x.f2)?'d':(j===cur?'c':(x.na?'na':'')))+'"><span class="t">'+((x.f||x.f2)?'✓ ':'')+x.t+'</span><span class="f">'+(x.f?escAttr(x.f.split('-').reverse().join('/')):(x.f2?'Sin fecha registrada':(j===cur?'En esta etapa':(x.na?'Aún sin registro digital':'Pendiente'))))+'</span>'+(x.n&&x.f?'<span>'+escAttr(x.n)+'</span>':'')+'</div>').join('')+'</div>'+
-    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Consultas: Control Operativo DINALOG.</div></div>';
+    '<div class="mc-det-n">'+(e?('Recepción del '+escAttr(e.fRec.split('-').reverse().join('/'))+(dias!=null?' · '+dias+' días hábiles desde la recepción':'')+'. '):(MC.seg?'Esta entrega aún no aparece en el informe de recepción del CEDIS (puede tardar unos días). ':'Cargando datos de recepción… '))+'No se muestran montos. Información referencial según los registros del sistema a la fecha; puede variar. DINALOG gestiona la documentación de la recepción; el pago no se gestiona aquí, corresponde a la Contraloría. Valide estos datos con el planificador correspondiente. Consultas: Control Operativo DINALOG.</div></div>';
 }
 function mcDiasHab(a,b){ let n=0; const d=new Date(a+'T12:00:00'), f=new Date(b+'T12:00:00'); while(d<f){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w&&w<6) n++; } return n; }
 function mcCargarSeguimiento(){
@@ -1735,7 +1735,7 @@ function _tarjetaCita(d){
     (detalles.length?'<br><span style="color:#555;">'+detalles.join(' · ')+'</span>':'')+
     (d.motivo?'<br><span style="color:#8a5200;">Motivo: '+escAttr(d.motivo)+'</span>':'')+
     (d.nota_num?'<br><span style="color:#666;">Nota: '+escAttr(d.nota_num)+'</span>':'')+
-    ((estU==='ASISTIO'||estU==='ENTREGADO')&&urlSeguimiento(d.oc,d.cod_abasto)?'<br><a href="'+urlSeguimiento(d.oc,d.cod_abasto)+'" target="_blank" rel="noopener" style="color:#1e5a9e;font-weight:600;">Ver avance de recepción y pago ↗</a>':'')+
+    ((estU==='ASISTIO'||estU==='ENTREGADO')&&urlSeguimiento(d.oc,d.cod_abasto)?'<br><a href="'+urlSeguimiento(d.oc,d.cod_abasto)+'" target="_blank" rel="noopener" style="color:#1e5a9e;font-weight:600;">Ver etapa documental de la entrega ↗</a>':'')+
     '</div>';
 }
 // Renderiza una lista de citas en un contenedor, con tope de 4 + botón "ver más".
@@ -1803,7 +1803,7 @@ async function generarExcelCliente(){
   const ws=wb.addWorksheet('Citas y avance',{views:[{state:'frozen',ySplit:4,xSplit:0}]});
   const H=['Estado','OC','Cód. Abasto','Descripción','Área','Unidades','Bultos','Pallets','Solicitada','Cita para','Hora','Vence OC','Días p/ vencer','Nota','Detalle / motivo','Recibida en CEDIS','Cant. recibida','Ingreso inventario','Entrada SAP','Revisión del informe','Contabilidad','Publicación','Etapa actual'];
   encabezado(ws,'TRAZABILIDAD DE CITAS — '+emp,H.length);
-  ws.mergeCells(3,16,3,23); ws.getCell(3,16).value='Seguimiento de la entrega: recepción, revisión y pago'; ws.getCell(3,16).font={bold:true,size:10,color:{argb:VERDE}};
+  ws.mergeCells(3,16,3,23); ws.getCell(3,16).value='Seguimiento referencial de la documentación de la entrega'; ws.getCell(3,16).font={bold:true,size:10,color:{argb:VERDE}};
   cabecera(ws,4,H,16);
   const fe=d=>String(d.fecha_confirmada||d.fecha_solicitada||'');
   const citas=MC.citas.slice().sort((a,b)=>fe(b).localeCompare(fe(a)));
@@ -1813,7 +1813,7 @@ async function generarExcelCliente(){
     const ent=mcGrupo(c)==='entr', s=mcEtapas(c), e=ent?mcEntregaDe(c):null;
     let ult=-1; [1,2,3,4,5,6].forEach(i=>{ if(e&&s[i].f) ult=i; });
     const v=i=>!e?'':(s[i].f?_xlsFecha(s[i].f):(i<ult?'Sin fecha registrada':(i<=3||MC.res?'Pendiente':'Sin registro digital')));
-    const etapa=!ent?'':(!e?'Recepción':(ult<6?s[ult+1].t:'Contraloría y pago'));
+    const etapa=!ent?'':(!e?'Recepción':(ult<6?s[ult+1].t:'Remisión a Contraloría'));
     const r=ws.addRow([c.estado||'',c.oc||'',c.cod_abasto||'',c.descripcion||'',c.categoria||'',
       +c.cant_unidades||0,+c.cant_bultos||0,+c.cant_pallets||0,_xlsFecha(c.fecha_solicitada),_xlsFecha(c.fecha_confirmada),c.hora_confirmada||'—',
       _xlsFecha(c.fecha_vencimiento),_xlsDiasVencer(c.estado,c.fecha_vencimiento),c.nota_num||'—',c.motivo||'',

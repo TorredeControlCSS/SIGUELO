@@ -415,7 +415,7 @@ function avpHtml_(p, saldosAl, franja, contacto) {
     return cons ? (s / cons).toFixed(1) + ' meses' : 'sin dato';
   })();
   var filas = F.slice(0, AVP_MAX_FILAS).map(function (x) {
-    var vencTxt = x.pend > 0 && x.venc ? (x.venc < hoy ? '<div style="font-size:11px;color:#9b1c2c">venció ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>' : '<div style="font-size:11px;color:#777">vence ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>') : '';
+    var vencTxt = x.pend > 0 && x.venc ? (x.venc < hoy ? '<div style="font-size:11px;color:#9b1c2c">vencimiento ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>' : '<div style="font-size:11px;color:#777">vencimiento ' + x.venc.slice(8, 10) + '/' + x.venc.slice(5, 7) + '</div>') : '';
     return '<tr><td style="padding:7px 8px;border-bottom:1px solid #e6e9ee"><b style="color:#0C447C;font-family:Consolas,monospace">' + x.cod + '</b> ' + avpEsc_(String(x.desc).slice(0, 70)) + '</td>' +
       '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.sPa, x.pa) + '</td>' +
       '<td style="text-align:center;border-bottom:1px solid #e6e9ee">' + avpCelda_(x.sCh, x.ch) + '</td>' +
@@ -427,16 +427,17 @@ function avpHtml_(p, saldosAl, franja, contacto) {
   var resto = F.length > AVP_MAX_FILAS ? '<p style="font-size:12px;color:#666">Se muestran los ' + AVP_MAX_FILAS + ' más críticos de ' + F.length + '. Los demás se consultan en Solicitud de Cita al elegir el renglón.</p>' : '';
   return '<div style="font-family:Segoe UI,Arial,sans-serif;color:#222;max-width:900px">' + (franja || '') +
     '<div style="background:#0C447C;color:#fff;padding:16px 20px"><table role="presentation"><tr><td style="padding-right:12px"><img src="' + AVP_BASE + 'icons/icon-192.png" width="44" height="44" alt="CSS" style="background:#fff;border-radius:50%"></td><td>' +
-    '<div style="font-size:19px;font-weight:700">Cobertura de sus renglones · ' + avpEsc_(p.nombre) + '</div>' +
+    '<div style="font-size:19px;font-weight:700">Informe referencial de cobertura · ' + avpEsc_(p.nombre) + '</div>' +
     '<div style="font-size:12.5px;opacity:.9">Caja de Seguro Social · Dirección Nacional de Logística · Saldos al ' + saldosAl.split('-').reverse().join('/') + '</div></td></tr></table></div>' +
     '<div style="padding:16px 20px;font-size:14px;line-height:1.5;border:1px solid #ddd;border-top:0">' +
-    '<p>Estimado proveedor: los <b>' + F.length + ' renglones</b> que usted abastece a la CSS tienen hoy el inventario y la cobertura que se muestran abajo en los CEDIS Panamá, Chiriquí y Divisa —donde usted entrega— y en la red de unidades ejecutoras, con una cobertura conjunta en las UE de <b>' + ueTxt + '</b>. ' +
-    (crit ? '<b>' + crit + (crit === 1 ? ' está' : ' están') + ' por debajo de un mes en CEDIS Panamá.</b> ' : '') +
-    (conPend ? 'Usted tiene saldo pendiente de entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + ': le pedimos agendar su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Cuando tenga una orden de compra o solicitud de entrega, agende su cita en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
-    '<p>Para gestionar solicitudes de entrega u órdenes de compra de estos renglones, si aplica, comuníquese con ' + (contacto || 'la Jefatura de Planificación de la Dirección Nacional de Logística') + '.</p>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente por entregar</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
-    '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente por entregar" = saldo de sus órdenes de compra y solicitudes de entrega registradas por Planificación. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
-    '<p style="font-size:12px;color:#666">Este aviso se envía una vez por semana. Consultas: Planificación · DINALOG.</p></div></div>';
+    '<p>Estimado proveedor: a título informativo, le compartimos una <b>estimación</b> del inventario y la cobertura de los <b>' + F.length + ' renglones</b> que tiene adjudicados con la CSS, según los datos registrados en nuestros sistemas a la fecha de corte, en los CEDIS Panamá, Chiriquí y Divisa y en la red de unidades ejecutoras. La cobertura conjunta estimada en las UE es de <b>' + ueTxt + '</b>. ' +
+    (crit ? 'Según estos datos, ' + crit + (crit === 1 ? ' renglón estaría' : ' renglones estarían') + ' por debajo de un mes de cobertura en CEDIS Panamá. ' : '') +
+    (conPend ? 'Los registros muestran saldo pendiente por entregar en ' + conPend + (conPend === 1 ? ' renglón' : ' renglones') + '; de corresponder, se sugiere revisarlo con su planificador. Las citas de entrega se agendan en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.' : 'Las citas de entrega se agendan en <a href="' + AVP_BASE + 'solicitud_cita.html">Solicitud de Cita</a>.') + '</p>' +
+    '<p style="background:#eef4fb;border-left:4px solid #1e5a9e;padding:8px 12px"><b>Valide estos datos con el planificador correspondiente</b> antes de programar entregas o gestionar órdenes de compra. ' + (contacto || 'Jefatura de Planificación de la Dirección Nacional de Logística') + '.</p>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1e5a9e;color:#fff"><th style="text-align:left;padding:8px">Renglón</th><th>CEDIS Panamá</th><th>CEDIS Chiriquí</th><th>CEDIS Divisa</th><th>Red de UE</th><th style="text-align:right;padding-right:6px">Inventario nacional</th><th style="text-align:right;padding-right:8px">Pendiente según registros</th></tr></thead><tbody>' + filas + '</tbody></table>' + resto +
+    '<p style="font-size:12px;color:#666;margin-top:12px">En cada punto: arriba el saldo en unidades, abajo su cobertura. Inventario nacional = CEDIS + unidades ejecutoras. Cobertura = saldo ÷ consumo mensual, en meses. Rojo: menos de 1 mes · ámbar: de 1 a 3 · verde: 3 o más · s/d: sin dato de consumo. "Pendiente según registros" = saldo de órdenes de compra y solicitudes de entrega registrado por Planificación a la fecha de corte. El detalle por unidad ejecutora está en Solicitud de Cita, al elegir el renglón.</p>' +
+    '<p style="font-size:12px;color:#666">Este informe es referencial y se basa en los datos disponibles a la fecha de corte; las cifras pueden variar. No constituye una orden, una instrucción de entrega ni una modificación de los términos de su orden de compra o contrato. Valide estos datos con el planificador correspondiente.</p>' +
+    '<p style="font-size:12px;color:#666">Se envía una vez por semana. Consultas: Planificación · DINALOG.</p></div></div>';
 }
 
 function avpEnviarBrevo_(para, cc, asunto, html, cco) {
@@ -496,7 +497,7 @@ function avpEnviar_(opc) {
     var dest = prueba ? [correoPrueba] : para, copia = prueba ? [] : cc, oculta = prueba ? [] : cco;
     if (usados + dest.length + copia.length + oculta.length > cuota) { errores.push(x.p.nombre + ': cuota del día'); return; }
     var franja = prueba ? '<div style="background:#fff3d6;border:1px solid #e0c97a;padding:8px 12px;font-size:12.5px;margin-bottom:8px"><b>PRUEBA</b> · habría ido a: ' + avpEsc_(para.join(', ') || 'nadie: el proveedor no tiene correo en DIRECTORIO_PROVEEDORES') + (cc.length ? ' · copia: ' + avpEsc_(cc.join(', ')) : ' · sin copia (falta correo del planificador)') + (cco.length ? ' · copia oculta: ' + avpEsc_(cco.join(', ')) : '') + '</div>' : '';
-    var asunto = (prueba ? '[PRUEBA] ' : '') + 'Cobertura de sus renglones en la CSS · ' + x.p.nombre;
+    var asunto = (prueba ? '[PRUEBA] ' : '') + 'Informe referencial de cobertura de sus renglones · CSS · ' + x.p.nombre;
     if (opc.simular) { usados += para.length + cc.length + cco.length; enviados++; return; }
     try {
       // Contacto de Planificación que se nombra en el cuerpo: sus planificadores (con correo si lo hay) o la Jefatura.
@@ -511,8 +512,8 @@ function avpEnviar_(opc) {
         if (m) vistos[m] = true; return true;
       });
       var nombres = planes.map(function (n) { var m = dir.planDe(n); return '<b>' + avpEsc_(dir.planNombre(n)) + '</b>' + (m ? ' (<a href="mailto:' + m + '">' + avpEsc_(m) + '</a>)' : ''); });
-      var contacto = nombres.length ? (nombres.length === 1 ? 'su planificador(a) asignado(a), ' : 'sus planificadores asignados: ') + nombres.join(', ')
-        : (dir.jefatura ? 'la Jefatura de Planificación (<a href="mailto:' + dir.jefatura + '">' + avpEsc_(dir.jefatura) + '</a>)' : '');
+      var contacto = nombres.length ? (nombres.length === 1 ? 'Planificador(a) correspondiente: ' : 'Planificadores correspondientes: ') + nombres.join(', ')
+        : (dir.jefatura ? 'Contacto: Jefatura de Planificación (<a href="mailto:' + dir.jefatura + '">' + avpEsc_(dir.jefatura) + '</a>)' : '');
       var html = avpHtml_(x.p, datos.saldosAl, franja, contacto);
       // Mientras la cuenta Brevo de proveedores no esté lista, las PRUEBAS salen por Gmail del script (un correo a usted).
       if (prueba && !props.getProperty('AVP_BREVO_KEY')) MailApp.sendEmail({ to: dest.join(','), subject: asunto, htmlBody: html, name: 'Torre de Control · DINALOG' });
