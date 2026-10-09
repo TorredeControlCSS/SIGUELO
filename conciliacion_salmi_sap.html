@@ -6,6 +6,7 @@
 <title>Conciliación SALMI · SAP</title>
 <link rel="icon" href="icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
     --navy:#0C447C; --azul:#1E5A9E; --fondo:#ececec; --borde:#a8a8a8; --borde2:#d4d7dc; --tinta:#1b1f24; --muted:#5f6670; --blanco:#fff;
@@ -177,6 +178,7 @@
   <div class="tabs">
     <button class="tab on" data-t="a" type="button">Desviación por renglón</button>
     <button class="tab" data-t="b" type="button">Huella por módulo + desviación</button>
+    <button class="tab" data-t="c" type="button">Dispersión SAP vs SALMI</button>
     <button class="tab t-p" data-t="sp" type="button">Sin código puente <span id="nSP"></span></button>
   </div>
   <div class="panel" style="border-top-left-radius:0">
@@ -191,6 +193,12 @@
         <button class="btn" id="bLimpiar" type="button">Limpiar filtros</button>
         <span class="xl"><button class="btn pri" id="bExcel" type="button" title="Lo que se ve en pantalla: pestaña, base (lote o renglón) y filtros">Excel · vista actual</button><button class="btn" id="bExcelT" type="button" title="Toda la conciliación, sin filtros: lotes, renglones, resúmenes y sin código puente">Excel · informe completo</button></span>
         <span class="pie" id="cuenta" style="padding:0"></span>
+      </div>
+      <div id="bloqDisp" style="display:none">
+      <div class="ph">Dispersión: SAP-SAFIRO contra SALMI <span class="sub" id="dSub">· cada punto es un lote · escala logarítmica</span>
+        <span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400;font-size:11.5px;color:var(--muted)">Ejes <span class="seg" id="dEje"><button type="button" data-e="q" class="on">Cantidad</button><button type="button" data-e="v">Valor B/.</button></span></span></div>
+      <div style="position:relative;height:470px;padding:8px 12px"><canvas id="chDisp" aria-label="Dispersión SAP contra SALMI"></canvas></div>
+      <div class="fact" id="dNota"></div>
       </div>
       <div id="bloqHuella">
       <div class="ph">Huella de la desviación <span class="sub">· renglones por módulo y tramo de desviación SALMI contra SAP · el tono es el valor de la diferencia en B/. · clic en una celda para ver sus renglones</span></div>
@@ -326,8 +334,8 @@
     if (!sinCelda && F.cel && VISTA==='b'){ if(F.cel.mod!=='TOTAL'&&r.mod!==F.cel.mod) return false; if(tramo(r)!==F.cel.t) return false; }
     return true; }); }
 
-  function pintar(){ kpis(); embudo(); modulos(); vista(); if(VISTA==='b') huella(); lista(); tablaSP(); }
-  function vista(){ $('bloqHuella').style.display=VISTA==='b'?'':'none'; $('leyA').style.display=VISTA==='a'?'':'none'; $('leyB').style.display=VISTA==='b'?'':'none';
+  function pintar(){ kpis(); embudo(); modulos(); vista(); if(VISTA==='b') huella(); if(VISTA==='c') disp(); lista(); tablaSP(); }
+  function vista(){ $('bloqHuella').style.display=VISTA==='b'?'':'none'; $('bloqDisp').style.display=VISTA==='c'?'':'none'; $('leyA').style.display=VISTA!=='b'?'':'none'; $('leyB').style.display=VISTA==='b'?'':'none';
     if(VISTA==='a'&&F.mod){ /* el módulo elegido abajo se muestra como filtro también en esta vista */ } }
   function kpis(){
     var m=D._meta, L0=BASE==='lote', e=L0?m.embudoLote:m.embudo, nk=L0?'lotes':'renglones', un=L0?'lotes':'renglones', t=m.totales, g=function(k){ return (e[k]||{})[nk]||0; }, gv=function(k){ return (e[k]||{}).valorAbs||0; };
@@ -402,7 +410,7 @@
     var y=H/2, s='<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
     [-1,-.5,.5,1].forEach(function(f){ s+='<line x1="'+(c+half*f)+'" x2="'+(c+half*f)+'" y1="3" y2="'+(H-3)+'" stroke="#e3e6ea" stroke-width="1"/>'; });
     s+='<line x1="'+c+'" x2="'+c+'" y1="0" y2="'+H+'" stroke="#8a929c" stroke-width="1.5"/>';
-    if(VISTA==='a'){ var col=BAR[(CAT[r.cat]||{c:'g'}).c]||'#888780', rad=Math.max(3.5,Math.min(9,3+6*Math.sqrt((r.vabs||0)/(VMAX||1))));
+    if(VISTA!=='b'){ var col=BAR[(CAT[r.cat]||{c:'g'}).c]||'#888780', rad=Math.max(3.5,Math.min(9,3+6*Math.sqrt((r.vabs||0)/(VMAX||1))));
       if(Math.abs(x-c)>1) s+='<line x1="'+c+'" x2="'+x+'" y1="'+y+'" y2="'+y+'" stroke="'+col+'" stroke-width="2"/>';
       PT='<span class="pt" style="left:'+(100*x/W)+'%;width:'+(2*rad)+'px;height:'+(2*rad)+'px;background:'+col+'"></span>'; }
     else if(r.cat==='CUADRA') PT='<span class="pt" style="left:50%;width:9px;height:9px;background:#1D9E75"></span>';
@@ -411,6 +419,29 @@
     if(fuera) s+='<text x="'+(x>c?W-2:2)+'" y="'+(y+3.5)+'" text-anchor="'+(x>c?'end':'start')+'" font-size="10" font-weight="700" fill="#1b1f24">'+(x>c?'►':'◄')+'</text>';
     return '<div class="mk">'+s+'</svg>'+PT+'</div>';
   }
+  /* ── Dispersión: X = SAP, Y = SALMI, logarítmica; sobre la diagonal cuadra ── */
+  var EJE='q', CHD=null;
+  function disp(){
+    if(typeof Chart==='undefined'){ $('dNota').textContent='El gráfico aún no carga; intente en unos segundos.'; return; }
+    var B=filtrar(true), AG=BASE==='lote', vx=function(r){ return EJE==='v'?(r.vs||0):r.qs; }, vy=function(r){ return EJE==='v'?(r.vw||0):r.qw; };
+    var P=B.filter(function(r){ return vx(r)>0&&vy(r)>0; }).slice(0,6000), fuera=B.length-P.length;
+    var G={ CUADRA:{l:'Cuadra',c:'#9a9a9a',d:[]}, MAS:{l:'SALMI tiene más',c:'#1E5A9E',d:[]}, MENOS:{l:'SALMI tiene menos',c:'#b3261e',d:[]}, DIG:{l:'Lote mal digitado o cruzado',c:'#7F77DD',d:[]} };
+    P.forEach(function(r){ var k=r.cat==='CUADRA'?'CUADRA':r.cat==='DIGITACION'?'DIG':(r.dif>0?'MAS':'MENOS'); G[k].d.push({x:vx(r),y:vy(r),r:r}); });
+    var mx=Math.max.apply(null,P.map(function(r){ return Math.max(vx(r),vy(r)); }).concat([1])), mn=Math.min.apply(null,P.map(function(r){ return Math.min(vx(r),vy(r)); }).concat([mx]));
+    var lo=Math.pow(10,Math.floor(Math.log10(Math.max(mn,0.1)))), poco=P.length<=40;
+    var ds=Object.keys(G).filter(function(k){ return G[k].d.length; }).map(function(k){ return { label:G[k].l+' · '+fN(G[k].d.length), data:G[k].d, backgroundColor:G[k].c, borderColor:G[k].c, pointRadius:poco?7:(k==='CUADRA'?2.5:3.5), pointHoverRadius:8 }; });
+    ds.push({ type:'line', label:'Diagonal: SAP = SALMI', data:[{x:lo,y:lo},{x:mx*1.3,y:mx*1.3}], borderColor:'#888', borderDash:[4,4], borderWidth:1.5, pointRadius:0 });
+    var un=EJE==='v'?'Valor B/.':'Cantidad';
+    $('dSub').textContent='· cada punto es '+(AG?'un lote':'un renglón')+' · escala logarítmica · '+fN(P.length)+' puntos';
+    $('dNota').textContent='Sobre la diagonal: SAP y SALMI tienen lo mismo. Arriba de ella SALMI tiene más; abajo, menos. Lejos de la diagonal está la brecha. '+(fuera?fN(fuera)+(AG?' lotes':' renglones')+' existen en un solo sistema (o tienen cero en uno) y no caben en escala logarítmica: están en la lista de abajo. ':'')+'Haga clic en un punto para ver el detalle.';
+    if(CHD) CHD.destroy();
+    CHD=new Chart($('chDisp'),{ type:'scatter', data:{ datasets:ds }, options:{ maintainAspectRatio:false, animation:false,
+      scales:{ x:{ type:'logarithmic', min:lo, title:{ display:true, text:un+' en SAP-SAFIRO (MB52)' } }, y:{ type:'logarithmic', min:lo, title:{ display:true, text:un+' en SALMI' } } },
+      plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, boxWidth:8 } }, tooltip:{ callbacks:{ label:function(c){ var r=c.raw.r; if(!r) return '';
+        return [r.ab+(r.esLote?' · lote '+r.lote:'')+' · '+String(r.des).slice(0,44), 'SAP '+fQ(r.qs)+' → SALMI '+fQ(r.qw)+' ('+devTxt(r)+')', 'Diferencia '+fB(r.vabs)+' · '+((CAT[r.cat]||{}).n||r.cat)]; } } } },
+      onClick:function(e,el){ if(!el.length) return; var p0=CHD.data.datasets[el[0].datasetIndex].data[el[0].index]; if(p0&&p0.r) detalle(p0.r.ab); } } });
+  }
+  Array.prototype.forEach.call($('dEje').children,function(b){ b.onclick=function(){ EJE=b.dataset.e; Array.prototype.forEach.call($('dEje').children,function(x){x.classList.toggle('on',x===b);}); disp(); }; });
   var CERR={};
   function lista(){
     var L=filtrar(), k=ORD.k, d=ORD.d, AG=BASE==='lote';
@@ -437,7 +468,7 @@
     $('lista').innerHTML=h;
     $('cuenta').innerHTML=esc(fN(L.length)+(AG?' lote(s) en '+fN(grupos.length)+' renglones · ':' renglón(es) · ')+fB(L.reduce(function(s,r){return s+r.vabs;},0)))+(F.mod&&VISTA==='a'?' · <span class="cat n">Módulo '+esc(cap(F.mod))+'</span> <a href="#" id="qMod">quitar</a>':'');
     var qm=$('qMod'); if(qm) qm.onclick=function(ev){ ev.preventDefault(); F.mod=''; N=40; pintar(); };
-    $('tLista').textContent=VISTA==='a'?'Desviación de cada renglón':'Renglones de la huella';
+    $('tLista').textContent=VISTA==='b'?'Renglones de la huella':'Desviación de cada renglón';
     var tot=AG?grupos.length:L.length;
     $('mas').innerHTML=(tot>N?'<button class="btn" type="button" id="bMas">Ver 40 más · se muestran '+fN(Math.min(N,tot))+' de '+fN(tot)+(AG?' renglones':'')+'</button> ':'')+(AG&&grupos.length?'<button class="btn" type="button" id="bCerr">'+(Object.keys(CERR).length?'Mostrar todos los lotes':'Ocultar los lotes')+'</button>':'');
     var bc=$('bCerr'); if(bc) bc.onclick=function(){ if(Object.keys(CERR).length) CERR={}; else grupos.forEach(function(g){ CERR[g.ab]=1; }); lista(); };
@@ -514,7 +545,7 @@
     if(t!=='sp'&&t!==VISTA){ VISTA=t; N=40; if(D) pintar(); }
     try{ localStorage.setItem('conc_vista',VISTA); }catch(e){} }
   Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){ b.onclick=function(){ tabSel(b.dataset.t); }; });
-  try{ var vg=localStorage.getItem('conc_vista'); if(vg==='a'||vg==='b'){ VISTA=vg; Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===VISTA);}); } }catch(e){}
+  try{ var vg=localStorage.getItem('conc_vista'); if(vg==='a'||vg==='b'||vg==='c'){ VISTA=vg; Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('on',b.dataset.t===VISTA);}); } }catch(e){}
   $('mX').onclick=function(){ $('velo').classList.remove('on'); };
   $('velo').onclick=function(e){ if(e.target===$('velo')) $('velo').classList.remove('on'); };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('velo').classList.remove('on'); });
