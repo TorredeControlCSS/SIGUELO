@@ -400,9 +400,10 @@ td.c,th.c{text-align:center}
 </div>
 
 <div class="panel" id="p-prod">
-  <div class="sub">Eval&uacute;a a los <b>Analistas de Kardex</b> de CEDIS Panam&aacute; en dos funciones, <b>Despacho</b> (salidas 313 a Unidades Ejecutoras) y <b>Entradas</b> (101 con pedido y 561 sin pedido), con un puntaje de 0 a 100 por funci&oacute;n, sin letra. Cada criterio es un conteo que se puede verificar en el Excel del informe completo. Lo que depende de proveedores, de la Unidad Ejecutora o de que exista la orden de compra <b>se muestra pero no resta</b>.</div>
+  <div class="sub">Eval&uacute;a a los <b>Analistas de Kardex</b> de CEDIS Panam&aacute; en dos funciones, <b>Despacho</b> (salidas 313 a Unidades Ejecutoras) y <b>Entradas</b> (101 con pedido y 561 sin pedido), con un puntaje de 0 a 100 por funci&oacute;n, sin letra. Cada criterio es un conteo que se puede verificar en el Excel del informe completo. Lo que depende de proveedores, de la Unidad Ejecutora o de que exista la orden de compra <b>se muestra pero no resta</b>.<br>La evaluaci&oacute;n oficial es por <b>mes fiscal cerrado</b> (del 1 al &uacute;ltimo d&iacute;a) desde julio de 2026: elija el mes en <b>Per&iacute;odo de evaluaci&oacute;n</b>. El mes en curso es un avance parcial; al cerrarse, su puntaje queda fijo en el <b>Historial de cierres</b>.</div>
   <div class="ev-barra">
     <div id="evPer" class="ev-per">&mdash;</div>
+    <div class="f"><label>Per&iacute;odo de evaluaci&oacute;n</label><select id="evMes"></select></div>
     <button class="btn sec" id="evLimpiar">Limpiar filtros</button>
     <button class="btn sec" id="evComoBtn">C&oacute;mo se calcula</button>
     <button class="btn" id="evXls">Excel &middot; informe completo</button>
@@ -421,6 +422,12 @@ td.c,th.c{text-align:center}
   <div class="card"><h3>Fuera del ranking<span class="per">Se muestran sus conteos, sin puntaje</span></h3>
     <div class="tabla-h"><span>La jefatura del departamento no se eval&uacute;a contra su propio equipo. Miguel Broce es asistente administrativo de Laboratorio sin funci&oacute;n definida en Kardex.</span><div class="der"><button class="btn sec" data-csv="tEvF">Excel &middot; vista</button></div></div>
     <div class="scroll"><table id="tEvF"></table></div></div>
+  <div class="card"><h3>Historial de cierres &middot; desde julio de 2026<span class="per">Puntaje congelado al cierre de cada mes fiscal</span></h3>
+    <div class="tabla-h"><span id="evHistNota">Cada mes es el puntaje que qued&oacute; fijo al cerrarse. El acumulado no promedia puntajes: suma los conteos de todos los meses cerrados y aplica la misma f&oacute;rmula, as&iacute; que pesa m&aacute;s el mes con m&aacute;s volumen. No cambia con los filtros.</span><div class="der"><button class="btn sec" data-csv="tEvHD">Excel &middot; despacho</button><button class="btn sec" data-csv="tEvHE">Excel &middot; entradas</button></div></div>
+    <div class="bloque">Despacho</div>
+    <div class="scroll"><table id="tEvHD"></table></div>
+    <div class="bloque">Entradas</div>
+    <div class="scroll"><table id="tEvHE"></table></div></div>
   <div class="card" id="evComoCard"><h3>C&oacute;mo se calcula<span class="per">Con la aritm&eacute;tica real del primero de cada tabla</span></h3><div class="body ev-como" id="evComo"></div></div>
   </div>
 
@@ -1034,6 +1041,14 @@ function init() {
     b.onclick = function () { csv(b.dataset.csv); };
   });
   $('evLimpiar').onclick = function () { $('btnLimpiar').click(); };
+  evLlenarMeses();
+  $('evMes').onchange = function () {
+    var m = $('evMes').value;
+    if (!m) return;
+    $('fDesde').value = m + '-01';
+    $('fHasta').value = evMesFin(m) < IDX._meta.hasta ? evMesFin(m) : IDX._meta.hasta;
+    aplicar();
+  };
   $('evComoBtn').onclick = function () { $('evComoCard').scrollIntoView({behavior:'smooth', block:'start'}); };
   $('evXls').onclick = evExcel;
   tourEnlazar();
@@ -2871,7 +2886,8 @@ function evCargar() {
   EV.estado = 'cargando';
   var a = traer('f8_referencia.json').then(function (j) { EV.f8 = j; }).catch(function () { EV.f8 = null; });
   var b = traer('conciliacion_salmi_sap.json').then(function (j) { EV.conc = j; }).catch(function () { EV.conc = null; });
-  Promise.all([a, b]).then(function () {
+  var c = traer('evaluacion_cierres.json').then(function (j) { EV.cierres = j; }).catch(function () { EV.cierres = null; });
+  Promise.all([a, b, c]).then(function () {
     evPreparar();
     EV.estado = 'listo';
     if (ACTIVA === 'prod') { SUCIO.prod = 1; pintarActiva(); }
@@ -2916,8 +2932,10 @@ function evPreparar() {
   });
   EV.r561 = s561;
 
-  /* Lotes de la conciliacion atribuidos a quien registro su ultima entrada */
-  EV.lotesU = null; EV.lotesDet = [];
+  /* Lotes de la conciliacion: cada lote se atribuye a quien registro su
+     ULTIMA entrada 101/561 y cuenta en el MES de esa entrada. Asi cada
+     periodo responde por lo que entro en el, y no por toda la foto. */
+  EV.lotesU = null;
   if (EV.conc && EV.conc.lotesConc && EV.conc._meta) {
     var cm = EV.conc._meta, ci = {}, jx = {};
     (cm.columnas || []).forEach(function (c, i) { ci[c] = i; });
@@ -2929,23 +2947,19 @@ function evPreparar() {
     var ult = {}, ent = [];
     for (var e = 0; e < ROWS.length; e++) if (ROWS[e][cM] === '101' || ROWS[e][cM] === '561') ent.push(ROWS[e]);
     ent.sort(function (a, b) { return a[cF] < b[cF] ? -1 : (a[cF] > b[cF] ? 1 : 0); });
-    ent.forEach(function (w) { ult[DIC.mat[w[cMAT]] + '|' + evLote(DIC.lote[w[cLOTE]])] = DIC.usr[w[cUSR]]; });
-    EV.lotesU = {};
+    ent.forEach(function (w) { ult[DIC.mat[w[cMAT]] + '|' + evLote(DIC.lote[w[cLOTE]])] = {u:DIC.usr[w[cUSR]], f:w[cF]}; });
+    EV.lotesU = [];
     EV.conc.lotesConc.forEach(function (lc) {
       var cat = lc[jx.categoria];
       if (cat === 'SOLO_SALMI') return;      /* falta del lado SALMI: no es de quien captura en SAP */
-      var ab = String(lc[jx.abasto]), lo = evLote(lc[jx.lote]), u = null, mats = ab2mat[ab] || [];
-      for (var m = 0; m < mats.length; m++) if (ult[mats[m] + '|' + lo]) { u = ult[mats[m] + '|' + lo]; break; }
-      if (!u) return;
-      var z = EV.lotesU[u] = EV.lotesU[u] || {tot:0, dig:0, solo:0, vdig:0, vsolo:0};
-      z.tot++;
-      if (cat === 'DIGITACION') { z.dig++; z.vdig += Math.abs(Number(lc[jx.valorDif]) || 0); }
-      if (cat === 'SOLO_SAP') { z.solo++; z.vsolo += Math.abs(Number(lc[jx.valorSAP]) || Number(lc[jx.valorDif]) || 0); }
-      if (cat === 'DIGITACION' || cat === 'SOLO_SAP') {
-        EV.lotesDet.push([u, ab, lc[jx.lote], cat === 'DIGITACION' ? 'Mal digitado' : 'Solo en SAP',
-          Number(lc[jx.qSAP]) || 0, Number(lc[jx.qSALMI]) || 0, Number(lc[jx.dif]) || 0,
-          Math.abs(Number(cat === 'SOLO_SAP' ? (lc[jx.valorSAP] || lc[jx.valorDif]) : lc[jx.valorDif]) || 0)]);
-      }
+      var ab = String(lc[jx.abasto]), lo = evLote(lc[jx.lote]), w = null, mats = ab2mat[ab] || [];
+      for (var m = 0; m < mats.length; m++) if (ult[mats[m] + '|' + lo]) { w = ult[mats[m] + '|' + lo]; break; }
+      if (!w) return;
+      var dif = cat === 'DIGITACION' || cat === 'SOLO_SAP';
+      EV.lotesU.push({u:w.u, f:w.f, dig:cat === 'DIGITACION', solo:cat === 'SOLO_SAP',
+        v: dif ? Math.abs(Number(cat === 'SOLO_SAP' ? (lc[jx.valorSAP] || lc[jx.valorDif]) : lc[jx.valorDif]) || 0) : 0,
+        det: dif ? [w.u, w.f, ab, lc[jx.lote], cat === 'DIGITACION' ? 'Mal digitado' : 'Solo en SAP',
+                    Number(lc[jx.qSAP]) || 0, Number(lc[jx.qSALMI]) || 0, Number(lc[jx.dif]) || 0] : null});
     });
   }
 }
@@ -2957,7 +2971,7 @@ function evCalcular() {
   var quien = {}, todos = EV_DESP.concat(EV_ENT, Object.keys(EV_FUERA));
   todos.forEach(function (u) {
     quien[u] = {u:u, lin:0, dias:{}, c313:0, c314:0, c101:0, c102:0, n8:0, dec:0, ok:0, amb:0,
-                f8:{}, lat:[], det313:[], det101:[]};
+                f8:{}, lat:[], det313:[], det101:[], lotes:{tot:0, dig:0, solo:0, vdig:0, vsolo:0}};
   });
   for (var i = 0; i < ROWS.length; i++) {
     var r = ROWS[i];
@@ -2991,6 +3005,16 @@ function evCalcular() {
     } else if (m === '102') a.c102++;
   }
 
+  var lotesDet = [];
+  (EV.lotesU || []).forEach(function (l) {
+    if (l.f < d || l.f > h || !quien[l.u]) return;
+    var z = quien[l.u].lotes;
+    z.tot++;
+    if (l.dig) { z.dig++; z.vdig += l.v; }
+    if (l.solo) { z.solo++; z.vsolo += l.v; }
+    if (l.det) lotesDet.push(l.det.concat([l.v]));
+  });
+
   todos.forEach(function (u) {
     var a = quien[u];
     a.nDias = Object.keys(a.dias).length;
@@ -3015,9 +3039,8 @@ function evCalcular() {
     a.le30 = a.lat.filter(function (v) { return v <= 30; }).length;
     a.medLat = a.lat.length ? mediana(a.lat) : null;
     a.pExacE = a.c101 ? (1 - a.c102 / a.c101) * 100 : null;
-    var lz = EV.lotesU ? EV.lotesU[u] : null;
-    a.lotes = lz || {tot:0, dig:0, solo:0, vdig:0, vsolo:0};
-    a.pLotes = EV.lotesU ? evPct(a.lotes.tot - a.lotes.dig - a.lotes.solo, a.lotes.tot) : null;
+    /* sin lotes registrados en el periodo no hay diferencia que restar */
+    a.pLotes = EV.lotesU ? (a.lotes.tot ? evPct(a.lotes.tot - a.lotes.dig - a.lotes.solo, a.lotes.tot) : 100) : null;
     /* 561 del periodo con al menos 30 dias de edad al corte */
     var m5 = (EV.r561 || []).filter(function (z) { return z.u === u && z.f >= d && z.f <= h; });
     var eval5 = m5.filter(function (z) { return dias_(corte, z.f) >= 30; });
@@ -3043,7 +3066,7 @@ function evCalcular() {
     con.forEach(function (u, i) { quien[u].pos = i + 1; });
     return con.concat(lista.filter(function (u) { return quien[u][campo] === null; }));
   };
-  return {d:d, h:h, corte:corte, Q:quien, desp:rank(EV_DESP, 'puntD'), ent:rank(EV_ENT, 'puntE')};
+  return {d:d, h:h, corte:corte, Q:quien, desp:rank(EV_DESP, 'puntD'), ent:rank(EV_ENT, 'puntE'), lotesDet:lotesDet};
 }
 
 function evChip(v, txt) {
@@ -3052,6 +3075,108 @@ function evChip(v, txt) {
 }
 function evNomCel(u) {
   return '<b>' + esc(evNom(u)) + '</b><div class="ev-usr">' + esc(u) + '</div>';
+}
+
+/* ── Mes fiscal e historial de cierres ──────────────────────────────────────
+   La evaluacion oficial es por mes fiscal cerrado (del 1 al ultimo dia) desde
+   julio de 2026. KARDEX_EVALUACION.gs congela cada mes al cerrarlo en
+   kardex/evaluacion_cierres.json; aqui solo se lee. */
+var EV_INICIO = '2026-07';
+var EV_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function evMesFin(m) {
+  var y = Number(m.slice(0, 4)), n = Number(m.slice(5, 7));
+  return m + '-' + ('0' + new Date(Date.UTC(y, n, 0)).getUTCDate()).slice(-2);
+}
+function evMesNom(m) { return EV_MESES[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4); }
+function evLlenarMeses() {
+  var op = ['<option value="">Desde / Hasta del panel</option>'], m = EV_INICIO, fin = IDX._meta.hasta.slice(0, 7), L = [];
+  while (m <= fin) {
+    L.push(m);
+    var y = Number(m.slice(0, 4)), n = Number(m.slice(5, 7)) + 1;
+    if (n > 12) { n = 1; y++; }
+    m = y + '-' + (n < 10 ? '0' : '') + n;
+  }
+  L.reverse().forEach(function (x) {
+    var curso = x === fin && IDX._meta.hasta < evMesFin(x);
+    op.push('<option value="' + x + '">' + evMesNom(x) + (curso ? ' (avance)' : '') + '</option>');
+  });
+  $('evMes').innerHTML = op.join('');
+}
+/* el selector refleja el rango vigente: si coincide con un mes, lo marca */
+function evSincMes() {
+  var d = $('fDesde').value, h = $('fHasta').value, v = '';
+  if (d && d.slice(8) === '01') {
+    var m = d.slice(0, 7);
+    if (h === evMesFin(m) || (h === IDX._meta.hasta && h.slice(0, 7) === m)) v = m;
+  }
+  if ($('evMes').querySelector('option[value="' + v + '"]')) $('evMes').value = v;
+}
+/* Misma formula que kevPuntuar_ del GAS, a partir de conteos */
+function evPuntuar(c, tipo, conF8, conL) {
+  var o = {punt:null, motivo:''};
+  if (tipo === 'D') {
+    o.p1 = conF8 ? evPct(c.ok, c.n8) : null; o.p2 = conF8 ? evPct(c.okT, c.evT) : null; o.p3 = c.c313 ? (1 - c.c314 / c.c313) * 100 : null;
+    if (c.n8 < EV_MIN) o.motivo = 'Volumen insuficiente';
+    else if (o.p1 === null || o.p2 === null) o.motivo = 'Sin referencia de Formas 8';
+    else o.punt = EV_PESO_D.traz * o.p1 + EV_PESO_D.tiempo * o.p2 + EV_PESO_D.exac * o.p3;
+  } else {
+    o.p1 = evPct(c.le30, c.nlat); o.p2 = c.c101 ? (1 - c.c102 / c.c101) * 100 : null;
+    o.p3 = conL ? (c.lt ? evPct(c.lt - c.ld, c.lt) : 100) : null;
+    if (c.c101 < EV_MIN) o.motivo = 'Volumen insuficiente';
+    else if (o.p3 === null) o.motivo = 'Sin conciliaci\u00f3n publicada';
+    else if (o.p1 === null) o.motivo = 'Sin fecha de documento';
+    else o.punt = EV_PESO_E.lat * o.p1 + EV_PESO_E.exac * o.p2 + EV_PESO_E.lotes * o.p3;
+  }
+  return o;
+}
+function evHistorial() {
+  var C = EV.cierres, meses = C && C.meses ? Object.keys(C.meses).sort() : [];
+  EV.hist = null;
+  if (!meses.length) {
+    $('evHistNota').textContent = 'Todav\u00eda no hay meses cerrados publicados. Los cierra KARDEX_EVALUACION.gs cuando est\u00e1 cargado el MB51 del \u00faltimo d\u00eda h\u00e1bil de cada mes.';
+    tabla('tEvHD', [{h:'', t:'t'}], [], null); tabla('tEvHE', [{h:'', t:'t'}], [], null);
+    return;
+  }
+  var H = {meses:meses, u:{}};
+  [['D', EV_DESP, 'puntD'], ['E', EV_ENT, 'puntE']].forEach(function (g) {
+    g[1].forEach(function (u) {
+      var s = {n8:0, ok:0, evT:0, okT:0, c313:0, c314:0, c101:0, c102:0, nlat:0, le30:0, lt:0, ld:0}, conF8 = false, conL = false, por = {};
+      meses.forEach(function (m) {
+        var x = C.meses[m], c = x.a[u]; if (!c) return;
+        Object.keys(s).forEach(function (k) { s[k] += Number(c[k]) || 0; });
+        conF8 = conF8 || x.conF8; conL = conL || x.conLotes;
+        por[m] = c[g[2]];
+      });
+      H.u[u] = {s:s, por:por, p:evPuntuar(s, g[0], conF8, conL)};
+    });
+  });
+  EV.hist = H;
+  var cols = function (tipo) {
+    var c = [{h:'Analista', t:'t', f:function (v) { return evNomCel(v); }}];
+    meses.forEach(function (m, i) {
+      c.push({h:evMesNom(m), t:'n', f:function (v) { return v === '' ? '<span style="color:#999">\u2014</span>' : evChip(v); }});
+    });
+    c.push({h:'Acumulado', t:'n', f:function (v, f) { return v === '' ? '<span class="ev-chip ev-nu">' + esc(f[f.length - 1]) + '</span>' : evChip(v); }});
+    c.push({h:tipo === 'D' ? 'Forma 8 trazable' : 'Contabilizadas \u2264 30 d\u00edas', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }});
+    c.push({h:tipo === 'D' ? 'Facturadas \u2264 1 d\u00eda h\u00e1bil' : 'Exactitud (1 \u2212 102/101)', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }});
+    c.push({h:tipo === 'D' ? 'Exactitud (1 \u2212 314/313)' : 'Lotes sin diferencia SAP', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }});
+    c.push({h:tipo === 'D' ? 'Salidas 313 con Forma 8' : 'Entradas 101', t:'n', f:function (v) { return nf(v); }});
+    c.push({h:'Condici\u00f3n', t:'c'});
+    return c;
+  };
+  var r1 = function (v) { return v === null || v === undefined ? '' : Math.round(v * 10) / 10; };
+  var filas = function (L, tipo) {
+    return L.map(function (u) {
+      var x = H.u[u];
+      return [u].concat(meses.map(function (m) { return r1(x.por[m]); }),
+        [r1(x.p.punt), r1(x.p.p1), r1(x.p.p2), r1(x.p.p3), tipo === 'D' ? x.s.n8 : x.s.c101, x.p.punt === null ? x.p.motivo : 'Con puntaje']);
+    });
+  };
+  var iAc = 1 + meses.length;
+  tabla('tEvHD', cols('D'), filas(EV_DESP, 'D'), {i:iAc, d:-1});
+  tabla('tEvHE', cols('E'), filas(EV_ENT, 'E'), {i:iAc, d:-1});
+  $('evHistNota').textContent = 'Cada mes es el puntaje que qued\u00f3 fijo al cerrarse (' + meses.map(evMesNom).join(', ') +
+    '). El acumulado no promedia puntajes: suma los conteos de todos los meses cerrados y aplica la misma f\u00f3rmula, as\u00ed que pesa m\u00e1s el mes con m\u00e1s volumen. No cambia con los filtros.';
 }
 
 function pintarEval() {
@@ -3063,6 +3188,8 @@ function pintarEval() {
   }
   $('evCarga').style.display = 'none';
   $('evCuerpo').style.display = '';
+  evSincMes();
+  evHistorial();
   var R = EV.ult = evCalcular(), Q = R.Q;
 
   var avisos = [];
@@ -3114,7 +3241,7 @@ function pintarEval() {
     var peor = E.slice().sort(function (x, y) { return (Q[y].c101 ? Q[y].c102 / Q[y].c101 : 0) - (Q[x].c101 ? Q[x].c102 / Q[x].c101 : 0); })[0];
     L.push('El <b>' + evFP(evPct(c102, c101)) + '</b> de las entradas 101 se anuló con 102; el valor más alto es ' + evFP(evPct(Q[peor].c102, Q[peor].c101)) + ' (' + esc(evNom(peor)) + ').');
   }
-  if (EV.lotesU) L.push('En la conciliación vigente, <b>' + nf(lDif) + ' lotes</b> registrados por el equipo de entradas tienen diferencia del lado de SAP-SAFIRO, por <b>B/. ' + nf2(vDif) + '</b>. Es una foto al corte: no cambia con el período.');
+  if (EV.lotesU && lTot) L.push('De los <b>' + nf(lTot) + ' lotes</b> que el equipo de entradas registr\u00f3 en el per\u00edodo y siguen en la conciliaci\u00f3n SALMI\u2013SAP, <b>' + nf(lDif) + '</b> tienen diferencia del lado de SAP-SAFIRO, por <b>B/. ' + nf2(vDif) + '</b>.');
   var mb = Q.MBROCE;
   if (mb && mb.c313) L.push('Fuera del ranking: Miguel Broce registró <b>' + nf(mb.c313) + ' salidas 313</b>' + (EV.idx ? ' y ' + nf(mb.ok) + ' empatan con un pedido real' : '') + '.');
   $('evLectura').innerHTML = L.length ? '<ul>' + L.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : 'Sin movimientos del equipo en el período.';
@@ -3204,7 +3331,7 @@ function pintarEval() {
   C.push(caja('Días hasta contabilizar', 'Fe. contabilización − Fecha de documento',
     'La fecha de documento del 101 es la llegada de la mercancía: coincide con Recepción en la mediana (0 a 2 días).'));
   C.push(caja('Lotes sin diferencia SAP', '1 − (mal digitados + solo en SAP) ÷ lotes registrados',
-    'Cada lote de la conciliación SALMI–SAP se atribuye a quien registró su última entrada 101 o 561. Los que faltan del lado SALMI no se cuentan: no son de quien captura en SAP.'));
+    'Cada lote de la conciliación SALMI–SAP se atribuye a quien registró su última entrada 101 o 561 y cuenta en el período de esa entrada. Sin lotes en el período, el criterio vale 100. Los que faltan del lado SALMI no se cuentan: no son de quien captura en SAP.'));
   C.push('<div class="ev-caja gris"><b>Se muestra, no resta</b><br>Regularización del 561 (depende de que exista la orden de compra), volumen de líneas, horas de captura y lo que depende de proveedores o de la Unidad Ejecutora.</div>');
   $('evComo').innerHTML = C.join('');
 }
@@ -3261,7 +3388,7 @@ function evExcel() {
     return ws;
   };
   var P1 = '0.0';
-  var nr = function (v) { return v === null ? '' : Math.round(v * 10) / 10; };
+  var nr = function (v) { return v === null || v === undefined ? '' : Math.round(v * 10) / 10; };
   hoja('Despacho', 'Despacho', 'Puntaje = 45 % Forma 8 trazable + 40 % facturadas en ≤ 1 día hábil tras la distribución + 15 % exactitud (1 − 314/313). Sin puntaje por debajo de ' + EV_MIN + ' salidas 313 con Forma 8.',
     [['#','n'],['Analista','t',22],['Usuario','t',12],['Puntaje','n','',P1],['Forma 8 trazable %','n','',P1],['Facturadas ≤ 1 día hábil %','n','',P1],['Exactitud %','n','',P1],
      ['Salidas 313','n'],['Salidas 313 con Forma 8','n'],['Trazables','n'],['Ambiguas','n'],['Motivo distinto','n'],['Formas 8 facturadas','n'],['Con distribución','n'],['A tiempo','n'],['Mediana días hábiles','n'],['Anuladas 314','n'],['Días con captura','n'],['Condición','t',24]],
@@ -3283,9 +3410,20 @@ function evExcel() {
   EV_ENT.concat(Object.keys(EV_FUERA)).forEach(function (u) { d101 = d101.concat(Q[u].det101); });
   hoja('Detalle 101', 'Detalle de entradas 101', 'Una fila por entrada 101 del período con fecha de documento. Días = Fe. contabilización − Fecha de documento.',
     [['Fe. contabilización','t',13],['Fecha de documento','t',13],['Usuario','t',12],['Documento SAP','t',13],['Material','t',14],['Descripción','t',34],['Lote','t',14],['Días','n'],['≤ 30 días','t',9]], d101);
-  hoja('Lotes con diferencia', 'Lotes con diferencia SAP', 'Foto de la conciliación SALMI–SAP vigente. Cada lote se atribuye a quien registró su última entrada 101 o 561; no depende del período.',
-    [['Usuario','t',12],['Código Abasto','t',14],['Lote','t',14],['Categoría','t',14],['Cantidad SAP','n'],['Cantidad SALMI','n'],['Diferencia','n'],['Valor B/.','n','','#,##0.00']],
-    (EV.lotesDet || []).filter(function (x) { return EV_ENT.indexOf(x[0]) >= 0 || EV_FUERA[x[0]]; }));
+  hoja('Lotes con diferencia', 'Lotes con diferencia SAP', 'Conciliación SALMI–SAP vigente. Cada lote se atribuye a quien registró su última entrada 101 o 561 y cuenta en el período de esa entrada.',
+    [['Usuario','t',12],['Fecha de la última entrada','t',13],['Código Abasto','t',14],['Lote','t',14],['Categoría','t',14],['Cantidad SAP','n'],['Cantidad SALMI','n'],['Diferencia','n'],['Valor B/.','n','','#,##0.00']],
+    (R.lotesDet || []).filter(function (x) { return EV_ENT.indexOf(x[0]) >= 0 || EV_FUERA[x[0]]; }));
+  if (EV.hist) {
+    var HM = EV.hist.meses;
+    [['D', EV_DESP, 'Historial · despacho', 'Forma 8 trazable %', 'Facturadas ≤ 1 día hábil %', 'Exactitud %', 'Salidas 313 con Forma 8'],
+     ['E', EV_ENT, 'Historial · entradas', '≤ 30 días %', 'Exactitud %', 'Lotes sin diferencia %', 'Entradas 101']].forEach(function (g) {
+      hoja(g[2], g[2], 'Puntaje congelado al cierre de cada mes fiscal desde julio de 2026. El acumulado suma los conteos de los meses cerrados y aplica la misma fórmula.',
+        [['Analista','t',22],['Usuario','t',12]].concat(HM.map(function (m) { return [evMesNom(m),'n','',P1]; }),
+          [['Acumulado','n','',P1],[g[3],'n','',P1],[g[4],'n','',P1],[g[5],'n','',P1],[g[6],'n'],['Condición','t',22]]),
+        g[1].map(function (u) { var x = EV.hist.u[u]; return [evNom(u), u].concat(HM.map(function (m) { return nr(x.por[m]); }),
+          [nr(x.p.punt), nr(x.p.p1), nr(x.p.p2), nr(x.p.p3), g[0] === 'D' ? x.s.n8 : x.s.c101, x.p.punt === null ? x.p.motivo : 'Con puntaje']); }));
+    });
+  }
   hoja('Cómo se calcula', 'Cómo se calcula', '', [['Concepto','t',30],['Regla','t',90]], [
     ['Puntaje', 'Suma de peso × criterio, cada criterio de 0 a 100, sin letra. Verde 70 o más, ámbar 40 a 69, rojo menos de 40.'],
     ['Despacho', '45 % Forma 8 trazable + 40 % facturadas ≤ 1 día hábil tras la distribución + 15 % exactitud (1 − 314/313).'],
