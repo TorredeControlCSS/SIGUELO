@@ -192,6 +192,20 @@ td.c,th.c{text-align:center}
 #modBody p{margin:0 0 10px}
 #modBody p:last-child{margin-bottom:0}
 #modBody .ojo{background:#faf0d7;border:1px solid #d9c48a;padding:9px 11px;color:#4a4a4a}
+.ev-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff;border:1px solid #a8a8a8;padding:8px 10px;margin-bottom:10px}
+.ev-per{flex:1 1 420px;font-size:12px;color:#444;line-height:1.5}
+.ev-aviso{background:#eaf0f7;border:1px solid #a8a8a8;padding:10px 12px;font-size:12px;color:#3d4a5a;margin-bottom:10px;line-height:1.5}
+.ev-aviso.rojo{background:#f7e3e3;color:#6b3535}
+.ev-lect ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.65}
+.ev-chip{display:inline-block;font-family:Consolas,monospace;font-weight:700;border-radius:6px;padding:2px 8px;font-size:12px}
+.ev-chip.ev-ok{background:#E1F5EE;color:#0F6E56}.ev-chip.ev-wa{background:#FAEEDA;color:#854F0B}
+.ev-chip.ev-er{background:#FCEBEB;color:#791F1F}.ev-chip.ev-az{background:#E6F1FB;color:#185FA5;font-family:inherit;font-size:11px}
+.ev-chip.ev-nu{background:#F1EFE8;color:#5F5E5A;font-family:inherit;font-size:11px}
+.ev-chip.txt{font-family:inherit;font-size:11px}
+.ev-usr{font-size:10.5px;color:#777}
+.ev-como{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px}
+.ev-caja{background:#E6F1FB;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.65}
+.ev-caja b{color:#185FA5}.ev-caja.gris{background:#F1EFE8}.ev-caja.gris b{color:#5F5E5A}
 </style>
 </head>
 <body>
@@ -386,6 +400,31 @@ td.c,th.c{text-align:center}
 </div>
 
 <div class="panel" id="p-prod">
+  <div class="sub">Eval&uacute;a a los <b>Analistas de Kardex</b> de CEDIS Panam&aacute; en dos funciones, <b>Despacho</b> (salidas 313 a Unidades Ejecutoras) y <b>Entradas</b> (101 con pedido y 561 sin pedido), con un puntaje de 0 a 100 por funci&oacute;n, sin letra. Cada criterio es un conteo que se puede verificar en el Excel del informe completo. Lo que depende de proveedores, de la Unidad Ejecutora o de que exista la orden de compra <b>se muestra pero no resta</b>.</div>
+  <div class="ev-barra">
+    <div id="evPer" class="ev-per">&mdash;</div>
+    <button class="btn sec" id="evLimpiar">Limpiar filtros</button>
+    <button class="btn sec" id="evComoBtn">C&oacute;mo se calcula</button>
+    <button class="btn" id="evXls">Excel &middot; informe completo</button>
+  </div>
+  <div id="evCarga" class="ev-aviso">Cargando la referencia de Formas 8 y la conciliaci&oacute;n de lotes&hellip;</div>
+  <div id="evCuerpo" style="display:none">
+  <div id="evAviso" class="ev-aviso rojo" style="display:none"></div>
+  <div class="kpis" id="kEval"></div>
+  <div class="card"><h3>Lectura del per&iacute;odo</h3><div class="body ev-lect" id="evLectura"></div></div>
+  <div class="card"><h3>A &middot; Analistas de Kardex &middot; Despacho<span class="per">313 salida a Unidad Ejecutora &middot; 314 anulaci&oacute;n</span></h3>
+    <div class="tabla-h"><span>Puntaje = 45 % Forma 8 trazable + 40 % facturadas en &le; 1 d&iacute;a h&aacute;bil tras la distribuci&oacute;n + 15 % exactitud. Sin puntaje por debajo de 200 salidas 313 con Forma 8 en el per&iacute;odo.</span><div class="der"><button class="btn sec" data-csv="tEvD">Excel &middot; vista</button></div></div>
+    <div class="scroll"><table id="tEvD"></table></div></div>
+  <div class="card"><h3>B &middot; Analistas de Kardex &middot; Entradas<span class="per">101/102 con pedido &middot; 561/562 sin pedido</span></h3>
+    <div class="tabla-h"><span>Puntaje = 45 % contabilizadas en &le; 30 d&iacute;as + 25 % exactitud + 30 % lotes sin diferencia del lado SAP. La regularizaci&oacute;n del 561 depende de que exista la orden de compra: se muestra y no resta. Sin puntaje por debajo de 200 entradas 101.</span><div class="der"><button class="btn sec" data-csv="tEvE">Excel &middot; vista</button></div></div>
+    <div class="scroll"><table id="tEvE"></table></div></div>
+  <div class="card"><h3>Fuera del ranking<span class="per">Se muestran sus conteos, sin puntaje</span></h3>
+    <div class="tabla-h"><span>La jefatura del departamento no se eval&uacute;a contra su propio equipo. Miguel Broce es asistente administrativo de Laboratorio sin funci&oacute;n definida en Kardex.</span><div class="der"><button class="btn sec" data-csv="tEvF">Excel &middot; vista</button></div></div>
+    <div class="scroll"><table id="tEvF"></table></div></div>
+  <div class="card" id="evComoCard"><h3>C&oacute;mo se calcula<span class="per">Con la aritm&eacute;tica real del primero de cada tabla</span></h3><div class="body ev-como" id="evComo"></div></div>
+  </div>
+
+  <div class="bloque-sec">ACTIVIDAD DE CAPTURA EN SAP &middot; CEDIS PANAM&Aacute;</div>
   <div class="sub">Mide la <b>actividad de captura registrada en SAP</b>, no la productividad f&iacute;sica del almac&eacute;n: un usuario puede capturar movimientos ejecutados por otra persona. El MB51 es un reporte <b>nacional</b>, as&iacute; que los indicadores de desempe&ntilde;o se calculan <b>solo sobre el personal de CEDIS Panam&aacute;</b> que dirige la Jefatura de Facturaci&oacute;n. El resto se muestra rotulado y aparte.<br><b>Las horas de esta pesta&ntilde;a son horas de captura en SAP, no de asistencia.</b> La asistencia real est&aacute; en el reporte del reloj biom&eacute;trico, que es otra fuente y otro tablero. Cada columna sensible tiene una (i) que explica qu&eacute; significa y qu&eacute; no.</div>
   <div class="kpis" id="kProd"></div>
   <div class="grid3">
@@ -608,7 +647,7 @@ function semColor(k, cual) { return (COL_SEM[k] || COL_SEM.nu)[cual]; }
 var TABS = [['resumen','Resumen'],['flujo','Vista de flujo'],['fact','Facturaci\u00f3n a UE'],
   ['recep','Recepci\u00f3n y compras'],['ajuste','Ajustes y bajas'],['reng','Rengl\u00f3nes'],
   ['lotes','Lotes y vencimientos'],['inv','Inventario MB52'],['lat','Latencia de registro'],
-  ['prod','Productividad SAP'],['cal','Cobertura y calidad'],['det','Detalle']];
+  ['prod','Evaluaci\u00f3n de Analistas de Kardex'],['cal','Cobertura y calidad'],['det','Detalle']];
 
 /* ──────────────────────────────────────────────────────────────────────────
  *  AGRUPACION DE FLUJO
@@ -994,6 +1033,9 @@ function init() {
   Array.prototype.forEach.call(document.querySelectorAll('[data-csv]'), function (b) {
     b.onclick = function () { csv(b.dataset.csv); };
   });
+  $('evLimpiar').onclick = function () { $('btnLimpiar').click(); };
+  $('evComoBtn').onclick = function () { $('evComoCard').scrollIntoView({behavior:'smooth', block:'start'}); };
+  $('evXls').onclick = evExcel;
   tourEnlazar();
   zoomEnlazar();
   pintarInventario();   /* es una foto: no depende de los filtros, se dibuja una vez */
@@ -2719,7 +2761,563 @@ function fluEnlazarTip() {
  * aparte, porque no está bajo la Jefatura de Facturación y atribuirle ese
  * trabajo sería un error de medición, no una precaución.
  * ══════════════════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────────────────
+ *  EVALUACION DE ANALISTAS DE KARDEX                          (20-oct-2026)
+ *
+ *  Dos puntajes de 0 a 100, sin letra, uno por funcion. Cada criterio es un
+ *  conteo verificable y lo que depende de terceros se MUESTRA pero no resta.
+ *
+ *  DESPACHO  (313 salida a UE / 314 anulacion)
+ *    45%  Forma 8 trazable: el Texto cab.documento identifica un pedido que
+ *         existe en ASIGNACIONES_F8_MAESTRO (REQUISICIONES_F8, BUFFER_F8,
+ *         SEGUIMIENTO, DIST_SALMI). Las salidas con otro motivo declarado
+ *         (p.ej. reposicion de vencidos) no tienen Forma 8 y no cuentan.
+ *    40%  Facturadas a tiempo: dias habiles (lunes a viernes) entre la
+ *         FECHA_DISTRIBUCION del pedido y su primera salida 313 <= 1. Una
+ *         Forma 8 facturada antes de su distribucion cuenta a tiempo.
+ *    15%  Exactitud: 1 - 314/313.
+ *  ENTRADAS  (101/102 con pedido, 561/562 sin pedido)
+ *    45%  Contabilizadas en <= 30 dias: Fe.contabilizacion - Fecha de
+ *         documento del 101. La fecha de documento es la llegada de la
+ *         mercancia: se valido contra Entradas de Recepcion (mediana 0-2 d).
+ *    25%  Exactitud: 1 - 102/101.
+ *    30%  Lotes sin diferencia del lado SAP en la conciliacion SALMI-SAP.
+ *         Cada lote se atribuye a quien registro su ultima entrada 101/561.
+ *  Se muestra y no resta: regularizacion del 561 (depende de la orden de
+ *  compra), volumen de lineas, horas de captura.
+ *
+ *  El periodo es el Desde/Hasta del panel. Los demas filtros (clase, destino,
+ *  usuario, renglon) NO se aplican aqui: evaluar a alguien solo por una clase
+ *  de movimiento o un renglon no tendria sentido.
+ * ────────────────────────────────────────────────────────────────────────── */
+var EV_DESP = ['FFLORES','GQUIJADA','LBROWN','RURRIOLA'];
+var EV_ENT  = ['AMILLER','RODGOMEZ','CAFORERO'];
+var EV_FUERA = {RICAUNUNEZ:['Jefatura del departamento','az'], MBROCE:['Sin función definida','amb']};
+var EV_NOM = {FFLORES:'Feliciano Flores', GQUIJADA:'Gilberto Quijada', LBROWN:'Lesbia Brown',
+  RURRIOLA:'R. Urriola', AMILLER:'Arturo Miller', RODGOMEZ:'Rodrigo Gómez',
+  CAFORERO:'Caroline Forero', RICAUNUNEZ:'Ricaurte Núñez', MBROCE:'Miguel Broce'};
+var EV_MIN = 200;                    /* base minima para dar puntaje */
+var EV_PESO_D = {traz:0.45, tiempo:0.40, exac:0.15};
+var EV_PESO_E = {lat:0.45, exac:0.25, lotes:0.30};
+
+var EV = {estado:'', f8:null, conc:null, idx:null, r561:null, lotesU:null, lotesDet:null, txCache:{}, ult:null};
+
+function evNom(u) { return EV_NOM[u] || u; }
+function evPct(a, b) { return b ? a / b * 100 : null; }
+function evF1(v) { return v === null || v === undefined || isNaN(v) ? '—' : v.toFixed(1); }
+function evFP(v) { return v === null || v === undefined || isNaN(v) ? '—' : v.toFixed(1) + ' %'; }
+function evSem(v) { return v === null ? 'nu' : (v >= 70 ? 'ok' : (v >= 40 ? 'wa' : 'er')); }
+function evLote(v) {
+  var s = String(v === null || v === undefined ? '' : v).trim().toUpperCase().replace(/\s/g, '');
+  return s.replace(/^0+/, '') || s;
+}
+/* Dias habiles (lunes a viernes) de a hasta b. -1 si b es anterior a a. */
+function evHabiles(a, b) {
+  var d = new Date(a + 'T12:00:00'), e = new Date(b + 'T12:00:00'), n = 0;
+  if (e < d) return -1;
+  while (d < e) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6) n++; }
+  return n;
+}
+
+/* Lectura de la Forma 8 escrita a mano en el texto de cabecera. Se busca la
+   unidad ejecutora (4 digitos o CDxx) y el ULTIMO numero, que es el
+   correlativo; el ciclo y el año son opcionales. Una linea sin unidad
+   ejecutora es un motivo declarado ("REP. X VENC. LAB. CLINICO"), no una
+   Forma 8 mal escrita, y queda fuera del denominador. */
+function evLeerF8(tx) {
+  var s = norm(tx);
+  s = s.replace(/F-?8/g, ' ').replace(/\b(MED|MQ|CDPA|ODONT?|LAB|RAD)\b/g, ' ');
+  var t = s.match(/[A-Z0-9]+/g) || [], ue = null, rest = [];
+  for (var i = 0; i < t.length; i++) {
+    var x = t[i];
+    if (!ue && /^(\d{4}|CD[A-Z]{2})$/.test(x)) { ue = x; continue; }
+    if (ue && /^\d+$/.test(x)) rest.push(x);
+  }
+  if (!ue || !rest.length) return null;
+  var yr = '', cyc = '', r2 = [];
+  for (var j = 0; j < rest.length; j++) {
+    if (!yr && /^(20\d{2}|226|2126|026)$/.test(rest[j])) { yr = 1; continue; }
+    r2.push(rest[j]);
+  }
+  /* trae unidad ejecutora pero solo el año: es una Forma 8 ilegible */
+  if (!r2.length) return {ue:ue, num:'NaN', cyc:''};
+  if (r2.length >= 2 && r2[0].length === 1) cyc = r2[0];
+  return {ue:ue, num:String(Number(r2[r2.length - 1])), cyc:cyc};
+}
+/* Devuelve el id de la Forma 8, 'AMBIG' si hay varias candidatas y el ciclo
+   no decide, '' si no existe, o null si la linea no trae Forma 8. */
+function evEmpatar(txIdx, anio) {
+  var k = txIdx + '|' + anio;
+  if (EV.txCache[k] !== undefined) return EV.txCache[k];
+  var p = evLeerF8(DIC.tx[txIdx]), res;
+  if (!p) res = null;
+  else {
+    var L = (EV.idx[p.ue + '|' + p.num] || []).filter(function (x) { return x.yr === anio; });
+    if (!L.length) res = '';
+    else if (L.length === 1) res = L[0].id;
+    else {
+      var e = p.cyc ? L.filter(function (x) { return x.cyc === p.cyc; }) : [];
+      res = e.length === 1 ? e[0].id : 'AMBIG';
+    }
+  }
+  EV.txCache[k] = res;
+  return res;
+}
+
+/* Carga diferida: solo al abrir la pestaña. Son 1.3 MB que el resto del
+   tablero no necesita. Si una fuente falta, la evaluacion se dibuja igual y
+   dice que parte no pudo calcular. */
+function evCargar() {
+  EV.estado = 'cargando';
+  var a = traer('f8_referencia.json').then(function (j) { EV.f8 = j; }).catch(function () { EV.f8 = null; });
+  var b = traer('conciliacion_salmi_sap.json').then(function (j) { EV.conc = j; }).catch(function () { EV.conc = null; });
+  Promise.all([a, b]).then(function () {
+    evPreparar();
+    EV.estado = 'listo';
+    if (ACTIVA === 'prod') { SUCIO.prod = 1; pintarActiva(); }
+  });
+}
+
+function evPreparar() {
+  /* indice de Formas 8: UE|correlativo -> candidatas */
+  EV.idx = null; EV.dist = {}; EV.txCache = {};
+  if (EV.f8 && EV.f8.rows) {
+    EV.idx = {};
+    for (var i = 0; i < EV.f8.rows.length; i++) {
+      var id = String(EV.f8.rows[i][0]).toUpperCase().trim(), p = id.split('-');
+      if (EV.f8.rows[i][1]) EV.dist[id] = EV.f8.rows[i][1];
+      if (p.length < 3) continue;
+      var k = p[0] + '|' + String(Number(p[p.length - 1]));
+      (EV.idx[k] = EV.idx[k] || []).push({id:id, yr:p[1], cyc:p.length >= 4 ? p[2] : ''});
+    }
+  }
+
+  /* 561 -> 562 por material + lote, FIFO, sobre TODO el historico cargado:
+     un 562 de octubre puede regularizar un 561 de julio. */
+  var s561 = [], s562 = [];
+  for (var r = 0; r < ROWS.length; r++) {
+    var x = ROWS[r];
+    if (x[cM] === '561') s561.push({f:x[cF], u:DIC.usr[x[cUSR]], k:DIC.mat[x[cMAT]] + '|' + evLote(DIC.lote[x[cLOTE]]), rest:x[cQ], reg:null});
+    else if (x[cM] === '562') s562.push({f:x[cF], k:DIC.mat[x[cMAT]] + '|' + evLote(DIC.lote[x[cLOTE]]), q:Math.abs(x[cQ])});
+  }
+  var porF = function (a, b) { return a.f < b.f ? -1 : (a.f > b.f ? 1 : 0); };
+  s561.sort(porF); s562.sort(porF);
+  var abiertos = {};
+  s561.forEach(function (z) { (abiertos[z.k] = abiertos[z.k] || []).push(z); });
+  s562.forEach(function (y) {
+    var L = abiertos[y.k]; if (!L) return;
+    var q = y.q;
+    for (var j = 0; j < L.length && q > 0; j++) {
+      var z = L[j];
+      if (z.rest <= 0 || z.f > y.f) continue;
+      var t = Math.min(z.rest, q); z.rest -= t; q -= t;
+      if (z.rest <= 1e-6 && !z.reg) z.reg = y.f;
+    }
+  });
+  EV.r561 = s561;
+
+  /* Lotes de la conciliacion atribuidos a quien registro su ultima entrada */
+  EV.lotesU = null; EV.lotesDet = [];
+  if (EV.conc && EV.conc.lotesConc && EV.conc._meta) {
+    var cm = EV.conc._meta, ci = {}, jx = {};
+    (cm.columnas || []).forEach(function (c, i) { ci[c] = i; });
+    (cm.columnasLoteConc || []).forEach(function (c, i) { jx[c] = i; });
+    var ab2mat = {};
+    (EV.conc.rows || []).forEach(function (rw) {
+      ab2mat[String(rw[ci.abasto])] = String(rw[ci.materialSAP] || '').split(' / ');
+    });
+    var ult = {}, ent = [];
+    for (var e = 0; e < ROWS.length; e++) if (ROWS[e][cM] === '101' || ROWS[e][cM] === '561') ent.push(ROWS[e]);
+    ent.sort(function (a, b) { return a[cF] < b[cF] ? -1 : (a[cF] > b[cF] ? 1 : 0); });
+    ent.forEach(function (w) { ult[DIC.mat[w[cMAT]] + '|' + evLote(DIC.lote[w[cLOTE]])] = DIC.usr[w[cUSR]]; });
+    EV.lotesU = {};
+    EV.conc.lotesConc.forEach(function (lc) {
+      var cat = lc[jx.categoria];
+      if (cat === 'SOLO_SALMI') return;      /* falta del lado SALMI: no es de quien captura en SAP */
+      var ab = String(lc[jx.abasto]), lo = evLote(lc[jx.lote]), u = null, mats = ab2mat[ab] || [];
+      for (var m = 0; m < mats.length; m++) if (ult[mats[m] + '|' + lo]) { u = ult[mats[m] + '|' + lo]; break; }
+      if (!u) return;
+      var z = EV.lotesU[u] = EV.lotesU[u] || {tot:0, dig:0, solo:0, vdig:0, vsolo:0};
+      z.tot++;
+      if (cat === 'DIGITACION') { z.dig++; z.vdig += Math.abs(Number(lc[jx.valorDif]) || 0); }
+      if (cat === 'SOLO_SAP') { z.solo++; z.vsolo += Math.abs(Number(lc[jx.valorSAP]) || Number(lc[jx.valorDif]) || 0); }
+      if (cat === 'DIGITACION' || cat === 'SOLO_SAP') {
+        EV.lotesDet.push([u, ab, lc[jx.lote], cat === 'DIGITACION' ? 'Mal digitado' : 'Solo en SAP',
+          Number(lc[jx.qSAP]) || 0, Number(lc[jx.qSALMI]) || 0, Number(lc[jx.dif]) || 0,
+          Math.abs(Number(cat === 'SOLO_SAP' ? (lc[jx.valorSAP] || lc[jx.valorDif]) : lc[jx.valorDif]) || 0)]);
+      }
+    });
+  }
+}
+
+/* Calculo del periodo. Devuelve todo lo que la vista y el Excel necesitan. */
+function evCalcular() {
+  var d = $('fDesde').value || IDX._meta.desde, h = $('fHasta').value || IDX._meta.hasta;
+  var corte = IDX._meta.hasta;
+  var quien = {}, todos = EV_DESP.concat(EV_ENT, Object.keys(EV_FUERA));
+  todos.forEach(function (u) {
+    quien[u] = {u:u, lin:0, dias:{}, c313:0, c314:0, c101:0, c102:0, n8:0, dec:0, ok:0, amb:0,
+                f8:{}, lat:[], det313:[], det101:[]};
+  });
+  for (var i = 0; i < ROWS.length; i++) {
+    var r = ROWS[i];
+    if (r[cF] < d || r[cF] > h) continue;
+    var a = quien[DIC.usr[r[cUSR]]];
+    if (!a) continue;
+    a.lin++; a.dias[r[cF]] = 1;
+    var m = r[cM];
+    if (m === '313') {
+      a.c313++;
+      var res = EV.idx ? evEmpatar(r[cTX], r[cF].slice(0, 4)) : (evLeerF8(DIC.tx[r[cTX]]) ? '?' : null);
+      var est;
+      if (res === null) { a.dec++; est = 'Motivo declarado (no es Forma 8)'; }
+      else {
+        a.n8++;
+        if (res === '?') est = 'Sin referencia publicada';
+        else if (res === 'AMBIG') { a.amb++; est = 'Ambigua (varias candidatas)'; }
+        else if (res === '') est = 'No encontrada';
+        else { a.ok++; est = 'Trazable'; if (!a.f8[res] || r[cF] < a.f8[res]) a.f8[res] = r[cF]; }
+      }
+      a.det313.push([r[cF], a.u, r[cDOC], DIC.tx[r[cTX]] || '', est,
+        (res && res !== 'AMBIG' && res !== '?') ? res : '', '', '']);
+    } else if (m === '314') a.c314++;
+    else if (m === '101') {
+      a.c101++;
+      if (r[cFD]) {
+        var dl = dias_(r[cF], r[cFD]);
+        a.lat.push(dl);
+        a.det101.push([r[cF], r[cFD], a.u, r[cDOC], DIC.mat[r[cMAT]], DIC.ds[r[cMAT]] || '', DIC.lote[r[cLOTE]] || '', dl, dl <= 30 ? 'Sí' : 'No']);
+      }
+    } else if (m === '102') a.c102++;
+  }
+
+  todos.forEach(function (u) {
+    var a = quien[u];
+    a.nDias = Object.keys(a.dias).length;
+    /* oportunidad: una vez por Forma 8, con su primera facturacion */
+    var ev = 0, ot = 0, dl = [];
+    a.nF8 = Object.keys(a.f8).length;
+    Object.keys(a.f8).forEach(function (id) {
+      var fd = EV.dist[id]; if (!fd) return;
+      var hb = evHabiles(fd, a.f8[id]);
+      ev++; dl.push(hb); if (hb <= 1) ot++;
+    });
+    a.evT = ev; a.okT = ot; a.medT = dl.length ? mediana(dl) : null;
+    a.det313.forEach(function (x) {
+      if (!x[5]) return;
+      var fd = EV.dist[x[5]];
+      x[6] = fd || ''; x[7] = fd ? evHabiles(fd, x[0]) : '';
+    });
+    a.pTraz = EV.idx ? evPct(a.ok, a.n8) : null;
+    a.pTiempo = EV.idx ? evPct(ot, ev) : null;
+    a.pExacD = a.c313 ? (1 - a.c314 / a.c313) * 100 : null;
+    a.pLat = evPct(a.lat.filter(function (v) { return v <= 30; }).length, a.lat.length);
+    a.le30 = a.lat.filter(function (v) { return v <= 30; }).length;
+    a.medLat = a.lat.length ? mediana(a.lat) : null;
+    a.pExacE = a.c101 ? (1 - a.c102 / a.c101) * 100 : null;
+    var lz = EV.lotesU ? EV.lotesU[u] : null;
+    a.lotes = lz || {tot:0, dig:0, solo:0, vdig:0, vsolo:0};
+    a.pLotes = EV.lotesU ? evPct(a.lotes.tot - a.lotes.dig - a.lotes.solo, a.lotes.tot) : null;
+    /* 561 del periodo con al menos 30 dias de edad al corte */
+    var m5 = (EV.r561 || []).filter(function (z) { return z.u === u && z.f >= d && z.f <= h; });
+    var eval5 = m5.filter(function (z) { return dias_(corte, z.f) >= 30; });
+    a.c561 = m5.length; a.eval561 = eval5.length;
+    a.ok561 = eval5.filter(function (z) { return z.reg && dias_(z.reg, z.f) <= 30; }).length;
+
+    a.puntD = null; a.puntE = null; a.motivo = '';
+    if (EV_DESP.indexOf(u) >= 0) {
+      if (a.n8 < EV_MIN) a.motivo = 'Volumen insuficiente';
+      else if (a.pTraz === null || a.pTiempo === null) a.motivo = 'Sin referencia de Formas 8';
+      else a.puntD = EV_PESO_D.traz * a.pTraz + EV_PESO_D.tiempo * a.pTiempo + EV_PESO_D.exac * a.pExacD;
+    }
+    if (EV_ENT.indexOf(u) >= 0) {
+      if (a.c101 < EV_MIN) a.motivo = 'Volumen insuficiente';
+      else if (a.pLotes === null || a.pLat === null) a.motivo = a.pLotes === null ? 'Sin conciliación publicada' : 'Sin fecha de documento';
+      else a.puntE = EV_PESO_E.lat * a.pLat + EV_PESO_E.exac * a.pExacE + EV_PESO_E.lotes * a.pLotes;
+    }
+  });
+
+  var rank = function (lista, campo) {
+    var con = lista.filter(function (u) { return quien[u][campo] !== null; })
+      .sort(function (x, y) { return quien[y][campo] - quien[x][campo]; });
+    con.forEach(function (u, i) { quien[u].pos = i + 1; });
+    return con.concat(lista.filter(function (u) { return quien[u][campo] === null; }));
+  };
+  return {d:d, h:h, corte:corte, Q:quien, desp:rank(EV_DESP, 'puntD'), ent:rank(EV_ENT, 'puntE')};
+}
+
+function evChip(v, txt) {
+  var k = evSem(v);
+  return '<span class="ev-chip ev-' + k + '">' + (txt || evF1(v)) + '</span>';
+}
+function evNomCel(u) {
+  return '<b>' + esc(evNom(u)) + '</b><div class="ev-usr">' + esc(u) + '</div>';
+}
+
+function pintarEval() {
+  if (!EV.estado) evCargar();
+  if (EV.estado !== 'listo') {
+    $('evCuerpo').style.display = 'none';
+    $('evCarga').style.display = '';
+    return;
+  }
+  $('evCarga').style.display = 'none';
+  $('evCuerpo').style.display = '';
+  var R = EV.ult = evCalcular(), Q = R.Q;
+
+  var avisos = [];
+  if (!EV.idx) avisos.push('No está publicada <b>kardex/f8_referencia.json</b>. Sin ella no se puede saber si la Forma 8 existe ni cuándo se distribuyó: el despacho queda sin puntaje. Ejecute la publicación del Kardex desde Cargar reportes.');
+  if (!EV.lotesU) avisos.push('No está publicada <b>kardex/conciliacion_salmi_sap.json</b>: el criterio de lotes y el puntaje de entradas no se pueden calcular.');
+  $('evAviso').innerHTML = avisos.join('<br>');
+  $('evAviso').style.display = avisos.length ? '' : 'none';
+
+  var gen = EV.f8 && EV.f8._meta ? EV.f8._meta.generado : 'no publicada';
+  var genC = EV.conc && EV.conc._meta ? (EV.conc._meta.generado || EV.conc._meta.corte || '') : 'no publicada';
+  $('evPer').innerHTML = 'Período evaluado: <b>' + R.d + ' a ' + R.h + '</b> &middot; sigue los filtros <b>Desde / Hasta</b> del panel; los demás filtros no se aplican aquí. ' +
+    'Referencia de Formas 8: <b>' + esc(gen) + '</b> &middot; conciliación de lotes: <b>' + esc(String(genC)) + '</b>.';
+
+  /* totales del equipo evaluado */
+  var sum = function (lista, k) { return lista.reduce(function (s, u) { return s + (Q[u][k] || 0); }, 0); };
+  var D = EV_DESP, E = EV_ENT;
+  var n8 = sum(D, 'n8'), ok = sum(D, 'ok'), evT = sum(D, 'evT'), okT = sum(D, 'okT');
+  var nl = E.reduce(function (s, u) { return s + Q[u].lat.length; }, 0), le = sum(E, 'le30');
+  var c101 = sum(E, 'c101'), c102 = sum(E, 'c102');
+  var lDif = E.reduce(function (s, u) { return s + Q[u].lotes.dig + Q[u].lotes.solo; }, 0);
+  var lTot = E.reduce(function (s, u) { return s + Q[u].lotes.tot; }, 0);
+  var vDif = E.reduce(function (s, u) { return s + Q[u].lotes.vdig + Q[u].lotes.vsolo; }, 0);
+  var e5 = sum(E, 'eval561'), o5 = sum(E, 'ok561');
+  var nD = D.filter(function (u) { return Q[u].puntD !== null; }).length;
+  var nE = E.filter(function (u) { return Q[u].puntE !== null; }).length;
+  var nIns = D.concat(E).length - nD - nE;
+  var kc = function (v) { return v === null ? '' : (v >= 70 ? 'verde' : (v >= 40 ? 'amb' : 'rojo')); };
+  var pT = EV.idx ? evPct(ok, n8) : null, pO = EV.idx ? evPct(okT, evT) : null, pL = evPct(le, nl);
+  kpis('kEval', [
+    ['Analistas evaluados', nf(nD + nE), '', nD + ' despacho · ' + nE + ' entradas' + (nIns ? ' · ' + nIns + ' sin puntaje' : '')],
+    ['Forma 8 trazable · despacho', evFP(pT), kc(pT), nf(ok) + ' de ' + nf(n8) + ' salidas 313'],
+    ['Facturadas ≤ 1 día hábil', evFP(pO), kc(pO), nf(okT) + ' de ' + nf(evT) + ' Formas 8 con distribución'],
+    ['Entradas en ≤ 30 días', evFP(pL), kc(pL), nf(le) + ' de ' + nf(nl) + ' entradas 101'],
+    ['Entradas anuladas (102)', evFP(evPct(c102, c101)), '', nf(c102) + ' de ' + nf(c101) + ' entradas 101'],
+    ['Lotes con diferencia SAP', EV.lotesU ? nf(lDif) : '—', lDif ? 'rojo' : '', EV.lotesU ? 'de ' + nf(lTot) + ' · B/. ' + nf2(vDif) : 'sin conciliación'],
+    ['561 regularizados ≤ 30 d', evFP(evPct(o5, e5)), '', nf(o5) + ' de ' + nf(e5) + ' · se muestra, no resta']
+  ]);
+
+  /* lectura */
+  var L = [];
+  if (EV.idx) {
+    L.push('Despacho: de <b>' + nf(n8) + ' salidas 313</b> con Forma 8, el <b>' + evFP(pT) + '</b> empata con un pedido real del Kanban (requisiciones, ventanilla, seguimiento y distribución). De las <b>' + nf(evT) + ' Formas 8</b> con fecha de distribución, el <b>' + evFP(pO) + '</b> se facturó a más tardar un día hábil después.');
+  }
+  var meds = E.filter(function (u) { return Q[u].medLat !== null; })
+    .sort(function (x, y) { return Q[x].medLat - Q[y].medLat; })
+    .map(function (u) { return nf(Q[u].medLat) + ' (' + esc(evNom(u)) + ')'; });
+  if (nl) L.push('Entradas: de <b>' + nf(nl) + ' entradas 101</b>, el <b>' + evFP(pL) + '</b> se contabilizó en 30 días o menos desde la llegada de la mercancía. Mediana de días: ' + meds.join(', ') + '.');
+  if (c101) {
+    var peor = E.slice().sort(function (x, y) { return (Q[y].c101 ? Q[y].c102 / Q[y].c101 : 0) - (Q[x].c101 ? Q[x].c102 / Q[x].c101 : 0); })[0];
+    L.push('El <b>' + evFP(evPct(c102, c101)) + '</b> de las entradas 101 se anuló con 102; el valor más alto es ' + evFP(evPct(Q[peor].c102, Q[peor].c101)) + ' (' + esc(evNom(peor)) + ').');
+  }
+  if (EV.lotesU) L.push('En la conciliación vigente, <b>' + nf(lDif) + ' lotes</b> registrados por el equipo de entradas tienen diferencia del lado de SAP-SAFIRO, por <b>B/. ' + nf2(vDif) + '</b>. Es una foto al corte: no cambia con el período.');
+  var mb = Q.MBROCE;
+  if (mb && mb.c313) L.push('Fuera del ranking: Miguel Broce registró <b>' + nf(mb.c313) + ' salidas 313</b>' + (EV.idx ? ' y ' + nf(mb.ok) + ' empatan con un pedido real' : '') + '.');
+  $('evLectura').innerHTML = L.length ? '<ul>' + L.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : 'Sin movimientos del equipo en el período.';
+
+  /* tabla A · despacho */
+  var colsD = [
+    {h:'#', t:'c', f:function (v) { return v || '\u2014'; }},
+    {h:'Analista', t:'t', f:function (v) { return evNomCel(v); }},
+    {h:'Puntaje 0\u2013100', t:'n', f:function (v, f) { return v === '' ? '<span class="ev-chip ev-nu">' + esc(f[12]) + '</span>' : evChip(v); }},
+    {h:'Forma 8 trazable', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }},
+    {h:'Facturadas \u2264 1 d\u00eda h\u00e1bil', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }},
+    {h:'Exactitud (1 \u2212 314/313)', t:'n', f:function (v) { return v === '' ? '\u2014' : evFP(v); }},
+    {h:'Salidas 313 con Forma 8', t:'n', f:function (v) { return nf(v); }},
+    {h:'Formas 8 facturadas', t:'n', f:function (v) { return nf(v); }},
+    {h:'Con fecha de distribuci\u00f3n', t:'n', f:function (v) { return nf(v); }},
+    {h:'Motivo distinto a Forma 8', t:'n', f:function (v) { return nf(v); }},
+    {h:'Anuladas 314', t:'n', f:function (v) { return nf(v); }},
+    {h:'D\u00edas con captura', t:'n', f:function (v) { return nf(v); }},
+    {h:'Condici\u00f3n', t:'c'}
+  ];
+  var r2 = function (v) { return v === null ? '' : Math.round(v * 10) / 10; };
+  tabla('tEvD', colsD, R.desp.map(function (u) {
+    var a = Q[u];
+    return [a.pos && a.puntD !== null ? a.pos : '', u, r2(a.puntD), r2(a.pTraz), r2(a.pTiempo), r2(a.pExacD),
+      a.n8, a.nF8, a.evT, a.dec, a.c314, a.nDias, a.puntD === null ? a.motivo : 'Evaluado'];
+  }), {i:2, d:-1});
+
+  /* tabla B · entradas */
+  var colsE = [
+    {h:'#', t:'c', f:function (v) { return v || '—'; }},
+    {h:'Analista', t:'t', f:function (v) { return evNomCel(v); }},
+    {h:'Puntaje 0–100', t:'n', f:function (v, f) { return v === '' ? '<span class="ev-chip ev-nu">' + esc(f[13]) + '</span>' : evChip(v); }},
+    {h:'Contabilizadas en ≤ 30 días', t:'n', f:function (v) { return v === '' ? '—' : evFP(v); }},
+    {h:'Mediana de días', t:'n', f:function (v) { return v === '' ? '—' : nf(v); }},
+    {h:'Exactitud (1 − 102/101)', t:'n', f:function (v) { return v === '' ? '—' : evFP(v); }},
+    {h:'Lotes sin diferencia SAP', t:'n', f:function (v) { return v === '' ? '—' : evFP(v); }},
+    {h:'Entradas 101', t:'n', f:function (v) { return nf(v); }},
+    {h:'Anuladas 102', t:'n', f:function (v) { return nf(v); }},
+    {h:'Lotes con diferencia', t:'n', f:function (v, f) { return nf(v) + ' / ' + nf(f[10]); }},
+    {h:'Lotes registrados', t:'n', f:function (v) { return nf(v); }},
+    {h:'561 regularizados ≤ 30 d · no resta', t:'n', f:function (v, f) { return nf(v) + ' / ' + nf(f[12]); }},
+    {h:'561 evaluables', t:'n', f:function (v) { return nf(v); }},
+    {h:'Condición', t:'t'}
+  ];
+  tabla('tEvE', colsE, R.ent.map(function (a0) {
+    var a = Q[a0];
+    return [a.pos && a.puntE !== null ? a.pos : '', a0, r2(a.puntE), r2(a.pLat), a.medLat === null ? '' : a.medLat,
+      r2(a.pExacE), r2(a.pLotes), a.c101, a.c102, a.lotes.dig + a.lotes.solo, a.lotes.tot, a.ok561, a.eval561,
+      a.puntE === null ? a.motivo : 'Evaluado'];
+  }), {i:2, d:-1});
+
+  /* fuera del ranking */
+  var colsF = [
+    {h:'Persona', t:'t', f:function (v, f) { return evNomCel(f[9]); }},
+    {h:'Condición', t:'c', f:function (v, f) { return '<span class="ev-chip txt ev-' + (EV_FUERA[f[9]][1] === 'amb' ? 'wa' : 'az') + '">' + esc(v) + '</span>'; }},
+    {h:'Líneas', t:'n', f:function (v) { return nf(v); }},
+    {h:'Salidas 313', t:'n', f:function (v) { return nf(v); }},
+    {h:'Forma 8 trazable', t:'n', f:function (v, f) { return EV.idx ? nf(v) + ' de ' + nf(f[10]) : '—'; }},
+    {h:'Entradas 101', t:'n', f:function (v) { return nf(v); }},
+    {h:'Anuladas 102', t:'n', f:function (v) { return nf(v); }},
+    {h:'Mediana de días 101', t:'n', f:function (v) { return v === '' ? '—' : nf(v); }},
+    {h:'Días con captura', t:'n', f:function (v) { return nf(v); }},
+    {h:'Usuario', t:'c'},
+    {h:'Salidas 313 con Forma 8', t:'n', f:function (v) { return nf(v); }}
+  ];
+  tabla('tEvF', colsF, Object.keys(EV_FUERA).map(function (u) {
+    var a = Q[u];
+    return [evNom(u), EV_FUERA[u][0], a.lin, a.c313, a.ok, a.c101, a.c102, a.medLat === null ? '' : a.medLat, a.nDias, u, a.n8];
+  }), null);
+
+  /* como se calcula, con la aritmetica del primero de cada tabla */
+  var dP = Q[R.desp[0]], eP = Q[R.ent[0]], C = [];
+  var caja = function (t, f, ej) { return '<div class="ev-caja"><b>' + t + '</b><br><span class="num">' + f + '</span>' + (ej ? '<br>' + ej : '') + '</div>'; };
+  C.push(caja('Puntaje', 'Puntaje = Σ peso × criterio', 'Cada criterio de 0 a 100, sin letra. Verde 70 o más · ámbar 40 a 69 · rojo menos de 40. Sin puntaje con menos de ' + EV_MIN + ' líneas de base en el período.'));
+  if (dP && dP.puntD !== null) {
+    C.push(caja('Despacho · ' + esc(evNom(dP.u)), '0.45 × ' + evF1(dP.pTraz) + ' + 0.40 × ' + evF1(dP.pTiempo) + ' + 0.15 × ' + evF1(dP.pExacD) + ' = ' + evF1(dP.puntD),
+      'Trazable: ' + nf(dP.ok) + ' ÷ ' + nf(dP.n8) + ' · a tiempo: ' + nf(dP.okT) + ' ÷ ' + nf(dP.evT) + ' · exactitud: 1 − ' + nf(dP.c314) + ' ÷ ' + nf(dP.c313)));
+  }
+  if (eP && eP.puntE !== null) {
+    C.push(caja('Entradas · ' + esc(evNom(eP.u)), '0.45 × ' + evF1(eP.pLat) + ' + 0.25 × ' + evF1(eP.pExacE) + ' + 0.30 × ' + evF1(eP.pLotes) + ' = ' + evF1(eP.puntE),
+      '≤ 30 d: ' + nf(eP.le30) + ' ÷ ' + nf(eP.lat.length) + ' · exactitud: 1 − ' + nf(eP.c102) + ' ÷ ' + nf(eP.c101) + ' · lotes: 1 − ' + nf(eP.lotes.dig + eP.lotes.solo) + ' ÷ ' + nf(eP.lotes.tot)));
+  }
+  C.push(caja('Forma 8 trazable', 'salidas 313 cuya Forma 8 existe ÷ salidas 313 con Forma 8',
+    'Se lee la unidad ejecutora y el correlativo del Texto cab.documento y se busca en REQUISICIONES_F8, BUFFER_F8, SEGUIMIENTO y DIST_SALMI. Las salidas sin unidad ejecutora en el texto son otro motivo declarado (reposición de vencidos) y no cuentan.'));
+  C.push(caja('Facturadas a tiempo', 'días hábiles de FECHA_DISTRIBUCION a la primera 313 ≤ 1',
+    'Una vez por Forma 8. Lunes a viernes. Facturada antes de su distribución cuenta a tiempo. Si SEGUIMIENTO no tiene la fecha se usa la más temprana de DIST_SALMI.'));
+  C.push(caja('Días hasta contabilizar', 'Fe. contabilización − Fecha de documento',
+    'La fecha de documento del 101 es la llegada de la mercancía: coincide con Recepción en la mediana (0 a 2 días).'));
+  C.push(caja('Lotes sin diferencia SAP', '1 − (mal digitados + solo en SAP) ÷ lotes registrados',
+    'Cada lote de la conciliación SALMI–SAP se atribuye a quien registró su última entrada 101 o 561. Los que faltan del lado SALMI no se cuentan: no son de quien captura en SAP.'));
+  C.push('<div class="ev-caja gris"><b>Se muestra, no resta</b><br>Regularización del 561 (depende de que exista la orden de compra), volumen de líneas, horas de captura y lo que depende de proveedores o de la Unidad Ejecutora.</div>');
+  $('evComo').innerHTML = C.join('');
+}
+
+/* Informe completo: un libro con resumen, criterios y el detalle linea por
+   linea con que se calculo cada cifra, para que cualquier puntaje se pueda
+   auditar sin el tablero. */
+function evExcel() {
+  var R = EV.ult; if (!R) return;
+  if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Revise su conexión e intente de nuevo.'); return; }
+  var Q = R.Q, wb = new ExcelJS.Workbook();
+  wb.creator = 'Torre de Control · CEDIS Panamá'; wb.created = new Date();
+  var hojas = [];
+  var hoja = function (nombre, titulo, nota, cols, filas) {
+    var nc = cols.length, colFin = String.fromCharCode(64 + Math.min(Math.max(nc, 3), 26));
+    var ws = wb.addWorksheet(nombre, {views:[{showGridLines:false, state:'frozen', ySplit:8}]});
+    ws.columns = cols.map(function (c) { return {width: c[1] === 'n' ? 15 : (c[2] || 18)}; });
+    ws.mergeCells('A1:B4');
+    ws.mergeCells('C1:' + colFin + '1'); ws.getCell('C1').value = 'CAJA DE SEGURO SOCIAL';
+    ws.mergeCells('C2:' + colFin + '2'); ws.getCell('C2').value = 'Dirección Nacional de Logística · CEDIS Panamá · Torre de Control';
+    ws.mergeCells('C3:' + colFin + '3'); ws.getCell('C3').value = 'EVALUACIÓN DE ANALISTAS DE KARDEX · ' + titulo.toUpperCase();
+    ws.mergeCells('C4:' + colFin + '4'); ws.getCell('C4').value = 'Período: ' + R.d + ' a ' + R.h + '   ·   Corte de datos: ' + R.corte + '   ·   Generado: ' + new Date().toLocaleString('es-PA');
+    ws.getCell('C1').font = {bold:true, size:13, color:{argb:AZUL}};
+    ws.getCell('C2').font = {size:9, color:{argb:GRIS}};
+    ws.getCell('C3').font = {bold:true, size:12, color:{argb:AZUL2}};
+    ws.getCell('C4').font = {size:9, italic:true, color:{argb:GRIS}};
+    if (nota) {
+      ws.mergeCells('A6:' + colFin + '6'); ws.getCell('A6').value = nota;
+      ws.getCell('A6').font = {size:9, color:{argb:GRIS}};
+      ws.getCell('A6').alignment = {wrapText:true, vertical:'middle'}; ws.getRow(6).height = 40;
+    }
+    var hr = ws.getRow(8);
+    cols.forEach(function (c, i) { hr.getCell(i + 1).value = c[0]; });
+    hr.eachCell(function (cell) {
+      cell.font = {bold:true, size:10, color:{argb:'FFFFFFFF'}};
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:AZUL2}};
+      cell.alignment = {vertical:'middle', horizontal:'center', wrapText:true};
+    });
+    hr.height = 30;
+    filas.forEach(function (f, i) {
+      var row = ws.getRow(9 + i);
+      cols.forEach(function (c, j) {
+        var v = f[j], cell = row.getCell(j + 1);
+        if (c[1] === 'n' && v !== '' && v !== null && v !== undefined && !isNaN(Number(v))) {
+          cell.value = Number(v); cell.numFmt = c[3] || '#,##0'; cell.alignment = {horizontal:'right'};
+          cell.font = {name:'Consolas', size:10};
+        } else { cell.value = v === null || v === undefined ? '' : String(v); cell.font = {size:10}; }
+        cell.border = {bottom:{style:'hair', color:{argb:'FFDDDDDD'}}};
+      });
+      if (i % 2 === 1) row.eachCell(function (cell) { cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFAFA'}}; });
+    });
+    if (filas.length) ws.autoFilter = {from:{row:8, column:1}, to:{row:8 + filas.length, column:nc}};
+    hojas.push(ws);
+    return ws;
+  };
+  var P1 = '0.0';
+  var nr = function (v) { return v === null ? '' : Math.round(v * 10) / 10; };
+  hoja('Despacho', 'Despacho', 'Puntaje = 45 % Forma 8 trazable + 40 % facturadas en ≤ 1 día hábil tras la distribución + 15 % exactitud (1 − 314/313). Sin puntaje por debajo de ' + EV_MIN + ' salidas 313 con Forma 8.',
+    [['#','n'],['Analista','t',22],['Usuario','t',12],['Puntaje','n','',P1],['Forma 8 trazable %','n','',P1],['Facturadas ≤ 1 día hábil %','n','',P1],['Exactitud %','n','',P1],
+     ['Salidas 313','n'],['Salidas 313 con Forma 8','n'],['Trazables','n'],['Ambiguas','n'],['Motivo distinto','n'],['Formas 8 facturadas','n'],['Con distribución','n'],['A tiempo','n'],['Mediana días hábiles','n'],['Anuladas 314','n'],['Días con captura','n'],['Condición','t',24]],
+    R.desp.map(function (u) { var a = Q[u]; return [a.puntD !== null ? a.pos : '', evNom(u), u, nr(a.puntD), nr(a.pTraz), nr(a.pTiempo), nr(a.pExacD), a.c313, a.n8, a.ok, a.amb, a.dec, a.nF8, a.evT, a.okT, a.medT === null ? '' : a.medT, a.c314, a.nDias, a.puntD === null ? a.motivo : 'Evaluado']; }));
+  hoja('Entradas', 'Entradas', 'Puntaje = 45 % contabilizadas en ≤ 30 días + 25 % exactitud (1 − 102/101) + 30 % lotes sin diferencia del lado SAP. La regularización del 561 se muestra y no resta. Sin puntaje por debajo de ' + EV_MIN + ' entradas 101.',
+    [['#','n'],['Analista','t',22],['Usuario','t',12],['Puntaje','n','',P1],['≤ 30 días %','n','',P1],['Exactitud %','n','',P1],['Lotes sin diferencia %','n','',P1],
+     ['Entradas 101','n'],['Con fecha de documento','n'],['≤ 30 días','n'],['Mediana de días','n'],['Anuladas 102','n'],['Lotes registrados','n'],['Mal digitados','n'],['Solo en SAP','n'],['Valor con diferencia B/.','n','','#,##0.00'],['561 del período','n'],['561 evaluables','n'],['561 regularizados ≤ 30 d','n'],['Condición','t',24]],
+    R.ent.map(function (u) { var a = Q[u]; return [a.puntE !== null ? a.pos : '', evNom(u), u, nr(a.puntE), nr(a.pLat), nr(a.pExacE), nr(a.pLotes), a.c101, a.lat.length, a.le30, a.medLat === null ? '' : a.medLat, a.c102, a.lotes.tot, a.lotes.dig, a.lotes.solo, a.lotes.vdig + a.lotes.vsolo, a.c561, a.eval561, a.ok561, a.puntE === null ? a.motivo : 'Evaluado']; }));
+  hoja('Fuera del ranking', 'Fuera del ranking', 'Se muestran sus conteos para que la actividad quede a la vista, pero no se les asigna puntaje.',
+    [['Persona','t',22],['Usuario','t',12],['Condición','t',26],['Líneas','n'],['Salidas 313','n'],['Con Forma 8','n'],['Trazables','n'],['Entradas 101','n'],['Anuladas 102','n'],['Mediana días 101','n'],['Días con captura','n']],
+    Object.keys(EV_FUERA).map(function (u) { var a = Q[u]; return [evNom(u), u, EV_FUERA[u][0], a.lin, a.c313, a.n8, a.ok, a.c101, a.c102, a.medLat === null ? '' : a.medLat, a.nDias]; }));
+  var d313 = [];
+  EV_DESP.concat(Object.keys(EV_FUERA)).forEach(function (u) { d313 = d313.concat(Q[u].det313); });
+  d313.sort(function (a, b) { return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0); });
+  hoja('Detalle 313', 'Detalle de salidas 313', 'Una fila por línea 313 del período. Estado de la Forma 8 leída del Texto cab.documento y su fecha de distribución. Los días hábiles de la puntualidad se cuentan una vez por Forma 8, con su primera facturación.',
+    [['Fe. contabilización','t',13],['Usuario','t',12],['Documento SAP','t',13],['Texto cab.documento','t',30],['Estado','t',26],['Forma 8 empatada','t',20],['Fecha de distribución','t',14],['Días hábiles','n']],
+    d313.map(function (x) { return [x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7] === -1 ? 0 : x[7]]; }));
+  var d101 = [];
+  EV_ENT.concat(Object.keys(EV_FUERA)).forEach(function (u) { d101 = d101.concat(Q[u].det101); });
+  hoja('Detalle 101', 'Detalle de entradas 101', 'Una fila por entrada 101 del período con fecha de documento. Días = Fe. contabilización − Fecha de documento.',
+    [['Fe. contabilización','t',13],['Fecha de documento','t',13],['Usuario','t',12],['Documento SAP','t',13],['Material','t',14],['Descripción','t',34],['Lote','t',14],['Días','n'],['≤ 30 días','t',9]], d101);
+  hoja('Lotes con diferencia', 'Lotes con diferencia SAP', 'Foto de la conciliación SALMI–SAP vigente. Cada lote se atribuye a quien registró su última entrada 101 o 561; no depende del período.',
+    [['Usuario','t',12],['Código Abasto','t',14],['Lote','t',14],['Categoría','t',14],['Cantidad SAP','n'],['Cantidad SALMI','n'],['Diferencia','n'],['Valor B/.','n','','#,##0.00']],
+    (EV.lotesDet || []).filter(function (x) { return EV_ENT.indexOf(x[0]) >= 0 || EV_FUERA[x[0]]; }));
+  hoja('Cómo se calcula', 'Cómo se calcula', '', [['Concepto','t',30],['Regla','t',90]], [
+    ['Puntaje', 'Suma de peso × criterio, cada criterio de 0 a 100, sin letra. Verde 70 o más, ámbar 40 a 69, rojo menos de 40.'],
+    ['Despacho', '45 % Forma 8 trazable + 40 % facturadas ≤ 1 día hábil tras la distribución + 15 % exactitud (1 − 314/313).'],
+    ['Entradas', '45 % contabilizadas ≤ 30 días + 25 % exactitud (1 − 102/101) + 30 % lotes sin diferencia SAP.'],
+    ['Forma 8 trazable', 'La unidad ejecutora y el correlativo leídos del Texto cab.documento existen en REQUISICIONES_F8, BUFFER_F8, SEGUIMIENTO o DIST_SALMI. Sin unidad ejecutora en el texto = motivo declarado, fuera del denominador.'],
+    ['Facturadas a tiempo', 'Días hábiles (lunes a viernes) de FECHA_DISTRIBUCION a la primera 313 de esa Forma 8 ≤ 1. Antes de la distribución cuenta a tiempo.'],
+    ['Días hasta contabilizar', 'Fe. contabilización − Fecha de documento del 101 (llegada de la mercancía).'],
+    ['Lotes sin diferencia SAP', '1 − (mal digitados + solo en SAP) ÷ lotes registrados en la conciliación, atribuidos por la última entrada 101/561.'],
+    ['Volumen mínimo', 'Sin puntaje con menos de ' + EV_MIN + ' líneas de base en el período.'],
+    ['Se muestra, no resta', 'Regularización del 561 (561 con 30 días o más al corte, cerrados por 562 en ≤ 30 días), volumen, horas de captura.'],
+    ['Fuera del ranking', 'Ricaurte Núñez (jefatura del departamento) y Miguel Broce (sin función definida).']
+  ]);
+
+  var nombre = 'KARDEX_Evaluacion_Analistas_' + R.d + '_a_' + R.h + '.xlsx';
+  var bajar = function () {
+    wb.xlsx.writeBuffer().then(function (buf) {
+      var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  };
+  fetch(LOGO_URL).then(function (res) { return res.ok ? res.arrayBuffer() : Promise.reject(); })
+    .then(function (ab) {
+      var img = wb.addImage({buffer:ab, extension:'png'});
+      hojas.forEach(function (ws) { ws.addImage(img, {tl:{col:0.3, row:0.3}, ext:{width:70, height:70}}); });
+      bajar();
+    }).catch(bajar);
+}
+
 function pintarProd() {
+  pintarEval();
   var pan = [], otr = [];
   for (var i = 0; i < F.length; i++) {
     if (D_EQ[F[i][cUSR]]) pan.push(F[i]); else otr.push(F[i]);
