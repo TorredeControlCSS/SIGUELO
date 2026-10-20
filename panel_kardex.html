@@ -1042,13 +1042,12 @@ function init() {
   });
   $('evLimpiar').onclick = function () { $('btnLimpiar').click(); };
   evLlenarMeses();
-  $('evMes').onchange = function () {
-    var m = $('evMes').value;
-    if (!m) return;
-    $('fDesde').value = m + '-01';
-    $('fHasta').value = evMesFin(m) < IDX._meta.hasta ? evMesFin(m) : IDX._meta.hasta;
-    aplicar();
-  };
+  /* El periodo de la evaluacion es PROPIO y por defecto el mes en curso,
+     igual que el correo de los lunes. No mueve los filtros del panel: antes
+     la pestaña abria con todo el historico (mayo a la fecha) y mostraba otras
+     cifras que el correo, que mide el mes. */
+  $('evMes').value = IDX._meta.hasta.slice(0, 7);
+  $('evMes').onchange = function () { SUCIO.prod = 1; pintarActiva(); };
   $('evComoBtn').onclick = function () { $('evComoCard').scrollIntoView({behavior:'smooth', block:'start'}); };
   $('evXls').onclick = evExcel;
   tourEnlazar();
@@ -2966,7 +2965,9 @@ function evPreparar() {
 
 /* Calculo del periodo. Devuelve todo lo que la vista y el Excel necesitan. */
 function evCalcular() {
-  var d = $('fDesde').value || IDX._meta.desde, h = $('fHasta').value || IDX._meta.hasta;
+  var mes = $('evMes').value, d, h;
+  if (mes) { d = mes + '-01'; h = evMesFin(mes) < IDX._meta.hasta ? evMesFin(mes) : IDX._meta.hasta; }
+  else { d = $('fDesde').value || IDX._meta.desde; h = $('fHasta').value || IDX._meta.hasta; }
   var corte = IDX._meta.hasta;
   var quien = {}, todos = EV_DESP.concat(EV_ENT, Object.keys(EV_FUERA));
   todos.forEach(function (u) {
@@ -3089,7 +3090,7 @@ function evMesFin(m) {
 }
 function evMesNom(m) { return EV_MESES[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4); }
 function evLlenarMeses() {
-  var op = ['<option value="">Desde / Hasta del panel</option>'], m = EV_INICIO, fin = IDX._meta.hasta.slice(0, 7), L = [];
+  var op = ['<option value="">Rango Desde / Hasta del panel</option>'], m = EV_INICIO, fin = IDX._meta.hasta.slice(0, 7), L = [];
   while (m <= fin) {
     L.push(m);
     var y = Number(m.slice(0, 4)), n = Number(m.slice(5, 7)) + 1;
@@ -3101,15 +3102,6 @@ function evLlenarMeses() {
     op.push('<option value="' + x + '">' + evMesNom(x) + (curso ? ' (avance)' : '') + '</option>');
   });
   $('evMes').innerHTML = op.join('');
-}
-/* el selector refleja el rango vigente: si coincide con un mes, lo marca */
-function evSincMes() {
-  var d = $('fDesde').value, h = $('fHasta').value, v = '';
-  if (d && d.slice(8) === '01') {
-    var m = d.slice(0, 7);
-    if (h === evMesFin(m) || (h === IDX._meta.hasta && h.slice(0, 7) === m)) v = m;
-  }
-  if ($('evMes').querySelector('option[value="' + v + '"]')) $('evMes').value = v;
 }
 /* Misma formula que kevPuntuar_ del GAS, a partir de conteos */
 function evPuntuar(c, tipo, conF8, conL) {
@@ -3188,7 +3180,6 @@ function pintarEval() {
   }
   $('evCarga').style.display = 'none';
   $('evCuerpo').style.display = '';
-  evSincMes();
   evHistorial();
   var R = EV.ult = evCalcular(), Q = R.Q;
 
@@ -3200,7 +3191,11 @@ function pintarEval() {
 
   var gen = EV.f8 && EV.f8._meta ? EV.f8._meta.generado : 'no publicada';
   var genC = EV.conc && EV.conc._meta ? (EV.conc._meta.generado || EV.conc._meta.corte || '') : 'no publicada';
-  $('evPer').innerHTML = 'Período evaluado: <b>' + R.d + ' a ' + R.h + '</b> &middot; sigue los filtros <b>Desde / Hasta</b> del panel; los demás filtros no se aplican aquí. ' +
+  var mesSel = $('evMes').value;
+  $('evPer').innerHTML = 'Período evaluado: <b>' + R.d + ' a ' + R.h + '</b> &middot; ' +
+    (mesSel ? (R.h < evMesFin(mesSel) ? '<b>avance parcial de ' + evMesNom(mesSel) + '</b>, el mismo período del correo de los lunes' : '<b>mes fiscal completo</b>') +
+      '. No depende de los filtros del panel. '
+    : 'sigue los filtros <b>Desde / Hasta</b> del panel; no es un período oficial de evaluaci\u00f3n. ') +
     'Referencia de Formas 8: <b>' + esc(gen) + '</b> &middot; conciliación de lotes: <b>' + esc(String(genC)) + '</b>.';
 
   /* totales del equipo evaluado */
