@@ -290,7 +290,10 @@ const plugAnillo={
       const disp=o.lado>0?(ch.width-6-xt):(xt-6);
       while(o.l1.length>6 && ctx.measureText(o.l1).width>disp) o.l1=o.l1.slice(0,-2)+'…';
       ctx.font='10px Consolas, "Courier New", monospace';
-      while(o.l2.length>8 && ctx.measureText(o.l2).width>disp) o.l2=o.l2.replace(/  ·  B\/\. /,' ·');
+      /* 27-oct · el reemplazo se aplica una sola vez: antes, si el rótulo seguía
+         sin caber, el ciclo no terminaba y congelaba la pestaña del navegador
+         (pasa en pantallas angostas). */
+      while(o.l2.length>8 && ctx.measureText(o.l2).width>disp){ const n2=o.l2.replace(/  ·  B\/\. /,' ·'); if(n2===o.l2) break; o.l2=n2; }
       ctx.font='600 11px Segoe UI, Arial, sans-serif';
       ctx.strokeStyle='rgba(255,255,255,0.92)'; ctx.lineWidth=3.5; ctx.lineJoin='round';
       ctx.strokeText(o.l1,xt,o.y1-6); ctx.fillStyle='#1f1f1f'; ctx.fillText(o.l1,xt,o.y1-6);
@@ -883,7 +886,11 @@ const FT={
  COD_ABASTO_FUERA_DE_MARA:['Código Abasto fuera del catálogo','El código no existe en el catálogo MARA disponible.'],
  SIN_MATERIAL_SAFIRO:['Material SAFIRO ausente','Ni el archivo ni el catálogo resolvieron el material.'],
  SIN_COD_ABASTO:['Sin Código Abasto','Línea sin identificador de renglón.'],
- MES_HOJA_DISCREPA:['Recepción en la pestaña de otro mes','La fecha no corresponde al mes de la pestaña. Los cortes se hacen por fecha, no por pestaña.']
+ MES_HOJA_DISCREPA:['Recepción en la pestaña de otro mes','La fecha no corresponde al mes de la pestaña. Los cortes se hacen por fecha, no por pestaña.'],
+ ALIAS_NORMALIZADO:['Proveedor resuelto al normalizar la escritura','La escritura no estaba en el maestro, pero sin puntuación ni "S.A." coincide con un proveedor conocido. Se sumó a ese proveedor; conviene darla de alta.'],
+ ALIAS_APROXIMADO:['Proveedor resuelto por escritura aproximada','A una o dos letras de un proveedor conocido (por ejemplo PHARMA SPPLIES). Se sumó a ese proveedor; revisar y dar de alta.'],
+ SALMI_FECHA_DE_TEXTO:['Fecha SALMI escrita como texto, leída','La celda tenía la fecha como texto (15/10/2026). Se leyó y se usa en el cálculo.'],
+ VENC_FECHA_DE_TEXTO:['Fecha de compromiso escrita como texto, leída','La celda tenía la fecha como texto. Se leyó y se usa para medir el cumplimiento.']
 };
 function pCalidad(d){
   const cnt={}; d.forEach(r=>r.flags.forEach(f=>cnt[f]=(cnt[f]||0)+1));
@@ -919,6 +926,11 @@ function pCalidad(d){
   <div class="card c-rojo"><h2>Escrituras de proveedor sin registrar<span class="per">Requieren alta en el maestro</span></h2><div class="body">${tabla([
     {t:'Como aparece en el archivo',w:'w',f:o=>o.raw},
     {t:'Líneas afectadas',n:1,f:o=>fmtN(o.n),v:o=>o.n}],sinReg,{sort:1})}</div></div>`:'<div class="nota ok">Todas las escrituras de proveedor del archivo están resueltas contra el maestro.</div>'}
+  ${(META.aliasAutomaticos||[]).length?`<div class="card c-azul"><h2>Escrituras resueltas automáticamente<span class="per">Normalización leve contra el maestro · revisar y dar de alta</span></h2><div class="body">${tabla([
+    {t:'Como aparece en el archivo',w:'w',f:o=>o.raw},
+    {t:'Se sumó a',w:'w',f:o=>o.canon},
+    {t:'Cómo',f:o=>o.metodo==='NORMALIZADO'?'Sin puntuación ni razón social':'A '+o.distancia+' letra(s)',v:o=>o.metodo},
+    {t:'Líneas',n:1,f:o=>fmtN(o.n),v:o=>o.n}],(META.aliasAutomaticos||[]).slice().sort((a,b)=>b.n-a.n),{sort:3})}</div></div>`:''}
   <div class="card c-azul"><h2>Maestro de alias de proveedor<span class="per">${alias.length} razones sociales con recepción en el período</span></h2><div class="body">${tabla([
     {t:'Razón social canónica',w:'w2',f:o=>o.k},
     {t:'Escrituras',n:1,f:o=>fmtN(o.esc.length),v:o=>o.esc.length},
