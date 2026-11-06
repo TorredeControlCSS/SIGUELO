@@ -1241,7 +1241,7 @@ function mcLista(tab){
 function mcRender(citas){
   MC.citas=citas||[]; MC.q=null; MC.lim=12; MC.abierta=null;
   const n=t=>mcLista(t).length;
-  MC.tab = n('aten')?'aten':(n('trans')?'trans':(n('agen')?'agen':(n('entr')?'entr':'todas')));
+  MC.tab = 'todas'; // por defecto se muestran todas las citas; el proveedor filtra con las pestañas
   mcTabs(); mcPintar(); mcAcPreparar();
   mcCargarSeguimiento();
 }
