@@ -269,7 +269,7 @@
     .catch(function(e){ if(n>=3) throw e; return new Promise(function(ok){ setTimeout(ok,1500*(n+1)); }).then(function(){ return traer(url,n+1); }); }); }
 
   /* grupos del inventario de Curvas (si no carga, la familia sale del prefijo del código) */
-  var URL_GRUPOS='https://torredecontrolcss.github.io/Curvas_de_Inventario/kpi_inventario_renglones.json';
+  var URL_GRUPOS='https://torrecontrolcss.org/Curvas_de_Inventario/kpi_inventario_renglones.json';
   var pG=fetch(URL_GRUPOS+'?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(K){
     if(K&&K.columnas&&K.renglones){ var ic=K.columnas.indexOf('codigo'), ig=K.columnas.indexOf('grupo'); if(ic>=0&&ig>=0) K.renglones.forEach(function(r){ if(r[ig]) GRUPOS[String(r[ic]).replace(/^0+/,'')]=String(r[ig]).trim(); }); } }).catch(function(){});
   Promise.all([traer(URL_JSON),pG]).then(function(a){ D=a[0]; preparar(); pintar(); }).catch(function(e){
