@@ -1407,7 +1407,7 @@ function mcAcPreparar(){
 function mcLimpiarBusqueda(){ MC.q=null; MC.lim=12; MC.abierta=null; const i=document.getElementById('mcBuscar'); i.value=''; document.getElementById('mcLimpiar').hidden=true; mcTabs(); mcPintar(); }
 
 // ---- Seguimiento de la entrega (abre la vista del proveedor de Trazabilidad) ----
-const URL_TRAZ='https://torredecontrolcss.github.io/SIGUELO/trazabilidad.html';
+const URL_TRAZ='https://torrecontrolcss.org/SIGUELO/trazabilidad.html';
 function ocBase(oc){ const m=String(oc||'').replace(/\s+/g,'').match(/(100\d{7})(?!\d)/); return m?m[1]:''; }
 function urlSeguimiento(oc,cod){ const b=ocBase(oc); if(!b) return ''; return URL_TRAZ+'?proveedor=1&oc='+b+(cod?'&ren='+encodeURIComponent(String(cod).replace(/\.0+$/,'')):''); }
 function llenarSeguimiento(citas){
@@ -1970,7 +1970,7 @@ function mostrarConfirmacion(idSol, req){
   document.getElementById('correoConfirm').textContent=(req&&req.correo)||'—';
   // Resumen del QR: código + OC + producto + fecha solicitada
   // URL del comprobante en GitHub (los datos viajan en la URL; la página los muestra)
-  const baseComp='https://torredecontrolcss.github.io/SIGUELO/comprobante.html';
+  const baseComp='https://torrecontrolcss.org/SIGUELO/comprobante.html';
   const qp=new URLSearchParams({
     cod:idSol||'',
     oc:(req&&req.oc)||'',
