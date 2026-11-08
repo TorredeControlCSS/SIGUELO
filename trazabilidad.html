@@ -432,7 +432,7 @@ function pct(a,q){if(!a.length)return null;const s=a.slice().sort((x,y)=>x-y);co
 const r1=v=>v==null?'—':(Math.round(v*10)/10).toString().replace('.',',');
 
 /* ---------- carga: en vivo en GitHub Pages, foto embebida en otro lugar ---------- */
-const BASE='https://torredecontrolcss.github.io/SIGUELO/';
+const BASE='https://torrecontrolcss.org/SIGUELO/';
 async function cargarVivo(){
   const j=u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u);return r.json();});
   const [ent,cit,tra,idx,EV]=await Promise.all([j(BASE+'entradas_recepcion.json'),j(BASE+'citas_trazabilidad.json').catch(()=>j(BASE+'citas_proveedores.json')),j(BASE+'transitos_evidencia.json'),j(BASE+'kardex/indice.json'),j(BASE+'trazabilidad_eventos.json').catch(()=>null)]);
@@ -902,7 +902,7 @@ async function enviarHito(x){
   aviso(r.duplicado?'Ese hito ya estaba registrado.':r.mensaje);JUSTO=it.tipo==='TRANSFIERE'?it.paso:null;PSEL=null;delete EVT[x.id];if(RES[x.id])delete RES[x.id];$('#formBox').innerHTML='';renderFicha();cargarResumen();
 }
 function renderCaratula(x){
-  const e=x.e;const url='https://torredecontrolcss.github.io/SIGUELO/trazabilidad.html#'+x.id;const enPages=location.hostname.endsWith('github.io');
+  const e=x.e;const url='https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id;const enPages=location.hostname.endsWith('github.io');
   $('#carBox').innerHTML='<div class="block"><div class="block-h"><h3>Carátula del expediente</h3><p>Se imprime y viaja dentro del folder; cada área firma su casilla y la foto de la carátula firmada es la evidencia del hito</p></div>'+
    (enPages?'<div class="toolbar"><button class="btn small" id="bPrint">Imprimir carátula</button></div>':'<p class="muted" style="font-size:.8rem">La impresión se habilita en la versión publicada en GitHub Pages.</p>')+
    '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · CEDIS Panamá</div><div style="font-family:Consolas,monospace;font-size:16px;font-weight:bold;margin-top:6px">'+x.id+'</div>'+
