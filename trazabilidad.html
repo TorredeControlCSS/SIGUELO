@@ -297,6 +297,77 @@ body.modo-prov nav.tabs,body.modo-prov .internal,body.modo-prov #btnTour,body.mo
 .ac-item .ac-cod{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink)}
 .ac-item .ac-grp{display:block;font-size:.72rem;color:var(--muted);margin-top:1px}
 .ac-vacio{padding:9px 11px;font-size:.8rem;color:var(--muted)}
+/* Esquinas redondeadas en todo el tablero (13-nov-2026) */
+.block{border-radius:12px}
+.btn{border-radius:8px}
+nav.tabs button{border-radius:999px}
+input,select,textarea{border-radius:8px}
+.facts .fact,.fact{border-radius:10px}
+/* Cola de trabajo (lista priorizada) + ficha al lado */
+.split{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+#colaTabla{flex:999 1 560px;min-width:0}
+.fcol{flex:1 1 500px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--accent);border-radius:999px;overflow:hidden}
+.seg button{font:inherit;font-size:.78rem;border:0;background:var(--surface);color:var(--accent-ink);padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.pchip{font:inherit;font-size:.78rem;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer}
+.pchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.pchip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.pchip[aria-pressed="true"] i{box-shadow:0 0 0 2px #fff}
+.ctab{border:1px solid var(--line);border-radius:12px;overflow:auto;background:var(--surface)}
+.ctab table{width:100%;border-collapse:collapse;font-size:.82rem}
+.ctab th{background:var(--hdr);color:var(--hdr-ink);text-align:left;font-weight:600;padding:7px 9px;position:sticky;top:0}
+.ctab td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+.ctab tr.fila{cursor:pointer}.ctab tr.fila:hover td{background:var(--accent-soft)}
+.ctab tr.fila.sel td{background:var(--accent-soft)}
+.ctab tr.fila.sel{background:var(--accent-soft)}
+.ctab tr.fila:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pv{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink);font-size:.9rem}
+.dots{display:flex;gap:2px;margin-top:3px}.dots i{width:8px;height:8px;border-radius:2px;background:var(--line)}
+.dots i.h{background:var(--ok)}.dots i.a{background:var(--accent);outline:2px solid var(--accent-soft)}
+.esp{display:inline-block;font-family:var(--f-mono);font-weight:700;border-radius:8px;padding:2px 8px}
+.esp.v{background:var(--k-green);color:var(--ok)}.esp.a{background:var(--k-amb);color:var(--warn)}.esp.r{background:var(--k-red);color:var(--bad)}
+.tg{display:inline-block;font-size:.7rem;border-radius:6px;padding:1px 6px;margin-top:3px}
+.tg.parc{background:var(--parc-soft);color:var(--parc)}.tg.dev{background:var(--bad-soft);color:var(--bad)}
+@media (max-width:700px){.ctab thead{display:none}.ctab table,.ctab tbody,.ctab td{display:block}.ctab tr.fila{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:10px 12px;border-bottom:1px solid var(--line)}.ctab td{border:0;padding:0}.ctab td:nth-child(1){grid-column:1;grid-row:1}.ctab td:nth-child(5){grid-column:2;grid-row:1;text-align:right}.ctab td:nth-child(2),.ctab td:nth-child(3){grid-column:1/-1}.ctab td:nth-child(4){display:none}.ctab tr.fila td .muted{font-size:.72rem}}
+/* Línea de tiempo vertical del expediente */
+.tl-g{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:8px 0 2px}
+.tl{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:.84rem}
+.tl .n{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.68rem;border:1px solid var(--border);color:var(--muted);background:var(--surface)}
+.tl.h .n{background:var(--ok);border-color:var(--ok);color:#fff}
+.tl.a .n{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;box-shadow:0 0 0 3px var(--accent-soft)}
+.tl.r .n{border:1.5px dashed var(--bad);color:var(--bad)}
+.tl .t{flex:1;min-width:0}.tl .t b{font-weight:600}.tl.a .t b{color:var(--accent-ink);font-weight:700}
+.tl .q{font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+.tl .q i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tl .w{font-size:.74rem;color:var(--muted);text-align:right;max-width:150px}
+.toca{border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin:6px 0;display:flex;flex-direction:column;gap:6px}
+.toca.parc{border-color:var(--parc);background:var(--parc-soft)}.toca.dev{border-color:var(--bad);background:var(--bad-soft)}
+.toca .k{font-size:.7rem;font-weight:700;letter-spacing:.04em;color:var(--accent-ink)}
+.toca .p{font-size:1rem;font-weight:700}
+.toca .btn{align-self:flex-start;min-height:40px}
+/* Flujo agregado con líneas animadas */
+.fa-g{border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.fa-g.g0{background:var(--k-blue);border:1px solid var(--line)}.fa-g.g1{background:var(--k-amb);border:1px solid var(--line)}.fa-g.g2{background:var(--k-green);border:1px solid var(--line)}
+.fa-g.gx{border:1px dashed var(--border);background:repeating-linear-gradient(135deg,transparent 0 7px,var(--line) 7px 8px)}
+.fa-h{display:flex;justify-content:space-between;gap:10px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--accent-ink)}
+.fa-r{display:flex;flex-wrap:wrap;align-items:stretch;row-gap:8px}
+.fa-s{font:inherit;color:var(--ink);text-align:left;width:172px;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
+.fa-s.hay{background:var(--k-red);border-color:var(--bad)}
+.fa-s.off{opacity:.28}.fa-s .c{font-size:.66rem;color:var(--muted);display:flex;justify-content:space-between}
+.fa-s .c b{font-family:var(--f-mono);font-size:1.15rem;color:var(--bad)}.fa-s:not(.hay) .c b{font-size:.9rem;color:var(--muted)}
+.fa-s .a{font-weight:700;font-size:.84rem;line-height:1.2;min-height:2.4em}
+.fa-s .q{font-size:.7rem;align-self:flex-start;border-radius:999px;padding:1px 8px;background:var(--accent-soft);color:var(--accent-ink)}
+.fa-s .q.conf{background:var(--k-amb);color:var(--warn)}
+.fa-s .p{font-size:.7rem;color:var(--muted);display:flex;gap:5px;align-items:center}.fa-s .p i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.fax{width:26px;height:2px;align-self:center;flex-shrink:0;position:relative;background:repeating-linear-gradient(90deg,var(--border) 0 5px,transparent 5px 9px)}
+.fax::after{content:"";position:absolute;right:-2px;top:-4px;border-left:7px solid var(--border);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.fax.vivo{background:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 9px);background-size:9px 2px;animation:fluyeX .7s linear infinite}
+.fax.vivo::after{border-left-color:var(--accent)}
+.fax.big{width:44px;height:3px}
+@keyframes fluyeX{to{background-position:9px 0}}
+@media (prefers-reduced-motion:reduce){.fax.vivo{animation:none}}
 /* Bandeja: lo que le toca a cada área */
 #bandeja .block{margin-bottom:10px}
 .bj-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
@@ -378,6 +449,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 </nav>
 
 <section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo" hidden>
+  <div id="flujoDocAgg"></div>
   <div class="kpis" id="kpis"></div>
   <div class="block" id="bRecorrido">
     <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: días hábiles típicos y plazo en que se resuelve el 85 % de las líneas · en rojo, la etapa con más atrasadas</p></div>
@@ -420,8 +492,13 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 
 <section class="panel" id="p-ficha" role="tabpanel" aria-labelledby="t-ficha">
   <div id="bandeja"></div>
-  <div class="toolbar"><label for="selid" class="muted" style="font-size:.82rem">Expediente u OC</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="OC, renglón, proveedor o RB-OC-fecha"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
+  <div class="split">
+  <div id="colaTabla"></div>
+  <div class="fcol">
+  <div class="toolbar"><label for="selid" class="muted" style="font-size:.82rem">Abrir otro</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="Previo, OC, factura, proveedor o renglón"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
   <div id="ficha"></div>
+  </div>
+  </div>
 </section>
 
 <section class="panel" id="p-prov" role="tabpanel" aria-labelledby="t-prov" hidden>
@@ -778,7 +855,7 @@ function olvidarExp(id){delete EVT[id];delete EVTJ[id];CONFIRMADO.delete(id);try
 function cargarResumen(){return apiGet('action=trzResumen').then(j=>{if(j.success){RES=j.expedientes||{};RESOK=true;}}).catch(()=>{});}
 /* Pasos hechos según la bitácora. EMPALME (cuadro de Control Operativo): todos los pasos hasta ese ya estaban hechos. */
 /* Registro habilitado: con entrada contable 101, o si el expediente ya trae pasos (p. ej. del cuadro de Control). */
-const hab=x=>!!(x.f101||(EVTJ[x.id]&&EVTJ[x.id].length)||(EVT[x.id]&&EVT[x.id].length)||(HITOS[x.id]&&HITOS[x.id].length));
+const hab=x=>!!(x&&x.e&&x.e.fRec);   // desde la recepción (antes esperaba la entrada 101)
 function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='TRANSFIERE')h.add(r.paso);if(r.tipo==='EMPALME'){const k=o.indexOf(r.paso);o.slice(0,k+1).forEach(p=>h.add(p));}if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(p=>h.delete(p));}});return h;}
 /* Resumen de un expediente para tablas y vista del proveedor (sin llamar al GAS). */
 function resDe(ev){const h=hechosDe(ev);const ts=p=>{if(!h.has(p))return null;const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let t=null;ev.forEach(r=>{if(r.estado==='ANULADO')return;if((r.tipo==='TRANSFIERE'&&r.paso===p)||(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip&&!t))t=r.ts||t;});return t||true;};
@@ -842,13 +919,13 @@ function renderFicha(){
   if(VIVO_REG&&hab(x)&&SES)confirmarEnFondo(x.id);   // sin sesión basta la bitácora publicada (no se llama al GAS)
   const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
   const sig=hab(x)?PASOS.find(p=>!hechos.has(p[0])):null;
-  let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+x.id+'</h2></div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
+  let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv):x.id)+'</h2><div class="muted mono" style="font-size:.74rem">'+(CIDS[x.id]&&CIDS[x.id].pv?x.id:'')+'</div>'+(x.c?'<div class="tg" style="background:var(--ok-soft);color:var(--ok);font-size:.76rem">Cita <b class="mono">'+esc(x.c.id)+'</b>'+(x.c.fConf?' · confirmada para el '+fdf(x.c.fConf):'')+' · '+esc(String(x.c.estado||'').toLowerCase())+'</div>':'<div class="tg" style="background:var(--surface2);color:var(--muted);font-size:.76rem">Sin cita en SIGUELO</div>')+'</div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
    '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].concat(CIDS[x.id]?[['En el cuadro de Control','Previo <span class="mono">'+esc(CIDS[x.id].pv||'—')+'</span> · factura <span class="mono">'+esc(CIDS[x.id].fa||'—')+'</span><br>Informe <span class="mono">'+esc(CIDS[x.id].ir||'—')+'</span> · secuencial <span class="mono">'+esc(CIDS[x.id].se||'—')+'</span>']]:[]).map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
    altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
   h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
    (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'';
-  h+=flujoDoc(x,reg,hechos,sig);
+  h+=timelineDoc(x,reg,hechos,sig);
   h+=(VIVO_REG?bitacora(x):'')+'<div id="formBox"></div></div><div id="carBox"></div>';
   box.innerHTML=h;
   box.querySelectorAll('[data-reg]').forEach(b=>b.addEventListener('click',()=>{PASOFORM=b.dataset.reg;EVID=null;
@@ -871,29 +948,92 @@ function bandejaDatos(){const out=[];X.forEach(x=>{if(!hab(x))return;const reg=(
   const reales=reg.filter(r=>r.tipo!=='EMPALME');const u=reales[reales.length-1];
   const ult=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const esp=bd(ult||x.f101||x.e.fRec,HOY);
-  out.push({x:x,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
+  out.push({x:x,h:h,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
   return out.sort((a,b)=>b.esp-a.esp);}
+/* ---------- Nombres, personas y colores ---------- */
+const AREA_TXT=a=>({Control1:'Control 1',Control2:'Control 2',Control3:'Control 3','Cómputo':'Cómputo (Kardex)'}[a]||a);
+const PAL=['#7a4fa3','#1e7fa8','#c9a227','#6b7f2a','#d07a1e','#2f8a5a','#a06a3a','#5a6b8a','#b8486b','#3f6fb5'];
+const AREAS=[];PASOS.forEach(p=>{if(AREAS.indexOf(p[1])<0)AREAS.push(p[1]);});
+const colArea=a=>PAL[AREAS.indexOf(a)%PAL.length]||'#8a8a8a';
+function personaDe(area){const L=personas().filter(q=>q.area===area&&!q.pendiente);return L.length?L[0].nombre:null;}
+function colPersona(n){if(!n)return '#c9a227';const L=[];AREAS.forEach(a=>{const q=personaDe(a);if(q&&L.indexOf(q)<0)L.push(q);});const k=L.indexOf(n);return k<0?'#8a8a8a':PAL[k%PAL.length];}
+const corto=n=>String(n||'').split(' ')[0];
+/* ---------- Cola de trabajo: lista priorizada (pantalla principal) ---------- */
+let COLA_M='persona',COLA_F=null,COLA_E='todos',COLA_Q='',COLA_N=50,COLA_P=null,COLA_INI=false;
+function colaItems(){return bandejaDatos().map(o=>{o.persona=personaDe(o.area);return o;});}
+function colaFiltrar(D,conClave){return D.filter(o=>{
+  if(COLA_P&&o.paso!==COLA_P)return false;
+  if(COLA_E==='parc'&&!o.parc)return false;if(COLA_E==='dev'&&!o.dev)return false;
+  if(conClave&&COLA_F){if(COLA_M==='persona'?((o.persona||'Por confirmar')!==COLA_F):(o.area!==COLA_F))return false;}
+  if(COLA_Q){const c=CIDS[o.x.id]||{};const t=normB(COLA_Q);if(!normB([o.x.id,o.x.e.oc,o.x.e.prov,o.x.e.desc,o.x.e.cod,c.pv,c.fa,c.ir,o.x.c?o.x.c.id:''].join(' ')).includes(t))return false;}
+  return true;});}
 function renderBandeja(){const box=$('#bandeja');if(!box)return;
-  if(!VIVO_REG){box.innerHTML='';return;}
-  const D=bandejaDatos();const mis=SES?D.filter(o=>SES.pasos.indexOf(o.paso)>=0):D;
-  const areas=[];mis.forEach(o=>{if(areas.indexOf(o.area)<0)areas.push(o.area);});
-  const orden=PASOS.map(p=>p[1]);areas.sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
-  if(BJ_F&&areas.indexOf(BJ_F)<0)BJ_F=null;
-  const vis=BJ_F?mis.filter(o=>o.area===BJ_F):mis;
-  const tit=SES?('Bandeja de '+esc(SES.nombre)+' · '+(SES.rol==='OPERADOR'?esc(SES.area):'todas las áreas')):'Lo que le toca a cada área';
-  const cls=o=>o.dev?'dev':(o.parc?'parc':(o.esp<=2?'v':(o.esp<=5?'a':'r')));
-  const est=o=>o.dev?'Devuelto · corregir':(o.parc?'Parcial · '+esc(o.parc.motivo||''):(o.esp+' día'+(o.esp===1?'':'s')+' hábil'+(o.esp===1?'':'es')+' en espera'));
-  let h='<div class="block"><div class="bj-h"><div><h3 style="margin:0">'+tit+'</h3><p class="muted" style="margin:2px 0 0;font-size:.8rem">'+mis.length+' expediente'+(mis.length===1?'':'s')+' esperan '+(SES?'su registro':'registro')+'. Toque uno para abrirlo y registrar el paso.</p></div>'+
-    (SES?'':'<button class="btn small" id="bjPin">Ingresar con PIN para ver mi bandeja</button>')+'</div>';
-  if(areas.length>1)h+='<div class="bj-chips" role="group" aria-label="Filtrar por área"><button class="bj-chip" data-a="" aria-pressed="'+(!BJ_F)+'">Todas <b>'+mis.length+'</b></button>'+areas.map(a=>'<button class="bj-chip" data-a="'+esc(a)+'" aria-pressed="'+(BJ_F===a)+'">'+esc(a)+' <b>'+mis.filter(o=>o.area===a).length+'</b></button>').join('')+'</div>';
-  h+='<div class="bj-list">'+vis.slice(0,BJ_N).map(o=>'<button type="button" class="bj-it '+cls(o)+'" data-id="'+o.x.id+'"><span class="c">'+o.x.id+'</span><span class="p">'+(o.paso==='C12'?'C·12→13':o.paso)+' · '+esc(o.area)+' — '+esc(o.acc)+'</span><span class="d">'+esc(o.x.e.prov||'')+' · '+esc((o.x.e.desc||'').slice(0,42))+'</span><span class="e">'+est(o)+'</span></button>').join('')+'</div>';
-  if(vis.length>BJ_N)h+='<div class="bj-mas"><button class="btn ghost small" id="bjMas">Ver '+Math.min(48,vis.length-BJ_N)+' más (de '+vis.length+')</button></div>';
-  if(!vis.length)h+='<p class="muted">No hay expedientes esperando'+(SES?' en su área':'')+'.</p>';
-  h+='</div>';box.innerHTML=h;
-  box.querySelectorAll('.bj-it').forEach(b=>b.addEventListener('click',()=>{abrir(b.dataset.id);setTimeout(()=>bajarA('#fdet'),80);}));
-  box.querySelectorAll('.bj-chip').forEach(b=>b.addEventListener('click',()=>{BJ_F=b.dataset.a||null;BJ_N=24;renderBandeja();}));
-  if($('#bjMas'))$('#bjMas').onclick=()=>{BJ_N+=48;renderBandeja();};
-  if($('#bjPin'))$('#bjPin').onclick=()=>pinModal(()=>{renderBandeja();renderFicha();});
+  if(!VIVO_REG){box.innerHTML='';$('#colaTabla').innerHTML='';return;}
+  if(!COLA_INI&&SES){COLA_INI=true;if(SES.rol==='OPERADOR'){COLA_M='persona';COLA_F=SES.nombre;}}
+  const D=colaItems();const base=colaFiltrar(D,false);
+  const claves=COLA_M==='persona'?(()=>{const L=[];AREAS.forEach(a=>{const q=personaDe(a)||'Por confirmar';if(L.indexOf(q)<0)L.push(q);});return L;})():AREAS.slice();
+  const cnt=k=>base.filter(o=>COLA_M==='persona'?((o.persona||'Por confirmar')===k):(o.area===k)).length;
+  const chip=(k,lbl,col,n)=>'<button type="button" class="pchip" data-k="'+esc(k)+'" aria-pressed="'+((COLA_F||'')===k)+'"><i style="background:'+col+'"></i>'+esc(lbl)+' <b>'+n+'</b></button>';
+  let h='<div class="block"><div class="ctl" style="justify-content:space-between"><div><h3 style="margin:0">'+(SES?'Bandeja de '+esc(SES.nombre)+' · '+esc(AREA_TXT(SES.area)):'Expedientes esperando registro')+'</h3>'+
+    '<p class="muted" style="margin:2px 0 0;font-size:.8rem">Ordenados por días de espera, el más atrasado primero. Toque uno para abrirlo y registrar el paso.</p></div>'+
+    '<div class="ctl">'+(SES?'':'<button class="btn small" id="bjPin">Ingresar con PIN</button>')+(!SES||SES.rol!=='OPERADOR'?'<button class="btn ghost small" id="bjNuevo" title="Solo supervisor: recepción que el informe de Abasto no trae">+ Expediente nuevo</button>':'')+'</div></div>'+
+    '<div class="ctl"><div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-m="persona" aria-pressed="'+(COLA_M==='persona')+'">Por persona</button><button type="button" data-m="area" aria-pressed="'+(COLA_M==='area')+'">Por área</button></div>'+
+    '<button type="button" class="pchip" data-k="" aria-pressed="'+(!COLA_F)+'"><i style="background:#8a8a8a"></i>'+(COLA_M==='persona'?'Todos':'Todas')+' <b>'+base.length+'</b></button>'+
+    claves.map(k=>COLA_M==='persona'?chip(k,k==='Por confirmar'?k:corto(k),colPersona(k==='Por confirmar'?null:k),cnt(k)):chip(k,AREA_TXT(k),colArea(k),cnt(k))).join('')+'</div>'+
+    '<div class="ctl"><input type="search" id="colaQ" aria-label="Buscar en la bandeja" placeholder="Buscar previo, OC, factura, cita, proveedor o producto" style="flex:1 1 280px;padding:7px 10px;border:1px solid var(--border);font:inherit;font-size:.84rem" value="'+esc(COLA_Q)+'">'+
+    '<div class="seg" role="group" aria-label="Estado"><button type="button" data-e="todos" aria-pressed="'+(COLA_E==='todos')+'">Esperando</button><button type="button" data-e="parc" aria-pressed="'+(COLA_E==='parc')+'">Parciales</button><button type="button" data-e="dev" aria-pressed="'+(COLA_E==='dev')+'">Devueltos</button></div>'+
+    (COLA_P?'<button type="button" class="pchip" id="colaPx" aria-pressed="true">Solo paso '+(PASOS.findIndex(z=>z[0]===COLA_P)+1)+' · '+esc((PASOS.find(z=>z[0]===COLA_P)||[])[2]||'')+' ×</button>':'')+'</div></div>';
+  box.innerHTML=h;
+  box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{COLA_M=b.dataset.m;COLA_F=null;COLA_N=50;renderBandeja();});
+  box.querySelectorAll('.seg [data-e]').forEach(b=>b.onclick=()=>{COLA_E=b.dataset.e;COLA_N=50;renderBandeja();});
+  box.querySelectorAll('.pchip[data-k]').forEach(b=>b.onclick=()=>{COLA_F=b.dataset.k||null;COLA_N=50;renderBandeja();});
+  if($('#colaPx'))$('#colaPx').onclick=()=>{COLA_P=null;renderBandeja();};
+  let tq=null;$('#colaQ').oninput=ev=>{COLA_Q=ev.target.value;clearTimeout(tq);tq=setTimeout(()=>{COLA_N=50;renderColaTabla();},180);};
+  if($('#bjPin'))$('#bjPin').onclick=()=>pinModal(()=>{COLA_INI=false;renderFicha();});
+  if($('#bjNuevo'))$('#bjNuevo').onclick=abrirAlta;
+  renderColaTabla();
+}
+function renderColaTabla(){const box=$('#colaTabla');if(!box)return;
+  const L=colaFiltrar(colaItems(),true);
+  const ord=PASOS.map(p=>p[0]);
+  const fila=o=>{const c=CIDS[o.x.id]||{};const k=ord.indexOf(o.paso);
+    const dots=ord.map((p,i)=>'<i class="'+(o.h.has(p)?'h':(i===k?'a':''))+'"></i>').join('');
+    const cls=o.esp<=2?'v':(o.esp<=5?'a':'r');
+    return '<tr class="fila'+(o.x.id===SELID?' sel':'')+'" tabindex="0" data-id="'+o.x.id+'"><td><div class="pv">'+esc(c.pv||'—')+'</div><div class="muted" style="font-size:.72rem">OC '+o.x.e.oc+'</div></td>'+
+      '<td><div style="font-weight:600">'+esc(o.x.e.prov||'')+'</div><div class="muted" style="font-size:.76rem">'+esc((o.x.e.desc||'').slice(0,46))+'</div></td>'+
+      '<td><div style="font-weight:600">'+esc(o.acc)+'</div><div class="muted" style="font-size:.74rem">'+esc(AREA_TXT(o.area))+(o.persona?' · '+esc(corto(o.persona)):'')+' · paso '+(k+1)+' de 15</div>'+
+      (o.dev?'<span class="tg dev">Devuelto · corregir</span>':'')+(o.parc?'<span class="tg parc">Parcial · '+esc(o.parc.motivo||'')+'</span>':'')+'</td>'+
+      '<td><div class="dots">'+dots+'</div><div class="muted" style="font-size:.7rem;margin-top:3px">'+o.h.size+' de 15</div></td>'+
+      '<td style="text-align:right"><span class="esp '+cls+'">'+o.esp+' d</span><div class="muted" style="font-size:.7rem;margin-top:3px">recibido '+fdf(o.x.e.fRec)+'</div></td></tr>';};
+  box.innerHTML='<div class="ctab"><table><thead><tr><th>Previo</th><th>Proveedor · producto</th><th>Le toca ahora</th><th>Avance</th><th style="text-align:right">Esperando</th></tr></thead><tbody>'+
+    (L.length?L.slice(0,COLA_N).map(fila).join(''):'<tr><td colspan="5" class="muted" style="padding:14px">No hay expedientes con estos filtros.</td></tr>')+'</tbody></table>'+
+    '<div class="muted" style="font-size:.76rem;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Mostrando '+Math.min(COLA_N,L.length)+' de '+L.length+'</span>'+(L.length>COLA_N?'<button class="btn ghost small" id="colaMas">Ver más</button>':'')+'</div></div>';
+  box.querySelectorAll('tr.fila').forEach(tr=>{const go=()=>{SELID=tr.dataset.id;try{history.replaceState(null,'','#'+SELID);}catch(e){}renderFicha();if(innerWidth<1100)bajarA('#ficha');};tr.onclick=go;tr.onkeydown=ev=>{if(ev.key==='Enter')go();};});
+  if($('#colaMas'))$('#colaMas').onclick=()=>{COLA_N+=100;renderColaTabla();};
+}
+/* ---------- Flujo agregado: los 15 pasos con lo que espera en cada uno ---------- */
+let FA_M='persona',FA_F=null;
+function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_REG){box.innerHTML='';return;}
+  const D=bandejaDatos();const n={};D.forEach(o=>{n[o.paso]=(n[o.paso]||0)+1;});
+  const ord=PASOS.map(p=>p[0]);
+  const claves=FA_M==='persona'?(()=>{const L=[];AREAS.forEach(a=>{const q=personaDe(a)||'Por confirmar';if(L.indexOf(q)<0)L.push(q);});return L;})():AREAS.slice();
+  const caja=(p,primero)=>{const q=PASOS.find(z=>z[0]===p),k=ord.indexOf(p),c=n[p]||0,per=personaDe(q[1]);
+    const clave=FA_M==='persona'?(per||'Por confirmar'):q[1];const off=FA_F&&FA_F!==clave;
+    const ring=FA_F&&!off?(FA_M==='persona'?colPersona(per):colArea(q[1])):'';
+    return (primero?'':'<span class="fax'+(c?' vivo':'')+'" aria-hidden="true"></span>')+
+      '<button type="button" class="fa-s'+(c?' hay':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+'><span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+
+      '<span class="q'+(per?'':' conf')+'">'+esc(AREA_TXT(q[1]))+'</span><span class="p"><i style="background:'+(FA_M==='persona'?colPersona(per):colArea(q[1]))+'"></i>'+esc(per||'por confirmar')+'</span></button>';};
+  const grupo=(g,i)=>{const ps=g[1],tot=ps.reduce((a,p)=>a+(n[p]||0),0);
+    return '<div class="fa-g g'+i+'"><div class="fa-h"><span>'+esc(g[0])+'</span><span>pasos '+(ord.indexOf(ps[0])+1)+(ps.length>1?' al '+(ord.indexOf(ps[ps.length-1])+1):'')+' · '+tot+' esperando</span></div><div class="fa-r">'+ps.map((p,j)=>caja(p,j===0||(i===0&&j===6))).join('')+'</div></div>';};
+  const chip=(k,lbl,col)=>'<button type="button" class="pchip" data-k="'+esc(k)+'" aria-pressed="'+((FA_F||'')===k)+'"><i style="background:'+col+'"></i>'+esc(lbl)+'</button>';
+  box.innerHTML='<div class="block"><div class="block-h"><h2>Proceso documental · los 15 pasos de Control Operativo</h2><p>Cada caja: qué se hace, quién lo hace y cuántos expedientes esperan hoy. La línea animada marca hacia dónde se mueve el trabajo. Toque una caja para ver esos expedientes.</p></div>'+
+    '<div class="ctl"><div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-m="persona" aria-pressed="'+(FA_M==='persona')+'">Por persona</button><button type="button" data-m="area" aria-pressed="'+(FA_M==='area')+'">Por área</button></div>'+
+    chip('',FA_M==='persona'?'Todos':'Todas','#8a8a8a')+claves.map(k=>FA_M==='persona'?chip(k,k==='Por confirmar'?k:corto(k),colPersona(k==='Por confirmar'?null:k)):chip(k,AREA_TXT(k),colArea(k))).join('')+'</div>'+
+    grupo(GRUPOS[0],0)+'<div class="fa-r" style="align-items:stretch">'+'<span class="fax big vivo" aria-hidden="true"></span>'+grupo(GRUPOS[1],1)+'<span class="fax big vivo" aria-hidden="true"></span>'+grupo(GRUPOS[2],2)+
+    '<span class="fax big" aria-hidden="true"></span><div class="fa-g gx"><div class="fa-h"><span>Remisión a Contraloría</span></div><span class="muted" style="font-size:.78rem">Sin registro digital · fuera de SIGUELO</span></div></div></div>';
+  box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{FA_M=b.dataset.m;FA_F=null;renderFlujoAgg();});
+  box.querySelectorAll('.pchip[data-k]').forEach(b=>b.onclick=()=>{FA_F=b.dataset.k||null;renderFlujoAgg();});
+  box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
 }
 function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
   o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4" controls autoplay playsinline preload="metadata"></video></div>';
@@ -941,6 +1081,34 @@ function flujoDoc(x,reg,hechos,sig){
   const ev=last&&last.evidUrl?'<a class="evlink" href="'+esc(last.evidUrl)+'" target="_blank" rel="noopener">Ver evidencia</a>':(last&&last.thumb?'<img class="thumb" alt="Evidencia" src="'+last.thumb+'">':'');
   const acc=now?(puede(sel)?'<button class="btn" data-reg="'+sel+'">'+(parc&&!dev?'Actualizar ':'Registrar ')+cod(sel)+'</button>':'<span class="st">Le corresponde a '+esc(q[1])+'</span>'):'';
   h+='<div class="fdet" id="fdet"><div class="fdet-t"><span class="c">'+cod(sel)+'</span><div><b>'+esc(q[1])+'</b> · '+esc(q[2])+'<div class="st '+(done?'ok':(now?(dev?'bad':parc?'parc':(espera>5?'bad':(espera>2?'now':'ok'))):''))+'">'+est+(quien&&!(now&&dev)?' · '+quien:'')+'</div></div></div><div class="toolbar">'+ev+acc+'</div></div>';
+  return h;
+}
+/* Línea de tiempo vertical: los 15 pasos con qué se hace, quién y cuándo. */
+function timelineDoc(x,reg,hechos,sig){
+  const ord=PASOS.map(z=>z[0]);const cod=p=>p==='C12'?'C·12→13':p;
+  const ultimo=reg.length?reg[reg.length-1]:null;const reales=reg.filter(r=>r.tipo!=='EMPALME');const ur=reales[reales.length-1];
+  const dev=ur&&ur.tipo==='DEVUELVE'?ur:null;const parc=sig?parcialDe(reg,sig[0]):null;
+  const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
+  const ultTs=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
+  const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
+  const nH=ord.filter(p=>hechos.has(p)).length,pct=Math.round(100*nH/ord.length);
+  let h='<div class="favance"><span><b>Avance documental:</b> '+nH+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nH+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
+  if(dev){const qa=PASOS.find(z=>z[0]===dev.paso),qd=PASOS.find(z=>z[0]===dev.dest);h+='<div class="fdev" role="status"><b>Devuelto</b> desde el paso '+(ord.indexOf(dev.paso)+1)+' ('+esc(qa?qa[2]:'')+') al paso '+(ord.indexOf(dev.dest)+1)+' ('+esc(qd?qd[2]:'')+')'+(dev.ts?' · '+esc(String(dev.ts).replace('T',' ')):'')+' · '+hechoPor(dev)+'<br><span>Motivo: '+esc(dev.motivo||'—')+(dev.obs?' · '+esc(dev.obs):'')+'</span></div>';}
+  if(parc&&!dev){h+='<div class="fparc" role="status"><b>Parcial</b> en el paso '+(ord.indexOf(parc.paso)+1)+(parc.ts?' · '+esc(String(parc.ts).replace('T',' ')):'')+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. Sigue en este paso hasta registrarlo como completado total.</span></div>';}
+  const dato=p=>{const t=reg.filter(r=>(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso===p);const r=t[t.length-1];
+    if(!r)return 'ya hecho · cuadro';const f=r.ts?fdf(String(r.ts).slice(0,10)):'';return (f?f+' · ':'')+(r.tipo==='EMPALME'?(r.ejecutor?esc(corto(r.ejecutor))+' · cuadro':'cuadro'):esc(corto(r.ejecutor||r.quien)));};
+  GRUPOS.forEach(g=>{h+='<div class="tl-g">'+esc(g[0])+'</div>';
+    g[1].forEach(p=>{const q=PASOS.find(z=>z[0]===p),k=ord.indexOf(p),done=hechos.has(p),now=sig&&sig[0]===p,per=personaDe(q[1]);
+      const cls=done?'h':(now?'a':(reab.has(p)?'r':''));
+      h+='<div class="tl '+cls+'"><div class="n">'+(done?'✓':k+1)+'</div><div class="t"><b>'+esc(q[2])+'</b><div class="q"><i style="background:'+colArea(q[1])+'"></i>'+esc(AREA_TXT(q[1]))+' · '+esc(per||'por confirmar')+'</div></div><div class="w">'+(done?dato(p):(now?'le toca · '+espera+' d':(reab.has(p)?'se repite':'')))+'</div></div>';
+      if(now){const pa=puede(p);
+        h+='<div class="toca'+(dev?' dev':(parc?' parc':''))+'" id="fdet"><div class="k">'+(dev?'DEVUELTO · CORREGIR Y VOLVER A REGISTRAR':(parc?'PARCIAL · SIGUE EN ESTE PASO':'LE TOCA A '+esc(AREA_TXT(q[1]).toUpperCase())))+' · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+' esperando</div>'+
+          '<div class="p">Paso '+(k+1)+' · '+esc(q[2])+'</div><div class="muted" style="font-size:.8rem">Responsable: '+esc(AREA_TXT(q[1]))+(per?' ('+esc(per)+')':'')+'</div>'+
+          (pa?'<button class="btn" data-reg="'+p+'">'+(parc&&!dev?'Actualizar':'Registrar')+' «'+esc(q[2])+'»</button>':'<span class="muted" style="font-size:.8rem">Lo registra '+esc(AREA_TXT(q[1]))+'. Con su PIN usted ve y registra los pasos de su área.</span>')+'</div>';}
+    });});
+  if(!sig)h+='<div class="toca" style="border-color:var(--ok);background:var(--ok-soft)"><div class="k" style="color:var(--ok)">EXPEDIENTE COMPLETO</div><div class="p">Los 15 pasos están registrados</div></div>';
+  h+='<div class="tl-g">Remisión a Contraloría</div><div class="muted" style="font-size:.78rem">Sin registro digital · fuera de SIGUELO</div>';
+  setTimeout(()=>{JUSTO=null;},50);
   return h;
 }
 function barraSesion(x){
@@ -1127,7 +1295,7 @@ window.addEventListener('resize',()=>{if($('#tourOverlay').style.display==='bloc
 
 /* ---------- pestañas y arranque ---------- */
 function showTab(id){document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===id)));document.querySelectorAll('section.panel').forEach(s=>s.hidden=(s.id!==id));}
-document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();}));
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();if(b.dataset.p==='p-flujo')renderFlujoAgg();}));
 $('#q').addEventListener('input',()=>{PAGE=0;renderTabla();});
 function irA(){const v=$('#selid').value.trim().toUpperCase();if(!v)return;let x=X.find(z=>z.id===v)||X.find(z=>CIDS[z.id]&&[CIDS[z.id].pv,CIDS[z.id].fa,CIDS[z.id].ir].some(k=>k&&String(k).toUpperCase()===v));if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
 $('#go').addEventListener('click',irA);
@@ -1167,7 +1335,7 @@ function iniciar(){
   construir();
   $('#status').innerHTML=(S.vivo?'<span class="dot"></span><b>En vivo</b>':'<span class="dot snap"></span><b>Foto de datos</b>')+' · Fuente: informe de entradas (Abasto), kardex MB51, citas SIGUELO, tránsitos<br>Última recepción: '+fdf(S.corte)+' · Generado '+esc(String(S.generado||'—').slice(0,16));
   llenarFiltros();renderFlujo();renderFlujoChips();renderTabla();provLlenar();
-  if(VIVO_REG){prepararBitacora(S.EV);if(!EVTJ_OK)cargarResumen().then(()=>{if(RESOK)renderProv();});enviarCola();}
+  if(VIVO_REG){prepararBitacora(S.EV);if(!EVTJ_OK)cargarResumen().then(()=>{if(RESOK)renderProv();});enviarCola();renderFlujoAgg();}
   const demo=X.find(x=>x.f101&&x.c&&x.t)||X.find(x=>x.f101&&x.c);
   const qp=new URLSearchParams(location.search);
   if(qp.get('proveedor')==='1'){modoProveedor(qp);return;}
