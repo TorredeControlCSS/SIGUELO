@@ -122,8 +122,8 @@ th.sort .ar{opacity:.55;margin-left:4px;font-size:9px}
 .icon-btn .i-sun{display:none}
 :root[data-theme="dark"] .icon-btn .i-sun{display:block}
 :root[data-theme="dark"] .icon-btn .i-moon{display:none}
-#btnTour{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.55);padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:2px;font-weight:700}
-#btnTour:hover{background:#fff;color:#0C447C;border-color:#fff}
+#btnVideo,#btnTour,#btnGuia{text-decoration:none;display:inline-block;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.55);padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;border-radius:8px;font-weight:700}
+#btnVideo:hover,#btnTour:hover,#btnGuia:hover{background:#fff;color:#0C447C;border-color:#fff}
 .hbtns{display:flex;gap:8px;align-items:center}
 #tourOverlay{position:fixed;inset:0;z-index:1000}
 #tourBackdrop{position:absolute;inset:0;background:rgba(15,25,40,.55)}
@@ -436,7 +436,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
     <h1>Trazabilidad Documental de la Recepción</h1>
     <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
   </div>
-  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
+  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><a id="btnGuia" href="./guias/Guia_SIGUELO_Trazabilidad_Documental_v1.0.pdf" target="_blank" rel="noopener" title="Guía de uso en PDF">Guía (PDF)</a><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
   <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div></div>
 </header>
 <div class="wrap">
@@ -936,7 +936,14 @@ function renderFicha(){
   if($('#bRelee'))$('#bRelee').onclick=()=>{delete EVT[x.id];renderFicha();};
   $('#bCar').onclick=()=>renderCaratula(x);
   if($('#bAnuAlta'))$('#bAnuAlta').onclick=()=>anularAlta(x);
+  box.querySelectorAll('[data-anu]').forEach(b=>b.addEventListener('click',()=>anularHito(x,b.dataset.anu)));
 }
+async function anularHito(x,id){if(!SES)return;
+  const mot=prompt('Motivo para anular este registro (queda en la bitácora como ANULADO):');if(mot==null)return;if(!mot.trim()){aviso('Indique el motivo de la anulación.',true);return;}
+  let r;try{r=await apiPost('trzAnular',{pin:SES.pin,id:id,motivo:mot.trim()});}catch(e){aviso('Sin conexión con SIGUELO.',true);return;}
+  if(!r.success){aviso(r.error||'No se pudo anular.',true);return;}
+  (EVT[x.id]||[]).forEach(ev=>{if(ev.id===id){ev.estado='ANULADO';ev.anuladoPor=SES.nombre;ev.anuladoMotivo=mot.trim();}});
+  aviso(r.mensaje||'Registro anulado.');renderFicha();}
 let PSEL=null,PSEL_ID=null,JUSTO=null;
 /* Identificadores del cuadro de Control (previo, factura, informe, secuencial) por expediente. */
 let CIDS={};
@@ -1036,7 +1043,7 @@ function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_RE
   box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
 }
 function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
-  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4" controls autoplay playsinline preload="metadata"></video></div>';
+  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=2" controls autoplay playsinline preload="metadata"></video></div>';
   document.body.appendChild(o);const c=()=>o.remove();$('#vidX').onclick=c;o.addEventListener('click',e=>{if(e.target===o)c();});document.addEventListener('keydown',function k(e){if(e.key==='Escape'){c();document.removeEventListener('keydown',k);}});}
 function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
 const GRUPOS=[['Control documental · Recepción y Control',['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11']],['Contabilidad',['P12','C12','P13']],['Publicación',['P14']]];
@@ -1120,7 +1127,7 @@ function barraSesion(x){
 }
 function bitacora(x){
   const ev=EVT[x.id]||[];if(!ev.length)return '';
-  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'parcial ('+esc(r.motivo||'')+')':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):'')+'</li>').join('')+'</ul></details>';
+  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'parcial ('+esc(r.motivo||'')+')':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):((SES&&SES.rol==='SUPERVISOR'&&r.id&&r.tipo!=='ALTA_MANUAL')?' <button class="btn ghost small" data-anu="'+esc(r.id)+'">Anular</button>':''))+'</li>').join('')+'</ul></details>';
 }
 function renderForm(x){
   const p=PASOS.find(z=>z[0]===PASOFORM);const now=new Date();const dv=iso(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
