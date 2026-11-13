@@ -25,6 +25,16 @@
  *    · ROL REGISTRADOR: registra cualquier paso (p. ej. la coordinadora que
  *      lleva el control del grupo) pero no anula ni da altas manuales.
  *
+ *  Empalme con el cuadro de Control Operativo (13-nov-2026):
+ *    · trzImportarEmpalme() lee trazabilidad_empalme.json (generado desde el
+ *      Excel CONSOLIDADO del departamento) y escribe en TRZ_EVENTOS un evento
+ *      RESULTADO = EMPALME por cada hito que el cuadro ya tenía: «hasta este
+ *      paso el expediente ya estaba hecho». Se puede repetir sin duplicar.
+ *      Para deshacerlo: trzAnularEmpalme() los marca ANULADO (no borra nada).
+ *    · Lectura rápida: el tablero lee trazabilidad_eventos.json en Pages; el
+ *      GAS solo atiende escrituras. Cada registro agenda una publicación a los
+ *      45 s (trzDisparoUnico), además de la de cada 15 min (citasTrazDiferido_).
+ *
  *  Reglas que el servidor hace cumplir (no dependen del navegador):
  *    1. Quién registra sale del PIN; quién lo hizo, de TRZ_PERSONAS.
  *    2. Cada área solo registra sus pasos (SUPERVISOR y REGISTRADOR, cualquiera).
@@ -71,13 +81,16 @@ var TRZ_COLS_PERSONAS = ['NOMBRE', 'AREA', 'ACTIVO', 'ALTA_POR', 'ALTA_TS', 'NOT
    Operativo, 13-nov-2026). Solo se usa para crear TRZ_PERSONAS la primera
    vez; después la fuente es la hoja. */
 var TRZ_PERSONAS_INICIALES = [
-  ['Mónica Quintero',     'Coordinador'],
-  ['Raymando Quiel',      'Control1'],
-  ['Pablo Castrejón',     'Control2'],
-  ['Olaydis Pérez',       'Ventanilla Única'],
-  ['Velkis Soto',         'Contabilidad'],
-  ['Evika C. Llung Guen', 'Archivo']
+  ['Mónica Quintero',    'Coordinador',      'SI', 'REGISTRADOR'],
+  ['Raymundo Quiel',     'Control1',         'SI', 'OPERADOR'],
+  ['Pablo Castrejón',    'Control2',         'SI', 'OPERADOR'],
+  ['Olaydis Pérez',      'Ventanilla Única', 'SI', 'OPERADOR'],
+  ['Velkis Soto',        'Contabilidad',     'SI', 'OPERADOR'],
+  ['Evika Llung Guenn',  'Archivo',          'SI', 'OPERADOR'],
+  ['Landecho',           'Control2',         'NO', '']   // histórico: aparece en el cuadro, ya no participa
 ];
+var TRZ_URL_EMPALME = 'https://torrecontrolcss.org/SIGUELO/trazabilidad_empalme.json';
+var TRZ_USUARIO_EMPALME = 'Cuadro de Control Operativo (empalme 13-nov-2026)';
 var TRZ_ROLES = ['OPERADOR', 'REGISTRADOR', 'SUPERVISOR'];
 var TRZ_CARPETA_NOMBRE = 'Trazabilidad RB';
 var TRZ_MAX_BYTES = 8 * 1024 * 1024;
@@ -257,7 +270,7 @@ function trzHojaPersonas_() {
   var sh = trzHoja_(TRZ_HOJA_PERSONAS, TRZ_COLS_PERSONAS);
   if (nueva || sh.getLastRow() < 2) {
     var hoy = new Date();
-    var filas = TRZ_PERSONAS_INICIALES.map(function (p) { return [p[0], p[1], 'SI', 'Jefatura de Control Operativo', hoy, 'Equipo inicial']; });
+    var filas = TRZ_PERSONAS_INICIALES.map(function (p) { return [p[0], p[1], p[2], 'Jefatura de Control Operativo', hoy, p[2] === 'NO' ? 'Histórico: ya no participa en el proceso' : 'Equipo inicial']; });
     sh.getRange(2, 1, filas.length, TRZ_COLS_PERSONAS.length).setValues(filas);
     SpreadsheetApp.flush();
   }
@@ -350,9 +363,14 @@ function trzEstado_(eventos) {
   var orden = TRZ_PASOS.map(function (p) { return p[0]; });
   var hechos = {};
   var parcial = {};   // paso → último registro PARCIAL aún sin completar
-  var ultimo = null;
+  var ultimo = null, ultimoReal = null;
   eventos.forEach(function (ev) {
     if (ev.estado === 'ANULADO') return;
+    // EMPALME (cuadro de Control): el expediente ya tenía hechos todos los pasos hasta este.
+    if (ev.tipo === 'EMPALME') {
+      var ke = orden.indexOf(ev.paso);
+      for (var je = 0; je <= ke; je++) { if (!hechos[orden[je]]) hechos[orden[je]] = ev.ts || true; delete parcial[orden[je]]; }
+    }
     if (ev.tipo === 'TRANSFIERE') { hechos[ev.paso] = ev.ts || true; delete parcial[ev.paso]; }
     if (ev.tipo === 'PARCIAL') parcial[ev.paso] = { ts: ev.ts, motivo: ev.motivo || '' };
     if (ev.tipo === 'DEVUELVE') {
@@ -360,10 +378,11 @@ function trzEstado_(eventos) {
       for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; }
     }
     ultimo = ev;
+    if (ev.tipo !== 'EMPALME') ultimoReal = ev;
   });
   var sig = null;
   for (var i = 0; i < orden.length; i++) if (!hechos[orden[i]]) { sig = orden[i]; break; }
-  return { hechos: hechos, siguiente: sig, ultimo: ultimo, completos: Object.keys(hechos).length,
+  return { hechos: hechos, siguiente: sig, ultimo: ultimo, ultimoReal: ultimoReal, completos: Object.keys(hechos).length,
            parcial: (sig && parcial[sig]) ? parcial[sig] : null };
 }
 
@@ -475,9 +494,9 @@ function trzRegistrar_(d) {
         ? ('Ahora le toca el paso ' + st.siguiente + ' (' + TRZ_PASOS[orden.indexOf(st.siguiente)][1] + '). No se pueden saltar pasos.')
         : 'El expediente ya completó todos los pasos.' };
     }
-    if (st.ultimo) {
-      var fu = trzParseFecha_(st.ultimo.ts);
-      if (fu && fh.getTime() < fu.getTime()) return { success: false, error: 'La fecha es anterior al último hito registrado (' + st.ultimo.ts.replace('T', ' ') + ').' };
+    if (st.ultimoReal) {   // las fechas del cuadro (EMPALME) no frenan el registro
+      var fu = trzParseFecha_(st.ultimoReal.ts);
+      if (fu && fh.getTime() < fu.getTime()) return { success: false, error: 'La fecha es anterior al último hito registrado (' + st.ultimoReal.ts.replace('T', ' ') + ').' };
     }
 
     // 5. Evidencia (si la hay) a Drive: Sustento / Trazabilidad RB / AAAA-MM / expediente
@@ -509,6 +528,7 @@ function trzRegistrar_(d) {
 
     var ev2 = trzLeerEventos_(exp);
     var st2 = trzEstado_(ev2);
+    trzAgendarPublicacion_();
     return { success: true, id: idEv, evidUrl: archivo ? archivo.getUrl() : '', siguiente: st2.siguiente, completos: st2.completos,
       personaNueva: personaNueva,
       mensaje: tipo === 'DEVUELVE' ? ('Devuelto a ' + dest + '.') : (tipo === 'PARCIAL' ? ('Paso ' + paso + ' marcado como parcial: el expediente sigue en este paso.') : ('Paso ' + paso + ' registrado.')) };
@@ -706,6 +726,7 @@ function trzInstalar() {
   sp.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'PENDIENTE', 'NO'], true).build());
   trzAsegurarColumnas_(trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS), ['EJECUTOR']);
   su.getRange('E2:E300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build());
+  trzSincronizarEquipo_(su, sp);
   SpreadsheetApp.flush();
 
   // Protección: solo el dueño del libro edita usuarios y bitácora.
@@ -717,6 +738,32 @@ function trzInstalar() {
     if (pr.canDomainEdit()) pr.setDomainEdit(false);
   });
   Logger.log('Listo. Áreas válidas: ' + areas.join(' | '));
+}
+
+/* Equipo de Control Operativo en TRZ_PERSONAS y TRZ_USUARIOS (se puede repetir).
+   · TRZ_PERSONAS: corrige el nombre si la persona ya está en su área (mismo
+     primer nombre) y agrega a quien falte. Landecho queda como histórico (NO).
+   · TRZ_USUARIOS: agrega la fila de quien no tenga usuario, con el PIN vacío:
+     el PIN lo pone la Torre de Control (últimos 4 dígitos de la cédula). */
+function trzSincronizarEquipo_(su, sp) {
+  var primer = function (n) { return trzNorm_(String(n).split(' ')[0]); };
+  var vp = sp.getDataRange().getValues(), cp = trzIdx_(vp[0]);
+  TRZ_PERSONAS_INICIALES.forEach(function (p) {
+    for (var i = 1; i < vp.length; i++) {
+      if (trzNorm_(vp[i][cp.AREA]) === trzNorm_(p[1]) && primer(vp[i][cp.NOMBRE]) === primer(p[0])) {
+        if (String(vp[i][cp.NOMBRE]) !== p[0]) sp.getRange(i + 1, cp.NOMBRE + 1).setValue(p[0]);
+        if (p[2] === 'NO') { sp.getRange(i + 1, cp.ACTIVO + 1).setValue('NO'); sp.getRange(i + 1, cp.NOTA + 1).setValue('Histórico: ya no participa en el proceso'); }
+        return;
+      }
+    }
+    sp.appendRow([p[0], p[1], p[2], 'Jefatura de Control Operativo', new Date(), p[2] === 'NO' ? 'Histórico: ya no participa en el proceso' : 'Equipo inicial']);
+  });
+  var vu = su.getDataRange().getValues(), cu = trzIdx_(vu[0]);
+  TRZ_PERSONAS_INICIALES.forEach(function (p) {
+    if (!p[3]) return;
+    var tiene = vu.slice(1).some(function (r) { return trzNorm_(r[cu.AREA]) === trzNorm_(p[1]) && primer(r[cu.NOMBRE]) === primer(p[0]); });
+    if (!tiene) su.appendRow(['', p[0], p[1], p[3], 'SI', '', 'Falta el PIN: últimos 4 dígitos de la cédula']);
+  });
 }
 
 function trzPrueba() {
@@ -757,7 +804,14 @@ var TRZ_PROP_HASH = 'TRZ_HUELLA';
 function trzPublicar_(forzar) {
   var props = PropertiesService.getScriptProperties(), token = props.getProperty('GH_TOKEN');
   if (!token) return { success: false, error: 'Falta GH_TOKEN en las propiedades del script.' };
-  var ev = trzLeerEventos_('').map(function (x) { delete x.fila; delete x.idCliente; return x; });
+  // Compacto: sin campos vacíos ni datos que el tablero ya tiene (OC, renglón, proveedor).
+  var ev = trzLeerEventos_('').map(function (x) {
+    var quitar = x.tipo === 'ALTA_MANUAL' ? ['fila', 'idCliente', 'evid'] : ['fila', 'idCliente', 'oc', 'renglon', 'proveedor', 'tsServidor', 'evid'];   // el alta manual los necesita
+    quitar.forEach(function (k) { delete x[k]; });
+    if (x.estado === 'VIGENTE') delete x.estado;
+    Object.keys(x).forEach(function (k) { if (x[k] === '' || x[k] === null) delete x[k]; });
+    return x;
+  });
   var cuerpo = JSON.stringify(ev);
   var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, cuerpo, Utilities.Charset.UTF_8));
   if (!forzar && props.getProperty(TRZ_PROP_HASH) === huella) return { success: true, sinCambios: true, filas: ev.length };
@@ -791,4 +845,76 @@ function trzPublicarAhora() {
   var r = trzPublicar_(true);
   Logger.log(r.success ? ('trazabilidad_eventos.json publicado: ' + r.filas + ' eventos.') : ('No publicado: ' + r.error));
   return r;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Publicación agendada (45 s después de cada registro)               */
+/* ------------------------------------------------------------------ */
+function trzAgendarPublicacion_() {
+  try {
+    var ya = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'trzDisparoUnico'; });
+    if (!ya) ScriptApp.newTrigger('trzDisparoUnico').timeBased().after(45 * 1000).create();
+  } catch (e) { Logger.log('trzAgendarPublicacion_: ' + e); }
+}
+function trzDisparoUnico() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'trzDisparoUnico') ScriptApp.deleteTrigger(t); });
+  trzDiferido_();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Empalme con el cuadro de Control Operativo                          */
+/* ------------------------------------------------------------------ */
+
+/* Ejecutar desde el editor. Lee trazabilidad_empalme.json y agrega a
+   TRZ_EVENTOS los hitos que el cuadro ya tenía. No duplica: cada evento
+   lleva su ID_CLIENTE (EMP-expediente-paso). Al final publica la bitácora. */
+function trzImportarEmpalme() {
+  var r = UrlFetchApp.fetch(TRZ_URL_EMPALME + '?t=' + Date.now(), { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('No se pudo leer ' + TRZ_URL_EMPALME + ' (' + r.getResponseCode() + ')');
+  var j = JSON.parse(r.getContentText('UTF-8'));
+  var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+  trzAsegurarColumnas_(sh, ['EJECUTOR']);
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var ya = {};
+    trzLeerEventos_('').forEach(function (x) { if (x.idCliente) ya[x.idCliente] = true; });
+    var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h).trim().toUpperCase(); });
+    var ahora = new Date(), filas = [], n = 0;
+    (j.eventos || []).forEach(function (e) {
+      if (ya[e.id]) return;
+      n++;
+      var f = {
+        TS_SERVIDOR: ahora, ID_EVENTO: 'EV-EMP-' + Utilities.formatDate(ahora, Session.getScriptTimeZone(), 'yyyyMMdd') + '-' + n,
+        ID_CLIENTE: e.id, EXPEDIENTE: e.exp, OC: e.oc || '', RENGLON: e.renglon || '', PROVEEDOR: e.proveedor || '',
+        PASO: e.paso, RESULTADO: e.tipo || 'EMPALME', DESTINO: '', MOTIVO: e.motivo || '',
+        FECHA_HITO: e.ts ? trzParseFecha_(e.ts) : '', USUARIO: TRZ_USUARIO_EMPALME, AREA: 'Control Operativo',
+        OBSERVACION: String(e.obs || '').slice(0, 500), EVIDENCIA_URL: '', EVIDENCIA_NOMBRE: '', ESTADO: 'VIGENTE',
+        EJECUTOR: e.ejecutor || ''
+      };
+      filas.push(hdr.map(function (h) { var x = f[h]; return x == null ? '' : x; }));
+    });
+    if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, hdr.length).setValues(filas);
+    SpreadsheetApp.flush();
+    Logger.log('Empalme: ' + filas.length + ' eventos nuevos (de ' + (j.eventos || []).length + ' en el archivo; los demás ya estaban).');
+  } finally { lock.releaseLock(); }
+  var p = trzPublicar_(true);
+  Logger.log(p.success ? ('trazabilidad_eventos.json publicado: ' + p.filas + ' eventos.') : ('No publicado: ' + p.error));
+}
+
+/* Deshacer el empalme: marca ANULADO todos los eventos EMPALME (y los PARCIAL
+   que vinieron del cuadro). No borra filas. */
+function trzAnularEmpalme() {
+  var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+  var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), n = 0;
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][c.USUARIO]) !== TRZ_USUARIO_EMPALME || String(v[i][c.ESTADO]) === 'ANULADO') continue;
+    sh.getRange(i + 1, c.ESTADO + 1).setValue('ANULADO');
+    sh.getRange(i + 1, c.ANULADO_POR + 1).setValue('Torre de Control');
+    sh.getRange(i + 1, c.ANULADO_TS + 1).setValue(new Date());
+    sh.getRange(i + 1, c.ANULADO_MOTIVO + 1).setValue('Se deshizo el empalme con el cuadro');
+    n++;
+  }
+  SpreadsheetApp.flush();
+  Logger.log('Empalme anulado: ' + n + ' eventos.');
+  trzPublicar_(true);
 }

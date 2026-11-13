@@ -731,17 +731,16 @@ const guardarCola=()=>{try{localStorage.setItem('rb_cola',JSON.stringify(COLA));
 const apiGet=q=>fetch(API+'?'+q+'&_='+Date.now()).then(r=>r.json());
 const apiPost=(action,data)=>fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:action,data:data})}).then(r=>r.json());
 function aviso(m,err){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(aviso._t);aviso._t=setTimeout(()=>{t.style.display='none';},err?7000:3500);}
-function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){EVT[id]=j.eventos;guardarEvtCache(id);}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
+function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){EVT[id]=j.eventos;guardarEvtCache(id);RES[id]=resDe(j.eventos);}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
 /* Lectura instantánea: primero la bitácora publicada en Pages (o la última copia
    de este equipo); después se confirma contra SIGUELO sin bloquear la pantalla. */
 const EVTJ={};let EVTJ_OK=false;const CONFIRMADO=new Set();
 function guardarEvtCache(id){try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');c[id]=EVT[id];localStorage.setItem('rb_evt',JSON.stringify(c));}catch(e){}}
 function prepararBitacora(EV){
   try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');Object.keys(c).forEach(k=>{EVTJ[k]=c[k];});}catch(e){}
-  if(EV&&Array.isArray(EV.eventos)){const g={};EV.eventos.forEach(e=>{(g[e.exp]=g[e.exp]||[]).push(e);});Object.keys(g).forEach(k=>{EVTJ[k]=g[k];});EVTJ_OK=true;
+  if(EV&&Array.isArray(EV.eventos)){const g={};EV.eventos.forEach(e=>{(g[e.exp]=g[e.exp]||[]).push(e);});Object.keys(g).forEach(k=>{if(!(EVTJ[k]&&EVTJ[k].length>g[k].length))EVTJ[k]=g[k];});EVTJ_OK=true;   // la copia local más completa (recién registrada) gana sobre la publicada
     const ord=PASOS.map(p=>p[0]);
-    Object.keys(g).forEach(k=>{const h={};g[k].forEach(ev=>{if(ev.estado==='ANULADO')return;if(ev.tipo==='TRANSFIERE')h[ev.paso]=ev.ts;if(ev.tipo==='DEVUELVE'){const a=ord.indexOf(ev.dest);ord.slice(a).forEach(p=>{delete h[p];});}});
-      RES[k]={hitos:{P11:h.P11||null,C12:h.C12||null,P14:h.P14||null}};});
+    Object.keys(EVTJ).forEach(k=>{RES[k]=resDe(EVTJ[k]);});
     RESOK=true;}
 }
 function confirmarEnFondo(id){if(CONFIRMADO.has(id))return;CONFIRMADO.add(id);const antes=JSON.stringify(EVT[id]||[]);
@@ -749,12 +748,18 @@ function confirmarEnFondo(id){if(CONFIRMADO.has(id))return;CONFIRMADO.add(id);co
 /* Tras registrar: descarta la copia publicada de ese expediente y vuelve a leer SIGUELO. */
 function olvidarExp(id){delete EVT[id];delete EVTJ[id];CONFIRMADO.delete(id);try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');delete c[id];localStorage.setItem('rb_evt',JSON.stringify(c));}catch(e){}}
 function cargarResumen(){return apiGet('action=trzResumen').then(j=>{if(j.success){RES=j.expedientes||{};RESOK=true;}}).catch(()=>{});}
-function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='TRANSFIERE')h.add(r.paso);if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(p=>h.delete(p));}});return h;}
+/* Pasos hechos según la bitácora. EMPALME (cuadro de Control Operativo): todos los pasos hasta ese ya estaban hechos. */
+/* Registro habilitado: con entrada contable 101, o si el expediente ya trae pasos (p. ej. del cuadro de Control). */
+const hab=x=>!!(x.f101||(EVTJ[x.id]&&EVTJ[x.id].length)||(EVT[x.id]&&EVT[x.id].length)||(HITOS[x.id]&&HITOS[x.id].length));
+function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='TRANSFIERE')h.add(r.paso);if(r.tipo==='EMPALME'){const k=o.indexOf(r.paso);o.slice(0,k+1).forEach(p=>h.add(p));}if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(p=>h.delete(p));}});return h;}
+/* Resumen de un expediente para tablas y vista del proveedor (sin llamar al GAS). */
+function resDe(ev){const h=hechosDe(ev);const ts=p=>{if(!h.has(p))return null;const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let t=null;ev.forEach(r=>{if(r.estado==='ANULADO')return;if((r.tipo==='TRANSFIERE'&&r.paso===p)||(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip&&!t))t=r.ts||t;});return t||true;};
+  return {hitos:{P11:ts('P11'),C12:ts('C12'),P14:ts('P14')}};}
 const puede=p=>!VIVO_REG||!SES||SES.pasos.indexOf(p)>=0;
 /* Último registro PARCIAL del paso que sigue abierto (un TRANSFIERE o una devolución anterior lo cierran). */
 function parcialDe(reg,p){const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let r0=null;
-  reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='PARCIAL'&&r.paso===p)r0=r;else if(r.tipo==='TRANSFIERE'&&r.paso===p)r0=null;else if(r.tipo==='DEVUELVE'&&o.indexOf(r.dest)<=ip)r0=null;});return r0;}
-const hechoPor=r=>r.ejecutor&&r.ejecutor!==r.quien?esc(r.ejecutor)+' (registró '+esc(r.quien)+')':esc(r.quien||r.ejecutor||'');
+  reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='PARCIAL'&&r.paso===p)r0=r;else if(r.tipo==='TRANSFIERE'&&r.paso===p)r0=null;else if(r.tipo==='DEVUELVE'&&o.indexOf(r.dest)<=ip)r0=null;else if(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip)r0=null;});return r0;}
+const hechoPor=r=>r.tipo==='EMPALME'?('cuadro de Control'+(r.ejecutor?' · '+esc(r.ejecutor):'')):r.ejecutor&&r.ejecutor!==r.quien?esc(r.ejecutor)+' (registró '+esc(r.quien)+')':esc(r.quien||r.ejecutor||'');
 function pinModal(luego){
   if($('#pinOv'))return;const o=document.createElement('div');o.id='pinOv';
   o.innerHTML='<div class="pinbox" role="dialog" aria-modal="true" aria-labelledby="pinT"><img src="./icons/icon-192.png" alt="" width="44" height="44"><h3 id="pinT">Ingreso con PIN</h3><p>Su PIN identifica quién registra cada paso del expediente. La sesión dura la jornada (12 horas) en este equipo; use Salir si comparte la computadora.</p><input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••" aria-label="PIN"><div class="err" id="pinErr" role="alert"></div><div class="toolbar" style="justify-content:center"><button class="btn" id="pinOk">Ingresar</button><button class="btn ghost" id="pinNo">Cancelar</button></div></div>';
@@ -803,16 +808,16 @@ function stepper(x){const e=x.e,S2=[];
   return '<div class="steps">'+S2.map((s,i)=>{const cls=s.d?'done':(i===firstPend?'now':(i<2?'na':''));return '<div class="step '+cls+'"><div class="bar"></div><span class="t">'+s.t+'</span><span class="dte">'+(s.d?fdf(s.d):'—')+'</span><span class="sub">'+s.sub+'</span></div>';}).join('')+'</div>';}
 function renderFicha(){
   const box=$('#ficha');const x=X.find(v=>v.id===SELID)||X.find(v=>v.f101&&v.c)||X[0];SELID=x.id;$('#selid').value=x.id;
-  if(VIVO_REG&&x.f101&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
-  if(VIVO_REG&&x.f101&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
-  if(VIVO_REG&&x.f101)confirmarEnFondo(x.id);
+  if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
+  if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
+  if(VIVO_REG&&hab(x)&&SES)confirmarEnFondo(x.id);   // sin sesión basta la bitácora publicada (no se llama al GAS)
   const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
-  const sig=x.f101?PASOS.find(p=>!hechos.has(p[0])):null;
+  const sig=hab(x)?PASOS.find(p=>!hechos.has(p[0])):null;
   let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+x.id+'</h2></div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
    '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
    altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
-  h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(x.f101?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
+  h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
    (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'';
   h+=flujoDoc(x,reg,hechos,sig);
   h+=(VIVO_REG?bitacora(x):'')+'<div id="formBox"></div></div><div id="carBox"></div>';
@@ -833,7 +838,8 @@ function flujoDoc(x,reg,hechos,sig){
   if(PSEL_ID!==x.id){PSEL_ID=x.id;PSEL=null;}
   const cod=p=>p==='C12'?'C·12→13':p;
   const info=p=>PASOS.find(z=>z[0]===p);
-  const tsHecho=p=>{if(!hechos.has(p))return null;const t=reg.filter(r=>r.tipo==='TRANSFIERE'&&r.paso===p);return t.length?t[t.length-1].ts:null;};
+  const tsHecho=p=>{if(!hechos.has(p))return null;const t=reg.filter(r=>(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso===p&&r.estado!=='ANULADO');return t.length?(t[t.length-1].ts||null):null;};
+  const delCuadro=p=>hechos.has(p)&&!reg.some(r=>r.tipo==='TRANSFIERE'&&r.paso===p&&r.estado!=='ANULADO');
   const devs=p=>reg.filter(r=>r.tipo==='DEVUELVE'&&r.paso===p).length;
   const sel=PSEL||(sig?sig[0]:'P14');
   const ord=PASOS.map(z=>z[0]);
@@ -842,19 +848,19 @@ function flujoDoc(x,reg,hechos,sig){
   const parc=sig?parcialDe(reg,sig[0]):null;
   const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
   const nHechos=ord.filter(p=>hechos.has(p)).length;
-  const ultTs=reg.length?String(reg[reg.length-1].ts||'').slice(0,10):'';
+  const ultTs=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
   const sem=espera==null?'':(espera<=2?' sem-v':(espera<=5?' sem-a':' sem-r'));
   const node=p=>{const q=info(p),done=hechos.has(p),now=sig&&sig[0]===p,t=tsHecho(p),dv=devs(p);
     const cls='fn '+(done?'done':(now?'now'+(dev||parc?'':sem):'pend'))+(now&&dev?' devuelto':'')+(now&&parc&&!dev?' parcial':'')+(!done&&!now&&reab.has(p)?' reab':'')+(p===sel?' sel':'')+(p===JUSTO?' recien':'');
-    return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(now?(dev?'Corregir':(parc?'Parcial · '+espera+' d':'Le toca · '+espera+' d')):(reab.has(p)?'Repetir':'—')))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
+    return '<button type="button" class="'+cls+'" data-p="'+p+'" aria-pressed="'+(p===sel)+'" title="'+esc(q[1]+' · '+q[2])+'"><span class="c">'+cod(p)+'</span><span class="a">'+esc(q[1])+'</span><span class="d">'+(done&&t?fdf(t.slice(0,10)):(done&&delCuadro(p)?'Cuadro':(now?(dev?'Corregir':(parc?'Parcial · '+espera+' d':'Le toca · '+espera+' d')):(reab.has(p)?'Repetir':'—'))))+'</span>'+(dv?'<span class="dev" title="Devoluciones desde este paso">↩'+dv+'</span>':'')+'</button>';};
   const flecha=(a,b)=>'<span class="fla'+(hechos.has(a)&&hechos.has(b)?' ok':(hechos.has(a)&&sig&&sig[0]===b?' vivo':''))+'" aria-hidden="true"></span>';
   const pct=Math.round(100*nHechos/ord.length);
   let h='<div class="favance"><span><b>Avance documental:</b> '+nHechos+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nHechos+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
   if(dev){const qa=PASOS.find(z=>z[0]===dev.paso),qd=PASOS.find(z=>z[0]===dev.dest);
     h+='<div class="fdev" role="status"><b>↩ Devuelto</b> desde '+cod(dev.paso)+' ('+esc(qa?qa[1]:'')+') a '+cod(dev.dest)+' ('+esc(qd?qd[1]:'')+') · '+esc(String(dev.ts||'').replace('T',' '))+(dev.quien?' · '+esc(dev.quien):'')+'<br><span>Motivo: '+esc(dev.motivo||'—')+(dev.obs?' · '+esc(dev.obs):'')+'</span>'+(dev.evidUrl?' · <a class="evlink" href="'+esc(dev.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+'</div>';}
   if(parc&&!dev){const qp=PASOS.find(z=>z[0]===parc.paso);
-    h+='<div class="fparc" role="status"><b>Parcial</b> en '+cod(parc.paso)+' ('+esc(qp?qp[1]:'')+') · '+esc(String(parc.ts||'').replace('T',' '))+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. El expediente sigue en este paso hasta registrarlo como completado total.</span>'+(parc.evidUrl?' · <a class="evlink" href="'+esc(parc.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+'</div>';}
+    h+='<div class="fparc" role="status"><b>Parcial</b> en '+cod(parc.paso)+' ('+esc(qp?qp[1]:'')+')'+(parc.ts?' · '+esc(String(parc.ts).replace('T',' ')):'')+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. El expediente sigue en este paso hasta registrarlo como completado total.</span>'+(parc.evidUrl?' · <a class="evlink" href="'+esc(parc.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+'</div>';}
   h+='<div class="fl" role="list" aria-label="Recorrido documental del expediente">';
   GRUPOS.forEach((g,gi)=>{const ps=g[1];const gdone=ps.every(p=>hechos.has(p));
     h+=(gi?flecha(GRUPOS[gi-1][1].slice(-1)[0],ps[0]).replace('fla','fla big'):'')+'<div class="flg'+(gdone?' ok':'')+(ps.some(p=>sig&&sig[0]===p)?' activo':'')+'" role="listitem"><div class="flg-h">'+g[0]+' <span>'+ps.filter(p=>hechos.has(p)).length+'/'+ps.length+'</span></div><div class="flg-bar"><i style="width:'+Math.round(100*ps.filter(p=>hechos.has(p)).length/ps.length)+'%"></i></div><div class="flg-b">'+ps.map((p,i)=>(i?flecha(ps[i-1],p):'')+node(p)).join('')+'</div></div>';});
@@ -865,7 +871,7 @@ function flujoDoc(x,reg,hechos,sig){
   const r=reg.filter(z=>z.paso===sel),last=r[r.length-1];
   const est=done?'Completado':(now?(dev?'Devuelto: corregir y volver a registrar':(parc?'Parcial: sigue en este paso · ':'Le toca ahora · ')+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+' en espera'):(reab.has(sel)?'Se repite después de la devolución':(x.f101?'Pendiente':'Se habilita con la entrada contable 101')));
   setTimeout(()=>{JUSTO=null;},50);
-  const quien=last?((last.tipo==='DEVUELVE'?'Devuelto a '+esc(last.dest)+' · '+esc(last.motivo||'')+' · ':(last.tipo==='PARCIAL'&&!(now&&parc)?'Parcial · ':''))+hechoPor(last)+' · '+esc(String(last.ts||'').replace('T',' '))):'';
+  const quien=last?((last.tipo==='DEVUELVE'?'Devuelto a '+esc(last.dest)+' · '+esc(last.motivo||'')+' · ':(last.tipo==='PARCIAL'&&!(now&&parc)?'Parcial · ':(last.tipo==='EMPALME'?'Del ':'')))+hechoPor(last)+(last.ts?' · '+esc(String(last.ts).replace('T',' ')):'')):'';
   const ev=last&&last.evidUrl?'<a class="evlink" href="'+esc(last.evidUrl)+'" target="_blank" rel="noopener">Ver evidencia</a>':(last&&last.thumb?'<img class="thumb" alt="Evidencia" src="'+last.thumb+'">':'');
   const acc=now?(puede(sel)?'<button class="btn" data-reg="'+sel+'">'+(parc&&!dev?'Actualizar ':'Registrar ')+cod(sel)+'</button>':'<span class="st">Le corresponde a '+esc(q[1])+'</span>'):'';
   h+='<div class="fdet" id="fdet"><div class="fdet-t"><span class="c">'+cod(sel)+'</span><div><b>'+esc(q[1])+'</b> · '+esc(q[2])+'<div class="st '+(done?'ok':(now?(dev?'bad':parc?'parc':(espera>5?'bad':(espera>2?'now':'ok'))):''))+'">'+est+(quien&&!(now&&dev)?' · '+quien:'')+'</div></div></div><div class="toolbar">'+ev+acc+'</div></div>';
@@ -880,7 +886,7 @@ function barraSesion(x){
 }
 function bitacora(x){
   const ev=EVT[x.id]||[];if(!ev.length)return '';
-  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'parcial ('+esc(r.motivo||'')+')':'completado total')))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):'')+'</li>').join('')+'</ul></details>';
+  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'parcial ('+esc(r.motivo||'')+')':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):'')+'</li>').join('')+'</ul></details>';
 }
 function renderForm(x){
   const p=PASOS.find(z=>z[0]===PASOFORM);const now=new Date();const dv=iso(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
@@ -950,7 +956,7 @@ async function enviarHito(x,d){
     return;}
   if(!r.success){ferr.textContent=r.error||'No se registró.';listo();if(/PIN|inactivo/i.test(r.error||''))salir();return;}
   aviso(r.duplicado?'Ese hito ya estaba registrado.':(r.mensaje+(r.personaNueva?' '+d.ejecutor+' quedó en la lista, por reconocer por la jefatura.':'')));
-  JUSTO=it.tipo==='TRANSFIERE'?it.paso:null;PSEL=null;olvidarExp(x.id);if(RES[x.id])delete RES[x.id];$('#formBox').innerHTML='';renderFicha();cargarResumen();
+  JUSTO=it.tipo==='TRANSFIERE'?it.paso:null;PSEL=null;olvidarExp(x.id);$('#formBox').innerHTML='';renderFicha();
 }
 function renderCaratula(x){
   const e=x.e;const url='https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id;const enPages=EN_LINEA;
@@ -992,7 +998,7 @@ function modoProveedor(qp){
   $('#pOc').innerHTML='<option>'+esc(oc)+'</option>';
   provRens();
   if(ren&&[...$('#pRen').options].some(o=>o.value===ren)){$('#pRen').value=ren;renderProv();}
-  if(VIVO_REG)cargarResumen().then(()=>{if(RESOK)renderProv();});
+  if(VIVO_REG&&!RESOK)cargarResumen().then(()=>{if(RESOK)renderProv();});
 }
 function renderProv(){
   const oc=$('#pOc').value,rn=$('#pRen').value,pv=$('#pProv').value;const box=$('#pRes');
