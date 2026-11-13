@@ -31,6 +31,8 @@
  *      RESULTADO = EMPALME por cada hito que el cuadro ya tenía: «hasta este
  *      paso el expediente ya estaba hecho». Se puede repetir sin duplicar.
  *      Para deshacerlo: trzAnularEmpalme() los marca ANULADO (no borra nada).
+ *      También escribe la hoja TRZ_CUADRO_CONTROL: el cuadro completo, cada
+ *      fila con su resultado (EMPALMADO / ANTERIOR AL TABLERO / SIN PAREJA).
  *    · Lectura rápida: el tablero lee trazabilidad_eventos.json en Pages; el
  *      GAS solo atiende escrituras. Cada registro agenda una publicación a los
  *      45 s (trzDisparoUnico), además de la de cada 15 min (citasTrazDiferido_).
@@ -897,8 +899,34 @@ function trzImportarEmpalme() {
     SpreadsheetApp.flush();
     Logger.log('Empalme: ' + filas.length + ' eventos nuevos (de ' + (j.eventos || []).length + ' en el archivo; los demás ya estaban).');
   } finally { lock.releaseLock(); }
+  trzEscribirCuadro_(j.cuadro);
   var p = trzPublicar_(true);
   Logger.log(p.success ? ('trazabilidad_eventos.json publicado: ' + p.filas + ' eventos.') : ('No publicado: ' + p.error));
+}
+
+/* Hoja TRZ_CUADRO_CONTROL: el cuadro del departamento completo, fila por fila,
+   con lo que pasó en el empalme (EMPALMADO / ANTERIOR AL TABLERO / SIN PAREJA)
+   y el expediente del tablero. Se reescribe cada vez que se importa. */
+function trzEscribirCuadro_(cu) {
+  if (!cu || !cu.cols || !cu.filas) return;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('TRZ_CUADRO_CONTROL') || ss.insertSheet('TRZ_CUADRO_CONTROL');
+  sh.clear(); sh.clearConditionalFormatRules();
+  if (sh.getFilter()) sh.getFilter().remove();
+  var n = cu.cols.length;
+  var filas = cu.filas.map(function (r) { var x = r.slice(0, n); while (x.length < n) x.push(''); return x; });
+  sh.getRange(1, 1, 1, n).setValues([cu.cols]).setFontWeight('bold').setFontColor('#ffffff').setBackground('#0C447C').setWrap(true);
+  if (filas.length) sh.getRange(2, 1, filas.length, n).setValues(filas);
+  sh.setFrozenRows(1); sh.setFrozenColumns(2);
+  sh.getRange(1, 1, filas.length + 1, n).createFilter();
+  var g = sh.getRange(2, 2, Math.max(1, filas.length), 1), reglas = [];
+  [['EMPALMADO', '#e2f0e6'], ['ANTERIOR AL TABLERO', '#eceff3'], ['SIN PAREJA', '#faf0d7']].forEach(function (c) {
+    reglas.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(c[0]).setBackground(c[1]).setRanges([g]).build());
+  });
+  sh.setConditionalFormatRules(reglas);
+  sh.setColumnWidth(3, 320); sh.setColumnWidth(4, 190);
+  SpreadsheetApp.flush();
+  Logger.log('TRZ_CUADRO_CONTROL: ' + filas.length + ' filas del cuadro.');
 }
 
 /* Deshacer el empalme: marca ANULADO todos los eventos EMPALME (y los PARCIAL
