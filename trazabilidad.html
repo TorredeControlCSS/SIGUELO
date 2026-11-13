@@ -303,6 +303,14 @@ body.modo-prov nav.tabs,body.modo-prov .internal,body.modo-prov #btnTour,body.mo
 nav.tabs button{border-radius:999px}
 input,select,textarea{border-radius:8px}
 .facts .fact,.fact{border-radius:10px}
+.datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:10px;margin:8px 0 10px}
+.dgrp{border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--surface2)}
+.dgrp .dt{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);font-weight:700;margin-bottom:4px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px}
+.kv>div{display:flex;flex-direction:column;min-width:0}.kv .w2{grid-column:span 2}
+.kv .k{font-size:.66rem;color:var(--muted);font-weight:600}.kv .v{font-size:.84rem;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.kv .nd{color:var(--muted);font-weight:400;font-style:italic}
+@media (max-width:700px){.datos{grid-template-columns:1fr}.kv .w2{grid-column:1/-1}}
 /* Cola de trabajo (lista priorizada) + ficha al lado */
 .split{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
 #colaTabla{flex:999 1 560px;min-width:0}
@@ -529,7 +537,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
   <div class="split">
   <div id="colaTabla"></div>
   <div class="fcol">
-  <div class="toolbar"><button type="button" class="btn small volver" id="bVolver" title="Volver a la bandeja con los mismos filtros">&#8592; Volver a la bandeja</button><span class="sp" style="flex:1"></span><label for="selid" class="muted" style="font-size:.82rem">Abrir otro</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="Previo, OC, factura, proveedor o renglón"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
+  <div class="toolbar"><button type="button" class="btn small volver" id="bVolver" title="Volver a la bandeja con los mismos filtros">&#8592; Volver a la bandeja</button><span class="sp" style="flex:1"></span><label for="selid" class="muted" style="font-size:.82rem">Abrir otro</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="Previo, OC, factura, secuencial o proveedor"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
   <div id="ficha"></div>
   </div>
   </div>
@@ -685,7 +693,7 @@ function renderFlujo(){
   document.querySelectorAll('#chevs .chev[data-f]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;if(f==='SOL'||f==='CIT')return;FILT=f;PAGE=0;showTab('p-exps');renderFlujoChips();renderTabla();}));
   renderSankey(thrSal);renderWeeks();renderAge(thrSal);
 }
-let SK_THR=null,SK_T=null;window.addEventListener('resize',()=>{clearTimeout(SK_T);SK_T=setTimeout(()=>{if(SK_THR!=null&&!$('#p-flujo').hidden)renderSankey(SK_THR);},200);});
+let SK_THR=null,SK_T=null;window.addEventListener('resize',()=>{clearTimeout(SK_T);SK_T=setTimeout(()=>{if(SK_THR!=null&&!$('#p-ind').hidden)renderSankey(SK_THR);},200);});
 function renderSankey(thr){SK_THR=thr;
   const cnt=f=>X.filter(f).length;
   const N=[
@@ -947,14 +955,14 @@ function stepper(x){const e=x.e,S2=[];
   return '<div class="steps">'+S2.map((s,i)=>{const cls=s.d?'done':(i===firstPend?'now':(i<2?'na':''));return '<div class="step '+cls+'"><div class="bar"></div><span class="t">'+s.t+'</span><span class="dte">'+(s.d?fdf(s.d):'—')+'</span><span class="sub">'+s.sub+'</span></div>';}).join('')+'</div>';}
 function renderFicha(){
   aplicarVista();renderBandeja();
-  const box=$('#ficha');const x=X.find(v=>v.id===SELID)||X.find(v=>v.f101&&v.c)||X[0];SELID=x.id;$('#selid').value=x.id;
+  const box=$('#ficha');const x=X.find(v=>v.id===SELID)||X.find(v=>v.f101&&v.c)||X[0];SELID=x.id;$('#selid').value=(CIDS[x.id]&&CIDS[x.id].pv)?'Previo '+CIDS[x.id].pv:'OC '+x.e.oc;
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
   if(VIVO_REG&&hab(x)&&SES)confirmarEnFondo(x.id);   // sin sesión basta la bitácora publicada (no se llama al GAS)
   const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
   const sig=hab(x)?PASOS.find(p=>!hechos.has(p[0])):null;
-  let h='<div class="fx2"><div class="fx-h"><div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv):x.id)+'</h2><div class="muted mono" style="font-size:.74rem">'+(CIDS[x.id]&&CIDS[x.id].pv?x.id:'')+'</div>'+(x.c?'<div class="tg" style="background:var(--ok-soft);color:var(--ok);font-size:.76rem">Cita <b class="mono">'+esc(x.c.id)+'</b>'+(x.c.fConf?' · confirmada para el '+fdf(x.c.fConf):'')+' · '+esc(String(x.c.estado||'').toLowerCase())+'</div>':'<div class="tg" style="background:var(--surface2);color:var(--muted);font-size:.76rem">Sin cita en SIGUELO</div>')+'</div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
-   '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].concat(CIDS[x.id]?[['En el cuadro de Control','Previo <span class="mono">'+esc(CIDS[x.id].pv||'—')+'</span> · factura <span class="mono">'+esc(CIDS[x.id].fa||'—')+'</span><br>Informe <span class="mono">'+esc(CIDS[x.id].ir||'—')+'</span> · secuencial <span class="mono">'+esc(CIDS[x.id].se||'—')+'</span>']]:[]).map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
+  let h='<div class="fx2"><div class="fx-h"><div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv):'Sin previo · OC '+esc(x.e.oc))+'</h2><div class="muted" style="font-size:.72rem">'+(CIDS[x.id]&&CIDS[x.id].se?'Secuencial <span class="mono">'+esc(CIDS[x.id].se)+'</span> · ':'')+'código interno del tablero <span class="mono">'+x.id+'</span></div>'+(x.c?'<div class="tg" style="background:var(--ok-soft);color:var(--ok);font-size:.76rem">Cita <b class="mono">'+esc(x.c.id)+'</b>'+(x.c.fConf?' · confirmada para el '+fdf(x.c.fConf):'')+' · '+esc(String(x.c.estado||'').toLowerCase())+'</div>':'<div class="tg" style="background:var(--surface2);color:var(--muted);font-size:.76rem">Sin cita en SIGUELO</div>')+'</div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
+   datosFicha(x)+
    altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
   h+='</div><div class="fx-l"><div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
@@ -1011,7 +1019,7 @@ function colaFiltrar(D,conClave){return D.filter(o=>{
   if(COLA_P&&o.paso!==COLA_P)return false;
   if(COLA_E==='parc'&&!o.parc)return false;if(COLA_E==='dev'&&!o.dev)return false;
   if(conClave&&COLA_F){if(COLA_M==='persona'?((o.persona||'Por confirmar')!==COLA_F):(o.area!==COLA_F))return false;}
-  if(COLA_Q){const c=CIDS[o.x.id]||{};const t=normB(COLA_Q);if(!normB([o.x.id,o.x.e.oc,o.x.e.prov,o.x.e.desc,o.x.e.cod,c.pv,c.fa,c.ir,o.x.c?o.x.c.id:''].join(' ')).includes(t))return false;}
+  if(COLA_Q){const c=CIDS[o.x.id]||{};const t=normB(COLA_Q);if(!normB([o.x.id,o.x.e.oc,o.x.e.prov,o.x.e.desc,o.x.e.cod,c.pv,c.fa,c.ir,c.se,c.cs,o.x.c?o.x.c.id:''].join(' ')).includes(t))return false;}
   return true;});}
 function renderBandeja(){const box=$('#bandeja');if(!box)return;
   if(!VIVO_REG){box.innerHTML='';$('#colaTabla').innerHTML='';return;}
@@ -1157,6 +1165,12 @@ function timelineDoc(x,reg,hechos,sig){
   if(!hab(x))tocaH='<div class="toca"><div class="k">AÚN NO SE PUEDE REGISTRAR</div><div class="muted" style="font-size:.8rem">Se habilita cuando la recepción aparece en el informe de entradas de Abasto.</div></div>';
   return {tl:h,toca:tocaH};
 }
+function datosFicha(x){const e=x.e,c=CIDS[x.id];const m=v=>'<span class="mono">'+esc(v)+'</span>';const nd='<span class="nd">sin dato</span>';
+  const kv=L=>'<div class="kv">'+L.map(f=>'<div'+(f[2]?' class="'+f[2]+'"':'')+'><span class="k">'+f[0]+'</span><span class="v">'+(f[1]||nd)+'</span></div>').join('')+'</div>';
+  let h='<div class="dgrp"><div class="dt">Datos de la entrega · informe de Abasto</div>'+kv([['Proveedor',esc(e.prov),'w2'],['Orden de compra',m(e.oc)],['Pedido SAFIRO',e.safiro?m(e.safiro):''],['Código Abasto',m(e.cod)],['Descripción',esc((e.desc||'').slice(0,70)),'w2'],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento',esc(e.cumpl||'')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]])+'</div>';
+  if(c)h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo · fila '+c.fila+'</div>'+kv([['Previo',c.pv?m(c.pv):''],['Factura',c.fa?m(c.fa):''],['N° de secuencial',c.se?m(c.se):''],['N° informe de recepción',c.ir?m(c.ir):''],['Código SAFIRO',c.cs?m(c.cs):''],['Monto',c.mo?'B/. '+money(+c.mo):''],['Nota de pedido',c.np?m(c.np):''],['Asignado en Control 2',esc(c.c2||'')],['Ubicación / estatus',esc(c.ub||''),'w2'],['Observación',esc(c.ob||''),'w2']])+'</div>';
+  else h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo</div><p class="muted" style="font-size:.8rem;margin:2px 0">Esta recepción no aparece en el cuadro del departamento: sus datos se registran desde aquí.</p></div>';
+  return '<div class="datos">'+h+'</div>';}
 function qrCard(x){return '<div class="qrc"><div id="qrMini" aria-label="Código QR de este expediente"></div><div><b>Carátula con QR</b><p>Escanee el código con el celular y se abre este expediente. Imprima la carátula para el folder.</p><button type="button" class="btn ghost small" id="bCar2">Ver e imprimir carátula</button></div></div>';}
 function barraSesion(x){
   const nc=COLA.filter(c=>c.exp===x.id).length;
@@ -1242,14 +1256,14 @@ async function enviarHito(x,d){
 /* Carátula: fecha y nombre de cada paso según la bitácora (lo del cuadro sale como «cuadro»). La firma va a mano. */
 function filaCar(x,p){const reg=(EVT[x.id]||EVTJ[x.id]||HITOS[x.id]||[]).filter(r=>r.estado!=='ANULADO');const h=hechosDe(reg);if(!h.has(p))return {fecha:'',nombre:''};
   const own=reg.filter(r=>(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso===p);const r=own[own.length-1];
-  if(!r)return {fecha:'',nombre:'<span style="color:#666">ya hecho (cuadro)</span>'};
-  const t=String(r.ts||'');return {fecha:t?esc(t.slice(0,10).split('-').reverse().join('/')+(t.length>11&&t.slice(11,16)!=='00:00'?' '+t.slice(11,16):'')):'',nombre:esc(r.tipo==='EMPALME'?(r.ejecutor||'cuadro'):(r.ejecutor||r.quien||''))};}
+  if(!r)return {fecha:'<span style="color:#777;font-size:9.5px">sin fecha en el cuadro</span>',nombre:'<span style="color:#666">hecho según el cuadro</span>'};
+  const t=String(r.ts||'');return {fecha:!t?'<span style="color:#777;font-size:9.5px">sin fecha en el cuadro</span>':esc(t.slice(0,10).split('-').reverse().join('/')+(t.length>11&&t.slice(11,16)!=='00:00'?' '+t.slice(11,16):'')),nombre:r.tipo==='EMPALME'?(r.ejecutor?esc(r.ejecutor)+' <span style="color:#777">(cuadro)</span>':'<span style="color:#666">hecho según el cuadro</span>'):esc(r.ejecutor||r.quien||'')};}
 function renderCaratula(x){
   const e=x.e;const url='https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id;const enPages=EN_LINEA;
   $('#carBox').innerHTML='<div class="block"><div class="block-h"><h3>Carátula del expediente</h3><p>Se imprime y viaja dentro del folder; cada área firma su casilla y la foto de la carátula firmada es la evidencia del hito</p></div>'+
    (enPages?'<div class="toolbar"><button class="btn small" id="bPrint">Imprimir carátula</button></div>':'<p class="muted" style="font-size:.8rem">La impresión se habilita en la versión publicada en GitHub Pages.</p>')+
-   '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · CEDIS Panamá</div><div style="font-family:Consolas,monospace;font-size:16px;font-weight:bold;margin-top:6px">'+x.id+'</div>'+
-   '<div style="margin-top:6px">Proveedor: <b>'+esc(e.prov)+'</b><br>OC: <b>'+e.oc+'</b> · SAFIRO: <b>'+(e.safiro||'—')+'</b><br>Renglón: <b>'+esc(e.cod)+'</b> '+esc((e.desc||'').slice(0,60))+'<br>Recibido: <b>'+fdf(e.fRec)+'</b> · Cantidad: <b>'+(e.cant||0).toLocaleString('es-PA')+'</b></div></div><div id="qrc" style="width:120px;height:120px;flex:none"></div></div>'+
+   '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · CEDIS Panamá</div><div style="font-family:Consolas,monospace;font-size:20px;font-weight:bold;margin-top:6px">'+(CIDS[x.id]&&CIDS[x.id].pv?'PREVIO '+esc(CIDS[x.id].pv):'SIN PREVIO')+'</div>'+(()=>{const c=CIDS[x.id]||{};const it=[['Secuencial',c.se],['Factura',c.fa],['Informe de recepción',c.ir]].filter(z=>z[1]);return it.length?'<div style="margin-top:3px">'+it.map(z=>z[0]+': <b style="font-family:Consolas,monospace">'+esc(z[1])+'</b>').join(' · ')+'</div>':'';})()+'<div style="font-size:10px;color:#666;margin-top:2px">Código del tablero: '+x.id+'</div>'+
+   '<div style="margin-top:6px">Proveedor: <b>'+esc(e.prov)+'</b><br>OC: <b>'+e.oc+'</b> · SAFIRO: <b>'+(e.safiro||'—')+'</b><br>Código Abasto: <b>'+esc(e.cod)+'</b>'+(CIDS[x.id]&&CIDS[x.id].cs?' · SAFIRO <b>'+esc(CIDS[x.id].cs)+'</b>':'')+' · '+esc((e.desc||'').slice(0,60))+'<br>Recibido: <b>'+fdf(e.fRec)+'</b> · Cantidad: <b>'+(e.cant||0).toLocaleString('es-PA')+'</b> · Valor: <b>B/. '+money(e.valor)+'</b></div></div><div id="qrc" style="width:120px;height:120px;flex:none"></div></div>'+
    '<table><thead><tr><th style="width:56px">Paso</th><th>Área · acción</th><th style="width:110px">Fecha y hora</th><th style="width:150px">Nombre</th><th style="width:110px">Firma</th></tr></thead><tbody>'+
    PASOS.map(p=>{const f=filaCar(x,p[0]);return '<tr><td style="font-family:Consolas,monospace">'+(p[0]==='C12'?'C·12→13':p[0])+'</td><td>'+esc(p[1])+' · '+esc(p[2])+'</td><td>'+f.fecha+'</td><td>'+f.nombre+'</td><td></td></tr>';}).join('')+'</tbody></table>'+
    '<div style="margin-top:6px;font-size:10px;color:#555">Escanee el código para abrir este expediente. Devoluciones: anotar motivo al reverso.</div></div></div></div>';
@@ -1342,9 +1356,9 @@ window.addEventListener('resize',()=>{if($('#tourOverlay').style.display==='bloc
 
 /* ---------- pestañas y arranque ---------- */
 function showTab(id){document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===id)));document.querySelectorAll('section.panel').forEach(s=>s.hidden=(s.id!==id));}
-document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();if(b.dataset.p==='p-flujo')renderFlujoAgg();}));
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();if(b.dataset.p==='p-flujo')renderFlujoAgg();if(b.dataset.p==='p-ind'&&SK_THR!=null)renderSankey(SK_THR);}));
 $('#q').addEventListener('input',()=>{PAGE=0;renderTabla();});
-function irA(){const v=$('#selid').value.trim().toUpperCase();if(!v)return;let x=X.find(z=>z.id===v)||X.find(z=>CIDS[z.id]&&[CIDS[z.id].pv,CIDS[z.id].fa,CIDS[z.id].ir].some(k=>k&&String(k).toUpperCase()===v));if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
+function irA(){const v=$('#selid').value.trim().toUpperCase().replace(/^(PREVIO|OC|FACTURA|SECUENCIAL)\s+/,'');if(!v)return;let x=X.find(z=>z.id===v)||X.find(z=>CIDS[z.id]&&[CIDS[z.id].pv,CIDS[z.id].fa,CIDS[z.id].ir,CIDS[z.id].se].some(k=>k&&String(k).toUpperCase()===v));if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
 $('#go').addEventListener('click',irA);
 /* Buscador propio (mismo estilo que Curvas de Inventario): el datalist del navegador no acepta estilo. */
 function acMake(inp,panel,clr,fuente,elegir){
@@ -1359,8 +1373,8 @@ function acMake(inp,panel,clr,fuente,elegir){
   clr.addEventListener('click',()=>{inp.value='';clr.hidden=true;cerrar();elegir(null,'');inp.focus();});
 }
 const normB=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-acMake($('#selid'),$('#selidAC'),$('#selidX'),q=>{const t=normB(q);let L=X;if(t)L=X.filter(x=>normB(x.id+' '+x.e.oc+' '+x.e.cod+' '+x.e.prov+' '+(x.e.desc||'')+(CIDS[x.id]?' '+[CIDS[x.id].pv,CIDS[x.id].fa,CIDS[x.id].ir,CIDS[x.id].se].join(' '):'')).includes(t));
-  return L.slice().sort((a,b)=>a.e.fRec<b.e.fRec?1:-1).slice(0,40).map(x=>({val:x.id,lab:x.id,sub:x.e.prov+' · '+x.e.cod+' '+String(x.e.desc||'').slice(0,50)+' · recibida '+fdf(x.e.fRec)}));},
+acMake($('#selid'),$('#selidAC'),$('#selidX'),q=>{const t=normB(q);let L=X;if(t)L=X.filter(x=>normB(x.id+' '+x.e.oc+' '+x.e.cod+' '+x.e.prov+' '+(x.e.desc||'')+(CIDS[x.id]?' '+[CIDS[x.id].pv,CIDS[x.id].fa,CIDS[x.id].ir,CIDS[x.id].se,CIDS[x.id].cs].join(' '):'')).includes(t));
+  return L.slice().sort((a,b)=>a.e.fRec<b.e.fRec?1:-1).slice(0,40).map(x=>{const c=CIDS[x.id]||{};return {val:x.id,lab:(c.pv?'Previo '+c.pv:'Sin previo')+' · OC '+x.e.oc,sub:x.e.prov+' · '+String(x.e.desc||'').slice(0,46)+' · recibida '+fdf(x.e.fRec)+(c.se?' · secuencial '+c.se:'')+(c.fa?' · factura '+c.fa:'')};});},
   (o,txt)=>{if(o)abrir(o.val);else if(txt)irA();});
 $('#bVolver').addEventListener('click',volverBandeja);
 $('#selLimpiar').addEventListener('click',()=>{$('#selid').value='';$('#selidX').hidden=true;$('#selid').focus();});
