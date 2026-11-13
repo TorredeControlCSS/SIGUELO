@@ -11,13 +11,26 @@
  *    TRZ_USUARIOS  PIN | NOMBRE | AREA | ROL | ACTIVO | CORREO | NOTA
  *    TRZ_EVENTOS   bitácora inmutable de hitos (nunca se borra; se anula)
  *    TRZ_ACCESOS   auditoría de ingresos por PIN (aciertos y fallos)
+ *    TRZ_PERSONAS  NOMBRE | AREA | ACTIVO | ALTA_POR | ALTA_TS | NOTA
+ *                  lista desplegable «Quién lo hizo» (se crea sola con el
+ *                  equipo de Control Operativo; las personas nuevas entran
+ *                  como PENDIENTE hasta que la jefatura las reconoce: SI)
+ *
+ *  Cambios 13-nov-2026 (pedido de la Jefatura de Control Operativo):
+ *    · «Quién lo hizo» se elige de una lista por área, con opción de agregar
+ *      a alguien nuevo. Quien ingresa con el PIN queda como «registró».
+ *    · Resultado PARCIAL (adelantos o expediente incompleto): queda marcado
+ *      y el expediente NO avanza hasta registrar el paso como completado.
+ *    · La evidencia pasa a ser OPCIONAL (si se adjunta, va a Drive).
+ *    · ROL REGISTRADOR: registra cualquier paso (p. ej. la coordinadora que
+ *      lleva el control del grupo) pero no anula ni da altas manuales.
  *
  *  Reglas que el servidor hace cumplir (no dependen del navegador):
- *    1. El usuario sale del PIN, no se escribe a mano.
- *    2. Cada área solo registra sus pasos (SUPERVISOR registra cualquiera).
+ *    1. Quién registra sale del PIN; quién lo hizo, de TRZ_PERSONAS.
+ *    2. Cada área solo registra sus pasos (SUPERVISOR y REGISTRADOR, cualquiera).
  *    3. No se saltan pasos: solo se registra el paso que toca.
  *    4. DEVUELVE exige destino anterior y motivo; reabre desde el destino.
- *    5. Evidencia obligatoria: se guarda en Drive y se enlaza al evento.
+ *    5. Evidencia opcional: si se adjunta, se guarda en Drive y se enlaza.
  *    6. Fecha del hito: no futura, no anterior a la recepción ni al hito previo.
  *    7. Doble envío por mala señal: el mismo ID_CLIENTE no se graba dos veces.
  *    8. Nada se borra: un supervisor puede ANULAR con motivo.
@@ -52,6 +65,20 @@
 var TRZ_HOJA_USUARIOS = 'TRZ_USUARIOS';
 var TRZ_HOJA_EVENTOS  = 'TRZ_EVENTOS';
 var TRZ_HOJA_ACCESOS  = 'TRZ_ACCESOS';
+var TRZ_HOJA_PERSONAS = 'TRZ_PERSONAS';
+var TRZ_COLS_PERSONAS = ['NOMBRE', 'AREA', 'ACTIVO', 'ALTA_POR', 'ALTA_TS', 'NOTA'];
+/* Equipo que opera la plataforma (lista enviada por la Jefatura de Control
+   Operativo, 13-nov-2026). Solo se usa para crear TRZ_PERSONAS la primera
+   vez; después la fuente es la hoja. */
+var TRZ_PERSONAS_INICIALES = [
+  ['Mónica Quintero',     'Coordinador'],
+  ['Raymando Quiel',      'Control1'],
+  ['Pablo Castrejón',     'Control2'],
+  ['Olaydis Pérez',       'Ventanilla Única'],
+  ['Velkis Soto',         'Contabilidad'],
+  ['Evika C. Llung Guen', 'Archivo']
+];
+var TRZ_ROLES = ['OPERADOR', 'REGISTRADOR', 'SUPERVISOR'];
 var TRZ_CARPETA_NOMBRE = 'Trazabilidad RB';
 var TRZ_MAX_BYTES = 8 * 1024 * 1024;
 var TRZ_MAX_FALLOS = 15;          // fallos de PIN tolerados por ventana
@@ -79,24 +106,27 @@ var TRZ_PASOS = [
 
 var TRZ_COLS_EVENTOS = ['TS_SERVIDOR', 'ID_EVENTO', 'ID_CLIENTE', 'EXPEDIENTE', 'OC', 'RENGLON', 'PROVEEDOR',
   'PASO', 'RESULTADO', 'DESTINO', 'MOTIVO', 'FECHA_HITO', 'USUARIO', 'AREA', 'OBSERVACION',
-  'EVIDENCIA_URL', 'EVIDENCIA_NOMBRE', 'ESTADO', 'ANULADO_POR', 'ANULADO_TS', 'ANULADO_MOTIVO'];
+  'EVIDENCIA_URL', 'EVIDENCIA_NOMBRE', 'ESTADO', 'ANULADO_POR', 'ANULADO_TS', 'ANULADO_MOTIVO', 'EJECUTOR'];
 
 /* ------------------------------------------------------------------ */
 /*  Enrutadores (devuelven null si la acción no es de este módulo)      */
 /* ------------------------------------------------------------------ */
 
 function trzRuta_(e) {
+  if (typeof incRuta_ === 'function') { var _inc = incRuta_(e); if (_inc) return _inc; }   // Expediente de Incumplimiento (INCUMPLIMIENTOS_TRZ.gs)
   var p = (e && e.parameter) || {};
   var a = String(p.action || '');
   if (a === 'trzEventos') return trzEventos_(String(p.exp || ''));
   if (a === 'trzResumen') return trzResumen_();
   if (a === 'trzPasos')   return { success: true, pasos: TRZ_PASOS };
+  if (a === 'trzPersonas') return { success: true, personas: trzPersonas_() };
   // Administración de panel_confirmacion (PANEL_ADMIN.gs), si está instalada.
   if (typeof admRuta_ === 'function') return admRuta_(e);
   return null;
 }
 
 function trzPost_(payload) {
+  if (typeof incPost_ === 'function') { var _incp = incPost_(payload); if (_incp) return _incp; }   // Expediente de Incumplimiento (INCUMPLIMIENTOS_TRZ.gs)
   var a = String((payload && payload.action) || '');
   // Administración de panel_confirmacion (PANEL_ADMIN.gs) usa el mismo PIN.
   if (a.indexOf('adm') === 0) return (typeof admPost_ === 'function') ? admPost_(payload) : null;
@@ -169,7 +199,7 @@ function trzBuscarUsuario_(pin) {
 }
 
 function trzPasosDeArea_(area, rol) {
-  if (rol === 'SUPERVISOR') return TRZ_PASOS.map(function (p) { return p[0]; });
+  if (rol === 'SUPERVISOR' || rol === 'REGISTRADOR') return TRZ_PASOS.map(function (p) { return p[0]; });
   var a = trzNorm_(area);
   return TRZ_PASOS.filter(function (p) { return trzNorm_(p[1]) === a; }).map(function (p) { return p[0]; });
 }
@@ -211,8 +241,63 @@ function trzLogin_(d) {
     nombre: r.usuario.nombre,
     area: r.usuario.area,
     rol: r.usuario.rol,
-    pasos: trzPasosDeArea_(r.usuario.area, r.usuario.rol)
+    pasos: trzPasosDeArea_(r.usuario.area, r.usuario.rol),
+    personas: trzPersonas_()
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Personas («Quién lo hizo»)                                          */
+/* ------------------------------------------------------------------ */
+
+/* Hoja TRZ_PERSONAS; si no existe se crea con el equipo inicial. */
+function trzHojaPersonas_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var nueva = !ss.getSheetByName(TRZ_HOJA_PERSONAS);
+  var sh = trzHoja_(TRZ_HOJA_PERSONAS, TRZ_COLS_PERSONAS);
+  if (nueva || sh.getLastRow() < 2) {
+    var hoy = new Date();
+    var filas = TRZ_PERSONAS_INICIALES.map(function (p) { return [p[0], p[1], 'SI', 'Jefatura de Control Operativo', hoy, 'Equipo inicial']; });
+    sh.getRange(2, 1, filas.length, TRZ_COLS_PERSONAS.length).setValues(filas);
+    SpreadsheetApp.flush();
+  }
+  return sh;
+}
+
+/* Lista para el desplegable: activas y pendientes (las inactivas, NO, se ocultan). */
+function trzPersonas_() {
+  var sh = trzHojaPersonas_();
+  var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), out = [];
+  for (var i = 1; i < v.length; i++) {
+    var n = String(v[i][c.NOMBRE] || '').replace(/\s+/g, ' ').trim();
+    if (!n) continue;
+    var act = String(v[i][c.ACTIVO] || 'SI').trim().toUpperCase();
+    if (act === 'NO') continue;
+    out.push({ nombre: n, area: String(v[i][c.AREA] || '').trim(), pendiente: act === 'PENDIENTE' });
+  }
+  return out;
+}
+
+/* Persona nueva escrita en el formulario: entra como PENDIENTE, en el área del paso. */
+function trzAgregarPersona_(nombre, area, altaPor) {
+  var n = String(nombre || '').replace(/\s+/g, ' ').trim();
+  var ya = trzPersonas_().some(function (p) { return trzNorm_(p.nombre) === trzNorm_(n) && trzNorm_(p.area) === trzNorm_(area); });
+  if (ya) return false;
+  var sh = trzHojaPersonas_();
+  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var fila = { NOMBRE: n, AREA: area, ACTIVO: 'PENDIENTE', ALTA_POR: altaPor, ALTA_TS: new Date(), NOTA: 'Agregada desde el tablero; la jefatura la reconoce poniendo SI' };
+  sh.appendRow(hdr.map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
+  return true;
+}
+
+/* Si la bitácora es anterior a una columna nueva (p. ej. EJECUTOR), se agrega al final. */
+function trzAsegurarColumnas_(sh, cols) {
+  var hdr = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(function (h) { return String(h).trim().toUpperCase(); });
+  cols.forEach(function (c) {
+    if (hdr.indexOf(c) >= 0) return;
+    sh.getRange(1, hdr.length + 1).setValue(c).setFontWeight('bold');
+    hdr.push(c);
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -247,7 +332,8 @@ function trzLeerEventos_(exp) {
       evid: String(v[i][c.EVIDENCIA_NOMBRE] || ''),
       estado: String(v[i][c.ESTADO] || 'VIGENTE'),
       anuladoPor: String(v[i][c.ANULADO_POR] || ''),
-      anuladoMotivo: String(v[i][c.ANULADO_MOTIVO] || '')
+      anuladoMotivo: String(v[i][c.ANULADO_MOTIVO] || ''),
+      ejecutor: c.EJECUTOR != null ? String(v[i][c.EJECUTOR] || '') : ''
     });
   }
   return out;
@@ -263,19 +349,22 @@ function trzFmt_(d) {
 function trzEstado_(eventos) {
   var orden = TRZ_PASOS.map(function (p) { return p[0]; });
   var hechos = {};
+  var parcial = {};   // paso → último registro PARCIAL aún sin completar
   var ultimo = null;
   eventos.forEach(function (ev) {
     if (ev.estado === 'ANULADO') return;
-    if (ev.tipo === 'TRANSFIERE') hechos[ev.paso] = ev.ts || true;
+    if (ev.tipo === 'TRANSFIERE') { hechos[ev.paso] = ev.ts || true; delete parcial[ev.paso]; }
+    if (ev.tipo === 'PARCIAL') parcial[ev.paso] = { ts: ev.ts, motivo: ev.motivo || '' };
     if (ev.tipo === 'DEVUELVE') {
       var k = orden.indexOf(ev.dest);
-      for (var j = k; j < orden.length; j++) delete hechos[orden[j]];
+      for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; }
     }
     ultimo = ev;
   });
   var sig = null;
   for (var i = 0; i < orden.length; i++) if (!hechos[orden[i]]) { sig = orden[i]; break; }
-  return { hechos: hechos, siguiente: sig, ultimo: ultimo, completos: Object.keys(hechos).length };
+  return { hechos: hechos, siguiente: sig, ultimo: ultimo, completos: Object.keys(hechos).length,
+           parcial: (sig && parcial[sig]) ? parcial[sig] : null };
 }
 
 function trzEventos_(exp) {
@@ -299,6 +388,7 @@ function trzResumen_() {
       ultimoPaso: st.ultimo ? st.ultimo.paso : null,
       ultimoTipo: st.ultimo ? st.ultimo.tipo : null,
       ultimoTs: st.ultimo ? st.ultimo.ts : null,
+      parcial: st.parcial ? true : false,
       // hitos que ve el proveedor: firma del informe (P11), Contabilidad (C12), publicación (P14)
       hitos: { P11: st.hechos.P11 || null, C12: st.hechos.C12 || null, P14: st.hechos.P14 || null }
     };
@@ -326,7 +416,7 @@ function trzRegistrar_(d) {
   if (iPaso < 0) return { success: false, error: 'Paso no reconocido.' };
 
   var tipo = String(d.tipo || '');
-  if (tipo !== 'TRANSFIERE' && tipo !== 'DEVUELVE') return { success: false, error: 'Resultado no válido.' };
+  if (tipo !== 'TRANSFIERE' && tipo !== 'DEVUELVE' && tipo !== 'PARCIAL') return { success: false, error: 'Resultado no válido.' };
 
   if (trzPasosDeArea_(u.area, u.rol).indexOf(paso) < 0) {
     return { success: false, error: 'El paso ' + paso + ' le corresponde a ' + TRZ_PASOS[iPaso][1] + '; su usuario es de ' + u.area + '.' };
@@ -340,17 +430,28 @@ function trzRegistrar_(d) {
     motivo = String(d.motivo || '').trim();
     if (!motivo) return { success: false, error: 'Indique el motivo de la devolución.' };
   }
+  if (tipo === 'PARCIAL') {
+    motivo = String(d.motivo || '').trim();
+    if (!motivo) return { success: false, error: 'Indique por qué el paso queda parcial (p. ej. adelanto).' };
+  }
+
+  // Quién lo hizo: de la lista TRZ_PERSONAS o una persona nueva (queda PENDIENTE).
+  var ejecutor = String(d.ejecutor || '').replace(/\s+/g, ' ').trim() || u.nombre;
+  if (ejecutor.length < 3 || ejecutor.length > 80) return { success: false, error: 'Escriba nombre y apellido de quien hizo el paso.' };
 
   var fh = trzParseFecha_(d.ts);
   if (!fh) return { success: false, error: 'Fecha y hora del hito no válidas.' };
   if (fh.getTime() > Date.now() + 10 * 60 * 1000) return { success: false, error: 'La fecha del hito no puede ser futura.' };
   if (fh.getTime() < fRec.getTime()) return { success: false, error: 'La fecha del hito es anterior a la recepción.' };
 
-  if (!d.evidencia || !d.evidencia.base64) return { success: false, error: 'Adjunte la evidencia: sin ella el hito no se registra.' };
-  var bytes = Utilities.base64Decode(String(d.evidencia.base64));
-  if (bytes.length > TRZ_MAX_BYTES) return { success: false, error: 'La evidencia supera 8 MB.' };
-  var mime = String(d.evidencia.mime || 'application/octet-stream');
-  if (!/^image\/|^application\/pdf$/.test(mime)) return { success: false, error: 'La evidencia debe ser foto o PDF.' };
+  // Evidencia opcional (13-nov-2026): si viene, se valida y va a Drive.
+  var hayEvid = !!(d.evidencia && d.evidencia.base64), bytes = null, mime = '';
+  if (hayEvid) {
+    bytes = Utilities.base64Decode(String(d.evidencia.base64));
+    if (bytes.length > TRZ_MAX_BYTES) return { success: false, error: 'La evidencia supera 8 MB.' };
+    mime = String(d.evidencia.mime || 'application/octet-stream');
+    if (!/^image\/|^application\/pdf$/.test(mime)) return { success: false, error: 'La evidencia debe ser foto o PDF.' };
+  }
 
   var idCliente = String(d.idCliente || '').slice(0, 64);
 
@@ -379,30 +480,38 @@ function trzRegistrar_(d) {
       if (fu && fh.getTime() < fu.getTime()) return { success: false, error: 'La fecha es anterior al último hito registrado (' + st.ultimo.ts.replace('T', ' ') + ').' };
     }
 
-    // 5. Evidencia a Drive: Sustento / Trazabilidad RB / AAAA-MM / expediente
-    var cTrz = trzCarpetaRaiz_();
-    var cMes = getOrCreateSubfolder_(cTrz, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'));
-    var cExp = getOrCreateSubfolder_(cMes, exp.replace(/[\/\\:*?"<>|]/g, '-'));
-    var ext = (typeof inferirExtension_ === 'function') ? inferirExtension_(String(d.evidencia.nombre || ''), mime) : (mime.indexOf('pdf') >= 0 ? '.pdf' : '.jpg');
-    var nombre = exp + '_' + paso + '_' + tipo + '_' + Utilities.formatDate(fh, Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + ext;
-    var archivo = cExp.createFile(Utilities.newBlob(bytes, mime, nombre));
+    // 5. Evidencia (si la hay) a Drive: Sustento / Trazabilidad RB / AAAA-MM / expediente
+    var archivo = null, nombre = '';
+    if (hayEvid) {
+      var cTrz = trzCarpetaRaiz_();
+      var cMes = getOrCreateSubfolder_(cTrz, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'));
+      var cExp = getOrCreateSubfolder_(cMes, exp.replace(/[\/\\:*?"<>|]/g, '-'));
+      var ext = (typeof inferirExtension_ === 'function') ? inferirExtension_(String(d.evidencia.nombre || ''), mime) : (mime.indexOf('pdf') >= 0 ? '.pdf' : '.jpg');
+      nombre = exp + '_' + paso + '_' + tipo + '_' + Utilities.formatDate(fh, Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + ext;
+      archivo = cExp.createFile(Utilities.newBlob(bytes, mime, nombre));
+    }
+    var personaNueva = false;
+    if (d.ejecutorNuevo) { try { personaNueva = trzAgregarPersona_(ejecutor, TRZ_PASOS[iPaso][1], u.nombre); } catch (eP) {} }
 
     var idEv = 'EV-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
     var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+    trzAsegurarColumnas_(sh, ['EJECUTOR']);
     var fila = {};
     fila.TS_SERVIDOR = new Date(); fila.ID_EVENTO = idEv; fila.ID_CLIENTE = idCliente; fila.EXPEDIENTE = exp;
     fila.OC = String(d.oc || ''); fila.RENGLON = String(d.renglon || ''); fila.PROVEEDOR = String(d.proveedor || '');
     fila.PASO = paso; fila.RESULTADO = tipo; fila.DESTINO = dest || ''; fila.MOTIVO = motivo || '';
     fila.FECHA_HITO = fh; fila.USUARIO = u.nombre; fila.AREA = u.area;
     fila.OBSERVACION = String(d.obs || '').slice(0, 500);
-    fila.EVIDENCIA_URL = archivo.getUrl(); fila.EVIDENCIA_NOMBRE = nombre; fila.ESTADO = 'VIGENTE';
+    fila.EVIDENCIA_URL = archivo ? archivo.getUrl() : ''; fila.EVIDENCIA_NOMBRE = nombre; fila.ESTADO = 'VIGENTE';
+    fila.EJECUTOR = ejecutor;
     var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
     sh.appendRow(hdr.map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
 
     var ev2 = trzLeerEventos_(exp);
     var st2 = trzEstado_(ev2);
-    return { success: true, id: idEv, evidUrl: archivo.getUrl(), siguiente: st2.siguiente, completos: st2.completos,
-      mensaje: tipo === 'DEVUELVE' ? ('Devuelto a ' + dest + '.') : ('Paso ' + paso + ' registrado.') };
+    return { success: true, id: idEv, evidUrl: archivo ? archivo.getUrl() : '', siguiente: st2.siguiente, completos: st2.completos,
+      personaNueva: personaNueva,
+      mensaje: tipo === 'DEVUELVE' ? ('Devuelto a ' + dest + '.') : (tipo === 'PARCIAL' ? ('Paso ' + paso + ' marcado como parcial: el expediente sigue en este paso.') : ('Paso ' + paso + ' registrado.')) };
   } finally {
     lock.releaseLock();
   }
@@ -591,7 +700,11 @@ function trzInstalar() {
   TRZ_PASOS.forEach(function (p) { if (areas.indexOf(p[1]) < 0) areas.push(p[1]); });
   su.getRange('A2:A300').setNumberFormat('@');
   su.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(areas, true).build());
-  su.getRange('D2:D300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['OPERADOR', 'SUPERVISOR'], true).build());
+  su.getRange('D2:D300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(TRZ_ROLES, true).build());
+  var sp = trzHojaPersonas_();
+  sp.getRange('B2:B300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(areas, true).build());
+  sp.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'PENDIENTE', 'NO'], true).build());
+  trzAsegurarColumnas_(trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS), ['EJECUTOR']);
   su.getRange('E2:E300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build());
   SpreadsheetApp.flush();
 
