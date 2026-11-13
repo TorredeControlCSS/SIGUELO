@@ -1332,9 +1332,9 @@ function mcEtapas(d){
     {t:'Recibida en el CEDIS',f:e?e.fRec:null,n:e?(_fmtNumCita(e.cant)+' und recibidas'):''},
     {t:'Ingreso al inventario',f:e?e.fSalmi:null},
     {t:'Entrada en SAP',f:e?e.f101:null},
-    {t:'Revisión y firma del informe',f:h.P11?String(h.P11).slice(0,10):null,na:!docOk},
-    {t:'Contabilidad',f:h.C12?String(h.C12).slice(0,10):null,na:!docOk},
-    {t:'Publicación',f:h.P14?String(h.P14).slice(0,10):null,na:!docOk},
+    {t:'Revisión y firma del informe',f:(typeof h.P11==='string'&&h.P11)?h.P11.slice(0,10):null,f2:h.P11===true,na:!docOk},
+    {t:'Contabilidad',f:(typeof h.C12==='string'&&h.C12)?h.C12.slice(0,10):null,f2:h.C12===true,na:!docOk},
+    {t:'Publicación',f:(typeof h.P14==='string'&&h.P14)?h.P14.slice(0,10):null,f2:h.P14===true,na:!docOk},
     {t:'Remisión a Contraloría',f:null,na:true}
   ];
 }
@@ -1360,7 +1360,7 @@ function mcCargarSeguimiento(){
     if(!j||!Array.isArray(j.eventos)) throw 0;
     const ord=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11','P12','C12','P13','P14'], g={}, res={};
     j.eventos.forEach(e=>{ (g[e.exp]=g[e.exp]||[]).push(e); });
-    Object.keys(g).forEach(k=>{ const h={}; g[k].forEach(ev=>{ if(ev.estado==='ANULADO') return; if(ev.tipo==='TRANSFIERE') h[ev.paso]=ev.ts; if(ev.tipo==='DEVUELVE'){ ord.slice(ord.indexOf(ev.dest)).forEach(p=>{ delete h[p]; }); } }); res[k]={hitos:{P11:h.P11||null,C12:h.C12||null,P14:h.P14||null}}; });
+    Object.keys(g).forEach(k=>{ const h={}; g[k].forEach(ev=>{ if(ev.estado==='ANULADO') return; if(ev.tipo==='TRANSFIERE') h[ev.paso]=ev.ts; if(ev.tipo==='EMPALME'){ ord.slice(0,ord.indexOf(ev.paso)+1).forEach(p=>{ if(!h[p]) h[p]=ev.ts||true; }); } if(ev.tipo==='DEVUELVE'){ ord.slice(ord.indexOf(ev.dest)).forEach(p=>{ delete h[p]; }); } }); res[k]={hitos:{P11:h.P11||null,C12:h.C12||null,P14:h.P14||null}}; });
     MC.res=res; mcPintar();
   }).catch(()=>{ fetch(API_URL+'?action=trzResumen&_='+Date.now()).then(r=>r.json()).then(j=>{ if(j&&j.success){ MC.res=j.expedientes||{}; mcPintar(); } }).catch(()=>{}); });
   return MC.segCarga;

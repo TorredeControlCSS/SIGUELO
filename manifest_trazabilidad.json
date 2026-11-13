@@ -1,0 +1,17 @@
+{
+  "id": "./trazabilidad.html",
+  "name": "Trazabilidad Documental · Control Operativo · CEDIS Panamá",
+  "short_name": "Trazabilidad",
+  "description": "Registro de cada paso del expediente de recepción: quién lo hizo, cuándo y si quedó completo o parcial · Dirección Nacional de Logística",
+  "lang": "es",
+  "start_url": "./trazabilidad.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ececec",
+  "theme_color": "#0C447C",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

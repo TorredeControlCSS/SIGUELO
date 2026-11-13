@@ -104,6 +104,17 @@ var TRZ_PERSONAS_INICIALES = [
   ['Evika Llung Guenn',  'Archivo',          'SI', 'OPERADOR'],
   ['Landecho',           'Control2',         'NO', '']   // histórico: aparece en el cuadro, ya no participa
 ];
+/* Áreas del flujo sin persona confirmada: se crean en TRZ_USUARIOS inactivas (ACTIVO NO, sin PIN)
+   con la pregunta para la jefatura en NOTA. Cuando ella responda, se pone el nombre, el correo,
+   el PIN y ACTIVO SI. */
+var TRZ_POR_CONFIRMAR = [
+  ['DINALOG', 'P03 Entrega la factura: ¿quién lo hace en la práctica (Recepción del CEDIS, el proveedor o Control 1)? DINALOG es la Dirección. Nombre y correo.'],
+  ['Cómputo', 'P04 Confecciona el informe: Cómputo es Kardex (jefe Ricaurte Núñez). ¿Quién hace el informe en el día a día y quién lo registra? Nombre y correo.'],
+  ['Control3', 'P09 Firma cuenta y hoja remisoria: ¿existe Control 3 o lo firma la jefatura? Nombre y correo.'],
+  ['Equipo de Compras', 'P14 Publica: ¿quién publica en PanamaCompra y quién registra el paso (Compras o la coordinadora al verlo publicado)? Nombre y correo.']
+];
+/* Jefe de área que recibe los avisos de esa área mientras no haya operador (se toma su CORREO de TRZ_USUARIOS por el nombre). */
+var TRZ_JEFE_DE_AREA = [['Cómputo', 'RICAU']];
 var TRZ_URL_EMPALME = 'https://torrecontrolcss.org/SIGUELO/trazabilidad_empalme.json';
 var TRZ_USUARIO_EMPALME = 'Cuadro de Control Operativo (empalme 13-nov-2026)';
 var TRZ_ROLES = ['OPERADOR', 'REGISTRADOR', 'SUPERVISOR'];
@@ -746,8 +757,8 @@ function trzInstalar() {
   sp.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'PENDIENTE', 'NO'], true).build());
   trzAsegurarColumnas_(trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS), ['EJECUTOR']);
   su.getRange('E2:E300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SI', 'NO'], true).build());
-  trzSincronizarEquipo_(su, sp);
   trzHojaCorreosArea_(areas);
+  trzSincronizarEquipo_(su, sp);
   SpreadsheetApp.flush();
 
   // Protección: solo el dueño del libro edita usuarios y bitácora.
@@ -785,6 +796,22 @@ function trzSincronizarEquipo_(su, sp) {
     var tiene = vu.slice(1).some(function (r) { return trzNorm_(r[cu.AREA]) === trzNorm_(p[1]) && primer(r[cu.NOMBRE]) === primer(p[0]); });
     if (!tiene) su.appendRow(['', p[0], p[1], p[3], 'SI', '', 'Falta el PIN: últimos 4 dígitos de la cédula']);
   });
+  // Áreas por confirmar con la jefatura
+  vu = su.getDataRange().getValues();
+  TRZ_POR_CONFIRMAR.forEach(function (q) {
+    var hay = vu.slice(1).some(function (r) { return trzNorm_(r[cu.AREA]) === trzNorm_(q[0]); });
+    if (!hay) su.appendRow(['', 'POR CONFIRMAR CON LA JEFA', q[0], 'OPERADOR', 'NO', '', q[1]]);
+  });
+  // Correo del jefe de área en TRZ_CORREOS_AREA (si la celda está vacía)
+  var sc = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TRZ_HOJA_CORREOS);
+  if (sc && sc.getLastRow() > 1) {
+    var vc = sc.getRange(2, 1, sc.getLastRow() - 1, 2).getValues();
+    TRZ_JEFE_DE_AREA.forEach(function (j) {
+      var fila = vu.slice(1).filter(function (r) { return trzNorm_(r[cu.NOMBRE]).indexOf(j[1]) === 0 && /@/.test(String(r[cu.CORREO])); })[0];
+      if (!fila) return;
+      for (var i = 0; i < vc.length; i++) if (trzNorm_(vc[i][0]) === trzNorm_(j[0]) && !String(vc[i][1]).trim()) sc.getRange(i + 2, 2).setValue(String(fila[cu.CORREO]).trim());
+    });
+  }
 }
 
 function trzPrueba() {

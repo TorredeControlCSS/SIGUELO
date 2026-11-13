@@ -6,6 +6,11 @@
 <title>Trazabilidad Documental de la Recepción — CEDIS Panamá</title>
 <link rel="icon" href="./favicon.ico?v=1">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="manifest" href="./manifest_trazabilidad.json">
+<meta name="theme-color" content="#0C447C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trazabilidad">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 /* Layout: tablero operativo — una franja de flujo conectada arriba, gráficos y tabla debajo; ficha de expediente tipo hoja de ruta */
@@ -274,7 +279,7 @@ tr.click:hover td{background:var(--surface2)}
 .fsem{display:flex;gap:12px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);margin-top:4px}
 .fsem i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 @media (prefers-reduced-motion:reduce){.fn.now,.fla.vivo,.fn.devuelto,.fn.recien{animation:none}}
-.fdet{margin-top:10px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:9px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface)}
+.fdet{margin-top:10px;border:1px solid var(--accent);border-radius:8px;padding:9px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface)}
 .fdet-t{display:flex;gap:10px;align-items:flex-start;font-size:.86rem}
 .fdet-t .c{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink);font-size:.8rem;padding-top:2px}
 .fdet .st{font-size:.78rem;color:var(--muted)}.fdet .st.ok{color:var(--ok);font-weight:600}.fdet .st.now{color:var(--warn);font-weight:600}.fdet .st.bad{color:var(--bad);font-weight:600}
@@ -292,6 +297,28 @@ body.modo-prov nav.tabs,body.modo-prov .internal,body.modo-prov #btnTour,body.mo
 .ac-item .ac-cod{font-family:var(--f-mono);font-weight:700;color:var(--accent-ink)}
 .ac-item .ac-grp{display:block;font-size:.72rem;color:var(--muted);margin-top:1px}
 .ac-vacio{padding:9px 11px;font-size:.8rem;color:var(--muted)}
+/* Bandeja: lo que le toca a cada área */
+#bandeja .block{margin-bottom:10px}
+.bj-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
+.bj-chips{display:flex;flex-wrap:wrap;gap:6px}
+.bj-chip{font:inherit;font-size:.78rem;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.bj-chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.bj-chip b{font-weight:700}
+.bj-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-top:6px}
+.bj-it{font:inherit;text-align:left;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.bj-it:hover,.bj-it:focus-visible{border-color:var(--accent);outline:none}
+.bj-it .c{font-family:var(--f-mono);font-size:.74rem;color:var(--muted)}
+.bj-it .p{font-weight:600;font-size:.86rem}
+.bj-it .d{font-size:.76rem;color:var(--muted)}
+.bj-it .e{font-size:.76rem;font-weight:700}
+.bj-it.v{background:var(--k-green)}.bj-it.a{background:var(--k-amb)}.bj-it.r{background:var(--k-red)}
+.bj-it.parc{background:var(--parc-soft)}.bj-it.dev{background:var(--bad-soft)}
+.bj-mas{margin-top:6px}
+#vidOv{position:fixed;inset:0;background:rgba(10,20,35,.72);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+#vidOv .vbox{background:var(--surface);border-radius:12px;padding:10px;max-width:980px;width:100%}
+#vidOv video{width:100%;border-radius:8px;display:block;background:#000}
+#vidOv .vbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+@media (max-width:600px){header.top .tit .sub,header.top .meta{display:none}header.top img{width:34px;height:34px}.bj-list{grid-template-columns:1fr}.toolbar .ac-wrap{min-width:0!important;flex:1 1 100%!important}.hbtns #btnTour{display:none}}
 @media print{body *{visibility:hidden} #caratula,#caratula *{visibility:visible} #caratula{position:absolute;left:0;top:0;border:0}}
 
 /* portal del proveedor (imita solicitud_cita.html) */
@@ -338,19 +365,19 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
     <h1>Trazabilidad Documental de la Recepción</h1>
     <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
   </div>
-  <div class="hbtns"><button id="btnTour" type="button" title="Recorrido guiado por el tablero">&#9654; Ver tutorial guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
+  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
   <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div></div>
 </header>
 <div class="wrap">
 
 <nav class="tabs" role="tablist" aria-label="Secciones">
-  <button role="tab" id="t-flujo" aria-selected="true" data-p="p-flujo">Flujo</button>
+  <button role="tab" id="t-ficha" aria-selected="true" data-p="p-ficha">Registro de hitos</button>
+  <button role="tab" id="t-flujo" aria-selected="false" data-p="p-flujo">Flujo</button>
   <button role="tab" id="t-exps" aria-selected="false" data-p="p-exps">Expedientes</button>
-  <button role="tab" id="t-ficha" aria-selected="false" data-p="p-ficha">Ficha y registro de hitos</button>
   <button role="tab" id="t-prov" aria-selected="false" data-p="p-prov">Vista del proveedor</button>
 </nav>
 
-<section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo">
+<section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo" hidden>
   <div class="kpis" id="kpis"></div>
   <div class="block" id="bRecorrido">
     <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: días hábiles típicos y plazo en que se resuelve el 85 % de las líneas · en rojo, la etapa con más atrasadas</p></div>
@@ -391,7 +418,8 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
   </div>
 </section>
 
-<section class="panel" id="p-ficha" role="tabpanel" aria-labelledby="t-ficha" hidden>
+<section class="panel" id="p-ficha" role="tabpanel" aria-labelledby="t-ficha">
+  <div id="bandeja"></div>
   <div class="toolbar"><label for="selid" class="muted" style="font-size:.82rem">Expediente u OC</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="OC, renglón, proveedor o RB-OC-fecha"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
   <div id="ficha"></div>
 </section>
@@ -807,6 +835,7 @@ function stepper(x){const e=x.e,S2=[];
   let firstPend=S2.findIndex((s,i)=>i>=2&&!s.d);
   return '<div class="steps">'+S2.map((s,i)=>{const cls=s.d?'done':(i===firstPend?'now':(i<2?'na':''));return '<div class="step '+cls+'"><div class="bar"></div><span class="t">'+s.t+'</span><span class="dte">'+(s.d?fdf(s.d):'—')+'</span><span class="sub">'+s.sub+'</span></div>';}).join('')+'</div>';}
 function renderFicha(){
+  renderBandeja();
   const box=$('#ficha');const x=X.find(v=>v.id===SELID)||X.find(v=>v.f101&&v.c)||X[0];SELID=x.id;$('#selid').value=x.id;
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
@@ -814,7 +843,7 @@ function renderFicha(){
   const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
   const sig=hab(x)?PASOS.find(p=>!hechos.has(p[0])):null;
   let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+x.id+'</h2></div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
-   '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
+   '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].concat(CIDS[x.id]?[['En el cuadro de Control','Previo <span class="mono">'+esc(CIDS[x.id].pv||'—')+'</span> · factura <span class="mono">'+esc(CIDS[x.id].fa||'—')+'</span><br>Informe <span class="mono">'+esc(CIDS[x.id].ir||'—')+'</span> · secuencial <span class="mono">'+esc(CIDS[x.id].se||'—')+'</span>']]:[]).map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
    altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
   h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
@@ -832,6 +861,43 @@ function renderFicha(){
   if($('#bAnuAlta'))$('#bAnuAlta').onclick=()=>anularAlta(x);
 }
 let PSEL=null,PSEL_ID=null,JUSTO=null;
+/* Identificadores del cuadro de Control (previo, factura, informe, secuencial) por expediente. */
+let CIDS={};
+function cargarCids(){return fetch(BASE+'trazabilidad_cuadro_ids.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.ids){CIDS=j.ids;if(SELID&&!$('#p-ficha').hidden)renderFicha();}}).catch(()=>{});}
+/* ---------- Bandeja: lo que le toca a cada área (pantalla principal) ---------- */
+let BJ_F=null,BJ_N=24;
+function bandejaDatos(){const out=[];X.forEach(x=>{if(!hab(x))return;const reg=(EVT[x.id]||EVTJ[x.id]||HITOS[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL');
+  const h=hechosDe(reg);const sig=PASOS.find(p=>!h.has(p[0]));if(!sig)return;
+  const reales=reg.filter(r=>r.tipo!=='EMPALME');const u=reales[reales.length-1];
+  const ult=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
+  const esp=bd(ult||x.f101||x.e.fRec,HOY);
+  out.push({x:x,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
+  return out.sort((a,b)=>b.esp-a.esp);}
+function renderBandeja(){const box=$('#bandeja');if(!box)return;
+  if(!VIVO_REG){box.innerHTML='';return;}
+  const D=bandejaDatos();const mis=SES?D.filter(o=>SES.pasos.indexOf(o.paso)>=0):D;
+  const areas=[];mis.forEach(o=>{if(areas.indexOf(o.area)<0)areas.push(o.area);});
+  const orden=PASOS.map(p=>p[1]);areas.sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
+  if(BJ_F&&areas.indexOf(BJ_F)<0)BJ_F=null;
+  const vis=BJ_F?mis.filter(o=>o.area===BJ_F):mis;
+  const tit=SES?('Bandeja de '+esc(SES.nombre)+' · '+(SES.rol==='OPERADOR'?esc(SES.area):'todas las áreas')):'Lo que le toca a cada área';
+  const cls=o=>o.dev?'dev':(o.parc?'parc':(o.esp<=2?'v':(o.esp<=5?'a':'r')));
+  const est=o=>o.dev?'Devuelto · corregir':(o.parc?'Parcial · '+esc(o.parc.motivo||''):(o.esp+' día'+(o.esp===1?'':'s')+' hábil'+(o.esp===1?'':'es')+' en espera'));
+  let h='<div class="block"><div class="bj-h"><div><h3 style="margin:0">'+tit+'</h3><p class="muted" style="margin:2px 0 0;font-size:.8rem">'+mis.length+' expediente'+(mis.length===1?'':'s')+' esperan '+(SES?'su registro':'registro')+'. Toque uno para abrirlo y registrar el paso.</p></div>'+
+    (SES?'':'<button class="btn small" id="bjPin">Ingresar con PIN para ver mi bandeja</button>')+'</div>';
+  if(areas.length>1)h+='<div class="bj-chips" role="group" aria-label="Filtrar por área"><button class="bj-chip" data-a="" aria-pressed="'+(!BJ_F)+'">Todas <b>'+mis.length+'</b></button>'+areas.map(a=>'<button class="bj-chip" data-a="'+esc(a)+'" aria-pressed="'+(BJ_F===a)+'">'+esc(a)+' <b>'+mis.filter(o=>o.area===a).length+'</b></button>').join('')+'</div>';
+  h+='<div class="bj-list">'+vis.slice(0,BJ_N).map(o=>'<button type="button" class="bj-it '+cls(o)+'" data-id="'+o.x.id+'"><span class="c">'+o.x.id+'</span><span class="p">'+(o.paso==='C12'?'C·12→13':o.paso)+' · '+esc(o.area)+' — '+esc(o.acc)+'</span><span class="d">'+esc(o.x.e.prov||'')+' · '+esc((o.x.e.desc||'').slice(0,42))+'</span><span class="e">'+est(o)+'</span></button>').join('')+'</div>';
+  if(vis.length>BJ_N)h+='<div class="bj-mas"><button class="btn ghost small" id="bjMas">Ver '+Math.min(48,vis.length-BJ_N)+' más (de '+vis.length+')</button></div>';
+  if(!vis.length)h+='<p class="muted">No hay expedientes esperando'+(SES?' en su área':'')+'.</p>';
+  h+='</div>';box.innerHTML=h;
+  box.querySelectorAll('.bj-it').forEach(b=>b.addEventListener('click',()=>{abrir(b.dataset.id);setTimeout(()=>bajarA('#fdet'),80);}));
+  box.querySelectorAll('.bj-chip').forEach(b=>b.addEventListener('click',()=>{BJ_F=b.dataset.a||null;BJ_N=24;renderBandeja();}));
+  if($('#bjMas'))$('#bjMas').onclick=()=>{BJ_N+=48;renderBandeja();};
+  if($('#bjPin'))$('#bjPin').onclick=()=>pinModal(()=>{renderBandeja();renderFicha();});
+}
+function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
+  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4" controls autoplay playsinline preload="metadata"></video></div>';
+  document.body.appendChild(o);const c=()=>o.remove();$('#vidX').onclick=c;o.addEventListener('click',e=>{if(e.target===o)c();});document.addEventListener('keydown',function k(e){if(e.key==='Escape'){c();document.removeEventListener('keydown',k);}});}
 function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
 const GRUPOS=[['Control documental · Recepción y Control',['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11']],['Contabilidad',['P12','C12','P13']],['Publicación',['P14']]];
 function flujoDoc(x,reg,hechos,sig){
@@ -958,6 +1024,11 @@ async function enviarHito(x,d){
   aviso(r.duplicado?'Ese hito ya estaba registrado.':(r.mensaje+(r.personaNueva?' '+d.ejecutor+' quedó en la lista, por reconocer por la jefatura.':'')));
   JUSTO=it.tipo==='TRANSFIERE'?it.paso:null;PSEL=null;olvidarExp(x.id);$('#formBox').innerHTML='';renderFicha();
 }
+/* Carátula: fecha y nombre de cada paso según la bitácora (lo del cuadro sale como «cuadro»). La firma va a mano. */
+function filaCar(x,p){const reg=(EVT[x.id]||EVTJ[x.id]||HITOS[x.id]||[]).filter(r=>r.estado!=='ANULADO');const h=hechosDe(reg);if(!h.has(p))return {fecha:'',nombre:''};
+  const own=reg.filter(r=>(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso===p);const r=own[own.length-1];
+  if(!r)return {fecha:'',nombre:'<span style="color:#666">ya hecho (cuadro)</span>'};
+  const t=String(r.ts||'');return {fecha:t?esc(t.slice(0,10).split('-').reverse().join('/')+(t.length>11&&t.slice(11,16)!=='00:00'?' '+t.slice(11,16):'')):'',nombre:esc(r.tipo==='EMPALME'?(r.ejecutor||'cuadro'):(r.ejecutor||r.quien||''))};}
 function renderCaratula(x){
   const e=x.e;const url='https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id;const enPages=EN_LINEA;
   $('#carBox').innerHTML='<div class="block"><div class="block-h"><h3>Carátula del expediente</h3><p>Se imprime y viaja dentro del folder; cada área firma su casilla y la foto de la carátula firmada es la evidencia del hito</p></div>'+
@@ -965,7 +1036,7 @@ function renderCaratula(x){
    '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · CEDIS Panamá</div><div style="font-family:Consolas,monospace;font-size:16px;font-weight:bold;margin-top:6px">'+x.id+'</div>'+
    '<div style="margin-top:6px">Proveedor: <b>'+esc(e.prov)+'</b><br>OC: <b>'+e.oc+'</b> · SAFIRO: <b>'+(e.safiro||'—')+'</b><br>Renglón: <b>'+esc(e.cod)+'</b> '+esc((e.desc||'').slice(0,60))+'<br>Recibido: <b>'+fdf(e.fRec)+'</b> · Cantidad: <b>'+(e.cant||0).toLocaleString('es-PA')+'</b></div></div><div id="qrc" style="width:120px;height:120px;flex:none"></div></div>'+
    '<table><thead><tr><th style="width:56px">Paso</th><th>Área · acción</th><th style="width:110px">Fecha y hora</th><th style="width:150px">Nombre</th><th style="width:110px">Firma</th></tr></thead><tbody>'+
-   PASOS.map(p=>'<tr><td style="font-family:Consolas,monospace">'+(p[0]==='C12'?'C·12→13':p[0])+'</td><td>'+esc(p[1])+' · '+esc(p[2])+'</td><td></td><td></td><td></td></tr>').join('')+'</tbody></table>'+
+   PASOS.map(p=>{const f=filaCar(x,p[0]);return '<tr><td style="font-family:Consolas,monospace">'+(p[0]==='C12'?'C·12→13':p[0])+'</td><td>'+esc(p[1])+' · '+esc(p[2])+'</td><td>'+f.fecha+'</td><td>'+f.nombre+'</td><td></td></tr>';}).join('')+'</tbody></table>'+
    '<div style="margin-top:6px;font-size:10px;color:#555">Escanee el código para abrir este expediente. Devoluciones: anotar motivo al reverso.</div></div></div></div>';
   try{new QRCode(document.getElementById('qrc'),{text:url,width:120,height:120,colorDark:'#000000',colorLight:'#ffffff'});}catch(err){$('#qrc').textContent='QR';}
   if(enPages)$('#bPrint').onclick=()=>window.print();
@@ -1058,7 +1129,7 @@ window.addEventListener('resize',()=>{if($('#tourOverlay').style.display==='bloc
 function showTab(id){document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===id)));document.querySelectorAll('section.panel').forEach(s=>s.hidden=(s.id!==id));}
 document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();}));
 $('#q').addEventListener('input',()=>{PAGE=0;renderTabla();});
-function irA(){const v=$('#selid').value.trim().toUpperCase();if(!v)return;let x=X.find(z=>z.id===v);if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
+function irA(){const v=$('#selid').value.trim().toUpperCase();if(!v)return;let x=X.find(z=>z.id===v)||X.find(z=>CIDS[z.id]&&[CIDS[z.id].pv,CIDS[z.id].fa,CIDS[z.id].ir].some(k=>k&&String(k).toUpperCase()===v));if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
 $('#go').addEventListener('click',irA);
 /* Buscador propio (mismo estilo que Curvas de Inventario): el datalist del navegador no acepta estilo. */
 function acMake(inp,panel,clr,fuente,elegir){
@@ -1073,7 +1144,7 @@ function acMake(inp,panel,clr,fuente,elegir){
   clr.addEventListener('click',()=>{inp.value='';clr.hidden=true;cerrar();elegir(null,'');inp.focus();});
 }
 const normB=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-acMake($('#selid'),$('#selidAC'),$('#selidX'),q=>{const t=normB(q);let L=X;if(t)L=X.filter(x=>normB(x.id+' '+x.e.oc+' '+x.e.cod+' '+x.e.prov+' '+(x.e.desc||'')).includes(t));
+acMake($('#selid'),$('#selidAC'),$('#selidX'),q=>{const t=normB(q);let L=X;if(t)L=X.filter(x=>normB(x.id+' '+x.e.oc+' '+x.e.cod+' '+x.e.prov+' '+(x.e.desc||'')+(CIDS[x.id]?' '+[CIDS[x.id].pv,CIDS[x.id].fa,CIDS[x.id].ir,CIDS[x.id].se].join(' '):'')).includes(t));
   return L.slice().sort((a,b)=>a.e.fRec<b.e.fRec?1:-1).slice(0,40).map(x=>({val:x.id,lab:x.id,sub:x.e.prov+' · '+x.e.cod+' '+String(x.e.desc||'').slice(0,50)+' · recibida '+fdf(x.e.fRec)}));},
   (o,txt)=>{if(o)abrir(o.val);else if(txt)irA();});
 $('#selLimpiar').addEventListener('click',()=>{$('#selid').value='';$('#selidX').hidden=true;$('#selid').focus();});
@@ -1089,6 +1160,8 @@ document.querySelectorAll('#tab th.sort').forEach(th=>th.addEventListener('click
 function aplicarTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');$('#tema').title=(t==='dark')?'Cambiar a tema claro':'Cambiar a tema oscuro';}
 let TEMA='light';try{TEMA=localStorage.getItem('rb_tema')||'light';}catch(e){}
 aplicarTema(TEMA);
+$('#btnVideo').addEventListener('click',abrirVideo);
+if('serviceWorker' in navigator&&EN_LINEA){try{navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(e){}}
 $('#tema').addEventListener('click',()=>{TEMA=(TEMA==='dark')?'light':'dark';aplicarTema(TEMA);try{localStorage.setItem('rb_tema',TEMA);}catch(e){}});
 function iniciar(){
   construir();
@@ -1098,7 +1171,8 @@ function iniciar(){
   const demo=X.find(x=>x.f101&&x.c&&x.t)||X.find(x=>x.f101&&x.c);
   const qp=new URLSearchParams(location.search);
   if(qp.get('proveedor')==='1'){modoProveedor(qp);return;}
-  const h=(location.hash||'').slice(1);if(h&&X.some(x=>x.id===h)){abrir(h);}else{SELID=(demo||X[0]).id;}
+  const h=(location.hash||'').slice(1);if(h&&X.some(x=>x.id===h)){abrir(h);}else{SELID=(demo||X[0]).id;showTab('p-ficha');renderFicha();}
+  if(VIVO_REG)cargarCids();
 }
 (async function(){
   if(EN_LINEA){try{S=await cargarVivo();}catch(err){S=foto();}}else S=foto();
