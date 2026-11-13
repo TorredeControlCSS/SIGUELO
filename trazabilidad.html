@@ -307,6 +307,10 @@ input,select,textarea{border-radius:8px}
 .split{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
 #colaTabla{flex:999 1 560px;min-width:0}
 .fcol{flex:1 1 500px;min-width:0;display:flex;flex-direction:column;gap:8px}
+#p-ficha.v-bandeja .fcol{display:none}
+#p-ficha.v-ficha #bandeja,#p-ficha.v-ficha #colaTabla{display:none}
+#p-ficha.v-ficha .fcol{flex:1 1 100%}
+.volver{display:inline-flex;align-items:center;gap:6px;font-weight:700}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .seg{display:inline-flex;border:1px solid var(--accent);border-radius:999px;overflow:hidden}
 .seg button{font:inherit;font-size:.78rem;border:0;background:var(--surface);color:var(--accent-ink);padding:5px 12px;cursor:pointer}
@@ -436,7 +440,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
     <h1>Trazabilidad Documental de la Recepción</h1>
     <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
   </div>
-  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><a id="btnGuia" href="./guias/Guia_SIGUELO_Trazabilidad_Documental_v1.0.pdf" target="_blank" rel="noopener" title="Guía de uso en PDF">Guía (PDF)</a><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
+  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><a id="btnGuia" href="./guias/Guia_SIGUELO_Trazabilidad_Documental_v1.1.pdf" target="_blank" rel="noopener" title="Guía de uso en PDF">Guía (PDF)</a><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
   <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div></div>
 </header>
 <div class="wrap">
@@ -495,7 +499,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
   <div class="split">
   <div id="colaTabla"></div>
   <div class="fcol">
-  <div class="toolbar"><label for="selid" class="muted" style="font-size:.82rem">Abrir otro</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="Previo, OC, factura, proveedor o renglón"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
+  <div class="toolbar"><button type="button" class="btn small volver" id="bVolver" title="Volver a la bandeja con los mismos filtros">&#8592; Volver a la bandeja</button><span class="sp" style="flex:1"></span><label for="selid" class="muted" style="font-size:.82rem">Abrir otro</label><div class="ac-wrap" style="min-width:320px;flex:0 1 420px"><input type="text" id="selid" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selidAC" placeholder="Previo, OC, factura, proveedor o renglón"><button type="button" class="ac-clear" id="selidX" aria-label="Limpiar" hidden>×</button><div class="ac-panel" id="selidAC" role="listbox"></div></div><button class="btn ghost small" id="go">Abrir</button><button class="btn ghost small" id="selLimpiar">Limpiar</button></div>
   <div id="ficha"></div>
   </div>
   </div>
@@ -902,7 +906,7 @@ async function prepEvid(f){
   return {base64:String(d).split(',')[1],mime:'application/pdf',nombre:f.name};
 }
 let SELID=null,PASOFORM=null,EVID=null;
-function abrir(id){SELID=id;try{history.replaceState(null,'','#'+id);}catch(e){}showTab('p-ficha');renderFicha();}
+function abrir(id){SELID=id;VISTA='ficha';try{history.replaceState(null,'','#'+id);}catch(e){}showTab('p-ficha');renderFicha();}
 function stepper(x){const e=x.e,S2=[];
   S2.push({t:'Solicitud de entrega',d:x.t?x.t.emision:null,sub:x.t?esc(x.t.doc):'No enlazada'});
   S2.push({t:'Cita confirmada',d:x.c?x.c.fConf:null,sub:x.c?(esc(x.c.id)+' · '+esc(x.c.estado)):'No enlazada'});
@@ -912,7 +916,7 @@ function stepper(x){const e=x.e,S2=[];
   let firstPend=S2.findIndex((s,i)=>i>=2&&!s.d);
   return '<div class="steps">'+S2.map((s,i)=>{const cls=s.d?'done':(i===firstPend?'now':(i<2?'na':''));return '<div class="step '+cls+'"><div class="bar"></div><span class="t">'+s.t+'</span><span class="dte">'+(s.d?fdf(s.d):'—')+'</span><span class="sub">'+s.sub+'</span></div>';}).join('')+'</div>';}
 function renderFicha(){
-  renderBandeja();
+  aplicarVista();renderBandeja();
   const box=$('#ficha');const x=X.find(v=>v.id===SELID)||X.find(v=>v.f101&&v.c)||X[0];SELID=x.id;$('#selid').value=x.id;
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined&&(EVTJ_OK||EVTJ[x.id])){EVT[x.id]=(EVTJ[x.id]||[]).slice();}
   if(VIVO_REG&&hab(x)&&EVT[x.id]===undefined){box.innerHTML='<div class="block"><p class="muted">Cargando la bitácora del expediente '+x.id+'…</p></div>';CONFIRMADO.add(x.id);cargarEventos(x.id).then(()=>{if(SELID===x.id)renderFicha();});return;}
@@ -966,6 +970,9 @@ function personaDe(area){const L=personas().filter(q=>q.area===area&&!q.pendient
 function colPersona(n){if(!n)return '#c9a227';const L=[];AREAS.forEach(a=>{const q=personaDe(a);if(q&&L.indexOf(q)<0)L.push(q);});const k=L.indexOf(n);return k<0?'#8a8a8a':PAL[k%PAL.length];}
 const corto=n=>String(n||'').split(' ')[0];
 /* ---------- Cola de trabajo: lista priorizada (pantalla principal) ---------- */
+let VISTA='bandeja';
+function aplicarVista(){const p=$('#p-ficha');if(!p)return;p.classList.toggle('v-ficha',VISTA==='ficha');p.classList.toggle('v-bandeja',VISTA!=='ficha');}
+function volverBandeja(){VISTA='bandeja';try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}aplicarVista();renderBandeja();window.scrollTo(0,0);const tr=document.querySelector('#colaTabla tr.fila.sel');if(tr){tr.scrollIntoView({block:'center'});tr.focus({preventScroll:true});}}
 let COLA_M='persona',COLA_F=null,COLA_E='todos',COLA_Q='',COLA_N=50,COLA_P=null,COLA_INI=false;
 function colaItems(){return bandejaDatos().map(o=>{o.persona=personaDe(o.area);return o;});}
 function colaFiltrar(D,conClave){return D.filter(o=>{
@@ -1015,7 +1022,7 @@ function renderColaTabla(){const box=$('#colaTabla');if(!box)return;
   box.innerHTML='<div class="ctab"><table><thead><tr><th>Previo</th><th>Proveedor · producto</th><th>Le toca ahora</th><th>Avance</th><th style="text-align:right">Esperando</th></tr></thead><tbody>'+
     (L.length?L.slice(0,COLA_N).map(fila).join(''):'<tr><td colspan="5" class="muted" style="padding:14px">No hay expedientes con estos filtros.</td></tr>')+'</tbody></table>'+
     '<div class="muted" style="font-size:.76rem;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Mostrando '+Math.min(COLA_N,L.length)+' de '+L.length+'</span>'+(L.length>COLA_N?'<button class="btn ghost small" id="colaMas">Ver más</button>':'')+'</div></div>';
-  box.querySelectorAll('tr.fila').forEach(tr=>{const go=()=>{SELID=tr.dataset.id;try{history.replaceState(null,'','#'+SELID);}catch(e){}renderFicha();if(innerWidth<1100)bajarA('#ficha');};tr.onclick=go;tr.onkeydown=ev=>{if(ev.key==='Enter')go();};});
+  box.querySelectorAll('tr.fila').forEach(tr=>{const go=()=>{SELID=tr.dataset.id;VISTA='ficha';try{history.replaceState(null,'','#'+SELID);}catch(e){}renderFicha();window.scrollTo(0,0);};tr.onclick=go;tr.onkeydown=ev=>{if(ev.key==='Enter')go();};});
   if($('#colaMas'))$('#colaMas').onclick=()=>{COLA_N+=100;renderColaTabla();};
 }
 /* ---------- Flujo agregado: los 15 pasos con lo que espera en cada uno ---------- */
@@ -1040,10 +1047,10 @@ function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_RE
     '<span class="fax big" aria-hidden="true"></span><div class="fa-g gx"><div class="fa-h"><span>Remisión a Contraloría</span></div><span class="muted" style="font-size:.78rem">Sin registro digital · fuera de SIGUELO</span></div></div></div>';
   box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{FA_M=b.dataset.m;FA_F=null;renderFlujoAgg();});
   box.querySelectorAll('.pchip[data-k]').forEach(b=>b.onclick=()=>{FA_F=b.dataset.k||null;renderFlujoAgg();});
-  box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
+  box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';VISTA='bandeja';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
 }
 function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
-  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=2" controls autoplay playsinline preload="metadata"></video></div>';
+  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=3" controls autoplay playsinline preload="metadata"></video></div>';
   document.body.appendChild(o);const c=()=>o.remove();$('#vidX').onclick=c;o.addEventListener('click',e=>{if(e.target===o)c();});document.addEventListener('keydown',function k(e){if(e.key==='Escape'){c();document.removeEventListener('keydown',k);}});}
 function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
 const GRUPOS=[['Control documental · Recepción y Control',['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11']],['Contabilidad',['P12','C12','P13']],['Publicación',['P14']]];
@@ -1274,7 +1281,7 @@ const TOUR=[
   {sel:'#bAge',tab:'p-flujo',tit:'6. Lo que se quedó atrás',txt:'Líneas sin entrada contable según cuántos días hábiles llevan desde la recepción, con su valor. Los tramos en rojo ya superan el p85.'},
   {sel:'#fbar',tab:'p-exps',tit:'7. Buscar y filtrar',txt:'Busque por número de OC, código de renglón, descripción o proveedor. Filtre por proveedor, por renglón y por etapa. <b>Limpiar filtros</b> regresa a la vista completa.'},
   {sel:'#tab thead',tab:'p-exps',tit:'8. La tabla manda',txt:'Toque el encabezado de cualquier columna para ordenar de forma ascendente o descendente. Toque una fila para abrir la ficha del expediente.'},
-  {sel:'#ficha',tab:'p-ficha',tit:'9. La ficha y el registro de hitos',txt:'Arriba, los hitos con fecha real de los sistemas. Abajo, los 14 pasos del proceso documental: cada paso se registra eligiendo <b>quién lo hizo</b> de la lista (o agregando a alguien nuevo) y si quedó <b>completado total</b> o <b>parcial</b> (adelantos o expediente incompleto: queda en ese paso). La evidencia es opcional. La devolución exige motivo y no borra lo anterior.'},
+  {sel:'#ficha',tab:'p-ficha',tit:'9. La ficha y el registro de hitos',txt:'Arriba, los hitos con fecha real de los sistemas. Abajo, los 15 pasos del proceso documental: cada paso se registra eligiendo <b>quién lo hizo</b> de la lista (o agregando a alguien nuevo) y si quedó <b>completado total</b> o <b>parcial</b> (adelantos o expediente incompleto: queda en ese paso). La evidencia es opcional. La devolución exige motivo y no borra lo anterior.'},
   {sel:'#bCar',tab:'p-ficha',tit:'10. La carátula del folder',txt:'Se imprime y viaja dentro del folder del proveedor, con casillas de firma por paso y un código QR que abre este expediente. La foto de la carátula firmada sirve como evidencia del hito.'},
   {sel:'#sgBox',tab:'p-prov',tit:'11. Lo que verá el proveedor',txt:'Prototipo de la sección que se agregará al portal de citas: el proveedor consulta su OC y ve, de forma referencial, en qué etapa registra el sistema la documentación de cada entrega.'}
 ];
@@ -1284,7 +1291,7 @@ function tourCerrar(){$('#tourOverlay').style.display='none';const sp=document.q
 function tourPaso(){const st=TOUR[TOUR_I];if(!st){tourCerrar();return;}
   $('#tourTitulo').textContent=st.tit;$('#tourTexto').innerHTML=st.txt;$('#tourPaso').textContent='Paso '+(TOUR_I+1)+' de '+TOUR.length;
   $('#tourPrev').style.visibility=TOUR_I===0?'hidden':'visible';$('#tourNext').textContent=TOUR_I===TOUR.length-1?'Terminar':'Siguiente ▸';
-  const vis=document.getElementById(st.tab);const cambia=vis&&vis.hidden;if(cambia){showTab(st.tab);if(st.tab==='p-ficha')renderFicha();}
+  const vis=document.getElementById(st.tab);const cambia=vis&&vis.hidden;if(st.tab==='p-ficha'&&VISTA!=='ficha'){VISTA='ficha';if(!cambia)renderFicha();}if(cambia){showTab(st.tab);if(st.tab==='p-ficha')renderFicha();}
   setTimeout(()=>tourPosicionar(st),cambia?220:0);}
 function tourPosicionar(st){const target=document.querySelector(st.sel);const box=$('#tourBox');let sp=document.querySelector('.tour-spot');
   if(!sp){sp=document.createElement('div');sp.className='tour-spot';$('#tourOverlay').appendChild(sp);}
@@ -1322,6 +1329,7 @@ const normB=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u0
 acMake($('#selid'),$('#selidAC'),$('#selidX'),q=>{const t=normB(q);let L=X;if(t)L=X.filter(x=>normB(x.id+' '+x.e.oc+' '+x.e.cod+' '+x.e.prov+' '+(x.e.desc||'')+(CIDS[x.id]?' '+[CIDS[x.id].pv,CIDS[x.id].fa,CIDS[x.id].ir,CIDS[x.id].se].join(' '):'')).includes(t));
   return L.slice().sort((a,b)=>a.e.fRec<b.e.fRec?1:-1).slice(0,40).map(x=>({val:x.id,lab:x.id,sub:x.e.prov+' · '+x.e.cod+' '+String(x.e.desc||'').slice(0,50)+' · recibida '+fdf(x.e.fRec)}));},
   (o,txt)=>{if(o)abrir(o.val);else if(txt)irA();});
+$('#bVolver').addEventListener('click',volverBandeja);
 $('#selLimpiar').addEventListener('click',()=>{$('#selid').value='';$('#selidX').hidden=true;$('#selid').focus();});
 acMake($('#fRen'),$('#fRenAC'),$('#fRenX'),q=>{const t=normB(q);const m=new Map();X.forEach(x=>{if(!m.has(x.e.cod))m.set(x.e.cod,{d:x.e.desc||'',n:0});m.get(x.e.cod).n++;});
   let L=[...m.entries()];if(t)L=L.filter(([c,v])=>normB(c+' '+v.d).includes(t));
