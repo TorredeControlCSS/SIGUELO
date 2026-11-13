@@ -978,6 +978,32 @@ function trzEscribirCuadro_(cu) {
 
 /* Deshacer el empalme: marca ANULADO todos los eventos EMPALME (y los PARCIAL
    que vinieron del cuadro). No borra filas. */
+/* Rehace el empalme (13-nov-2026): anula en bloque los eventos del primer
+   empalme (ID_CLIENTE EMP-…) y carga el nuevo archivo (ID_CLIENTE EMP2-…),
+   emparejado por OC + renglón + fecha del cuadro (±10 días), uno a uno.
+   Nada se borra: los anteriores quedan en TRZ_EVENTOS como ANULADO. */
+function trzReemplazarEmpalme() {
+  var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  var n = 0;
+  try {
+    var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), ahora = new Date();
+    for (var i = 1; i < v.length; i++) {
+      if (String(v[i][c.USUARIO]) !== TRZ_USUARIO_EMPALME || String(v[i][c.ESTADO]) === 'ANULADO') continue;
+      if (String(v[i][c.ID_CLIENTE]).indexOf('EMP2-') === 0) continue;
+      v[i][c.ESTADO] = 'ANULADO'; v[i][c.ANULADO_POR] = 'Torre de Control'; v[i][c.ANULADO_TS] = ahora;
+      v[i][c.ANULADO_MOTIVO] = 'Empalme rehecho el 13-nov-2026: emparejamiento por OC, renglón y fecha del cuadro';
+      n++;
+    }
+    if (n && v.length > 1) ['ESTADO', 'ANULADO_POR', 'ANULADO_TS', 'ANULADO_MOTIVO'].forEach(function (k) {
+      sh.getRange(2, c[k] + 1, v.length - 1, 1).setValues(v.slice(1).map(function (r) { return [r[c[k]]]; }));
+    });
+    SpreadsheetApp.flush();
+  } finally { lock.releaseLock(); }
+  Logger.log('Empalme anterior anulado: ' + n + ' eventos.');
+  trzImportarEmpalme();
+}
+
 function trzAnularEmpalme() {
   var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
   var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), n = 0;
