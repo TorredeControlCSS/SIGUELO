@@ -346,6 +346,17 @@ input,select,textarea{border-radius:8px}
 .tl .q{font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:5px}
 .tl .q i{width:8px;height:8px;border-radius:50%;display:inline-block}
 .tl .w{font-size:.74rem;color:var(--muted);text-align:right;max-width:150px}
+.fx2{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"h r" "l r";gap:12px 16px;align-items:start}
+.fx-h{grid-area:h;min-width:0}.fx-l{grid-area:l;min-width:0}
+.fx-r{grid-area:r;align-self:start;position:sticky;top:10px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 20px);overflow:auto;padding-bottom:4px}
+.fx-r .toca{margin:0;padding:14px;box-shadow:0 4px 14px rgba(12,68,124,.12)}.fx-r .toca .p{font-size:1.05rem}
+.fx-r .toca .btn{font-size:.95rem;padding:10px 14px}
+.fx-r .form{grid-template-columns:1fr}
+.qrc{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.qrc p{font-size:.76rem;color:var(--muted);margin:3px 0 7px;line-height:1.35}
+#qrMini{width:92px;height:92px;flex:none;background:#fff;padding:5px;border-radius:8px;border:1px solid var(--line)}
+.solo-m{display:none}
+@media (max-width:900px){.fx2{grid-template-columns:1fr;grid-template-areas:"r" "h" "l"}.solo-m{display:block}.fx-r{position:static;max-height:none;overflow:visible}}
 .toca{border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin:6px 0;display:flex;flex-direction:column;gap:6px}
 .toca.parc{border-color:var(--parc);background:var(--parc-soft)}.toca.dev{border-color:var(--bad);background:var(--bad-soft)}
 .toca .k{font-size:.7rem;font-weight:700;letter-spacing:.04em;color:var(--accent-ink)}
@@ -365,13 +376,28 @@ input,select,textarea{border-radius:8px}
 .fa-s .q{font-size:.7rem;align-self:flex-start;border-radius:999px;padding:1px 8px;background:var(--accent-soft);color:var(--accent-ink)}
 .fa-s .q.conf{background:var(--k-amb);color:var(--warn)}
 .fa-s .p{font-size:.7rem;color:var(--muted);display:flex;gap:5px;align-items:center}.fa-s .p i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.fa-grid{display:flex;flex-direction:column;gap:0;margin-top:10px}
+.fa-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;border-radius:14px;padding:12px;border:1px solid var(--line)}
+.fa-row.g0{background:var(--k-blue)}.fa-row.g1{background:var(--k-amb)}.fa-row.g2{background:var(--k-green)}
+.fa-row.gx{border:1px dashed var(--border);background:repeating-linear-gradient(135deg,transparent 0 7px,var(--line) 7px 8px)}
+.fa-lab{display:flex;flex-direction:column;gap:3px;font-size:.74rem;color:var(--muted)}
+.fa-lab b{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink)}
+.fa-lab .t{font-weight:700;color:var(--ink)}
+.fa-cells{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));row-gap:10px}
+.fa-cell{display:flex;align-items:stretch;min-width:0}.fa-cell .fa-s{width:auto;flex:1;min-width:0}
+.fax.sp{visibility:hidden}
+.fa-down{width:2px;height:22px;margin:0 0 0 96px;background:repeating-linear-gradient(180deg,var(--border) 0 5px,transparent 5px 9px);position:relative}
+.fa-down.vivo{background:repeating-linear-gradient(180deg,var(--accent) 0 5px,transparent 5px 9px);background-size:2px 9px;animation:fluyeY .7s linear infinite}
+@keyframes fluyeY{to{background-position:0 9px}}
+@media (max-width:1100px){.fa-cells{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px}.fa-cell .fax{display:none}}
+@media (max-width:700px){.fa-row{grid-template-columns:1fr}.fa-cells{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .fax{width:26px;height:2px;align-self:center;flex-shrink:0;position:relative;background:repeating-linear-gradient(90deg,var(--border) 0 5px,transparent 5px 9px)}
 .fax::after{content:"";position:absolute;right:-2px;top:-4px;border-left:7px solid var(--border);border-top:5px solid transparent;border-bottom:5px solid transparent}
 .fax.vivo{background:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 9px);background-size:9px 2px;animation:fluyeX .7s linear infinite}
 .fax.vivo::after{border-left-color:var(--accent)}
 .fax.big{width:44px;height:3px}
 @keyframes fluyeX{to{background-position:9px 0}}
-@media (prefers-reduced-motion:reduce){.fax.vivo{animation:none}}
+@media (prefers-reduced-motion:reduce){.fax.vivo,.fa-down.vivo{animation:none}}
 /* Bandeja: lo que le toca a cada área */
 #bandeja .block{margin-bottom:10px}
 .bj-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
@@ -440,7 +466,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
     <h1>Trazabilidad Documental de la Recepción</h1>
     <div class="sub">Caja de Seguro Social · Dirección Nacional de Logística · Centro de Distribución de Panamá</div>
   </div>
-  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><a id="btnGuia" href="./guias/Guia_SIGUELO_Trazabilidad_Documental_v1.1.pdf" target="_blank" rel="noopener" title="Guía de uso en PDF">Guía (PDF)</a><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
+  <div class="hbtns"><button id="btnVideo" type="button" title="Video: cómo registrar cada paso">&#9654; Video instructivo</button><a id="btnGuia" href="./guias/Guia_SIGUELO_Trazabilidad_Documental_v1.2.pdf" target="_blank" rel="noopener" title="Guía de uso en PDF">Guía (PDF)</a><button id="btnTour" type="button" title="Recorrido guiado por el tablero">Recorrido guiado</button><button class="icon-btn" id="tema" type="button" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div>
   <div class="meta"><div id="status"><span class="dot snap"></span>Cargando datos…</div></div>
 </header>
 <div class="wrap">
@@ -448,12 +474,16 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
 <nav class="tabs" role="tablist" aria-label="Secciones">
   <button role="tab" id="t-ficha" aria-selected="true" data-p="p-ficha">Registro de hitos</button>
   <button role="tab" id="t-flujo" aria-selected="false" data-p="p-flujo">Flujo</button>
+  <button role="tab" id="t-ind" aria-selected="false" data-p="p-ind">Indicadores</button>
   <button role="tab" id="t-exps" aria-selected="false" data-p="p-exps">Expedientes</button>
   <button role="tab" id="t-prov" aria-selected="false" data-p="p-prov">Vista del proveedor</button>
 </nav>
 
 <section class="panel" id="p-flujo" role="tabpanel" aria-labelledby="t-flujo" hidden>
   <div id="flujoDocAgg"></div>
+</section>
+
+<section class="panel" id="p-ind" role="tabpanel" aria-labelledby="t-ind" hidden>
   <div class="kpis" id="kpis"></div>
   <div class="block" id="bRecorrido">
     <div class="block-h"><h2>Recorrido del expediente</h2><p>Bajo cada unión: días hábiles típicos y plazo en que se resuelve el 85 % de las líneas · en rojo, la etapa con más atrasadas</p></div>
@@ -923,15 +953,17 @@ function renderFicha(){
   if(VIVO_REG&&hab(x)&&SES)confirmarEnFondo(x.id);   // sin sesión basta la bitácora publicada (no se llama al GAS)
   const e=x.e,reg=VIVO_REG?((EVT[x.id]||[]).filter(r=>r.estado!=='ANULADO'&&r.tipo!=='ALTA_MANUAL')):(HITOS[x.id]||[]);const hechos=hechosDe(reg);
   const sig=hab(x)?PASOS.find(p=>!hechos.has(p[0])):null;
-  let h='<div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv):x.id)+'</h2><div class="muted mono" style="font-size:.74rem">'+(CIDS[x.id]&&CIDS[x.id].pv?x.id:'')+'</div>'+(x.c?'<div class="tg" style="background:var(--ok-soft);color:var(--ok);font-size:.76rem">Cita <b class="mono">'+esc(x.c.id)+'</b>'+(x.c.fConf?' · confirmada para el '+fdf(x.c.fConf):'')+' · '+esc(String(x.c.estado||'').toLowerCase())+'</div>':'<div class="tg" style="background:var(--surface2);color:var(--muted);font-size:.76rem">Sin cita en SIGUELO</div>')+'</div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
+  let h='<div class="fx2"><div class="fx-h"><div class="block"><div class="ficha-h"><div><div class="muted" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Expediente de recepción</div><h2 class="mono">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv):x.id)+'</h2><div class="muted mono" style="font-size:.74rem">'+(CIDS[x.id]&&CIDS[x.id].pv?x.id:'')+'</div>'+(x.c?'<div class="tg" style="background:var(--ok-soft);color:var(--ok);font-size:.76rem">Cita <b class="mono">'+esc(x.c.id)+'</b>'+(x.c.fConf?' · confirmada para el '+fdf(x.c.fConf):'')+' · '+esc(String(x.c.estado||'').toLowerCase())+'</div>':'<div class="tg" style="background:var(--surface2);color:var(--muted);font-size:.76rem">Sin cita en SIGUELO</div>')+'</div><div class="toolbar"><button class="btn ghost small" id="bCar">Carátula con QR</button></div></div>'+
    '<div class="facts">'+[['Proveedor',esc(e.prov)],['Orden de compra','<span class="mono">'+e.oc+'</span>'],['Pedido SAFIRO','<span class="mono">'+(e.safiro||'—')+'</span>'],['Renglón','<span class="mono">'+esc(e.cod)+'</span> '+esc((e.desc||'').slice(0,48))],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento de entrega',esc(e.cumpl||'—')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]].concat(CIDS[x.id]?[['En el cuadro de Control','Previo <span class="mono">'+esc(CIDS[x.id].pv||'—')+'</span> · factura <span class="mono">'+esc(CIDS[x.id].fa||'—')+'</span><br>Informe <span class="mono">'+esc(CIDS[x.id].ir||'—')+'</span> · secuencial <span class="mono">'+esc(CIDS[x.id].se||'—')+'</span>']]:[]).map(f=>'<div class="fact"><div class="k">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>').join('')+'</div>'+
    altaBanner(x)+
    '<div><h3 style="margin-bottom:4px">Hitos con registro en sistemas (datos reales)</h3>'+stepper(x)+(x.rev?'<p class="note">Este renglón tiene un reverso 102 en SAP: la entrada contable se corrigió al menos una vez.</p>':'')+'</div></div>';
-  h+='<div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
+  h+='</div><div class="fx-l"><div class="block"><div class="block-h"><h3>Proceso documental · registro de hitos</h3><p>'+(hab(x)?'Cada paso se registra con quién lo hizo, la fecha y si quedó completado total o parcial; la evidencia es opcional':'Se habilita cuando exista la entrada contable 101')+'</p></div>'+
    (VIVO_REG?barraSesion(x):'<p class="note">Modo demostración: lo que registre aquí se guarda solo en este navegador. En la versión publicada se envía a SIGUELO (bitácora TRZ_EVENTOS) y la evidencia a Drive, con ingreso por PIN.</p>')+'';
-  h+=timelineDoc(x,reg,hechos,sig);
-  h+=(VIVO_REG?bitacora(x):'')+'<div id="formBox"></div></div><div id="carBox"></div>';
+  const T=timelineDoc(x,reg,hechos,sig);
+  h+=T.tl+(VIVO_REG?bitacora(x):'')+'</div></div><aside class="fx-r" aria-label="Lo que toca">'+T.toca+'<div id="formBox"></div>'+qrCard(x)+'</aside></div><div id="carBox"></div>';
   box.innerHTML=h;
+  try{new QRCode(document.getElementById('qrMini'),{text:'https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id,width:92,height:92,colorDark:'#000000',colorLight:'#ffffff'});}catch(err){}
+  if($('#bCar2'))$('#bCar2').onclick=()=>renderCaratula(x);
   box.querySelectorAll('[data-reg]').forEach(b=>b.addEventListener('click',()=>{PASOFORM=b.dataset.reg;EVID=null;
     if(VIVO_REG&&!SES){pinModal(()=>{renderFicha();if(puede(PASOFORM)){renderForm(X.find(v=>v.id===SELID));bajarA('#frm');}else{aviso('Ese paso le corresponde a otra área.',true);bajarA('#fdet');}});return;}renderForm(x);bajarA('#frm');}));
   box.querySelectorAll('.fn[data-p]').forEach(b=>b.addEventListener('click',()=>{PSEL=b.dataset.p;renderFicha();}));
@@ -1034,25 +1066,24 @@ function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_RE
   const caja=(p,primero)=>{const q=PASOS.find(z=>z[0]===p),k=ord.indexOf(p),c=n[p]||0,per=personaDe(q[1]);
     const clave=FA_M==='persona'?(per||'Por confirmar'):q[1];const off=FA_F&&FA_F!==clave;
     const ring=FA_F&&!off?(FA_M==='persona'?colPersona(per):colArea(q[1])):'';
-    return (primero?'':'<span class="fax'+(c?' vivo':'')+'" aria-hidden="true"></span>')+
+    return (primero?'<span class="fax sp" aria-hidden="true"></span>':'<span class="fax'+(c?' vivo':'')+'" aria-hidden="true"></span>')+
       '<button type="button" class="fa-s'+(c?' hay':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+'><span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+
       '<span class="q'+(per?'':' conf')+'">'+esc(AREA_TXT(q[1]))+'</span><span class="p"><i style="background:'+(FA_M==='persona'?colPersona(per):colArea(q[1]))+'"></i>'+esc(per||'por confirmar')+'</span></button>';};
   const grupo=(g,i)=>{const ps=g[1],tot=ps.reduce((a,p)=>a+(n[p]||0),0);
-    return '<div class="fa-g g'+i+'"><div class="fa-h"><span>'+esc(g[0])+'</span><span>pasos '+(ord.indexOf(ps[0])+1)+(ps.length>1?' al '+(ord.indexOf(ps[ps.length-1])+1):'')+' · '+tot+' esperando</span></div><div class="fa-r">'+ps.map((p,j)=>caja(p,j===0||(i===0&&j===6))).join('')+'</div></div>';};
+    return (i?'<div class="fa-down'+(tot?' vivo':'')+'" aria-hidden="true"></div>':'')+'<div class="fa-row g'+i+'"><div class="fa-lab"><b>'+esc(g[0])+'</b><span>'+(ps.length>1?'Pasos ':'Paso ')+(ord.indexOf(ps[0])+1)+(ps.length>1?' al '+(ord.indexOf(ps[ps.length-1])+1):'')+'</span><span class="t">'+tot+' esperando</span></div><div class="fa-cells">'+ps.map((p,j)=>'<div class="fa-cell">'+caja(p,j%6===0)+'</div>').join('')+'</div></div>';};
   const chip=(k,lbl,col)=>'<button type="button" class="pchip" data-k="'+esc(k)+'" aria-pressed="'+((FA_F||'')===k)+'"><i style="background:'+col+'"></i>'+esc(lbl)+'</button>';
   box.innerHTML='<div class="block"><div class="block-h"><h2>Proceso documental · los 15 pasos de Control Operativo</h2><p>Cada caja: qué se hace, quién lo hace y cuántos expedientes esperan hoy. La línea animada marca hacia dónde se mueve el trabajo. Toque una caja para ver esos expedientes.</p></div>'+
     '<div class="ctl"><div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-m="persona" aria-pressed="'+(FA_M==='persona')+'">Por persona</button><button type="button" data-m="area" aria-pressed="'+(FA_M==='area')+'">Por área</button></div>'+
     chip('',FA_M==='persona'?'Todos':'Todas','#8a8a8a')+claves.map(k=>FA_M==='persona'?chip(k,k==='Por confirmar'?k:corto(k),colPersona(k==='Por confirmar'?null:k)):chip(k,AREA_TXT(k),colArea(k))).join('')+'</div>'+
-    grupo(GRUPOS[0],0)+'<div class="fa-r" style="align-items:stretch">'+'<span class="fax big vivo" aria-hidden="true"></span>'+grupo(GRUPOS[1],1)+'<span class="fax big vivo" aria-hidden="true"></span>'+grupo(GRUPOS[2],2)+
-    '<span class="fax big" aria-hidden="true"></span><div class="fa-g gx"><div class="fa-h"><span>Remisión a Contraloría</span></div><span class="muted" style="font-size:.78rem">Sin registro digital · fuera de SIGUELO</span></div></div></div>';
+    '<div class="fa-grid">'+GRUPOS.map(grupo).join('')+'<div class="fa-down" aria-hidden="true"></div><div class="fa-row gx"><div class="fa-lab"><b>Remisión a Contraloría</b></div><div class="fa-cells"><span class="muted" style="font-size:.78rem;grid-column:1/-1;align-self:center">Sin registro digital · fuera de SIGUELO</span></div></div></div></div>';
   box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{FA_M=b.dataset.m;FA_F=null;renderFlujoAgg();});
   box.querySelectorAll('.pchip[data-k]').forEach(b=>b.onclick=()=>{FA_F=b.dataset.k||null;renderFlujoAgg();});
   box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';VISTA='bandeja';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
 }
 function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
-  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=3" controls autoplay playsinline preload="metadata"></video></div>';
+  o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=4" controls autoplay playsinline preload="metadata"></video></div>';
   document.body.appendChild(o);const c=()=>o.remove();$('#vidX').onclick=c;o.addEventListener('click',e=>{if(e.target===o)c();});document.addEventListener('keydown',function k(e){if(e.key==='Escape'){c();document.removeEventListener('keydown',k);}});}
-function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
+function bajarA(sel){setTimeout(()=>{const el=$(sel);if(!el)return;if(el.closest('.fx-r')&&innerWidth>900){const a=el.closest('.fx-r');a.scrollTop=Math.max(0,el.offsetTop-a.offsetTop-8);const r=a.getBoundingClientRect();if(r.top<0||r.top>innerHeight*.5)a.scrollIntoView({block:'start'});}else el.scrollIntoView({behavior:'smooth',block:'center'});const f=el.querySelector('input:not([type=hidden]),select,textarea,button');if(f)try{f.focus({preventScroll:true});}catch(e){}},60);}
 const GRUPOS=[['Control documental · Recepción y Control',['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11']],['Contabilidad',['P12','C12','P13']],['Publicación',['P14']]];
 function flujoDoc(x,reg,hechos,sig){
   if(PSEL_ID!==x.id){PSEL_ID=x.id;PSEL=null;}
@@ -1105,7 +1136,7 @@ function timelineDoc(x,reg,hechos,sig){
   const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
   const ultTs=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
-  const nH=ord.filter(p=>hechos.has(p)).length,pct=Math.round(100*nH/ord.length);
+  const nH=ord.filter(p=>hechos.has(p)).length,pct=Math.round(100*nH/ord.length);let tocaH='';
   let h='<div class="favance"><span><b>Avance documental:</b> '+nH+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nH+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
   if(dev){const qa=PASOS.find(z=>z[0]===dev.paso),qd=PASOS.find(z=>z[0]===dev.dest);h+='<div class="fdev" role="status"><b>Devuelto</b> desde el paso '+(ord.indexOf(dev.paso)+1)+' ('+esc(qa?qa[2]:'')+') al paso '+(ord.indexOf(dev.dest)+1)+' ('+esc(qd?qd[2]:'')+')'+(dev.ts?' · '+esc(String(dev.ts).replace('T',' ')):'')+' · '+hechoPor(dev)+'<br><span>Motivo: '+esc(dev.motivo||'—')+(dev.obs?' · '+esc(dev.obs):'')+'</span></div>';}
   if(parc&&!dev){h+='<div class="fparc" role="status"><b>Parcial</b> en el paso '+(ord.indexOf(parc.paso)+1)+(parc.ts?' · '+esc(String(parc.ts).replace('T',' ')):'')+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. Sigue en este paso hasta registrarlo como completado total.</span></div>';}
@@ -1116,15 +1147,17 @@ function timelineDoc(x,reg,hechos,sig){
       const cls=done?'h':(now?'a':(reab.has(p)?'r':''));
       h+='<div class="tl '+cls+'"><div class="n">'+(done?'✓':k+1)+'</div><div class="t"><b>'+esc(q[2])+'</b><div class="q"><i style="background:'+colArea(q[1])+'"></i>'+esc(AREA_TXT(q[1]))+' · '+esc(per||'por confirmar')+'</div></div><div class="w">'+(done?dato(p):(now?'le toca · '+espera+' d':(reab.has(p)?'se repite':'')))+'</div></div>';
       if(now){const pa=puede(p);
-        h+='<div class="toca'+(dev?' dev':(parc?' parc':''))+'" id="fdet"><div class="k">'+(dev?'DEVUELTO · CORREGIR Y VOLVER A REGISTRAR':(parc?'PARCIAL · SIGUE EN ESTE PASO':'LE TOCA A '+esc(AREA_TXT(q[1]).toUpperCase())))+' · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+' esperando</div>'+
-          '<div class="p">Paso '+(k+1)+' · '+esc(q[2])+'</div><div class="muted" style="font-size:.8rem">Responsable: '+esc(AREA_TXT(q[1]))+(per?' ('+esc(per)+')':'')+'</div>'+
+        tocaH+='<div class="toca'+(dev?' dev':(parc?' parc':''))+'" id="fdet"><div class="k">'+(dev?'DEVUELTO · CORREGIR Y VOLVER A REGISTRAR':(parc?'PARCIAL · SIGUE EN ESTE PASO':'LE TOCA A '+esc(AREA_TXT(q[1]).toUpperCase())))+' · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+' esperando</div>'+
+          '<div class="solo-m mono" style="font-size:.95rem;font-weight:700">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv)+' · ':'')+esc((x.e.prov||'').slice(0,34))+'</div><div class="p">Paso '+(k+1)+' · '+esc(q[2])+'</div><div class="muted" style="font-size:.8rem">Responsable: '+esc(AREA_TXT(q[1]))+(per?' ('+esc(per)+')':'')+'</div>'+
           (pa?'<button class="btn" data-reg="'+p+'">'+(parc&&!dev?'Actualizar':'Registrar')+' «'+esc(q[2])+'»</button>':'<span class="muted" style="font-size:.8rem">Lo registra '+esc(AREA_TXT(q[1]))+'. Con su PIN usted ve y registra los pasos de su área.</span>')+'</div>';}
     });});
-  if(!sig)h+='<div class="toca" style="border-color:var(--ok);background:var(--ok-soft)"><div class="k" style="color:var(--ok)">EXPEDIENTE COMPLETO</div><div class="p">Los 15 pasos están registrados</div></div>';
+  if(!sig&&hab(x))tocaH+='<div class="toca" style="border-color:var(--ok);background:var(--ok-soft)"><div class="k" style="color:var(--ok)">EXPEDIENTE COMPLETO</div><div class="p">Los 15 pasos están registrados</div></div>';
   h+='<div class="tl-g">Remisión a Contraloría</div><div class="muted" style="font-size:.78rem">Sin registro digital · fuera de SIGUELO</div>';
   setTimeout(()=>{JUSTO=null;},50);
-  return h;
+  if(!hab(x))tocaH='<div class="toca"><div class="k">AÚN NO SE PUEDE REGISTRAR</div><div class="muted" style="font-size:.8rem">Se habilita cuando la recepción aparece en el informe de entradas de Abasto.</div></div>';
+  return {tl:h,toca:tocaH};
 }
+function qrCard(x){return '<div class="qrc"><div id="qrMini" aria-label="Código QR de este expediente"></div><div><b>Carátula con QR</b><p>Escanee el código con el celular y se abre este expediente. Imprima la carátula para el folder.</p><button type="button" class="btn ghost small" id="bCar2">Ver e imprimir carátula</button></div></div>';}
 function barraSesion(x){
   const nc=COLA.filter(c=>c.exp===x.id).length;
   const err=EVT[x.id]===null?'<span class="cola">No se pudo leer la bitácora desde SIGUELO.</span><button class="btn ghost small" id="bRelee">Reintentar</button>':'';
@@ -1274,11 +1307,11 @@ document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.
   tip.innerHTML=t.getAttribute('data-tip');tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+14,y=ev.clientY+14;if(x+w>window.innerWidth-8)x=ev.clientX-w-14;if(y+h>window.innerHeight-8)y=ev.clientY-h-14;tip.style.left=x+'px';tip.style.top=y+'px';});
 const TOUR=[
   {sel:'header.top .meta',tab:'p-flujo',tit:'1. De dónde salen los datos',txt:'La esquina dice si el tablero está <b>en vivo</b>, de qué fuentes lee (informe de entradas de Abasto, kardex MB51, citas de SIGUELO y tránsitos de planificación) y la fecha de la última recepción publicada.'},
-  {sel:'#kpis',tab:'p-flujo',tit:'2. El pulso en seis cifras',txt:'Cuántas líneas se recibieron, qué parte ya tiene entrada contable 101, cuánto tarda en llegar, cuántas están atrasadas y el valor detenido. <b>Sin trazabilidad digital</b> son las líneas que ya pasaron a la caja negra del proceso documental.'},
-  {sel:'#bRecorrido',tab:'p-flujo',tit:'3. El recorrido del expediente',txt:'Cada flecha es una etapa con registro en algún sistema. Bajo cada unión está la mediana y el p85 en días hábiles. La flecha en <b>rojo</b> es donde más líneas se atrasan. Toque Recepción, Inventario o Entrada contable para ver esas líneas.'},
-  {sel:'#bSankey',tab:'p-flujo',tit:'4. Por dónde pasa cada línea',txt:'El grosor de cada cinta es proporcional a las líneas. Muestra de dónde vienen (solicitud y cita), si pasaron por SALMI, si ya tienen 101 y cuántas siguen atrasadas. Pase el cursor sobre una cinta para su cifra.'},
-  {sel:'#bWk',tab:'p-flujo',tit:'5. Semana por semana',txt:'Cada barra es una semana de recepción, con el total arriba. Los colores dicen en qué etapa está hoy cada línea: lo rojo y ámbar son pendientes.'},
-  {sel:'#bAge',tab:'p-flujo',tit:'6. Lo que se quedó atrás',txt:'Líneas sin entrada contable según cuántos días hábiles llevan desde la recepción, con su valor. Los tramos en rojo ya superan el p85.'},
+  {sel:'#kpis',tab:'p-ind',tit:'2. El pulso en seis cifras',txt:'Cuántas líneas se recibieron, qué parte ya tiene entrada contable 101, cuánto tarda en llegar, cuántas están atrasadas y el valor detenido. <b>Sin trazabilidad digital</b> son las líneas que ya pasaron a la caja negra del proceso documental.'},
+  {sel:'#bRecorrido',tab:'p-ind',tit:'3. El recorrido del expediente',txt:'Cada flecha es una etapa con registro en algún sistema. Bajo cada unión está la mediana y el p85 en días hábiles. La flecha en <b>rojo</b> es donde más líneas se atrasan. Toque Recepción, Inventario o Entrada contable para ver esas líneas.'},
+  {sel:'#bSankey',tab:'p-ind',tit:'4. Por dónde pasa cada línea',txt:'El grosor de cada cinta es proporcional a las líneas. Muestra de dónde vienen (solicitud y cita), si pasaron por SALMI, si ya tienen 101 y cuántas siguen atrasadas. Pase el cursor sobre una cinta para su cifra.'},
+  {sel:'#bWk',tab:'p-ind',tit:'5. Semana por semana',txt:'Cada barra es una semana de recepción, con el total arriba. Los colores dicen en qué etapa está hoy cada línea: lo rojo y ámbar son pendientes.'},
+  {sel:'#bAge',tab:'p-ind',tit:'6. Lo que se quedó atrás',txt:'Líneas sin entrada contable según cuántos días hábiles llevan desde la recepción, con su valor. Los tramos en rojo ya superan el p85.'},
   {sel:'#fbar',tab:'p-exps',tit:'7. Buscar y filtrar',txt:'Busque por número de OC, código de renglón, descripción o proveedor. Filtre por proveedor, por renglón y por etapa. <b>Limpiar filtros</b> regresa a la vista completa.'},
   {sel:'#tab thead',tab:'p-exps',tit:'8. La tabla manda',txt:'Toque el encabezado de cualquier columna para ordenar de forma ascendente o descendente. Toque una fila para abrir la ficha del expediente.'},
   {sel:'#ficha',tab:'p-ficha',tit:'9. La ficha y el registro de hitos',txt:'Arriba, los hitos con fecha real de los sistemas. Abajo, los 15 pasos del proceso documental: cada paso se registra eligiendo <b>quién lo hizo</b> de la lista (o agregando a alguien nuevo) y si quedó <b>completado total</b> o <b>parcial</b> (adelantos o expediente incompleto: queda en ese paso). La evidencia es opcional. La devolución exige motivo y no borra lo anterior.'},
