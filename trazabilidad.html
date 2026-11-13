@@ -378,6 +378,18 @@ input,select,textarea{border-radius:8px}
 .fa-r{display:flex;flex-wrap:wrap;align-items:stretch;row-gap:8px}
 .fa-s{font:inherit;color:var(--ink);text-align:left;width:172px;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
 .fa-s.hay{background:var(--k-red);border-color:var(--bad)}
+.fa-s.amb{background:var(--k-amb);border-color:var(--warn)}.fa-s.amb .c b{color:var(--warn)}
+.fa-s{position:relative}
+.fa-s .atr{font-size:.68rem;font-weight:700;color:var(--bad)}.fa-s.amb .atr{color:var(--warn)}
+.fa-s.cuello{animation:latido 1.6s ease-in-out infinite;border-width:2px}
+.fa-s .cb{position:absolute;top:-10px;right:8px;background:var(--bad);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 8px}
+@keyframes latido{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.55)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
+.atasco{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;background:var(--k-red);border:1px solid var(--bad);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:.78rem}
+.atasco>b{width:100%;color:var(--bad);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase}
+.at-i{font:inherit;text-align:left;display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;flex:1 1 240px;color:var(--ink)}
+.at-i .r{width:20px;height:20px;border-radius:50%;background:var(--bad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;font-size:.72rem}
+.at-i:hover{border-color:var(--bad)}
+@media (prefers-reduced-motion:reduce){.fa-s.cuello{animation:none;box-shadow:0 0 0 3px rgba(192,57,43,.5)}}
 .fa-s.off{opacity:.28}.fa-s .c{font-size:.66rem;color:var(--muted);display:flex;justify-content:space-between}
 .fa-s .c b{font-family:var(--f-mono);font-size:1.15rem;color:var(--bad)}.fa-s:not(.hay) .c b{font-size:.9rem;color:var(--muted)}
 .fa-s .a{font-weight:700;font-size:.84rem;line-height:1.2;min-height:2.4em}
@@ -1066,27 +1078,29 @@ function renderColaTabla(){const box=$('#colaTabla');if(!box)return;
   if($('#colaMas'))$('#colaMas').onclick=()=>{COLA_N+=100;renderColaTabla();};
 }
 /* ---------- Flujo agregado: los 15 pasos con lo que espera en cada uno ---------- */
-let FA_M='persona',FA_F=null;
+let FA_M='persona',FA_F=null;const FA_ATR=5;
 function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_REG){box.innerHTML='';return;}
-  const D=bandejaDatos();const n={};D.forEach(o=>{n[o.paso]=(n[o.paso]||0)+1;});
+  const D=bandejaDatos();const n={},A={},MX={};D.forEach(o=>{n[o.paso]=(n[o.paso]||0)+1;if(o.esp>FA_ATR)A[o.paso]=(A[o.paso]||0)+1;MX[o.paso]=Math.max(MX[o.paso]||0,o.esp||0);});
+  const TOP=Object.keys(A).sort((a,b)=>A[b]-A[a]||MX[b]-MX[a]).slice(0,3);
   const ord=PASOS.map(p=>p[0]);
   const claves=FA_M==='persona'?(()=>{const L=[];AREAS.forEach(a=>{const q=personaDe(a)||'Por confirmar';if(L.indexOf(q)<0)L.push(q);});return L;})():AREAS.slice();
   const caja=(p,primero)=>{const q=PASOS.find(z=>z[0]===p),k=ord.indexOf(p),c=n[p]||0,per=personaDe(q[1]);
     const clave=FA_M==='persona'?(per||'Por confirmar'):q[1];const off=FA_F&&FA_F!==clave;
     const ring=FA_F&&!off?(FA_M==='persona'?colPersona(per):colArea(q[1])):'';
     return (primero?'<span class="fax sp" aria-hidden="true"></span>':'<span class="fax'+(c?' vivo':'')+'" aria-hidden="true"></span>')+
-      '<button type="button" class="fa-s'+(c?' hay':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+'><span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+
+      '<button type="button" class="fa-s'+(c?(A[p]?' hay':' amb'):'')+(TOP.indexOf(p)>-1&&!off?' cuello':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+' title="'+(c?c+' esperando · '+(A[p]||0)+' con más de '+FA_ATR+' días hábiles · el más antiguo lleva '+(MX[p]||0)+' d':'Nada esperando')+'">'+(TOP[0]===p&&!off?'<span class="cb">Cuello de botella</span>':'')+'<span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+(c?'<span class="atr">'+(A[p]?(A[p]+' atrasado'+(A[p]===1?'':'s')+' · máx '+MX[p]+' d'):'al día · máx '+(MX[p]||0)+' d')+'</span>':'')+
       '<span class="q'+(per?'':' conf')+'">'+esc(AREA_TXT(q[1]))+'</span><span class="p"><i style="background:'+(FA_M==='persona'?colPersona(per):colArea(q[1]))+'"></i>'+esc(per||'por confirmar')+'</span></button>';};
   const grupo=(g,i)=>{const ps=g[1],tot=ps.reduce((a,p)=>a+(n[p]||0),0);
     return (i?'<div class="fa-down'+(tot?' vivo':'')+'" aria-hidden="true"></div>':'')+'<div class="fa-row g'+i+'"><div class="fa-lab"><b>'+esc(g[0])+'</b><span>'+(ps.length>1?'Pasos ':'Paso ')+(ord.indexOf(ps[0])+1)+(ps.length>1?' al '+(ord.indexOf(ps[ps.length-1])+1):'')+'</span><span class="t">'+tot+' esperando</span></div><div class="fa-cells">'+ps.map((p,j)=>'<div class="fa-cell">'+caja(p,j%6===0)+'</div>').join('')+'</div></div>';};
   const chip=(k,lbl,col)=>'<button type="button" class="pchip" data-k="'+esc(k)+'" aria-pressed="'+((FA_F||'')===k)+'"><i style="background:'+col+'"></i>'+esc(lbl)+'</button>';
-  box.innerHTML='<div class="block"><div class="block-h"><h2>Proceso documental · los 15 pasos de Control Operativo</h2><p>Cada caja: qué se hace, quién lo hace y cuántos expedientes esperan hoy. La línea animada marca hacia dónde se mueve el trabajo. Toque una caja para ver esos expedientes.</p></div>'+
+  box.innerHTML='<div class="block"><div class="block-h"><h2>Proceso documental · los 15 pasos de Control Operativo</h2><p>Cada caja: qué se hace, quién lo hace y cuántos expedientes esperan hoy. <b style="color:var(--bad)">Rojo</b>: hay expedientes con más de '+FA_ATR+' días hábiles en ese paso; <b style="color:var(--warn)">ámbar</b>: esperan, pero al día. Los tres pasos más atascados laten. Toque una caja para ver esos expedientes.</p></div>'+
     '<div class="ctl"><div class="seg" role="group" aria-label="Agrupar por"><button type="button" data-m="persona" aria-pressed="'+(FA_M==='persona')+'">Por persona</button><button type="button" data-m="area" aria-pressed="'+(FA_M==='area')+'">Por área</button></div>'+
+    (TOP.length?'<div class="atasco" role="status"><b>Dónde se atasca hoy</b>'+TOP.map((p,i)=>{const q=PASOS.find(z=>z[0]===p);return '<button type="button" class="at-i" data-p="'+p+'"><span class="r">'+(i+1)+'</span><span><b>Paso '+(ord.indexOf(p)+1)+' · '+esc(q[2])+'</b><br>'+esc(AREA_TXT(q[1]))+' · '+A[p]+' con más de '+FA_ATR+' días · el más antiguo '+MX[p]+' d</span></button>';}).join('')+'</div>':'')+
     chip('',FA_M==='persona'?'Todos':'Todas','#8a8a8a')+claves.map(k=>FA_M==='persona'?chip(k,k==='Por confirmar'?k:corto(k),colPersona(k==='Por confirmar'?null:k)):chip(k,AREA_TXT(k),colArea(k))).join('')+'</div>'+
     '<div class="fa-grid">'+GRUPOS.map(grupo).join('')+'<div class="fa-down" aria-hidden="true"></div><div class="fa-row gx"><div class="fa-lab"><b>Remisión a Contraloría</b></div><div class="fa-cells"><span class="muted" style="font-size:.78rem;grid-column:1/-1;align-self:center">Sin registro digital · fuera de SIGUELO</span></div></div></div></div>';
   box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{FA_M=b.dataset.m;FA_F=null;renderFlujoAgg();});
   box.querySelectorAll('.pchip[data-k]').forEach(b=>b.onclick=()=>{FA_F=b.dataset.k||null;renderFlujoAgg();});
-  box.querySelectorAll('.fa-s').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';VISTA='bandeja';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
+  box.querySelectorAll('.fa-s,.at-i').forEach(b=>b.onclick=()=>{COLA_P=b.dataset.p;COLA_F=null;COLA_E='todos';VISTA='bandeja';showTab('p-ficha');renderFicha();window.scrollTo(0,0);});
 }
 function abrirVideo(){if($('#vidOv'))return;const o=document.createElement('div');o.id='vidOv';
   o.innerHTML='<div class="vbox" role="dialog" aria-modal="true" aria-label="Video instructivo"><div class="vbar"><b>Cómo registrar cada paso del expediente</b><button class="btn ghost small" id="vidX">Cerrar</button></div><video src="./videos/trazabilidad_registro_de_hitos.mp4?v=5" controls autoplay playsinline preload="metadata"></video></div>';
