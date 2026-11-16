@@ -178,6 +178,7 @@ function trzPost_(payload) {
     if (a === 'trzAnular')    return trzAnular_(d);
     if (a === 'trzAltaManual') return trzAltaManual_(d);
     if (a === 'trzNotificar') return trzNotificar_(d);
+    if (a === 'trzAsignarPrevio') return trzAsignarPrevio_(d);
     return { success: false, error: 'Acción de trazabilidad no reconocida.' };
   } catch (err) {
     return { success: false, error: 'Error interno: ' + String(err && err.message || err) };
@@ -411,7 +412,7 @@ function trzEstado_(eventos) {
       for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; delete pend[orden[j]]; }
     }
     ultimo = ev;
-    if (ev.tipo !== 'EMPALME' && ev.tipo !== 'CIERRA') ultimoReal = ev;
+    if (ev.tipo !== 'EMPALME' && ev.tipo !== 'CIERRA' && ev.tipo !== 'PREVIO') ultimoReal = ev;
   });
   var sig = null;
   for (var i = 0; i < orden.length; i++) if (!hechos[orden[i]]) { sig = orden[i]; break; }
@@ -629,6 +630,56 @@ function trzNotificar_(d) {
     sh.appendRow(hdr.map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
     trzAgendarPublicacion_();
     return { success: true, id: idEv, mensaje: 'Notificación registrada: ' + doc + '.' };
+  } finally { lock.releaseLock(); }
+}
+
+/* Previo del expediente (16-nov-2026). El departamento numera cada expediente con su previo
+   (p. ej. 1396-A). Desde ahora se asigna en el tablero: Coordinación, un registrador o un supervisor.
+   Queda en TRZ_EVENTOS con PASO = DAT, RESULTADO = PREVIO y MOTIVO = el previo; el último vigente manda.
+   No toca el flujo. No se permite repetir un previo ya usado en otro expediente (tablero o cuadro). */
+function trzAsignarPrevio_(d) {
+  var auth = trzAutenticar_(d.pin);
+  if (auth.error) return { success: false, error: auth.error };
+  var u = auth.usuario;
+  if (trzNorm_(u.area) !== 'COORDINADOR' && u.rol !== 'SUPERVISOR' && u.rol !== 'REGISTRADOR') {
+    return { success: false, error: 'El previo lo asigna Coordinación; su usuario es de ' + u.area + '.' };
+  }
+  var exp = String(d.exp || '').trim();
+  if (!/^RB-\d{6,}-\d{8}$/.test(exp)) return { success: false, error: 'Expediente no válido.' };
+  var pv = String(d.previo || '').toUpperCase().replace(/\s+/g, '');
+  if (!/^\d{1,5}-[A-Z]$/.test(pv)) return { success: false, error: 'El previo debe tener el formato número-letra, por ejemplo 1396-A.' };
+  var idCliente = String(d.idCliente || '').slice(0, 64);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { success: false, error: 'El sistema está ocupado; reintente en unos segundos.' };
+  try {
+    var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+    var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), ultimo = {};
+    for (var i = 1; i < v.length; i++) {
+      if (String(v[i][c.RESULTADO]) !== 'PREVIO' || String(v[i][c.ESTADO]) === 'ANULADO') continue;
+      ultimo[String(v[i][c.EXPEDIENTE])] = String(v[i][c.MOTIVO]).toUpperCase();
+      if (idCliente && String(v[i][c.ID_CLIENTE]) === idCliente) return { success: true, duplicado: true, mensaje: 'Ese previo ya estaba asignado.' };
+    }
+    for (var e in ultimo) if (e !== exp && ultimo[e] === pv) return { success: false, error: 'El previo ' + pv + ' ya está asignado a otro expediente.' };
+    var cu = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TRZ_CUADRO_CONTROL');
+    if (cu && cu.getLastRow() > 1) {
+      var w = cu.getDataRange().getValues(), h = w[0].map(function (x) { return String(x).trim().toUpperCase(); });
+      var iP = h.indexOf('PREVIO'), iE = h.indexOf('EXPEDIENTE EN EL TABLERO'), iF = h.indexOf('FECHA');
+      if (iP >= 0) for (var k = 1; k < w.length; k++) {
+        if (String(w[k][iP]).toUpperCase().replace(/\s+/g, '') !== pv) continue;
+        var ex = iE >= 0 ? String(w[k][iE]) : '';
+        if (ex !== exp && !(ultimo[ex] && ultimo[ex] !== pv)) {
+          var f = iF < 0 ? '' : (w[k][iF] instanceof Date ? Utilities.formatDate(w[k][iF], Session.getScriptTimeZone(), 'dd/MM/yyyy') : String(w[k][iF] || ''));
+          return { success: false, error: 'El previo ' + pv + ' ya está en el cuadro de Control' + (f ? ' (fila del ' + f + ')' : '') + '.' };
+        }
+      }
+    }
+    var idEv = 'EV-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
+    var fila = { TS_SERVIDOR: new Date(), ID_EVENTO: idEv, ID_CLIENTE: idCliente, EXPEDIENTE: exp, OC: exp.split('-')[1], RENGLON: '', PROVEEDOR: '',
+      PASO: 'DAT', RESULTADO: 'PREVIO', DESTINO: '', MOTIVO: pv, FECHA_HITO: new Date(), USUARIO: u.nombre, AREA: u.area,
+      OBSERVACION: ultimo[exp] ? 'Antes: ' + ultimo[exp] : '', ESTADO: 'VIGENTE', EJECUTOR: u.nombre };
+    sh.appendRow(v[0].map(function (hh) { var x = fila[String(hh).trim().toUpperCase()]; return x == null ? '' : x; }));
+    trzAgendarPublicacion_();
+    return { success: true, id: idEv, mensaje: 'Previo ' + pv + ' asignado.' };
   } finally { lock.releaseLock(); }
 }
 
@@ -1311,7 +1362,7 @@ function trzCorreoDiario(e) {
   var top = abiertos.slice().sort(function (a, b) { return b.dias - a.dias; }).slice(0, 15);
   var tTop = '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Expediente</th><th style="' + th + '">Proveedor</th><th style="' + th + '">Está en</th><th style="' + th + ';text-align:right">Días hábiles</th></tr>' +
     top.map(function (o) { return '<tr><td style="' + td + '">' + link(o.exp) + '</td><td style="' + td + '">' + trzEsc_(o.prov) + '</td><td style="' + td + '">' + trzCod_(o.paso) + ' · ' + trzEsc_(o.area) + (o.devuelto ? ' · devuelto' : '') + (o.parcial ? ' · parcial' : '') + '</td><td style="' + td + ';text-align:right;color:' + (o.dias > TRZ_DIAS_ALERTA ? '#b3362e' : '#1f2937') + '">' + o.dias + '</td></tr>'; }).join('') + '</table>';
-  var nomT = { TRANSFIERE: 'completado', PARCIAL: 'en espera', PENDIENTE: 'completado con faltante', CIERRA: 'faltante cerrado', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual', NOTIFICA: 'notificación al proveedor' };
+  var nomT = { PREVIO: 'previo asignado', TRANSFIERE: 'completado', PARCIAL: 'en espera', PENDIENTE: 'completado con faltante', CIERRA: 'faltante cerrado', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual', NOTIFICA: 'notificación al proveedor' };
   var tMov = mov.length ? '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Hora</th><th style="' + th + '">Expediente</th><th style="' + th + '">Paso</th><th style="' + th + '">Resultado</th><th style="' + th + '">Quién lo hizo</th></tr>' +
     mov.slice(-40).reverse().map(function (x) { return '<tr><td style="' + td + '">' + trzEsc_(String(x.tsServidor).replace('T', ' ').slice(5)) + '</td><td style="' + td + '">' + link(x.exp) + '</td><td style="' + td + '">' + trzCod_(x.paso) + '</td><td style="' + td + '">' + (nomT[x.tipo] || x.tipo) + (x.tipo === 'DEVUELVE' ? ' a ' + trzCod_(x.dest) : '') + (x.motivo ? ' · ' + trzEsc_(x.motivo) : '') + '</td><td style="' + td + '">' + trzEsc_(x.ejecutor || x.quien) + '</td></tr>'; }).join('') + '</table>' +
     (mov.length > 40 ? '<p style="font-size:11px;color:#6b7280">Se muestran los 40 más recientes de ' + mov.length + '.</p>' : '')
