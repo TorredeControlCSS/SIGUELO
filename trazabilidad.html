@@ -896,7 +896,7 @@ const EN_LINEA=/(^|\.)(github\.io|torrecontrolcss\.org)$/.test(location.hostname
 const VIVO_REG=EN_LINEA;
 /* «Quién lo hizo»: equipo de Control Operativo (lista de la jefatura, 13-nov-2026).
    En línea la lista viene de SIGUELO (hoja TRZ_PERSONAS); esta es la de respaldo y la del modo demostración. */
-const PERSONAS_BASE=[{nombre:'Mónica Quintero',area:'Coordinador'},{nombre:'Raymundo Quiel',area:'Control1'},{nombre:'Pablo Castrejón',area:'Control2'},{nombre:'Olaydis Pérez',area:'Ventanilla Única'},{nombre:'Velkis Soto',area:'Contabilidad'},{nombre:'Evika C. Llung Guen',area:'Archivo'}];
+const PERSONAS_BASE=[{nombre:'Mónica Quintero',area:'Coordinador'},{nombre:'Raymundo Quiel',area:'Control1'},{nombre:'Pablo Garrido',area:'Control2'},{nombre:'Olaydis Pérez',area:'Ventanilla Única'},{nombre:'Velkis Soto',area:'Contabilidad'},{nombre:'Evika C. Llung Guen',area:'Archivo'}];
 let PERS_LOCAL=[];try{PERS_LOCAL=JSON.parse(localStorage.getItem('rb_pers')||'[]');}catch(e){PERS_LOCAL=[];}
 function personas(){const base=(SES&&Array.isArray(SES.personas)&&SES.personas.length)?SES.personas:PERSONAS_BASE;const out=base.slice();
   PERS_LOCAL.forEach(p=>{if(!out.some(q=>q.nombre.toLowerCase()===p.nombre.toLowerCase()&&q.area===p.area))out.push(p);});return out;}
