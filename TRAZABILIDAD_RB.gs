@@ -102,7 +102,7 @@ var TRZ_PERSONAS_INICIALES = [
   ['Olaydis Pérez',      'Ventanilla Única', 'SI', 'OPERADOR'],
   ['Velkis Soto',        'Contabilidad',     'SI', 'OPERADOR'],
   ['Evika Llung Guenn',  'Archivo',          'SI', 'OPERADOR'],
-  ['Carla Ortega',       'Seguimiento',      'SI', 'OPERADOR'],  // 16-nov-2026: notifica al proveedor la solicitud de entrega
+  ['Karla Guevara',      'Seguimiento',      'SI', 'OPERADOR'],  // 16-nov-2026: notifica al proveedor la solicitud de entrega
   ['Landecho',           'Control2',         'NO', '']   // histórico: aparece en el cuadro, ya no participa
 ];
 /* Áreas del flujo sin persona confirmada: se crean en TRZ_USUARIOS inactivas (ACTIVO NO, sin PIN)
@@ -595,7 +595,7 @@ function trzRegistrar_(d) {
 }
 
 /* Notificación al proveedor de la solicitud de entrega (16-nov-2026).
-   La registra Seguimiento (Carla Ortega), un supervisor o un registrador. Queda en TRZ_EVENTOS con
+   La registra Seguimiento (Karla Guevara), un supervisor o un registrador. Queda en TRZ_EVENTOS con
    EXPEDIENTE = NOTIF-SOL, PASO = SOL, RESULTADO = NOTIFICA y MOTIVO = número de la solicitud; no
    toca el flujo de los 15 pasos. Una solicitud se notifica una sola vez (anular y volver a registrar). */
 function trzNotificar_(d) {
@@ -804,6 +804,20 @@ function trzAltaManual_(d) {
 /* ------------------------------------------------------------------ */
 /*  Instalación y prueba (ejecutar desde el editor)                     */
 /* ------------------------------------------------------------------ */
+
+/* 16-nov-2026: corrige el nombre de la persona de Seguimiento (se cargó como Carla Ortega).
+   Solo cambia el NOMBRE en TRZ_USUARIOS y TRZ_PERSONAS; el PIN lo carga la Torre de Control. */
+function trzCorregirNombreSeguimiento() {
+  var n = 0;
+  [[TRZ_HOJA_USUARIOS, 2], [TRZ_HOJA_PERSONAS, 1]].forEach(function (h) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(h[0]);
+    if (!sh || sh.getLastRow() < 2) return;
+    var r = sh.getRange(2, h[1], sh.getLastRow() - 1, 1), v = r.getValues();
+    v.forEach(function (x) { if (String(x[0]).trim() === 'Carla Ortega') { x[0] = 'Karla Guevara'; n++; } });
+    r.setValues(v);
+  });
+  Logger.log('Nombre corregido en ' + n + ' fila(s).');
+}
 
 function trzInstalar() {
   var su = trzHoja_(TRZ_HOJA_USUARIOS, ['PIN', 'NOMBRE', 'AREA', 'ROL', 'ACTIVO', 'CORREO', 'NOTA']);
