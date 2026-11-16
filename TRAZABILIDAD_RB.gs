@@ -813,6 +813,7 @@ function trzInstalar() {
   // Listas desplegables en AREA, ROL y ACTIVO; PIN como texto (conserva ceros).
   var areas = [];
   TRZ_PASOS.forEach(function (p) { if (areas.indexOf(p[1]) < 0) areas.push(p[1]); });
+  areas.push('Seguimiento');   // 16-nov-2026: notificación al proveedor (no es un paso del flujo)
   su.getRange('A2:A300').setNumberFormat('@');
   su.getRange('C2:C300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(areas, true).build());
   su.getRange('D2:D300').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(TRZ_ROLES, true).build());
