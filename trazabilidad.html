@@ -896,7 +896,7 @@ const EN_LINEA=/(^|\.)(github\.io|torrecontrolcss\.org)$/.test(location.hostname
 const VIVO_REG=EN_LINEA;
 /* «Quién lo hizo»: equipo de Control Operativo (lista de la jefatura, 13-nov-2026).
    En línea la lista viene de SIGUELO (hoja TRZ_PERSONAS); esta es la de respaldo y la del modo demostración. */
-const PERSONAS_BASE=[{nombre:'Mónica Quintero',area:'Coordinador'},{nombre:'Raymundo Quiel',area:'Control1'},{nombre:'Pablo Garrido',area:'Control2'},{nombre:'Olaydis Pérez',area:'Ventanilla Única'},{nombre:'Velkis Soto',area:'Contabilidad'},{nombre:'Evika C. Llung Guen',area:'Archivo'}];
+const PERSONAS_BASE=[{nombre:'Mónica Quintero',area:'Coordinador'},{nombre:'Raymundo Quiel',area:'Control1'},{nombre:'Pablo Castrejón',area:'Control2'},{nombre:'Olaydis Pérez',area:'Ventanilla Única'},{nombre:'Velkis Soto',area:'Contabilidad'},{nombre:'Evika C. Llung Guen',area:'Archivo'}];
 let PERS_LOCAL=[];try{PERS_LOCAL=JSON.parse(localStorage.getItem('rb_pers')||'[]');}catch(e){PERS_LOCAL=[];}
 function personas(){const base=(SES&&Array.isArray(SES.personas)&&SES.personas.length)?SES.personas:PERSONAS_BASE;const out=base.slice();
   PERS_LOCAL.forEach(p=>{if(!out.some(q=>q.nombre.toLowerCase()===p.nombre.toLowerCase()&&q.area===p.area))out.push(p);});return out;}
@@ -910,14 +910,17 @@ const guardarCola=()=>{try{localStorage.setItem('rb_cola',JSON.stringify(COLA));
 const apiGet=q=>fetch(API+'?'+q+'&_='+Date.now()).then(r=>r.json());
 const apiPost=(action,data)=>fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:action,data:data})}).then(r=>r.json());
 function aviso(m,err){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(aviso._t);aviso._t=setTimeout(()=>{t.style.display='none';},err?7000:3500);}
-function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){const pen=(EVT[id]||[]).filter(r=>r.pend);EVT[id]=j.eventos.concat(pen);guardarEvtCache(id);RES[id]=resDe(j.eventos);aplicarPrevios();}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
+// 16-nov-2026: la persona de Control 2 es Pablo Castrejón; parte de la bitácora quedó con «Pablo Garrido».
+const NOM_FIX=[[/Pablo Garrido/g,'Pablo Castrejón']];
+function fixNom(L){(L||[]).forEach(e=>['quien','ejecutor','obs'].forEach(k=>{if(typeof e[k]==='string')NOM_FIX.forEach(f=>{e[k]=e[k].replace(f[0],f[1]);});}));return L;}
+function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){fixNom(j.eventos);const pen=(EVT[id]||[]).filter(r=>r.pend);EVT[id]=j.eventos.concat(pen);guardarEvtCache(id);RES[id]=resDe(j.eventos);aplicarPrevios();}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
 /* Lectura instantánea: primero la bitácora publicada en Pages (o la última copia
    de este equipo); después se confirma contra SIGUELO sin bloquear la pantalla. */
 const EVTJ={};let EVTJ_OK=false;const CONFIRMADO=new Set();
 function guardarEvtCache(id){try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');c[id]=EVT[id];localStorage.setItem('rb_evt',JSON.stringify(c));}catch(e){}}
 function prepararBitacora(EV){
-  try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');Object.keys(c).forEach(k=>{EVTJ[k]=c[k];});}catch(e){}
-  if(EV&&Array.isArray(EV.eventos)){const g={};EV.eventos.forEach(e=>{(g[e.exp]=g[e.exp]||[]).push(e);});Object.keys(g).forEach(k=>{if(!(EVTJ[k]&&EVTJ[k].length>g[k].length))EVTJ[k]=g[k];});EVTJ_OK=true;aplicarPrevios();   // la copia local más completa (recién registrada) gana sobre la publicada
+  try{const c=JSON.parse(localStorage.getItem('rb_evt')||'{}');Object.keys(c).forEach(k=>{EVTJ[k]=fixNom(c[k]);});}catch(e){}
+  if(EV&&Array.isArray(EV.eventos)){fixNom(EV.eventos);const g={};EV.eventos.forEach(e=>{(g[e.exp]=g[e.exp]||[]).push(e);});Object.keys(g).forEach(k=>{if(!(EVTJ[k]&&EVTJ[k].length>g[k].length))EVTJ[k]=g[k];});EVTJ_OK=true;aplicarPrevios();   // la copia local más completa (recién registrada) gana sobre la publicada
     const ord=PASOS.map(p=>p[0]);
     Object.keys(EVTJ).forEach(k=>{RES[k]=resDe(EVTJ[k]);});
     RESOK=true;}
