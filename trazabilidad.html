@@ -1028,7 +1028,7 @@ const PAL=['#7a4fa3','#1e7fa8','#c9a227','#6b7f2a','#d07a1e','#2f8a5a','#a06a3a'
 const AREAS=[];PASOS.forEach(p=>{if(AREAS.indexOf(p[1])<0)AREAS.push(p[1]);});
 const colArea=a=>PAL[AREAS.indexOf(a)%PAL.length]||'#8a8a8a';
 const PERSONA_PASO={P14:'Mónica Quintero'};
-const FPUB_ACTIVO=false;   // pasar a true cuando el Back End (TRAZABILIDAD_RB, commit be81cae) esté implementado
+const FPUB_ACTIVO=true;   // Back End versión 292 (16-nov-2026) acepta la fecha de publicación
 function personaPaso(p,area){return PERSONA_PASO[p]||personaDe(area);}
 function personaDe(area){const L=personas().filter(q=>q.area===area&&!q.pendiente);return L.length?L[0].nombre:null;}
 function colPersona(n){if(!n)return '#c9a227';const L=[];AREAS.forEach(a=>{const q=personaDe(a);if(q&&L.indexOf(q)<0)L.push(q);});const k=L.indexOf(n);return k<0?'#8a8a8a':PAL[k%PAL.length];}
