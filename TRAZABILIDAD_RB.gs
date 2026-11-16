@@ -98,7 +98,7 @@ var TRZ_COLS_PERSONAS = ['NOMBRE', 'AREA', 'ACTIVO', 'ALTA_POR', 'ALTA_TS', 'NOT
 var TRZ_PERSONAS_INICIALES = [
   ['Mónica Quintero',    'Coordinador',      'SI', 'REGISTRADOR'],
   ['Raymundo Quiel',     'Control1',         'SI', 'OPERADOR'],
-  ['Pablo Garrido',      'Control2',         'SI', 'OPERADOR'],
+  ['Pablo Castrejón',    'Control2',         'SI', 'OPERADOR'],
   ['Olaydis Pérez',      'Ventanilla Única', 'SI', 'OPERADOR'],
   ['Velkis Soto',        'Contabilidad',     'SI', 'OPERADOR'],
   ['Evika Llung Guenn',  'Archivo',          'SI', 'OPERADOR'],
@@ -915,14 +915,14 @@ function trzCorregirNombreSeguimiento() {
   Logger.log('Nombre corregido en ' + n + ' fila(s).');
 }
 
-/* 16-nov-2026: la persona de Control 2 es Pablo Garrido (no Pablo Castrejón). Corrige el nombre en
-   TRZ_PERSONAS y en la bitácora (ejecutor, usuario y observaciones del empalme) y republica el JSON.
-   Ejecutar una sola vez desde el editor. TRZ_USUARIOS ya lo corrigió Diego a mano. */
+/* 16-nov-2026: la persona de Control 2 es Pablo Castrejón (la jefatura lo confirmó tras un cambio a
+   «Pablo Garrido»). Deja el nombre correcto en TRZ_PERSONAS, TRZ_USUARIOS y la bitácora (ejecutor,
+   usuario y observaciones del empalme) y republica el JSON. Se puede ejecutar varias veces. */
 function trzCorregirNombreControl2() {
   var ss = SpreadsheetApp.getActiveSpreadsheet(), n = 0;
   [TRZ_HOJA_PERSONAS, TRZ_HOJA_EVENTOS, TRZ_HOJA_USUARIOS].forEach(function (h) {
     var sh = ss.getSheetByName(h);
-    if (sh) n += sh.createTextFinder('Pablo Castrejón').matchCase(true).replaceAllWith('Pablo Garrido');
+    if (sh) n += sh.createTextFinder('Pablo Garrido').matchCase(true).replaceAllWith('Pablo Castrejón');
   });
   trzAgendarPublicacion_();
   Logger.log('Nombre corregido en ' + n + ' celda(s).');
