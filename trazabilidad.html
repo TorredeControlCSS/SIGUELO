@@ -361,7 +361,7 @@ input,select,textarea{border-radius:8px}
 .fx-r .toca .btn{font-size:.95rem;padding:10px 14px}
 .fx-r .form{grid-template-columns:minmax(0,1fr)}
 .fx-r{overflow-x:hidden}.fx-r>*{min-width:0;max-width:100%;box-sizing:border-box}
-.fx-r .form>*{min-width:0}.fx-r .form input,.fx-r .form select,.fx-r .form textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.fx-r .form>*{min-width:0}.nform.dform{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:end}.dform label{display:flex;flex-direction:column;gap:3px;font-size:.76rem;min-width:0}.dform input,.dform textarea{width:100%;box-sizing:border-box;min-width:0;font:inherit;font-size:.82rem;padding:5px 8px;border:1px solid var(--border);border-radius:8px}.dform label:has(textarea),.dform .ctl{grid-column:1/-1}.fx-r .form input,.fx-r .form select,.fx-r .form textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .qrc{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
 .qrc p{font-size:.76rem;color:var(--muted);margin:3px 0 7px;line-height:1.35}
 #qrMini{width:92px;height:92px;flex:none;background:#fff;padding:5px;border-radius:8px;border:1px solid var(--line)}
@@ -910,7 +910,7 @@ const guardarCola=()=>{try{localStorage.setItem('rb_cola',JSON.stringify(COLA));
 const apiGet=q=>fetch(API+'?'+q+'&_='+Date.now()).then(r=>r.json());
 const apiPost=(action,data)=>fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:action,data:data})}).then(r=>r.json());
 function aviso(m,err){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(aviso._t);aviso._t=setTimeout(()=>{t.style.display='none';},err?7000:3500);}
-function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){const pen=(EVT[id]||[]).filter(r=>r.pend);EVT[id]=j.eventos.concat(pen);guardarEvtCache(id);RES[id]=resDe(j.eventos);}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
+function cargarEventos(id){const previo=EVT[id];return apiGet('action=trzEventos&exp='+encodeURIComponent(id)).then(j=>{if(j.success){const pen=(EVT[id]||[]).filter(r=>r.pend);EVT[id]=j.eventos.concat(pen);guardarEvtCache(id);RES[id]=resDe(j.eventos);aplicarPrevios();}else if(previo===undefined)EVT[id]=null;}).catch(()=>{if(previo===undefined)EVT[id]=null;});}
 /* Lectura instantánea: primero la bitácora publicada en Pages (o la última copia
    de este equipo); después se confirma contra SIGUELO sin bloquear la pantalla. */
 const EVTJ={};let EVTJ_OK=false;const CONFIRMADO=new Set();
@@ -1047,6 +1047,7 @@ function renderFicha(){
   box.innerHTML=h;
   try{new QRCode(document.getElementById('qrMini'),{text:'https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id,width:92,height:92,colorDark:'#000000',colorLight:'#ffffff'});}catch(err){}
   if($('#bCar2'))$('#bCar2').onclick=()=>renderCaratula(x);
+  if($('#bDatos'))$('#bDatos').onclick=()=>{if(!SES){pinModal(()=>{renderFicha();abrirDatos(x);});return;}abrirDatos(x);};
   if($('#bPrevio'))$('#bPrevio').onclick=()=>{const go=()=>{if(!puedePrevio()){aviso('El previo lo asigna Coordinación.',true);return;}abrirPrevio(x);};if(!SES){pinModal(()=>{renderFicha();go();});return;}go();};
   box.querySelectorAll('[data-cierra]').forEach(b=>b.addEventListener('click',()=>{const pq=b.dataset.cierra;
     const go=()=>{if(!puede(pq)){aviso('Ese faltante lo cierra '+AREA_TXT((PASOS.find(z=>z[0]===pq)||[])[1]||'')+'.',true);return;}PASOFORM=pq;EVID=null;const n=new Date();
@@ -1074,7 +1075,28 @@ let CIDS={};
 /* El previo asignado en el tablero (evento PREVIO) manda sobre el del cuadro de Control. */
 function aplicarPrevios(){const ks=new Set(Object.keys(EVTJ).concat(Object.keys(EVT)));ks.forEach(id=>{if(!/^RB-/.test(id))return;
   const L=(EVT[id]||EVTJ[id]||[]).filter(r=>r.tipo==='PREVIO'&&r.estado!=='ANULADO');if(!L.length)return;const u=L[L.length-1];
-  const c=CIDS[id]||(CIDS[id]={});if(c.pvCuadro===undefined)c.pvCuadro=c.pv||'';c.pv=u.motivo;c.pvTab=u;});}
+  const c=CIDS[id]||(CIDS[id]={});if(c.pvCuadro===undefined)c.pvCuadro=c.pv||'';c.pv=u.motivo;c.pvTab=u;});
+  ks.forEach(id=>{if(!/^RB-/.test(id))return;const L=(EVT[id]||EVTJ[id]||[]).filter(r=>r.tipo==='DATO'&&r.estado!=='ANULADO'&&CAMPOS_DATO[r.dest]);const c0=CIDS[id];if(!L.length&&!(c0&&c0._orig))return;
+    const c=c0||(CIDS[id]={});const o=c._orig||(c._orig={});Object.keys(CAMPOS_DATO).forEach(k=>{if(!(k in o))o[k]=c[k]||'';c[k]=o[k];});c.datTab={};
+    L.forEach(r=>{c[r.dest]=r.motivo||'';c.datTab[r.dest]=r;});});}
+const CAMPOS_DATO={fa:'Factura',se:'N° de secuencial',ir:'N° de informe de recepción',np:'Nota de pedido',ob:'Observación'};
+function abrirDatos(x){const box=$('#datBox');if(!box)return;const c=CIDS[x.id]||{};
+  const inp=(k,ph,extra)=>'<label>'+CAMPOS_DATO[k]+(k==='ob'?'<textarea id="dt_'+k+'" maxlength="500" rows="2" placeholder="'+ph+'">'+esc(c[k]||'')+'</textarea>':'<input type="text" id="dt_'+k+'" maxlength="60" '+(extra||'')+' placeholder="'+ph+'" value="'+esc(c[k]||'')+'">')+'</label>';
+  box.innerHTML='<div class="nform dform">'+inp('fa','número de factura del proveedor')+inp('se','solo números','inputmode="numeric"')+inp('ir','solo números','inputmode="numeric"')+inp('np','nota de pedido')+inp('ob','lo que el equipo anotaba en el cuadro')+
+    '<div class="ctl"><button class="btn small" id="dtOk">Guardar datos</button><button class="btn ghost small" id="dtNo">Cancelar</button></div></div><div id="dtErr" class="muted" style="font-size:.76rem;color:var(--bad)"></div>';
+  $('#dtNo').onclick=()=>{box.innerHTML='';};$('#dt_fa').focus();
+  $('#dtOk').onclick=()=>{const ca={};let err='';Object.keys(CAMPOS_DATO).forEach(k=>{const v=$('#dt_'+k).value.replace(/\s+/g,' ').trim();if(v===String(c[k]||'').trim())return;
+      if((k==='se'||k==='ir')&&v&&!/^\d{4,15}$/.test(v))err=CAMPOS_DATO[k]+': solo números (4 a 15 dígitos).';ca[k]=v;});
+    if(err){$('#dtErr').textContent=err;return;}if(!Object.keys(ca).length){$('#dtErr').textContent='No cambió ningún dato.';return;}guardarDatos(x,ca);};}
+async function guardarDatos(x,ca){if(!SES)return;const idc=Date.now().toString(36)+Math.random().toString(36).slice(2,8);const n=new Date(),ts=iso(n)+'T'+pad(n.getHours())+':'+pad(n.getMinutes());
+  const locs=Object.keys(ca).map(k=>({id:'LOCAL-'+idc+'-'+k,exp:x.id,paso:'DAT',tipo:'DATO',dest:k,motivo:ca[k],ts:ts,quien:SES.nombre,ejecutor:SES.nombre,area:SES.area,pend:true}));
+  const base=(EVT[x.id]||EVTJ[x.id]||[]).slice().concat(locs);EVT[x.id]=base;EVTJ[x.id]=base;guardarEvtCache(x.id);aplicarPrevios();ENVIANDO++;renderFicha();
+  aviso((locs.length===1?'Dato guardado':locs.length+' datos guardados')+'. Se está enviando a SIGUELO.');
+  let r;try{r=await apiPost('trzDatos',{pin:SES.pin,exp:x.id,campos:ca,idCliente:idc});}catch(e){r={success:false,error:'Sin conexión con SIGUELO.'};}
+  ENVIANDO--;
+  if(!r.success){const L=(EVT[x.id]||[]).filter(q=>locs.indexOf(q)<0);EVT[x.id]=L;EVTJ[x.id]=L;guardarEvtCache(x.id);aplicarPrevios();
+    if(SELID===x.id)renderFicha();aviso('No se guardaron los datos: '+(r.error||'error')+' ',true);if(/PIN|inactivo/i.test(r.error||''))salir();return;}
+  locs.forEach(q=>delete q.pend);guardarEvtCache(x.id);if(SELID===x.id)renderFicha();}
 function previosUsados(){const m={};Object.keys(CIDS).forEach(id=>{const p=CIDS[id]&&CIDS[id].pv;if(p)m[String(p).toUpperCase()]=id;});return m;}
 function siguientePrevio(letra){const L=[];Object.values(CIDS).forEach(c=>{const m=/^(\d+)-([A-Z])$/.exec(String(c&&c.pv||'').toUpperCase());if(m&&m[2]===letra)L.push(+m[1]);});L.sort((a,b)=>a-b);
   let mx=L.length?L[L.length-1]:0;for(let i=L.length-1;i>0;i--){if(L[i]-L[i-1]<=200){mx=L[i];break;}}   // ignora números sueltos fuera de serie (p. ej. 13873-A)
@@ -1106,7 +1128,7 @@ function bandejaDatos(){const out=[];X.forEach(x=>{if(!hab(x))return;const reg=(
   const h=hechosDe(reg);const sig=PASOS.find(p=>!h.has(p[0]));
   if(!sig){if(pubSinFecha(reg))out.push({x:x,h:h,paso:'P14',area:'Equipo de Compras',acc:'Poner la fecha de publicación',esp:0,fpub:true});return;}
   const reales=reg.filter(r=>r.tipo!=='EMPALME');const u=reales[reales.length-1];
-  const ult=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
+  const ult=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='DATO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const esp=bd(ult||x.f101||x.e.fRec,HOY);
   out.push({x:x,h:h,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,porPub:sig[0]==='P14',npend:Object.keys(pendientesDe(reg)).length,parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
   return out.sort((a,b)=>(a.fpub?1:0)-(b.fpub?1:0)||b.esp-a.esp);}
@@ -1221,7 +1243,7 @@ function flujoDoc(x,reg,hechos,sig){
   const parc=sig?parcialDe(reg,sig[0]):null;
   const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
   const nHechos=ord.filter(p=>hechos.has(p)).length;
-  const ultTs=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
+  const ultTs=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='DATO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
   const sem=espera==null?'':(espera<=2?' sem-v':(espera<=5?' sem-a':' sem-r'));
   const node=p=>{const q=info(p),done=hechos.has(p),now=sig&&sig[0]===p,t=tsHecho(p),dv=devs(p);
@@ -1256,7 +1278,7 @@ function timelineDoc(x,reg,hechos,sig){
   const ultimo=reg.length?reg[reg.length-1]:null;const reales=reg.filter(r=>r.tipo!=='EMPALME');const ur=reales[reales.length-1];
   const dev=ur&&ur.tipo==='DEVUELVE'?ur:null;const parc=sig?parcialDe(reg,sig[0]):null;
   const reab=new Set();if(dev){const a=ord.indexOf(dev.dest),b=ord.indexOf(dev.paso);ord.slice(a+1,b+1).forEach(p=>reab.add(p));}
-  const ultTs=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
+  const ultTs=reg.reduce((m,r)=>{if(r.tipo==='PREVIO'||r.tipo==='DATO'||r.tipo==='CIERRA'||r.estado==='ANULADO')return m;const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const espera=sig?bd(ultTs||x.f101||x.e.fRec,HOY):null;
   const nH=ord.filter(p=>hechos.has(p)).length,pct=Math.round(100*nH/ord.length);let tocaH='';
   let h='<div class="favance"><span><b>Avance documental:</b> '+nH+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nH+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
@@ -1285,11 +1307,14 @@ function timelineDoc(x,reg,hechos,sig){
   if(!hab(x))tocaH='<div class="toca"><div class="k">AÚN NO SE PUEDE REGISTRAR</div><div class="muted" style="font-size:.8rem">Se habilita cuando la recepción aparece en el informe de entradas de Abasto.</div></div>';
   return {tl:h,toca:tocaH};
 }
-function datosFicha(x){const e=x.e,c=CIDS[x.id];const m=v=>'<span class="mono">'+esc(v)+'</span>';const nd='<span class="nd">sin dato</span>';
+function datosFicha(x){const e=x.e,c=CIDS[x.id];const tb=k=>c&&c.datTab&&c.datTab[k]?' <span class="muted" style="font-size:.7rem">en el tablero</span>':'';
+  const hayDat=c&&Object.keys(CAMPOS_DATO).some(k=>c[k]);const bDat=hab(x)?'<button type="button" class="btn '+(hayDat?'ghost ':'')+'small" id="bDatos" style="margin:6px 0 2px">'+(hayDat?'Editar datos':'Completar datos')+'</button><div id="datBox"></div>':'';const m=v=>'<span class="mono">'+esc(v)+'</span>';const nd='<span class="nd">sin dato</span>';
   const kv=L=>'<div class="kv">'+L.map(f=>'<div'+(f[2]?' class="'+f[2]+'"':'')+'><span class="k">'+f[0]+'</span><span class="v">'+(f[1]||nd)+'</span></div>').join('')+'</div>';
   let h='<div class="dgrp"><div class="dt">Datos de la entrega · informe de Abasto</div>'+kv([['Proveedor',esc(e.prov),'w2'],['Orden de compra',m(e.oc)],['Pedido SAFIRO',e.safiro?m(e.safiro):''],['Código Abasto',m(e.cod)],['Descripción',esc((e.desc||'').slice(0,70)),'w2'],['Cantidad · valor',(e.cant||0).toLocaleString('es-PA')+' u · B/. '+money(e.valor)],['Cumplimiento',esc(e.cumpl||'')+(e.fVenc?' · vencía '+fdf(e.fVenc):'')]])+'</div>';
-  if(c&&c.fila)h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo · fila '+c.fila+'</div>'+kv([['Previo',c.pv?m(c.pv)+(c.pvTab&&c.pvCuadro&&c.pvCuadro!==c.pv?' <span class="muted" style="font-size:.7rem">en el cuadro: '+esc(c.pvCuadro)+'</span>':''):''],['Factura',c.fa?m(c.fa):''],['N° de secuencial',c.se?m(c.se):''],['N° informe de recepción',c.ir?m(c.ir):''],['Código SAFIRO',c.cs?m(c.cs):''],['Monto',c.mo?'B/. '+money(+c.mo):''],['Nota de pedido',c.np?m(c.np):''],['Asignado en Control 2',esc(c.c2||'')],['Ubicación / estatus',esc(c.ub||''),'w2'],['Observación',esc(c.ob||''),'w2']])+'</div>';
-  else h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo</div>'+(c&&c.pv?kv([['Previo',m(c.pv)+' <span class="muted" style="font-size:.7rem">asignado en el tablero</span>']]):'')+'<p class="muted" style="font-size:.8rem;margin:2px 0">Esta recepción no aparece en el cuadro del departamento: sus datos se registran desde aquí'+(c&&c.pv?'':', empezando por el previo')+'.</p></div>';
+  if(c&&c.fila)h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo · fila '+c.fila+'</div>'+kv([['Previo',c.pv?m(c.pv)+(c.pvTab&&c.pvCuadro&&c.pvCuadro!==c.pv?' <span class="muted" style="font-size:.7rem">en el cuadro: '+esc(c.pvCuadro)+'</span>':''):''],['Factura',c.fa?m(c.fa)+tb('fa'):''],['N° de secuencial',c.se?m(c.se)+tb('se'):''],['N° informe de recepción',c.ir?m(c.ir)+tb('ir'):''],['Código SAFIRO',c.cs?m(c.cs):''],['Monto',c.mo?'B/. '+money(+c.mo):''],['Nota de pedido',c.np?m(c.np)+tb('np'):''],['Asignado en Control 2',esc(c.c2||'')],['Ubicación / estatus',esc(c.ub||''),'w2'],['Observación',c.ob?esc(c.ob)+tb('ob'):'','w2']])+bDat+'</div>';
+  else{const F=[];if(c&&c.pv)F.push(['Previo',m(c.pv)+' <span class="muted" style="font-size:.7rem">asignado en el tablero</span>']);
+    if(c)[['fa'],['se'],['ir'],['np'],['ob','w2']].forEach(z=>{if(c[z[0]])F.push([CAMPOS_DATO[z[0]],z[0]==='ob'?esc(c[z[0]]):m(c[z[0]]),z[1]]);});
+    h+='<div class="dgrp"><div class="dt">Cuadro de Control Operativo</div>'+(F.length?kv(F):'')+'<p class="muted" style="font-size:.8rem;margin:2px 0">Esta recepción no aparece en el cuadro del departamento: sus datos se registran desde aquí'+(c&&c.pv?'':', empezando por el previo')+'.</p>'+bDat+'</div>';}
   return '<div class="datos">'+h+'</div>';}
 function qrCard(x){return '<div class="qrc"><div id="qrMini" aria-label="Código QR de este expediente"></div><div><b>Carátula con QR</b><p>Escanee el código con el celular y se abre este expediente. Imprima la carátula para el folder.</p><button type="button" class="btn ghost small" id="bCar2">Ver e imprimir carátula</button></div></div>';}
 function barraSesion(x){
@@ -1301,7 +1326,7 @@ function barraSesion(x){
 }
 function bitacora(x){
   const ev=EVT[x.id]||[];if(!ev.length)return '';
-  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PREVIO'?'previo asignado: '+esc(r.motivo||''):r.tipo==='PARCIAL'?'en espera ('+esc(r.motivo||'')+')':r.tipo==='PENDIENTE'?'completado con faltante ('+esc(r.motivo||'')+')':r.tipo==='CIERRA'?'faltante cerrado':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):((SES&&SES.rol==='SUPERVISOR'&&r.id&&r.tipo!=='ALTA_MANUAL')?' <button class="btn ghost small" data-anu="'+esc(r.id)+'">Anular</button>':''))+'</li>').join('')+'</ul></details>';
+  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PREVIO'?'previo asignado: '+esc(r.motivo||''):r.tipo==='DATO'?'dato: '+esc(CAMPOS_DATO[r.dest]||r.dest||'')+' = '+(r.motivo?esc(r.motivo):'(borrado)'):r.tipo==='PARCIAL'?'en espera ('+esc(r.motivo||'')+')':r.tipo==='PENDIENTE'?'completado con faltante ('+esc(r.motivo||'')+')':r.tipo==='CIERRA'?'faltante cerrado':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):((SES&&SES.rol==='SUPERVISOR'&&r.id&&r.tipo!=='ALTA_MANUAL')?' <button class="btn ghost small" data-anu="'+esc(r.id)+'">Anular</button>':''))+'</li>').join('')+'</ul></details>';
 }
 function ajustarFormPub(x){if(PASOFORM!=='P14')return;
 const fq=$('#fq');if(fq){const o=[...fq.options].find(o=>o.value===PERSONA_PASO.P14||o.textContent.indexOf(PERSONA_PASO.P14)===0);if(o){fq.value=o.value;fq.dispatchEvent(new Event('change'));}}

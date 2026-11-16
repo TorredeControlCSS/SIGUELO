@@ -179,6 +179,7 @@ function trzPost_(payload) {
     if (a === 'trzAltaManual') return trzAltaManual_(d);
     if (a === 'trzNotificar') return trzNotificar_(d);
     if (a === 'trzAsignarPrevio') return trzAsignarPrevio_(d);
+    if (a === 'trzDatos') return trzDatos_(d);
     return { success: false, error: 'Acción de trazabilidad no reconocida.' };
   } catch (err) {
     return { success: false, error: 'Error interno: ' + String(err && err.message || err) };
@@ -412,7 +413,7 @@ function trzEstado_(eventos) {
       for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; delete pend[orden[j]]; }
     }
     ultimo = ev;
-    if (ev.tipo !== 'EMPALME' && ev.tipo !== 'CIERRA' && ev.tipo !== 'PREVIO') ultimoReal = ev;
+    if (ev.tipo !== 'EMPALME' && ev.tipo !== 'CIERRA' && ev.tipo !== 'PREVIO' && ev.tipo !== 'DATO') ultimoReal = ev;
   });
   var sig = null;
   for (var i = 0; i < orden.length; i++) if (!hechos[orden[i]]) { sig = orden[i]; break; }
@@ -680,6 +681,50 @@ function trzAsignarPrevio_(d) {
     sh.appendRow(v[0].map(function (hh) { var x = fila[String(hh).trim().toUpperCase()]; return x == null ? '' : x; }));
     trzAgendarPublicacion_();
     return { success: true, id: idEv, mensaje: 'Previo ' + pv + ' asignado.' };
+  } finally { lock.releaseLock(); }
+}
+
+/* Datos del expediente que el departamento llevaba en su cuadro (16-nov-2026): factura, N° de
+   secuencial, N° de informe de recepción, nota de pedido y observación. Los captura cualquier usuario
+   activo del equipo; queda un evento por dato (PASO = DAT, RESULTADO = DATO, DESTINO = campo,
+   MOTIVO = valor) con el valor anterior en OBSERVACION. El último vigente manda. */
+var TRZ_CAMPOS_DATO = { fa: 'Factura', se: 'N° de secuencial', ir: 'N° de informe de recepción', np: 'Nota de pedido', ob: 'Observación' };
+function trzDatos_(d) {
+  var auth = trzAutenticar_(d.pin);
+  if (auth.error) return { success: false, error: auth.error };
+  var u = auth.usuario;
+  var exp = String(d.exp || '').trim();
+  if (!/^RB-\d{6,}-\d{8}$/.test(exp)) return { success: false, error: 'Expediente no válido.' };
+  var campos = d.campos || {}, lista = [];
+  for (var k in campos) {
+    if (!TRZ_CAMPOS_DATO[k]) return { success: false, error: 'Dato no reconocido.' };
+    var val = String(campos[k] == null ? '' : campos[k]).replace(/\s+/g, ' ').trim();
+    if (val.length > (k === 'ob' ? 500 : 60)) return { success: false, error: TRZ_CAMPOS_DATO[k] + ': demasiado largo.' };
+    if ((k === 'se' || k === 'ir') && val && !/^\d{4,15}$/.test(val)) return { success: false, error: TRZ_CAMPOS_DATO[k] + ' debe tener solo números.' };
+    lista.push([k, val]);
+  }
+  if (!lista.length) return { success: false, error: 'No hay datos para guardar.' };
+  var idCliente = String(d.idCliente || '').slice(0, 60);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { success: false, error: 'El sistema está ocupado; reintente en unos segundos.' };
+  try {
+    var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+    var v = sh.getDataRange().getValues(), c = trzIdx_(v[0]), antes = {};
+    for (var i = 1; i < v.length; i++) {
+      if (String(v[i][c.EXPEDIENTE]) !== exp || String(v[i][c.RESULTADO]) !== 'DATO' || String(v[i][c.ESTADO]) === 'ANULADO') continue;
+      if (idCliente && String(v[i][c.ID_CLIENTE]).indexOf(idCliente + '-') === 0) return { success: true, duplicado: true, mensaje: 'Esos datos ya estaban guardados.' };
+      antes[String(v[i][c.DESTINO])] = String(v[i][c.MOTIVO]);
+    }
+    var n = 0, base = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss');
+    lista.forEach(function (kv) {
+      var fila = { TS_SERVIDOR: new Date(), ID_EVENTO: 'EV-' + base + '-' + kv[0] + Math.floor(Math.random() * 100), ID_CLIENTE: idCliente ? idCliente + '-' + kv[0] : '',
+        EXPEDIENTE: exp, OC: exp.split('-')[1], PASO: 'DAT', RESULTADO: 'DATO', DESTINO: kv[0], MOTIVO: kv[1], FECHA_HITO: new Date(),
+        USUARIO: u.nombre, AREA: u.area, OBSERVACION: antes[kv[0]] != null ? 'Antes: ' + antes[kv[0]] : '', ESTADO: 'VIGENTE', EJECUTOR: u.nombre };
+      sh.appendRow(v[0].map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
+      n++;
+    });
+    trzAgendarPublicacion_();
+    return { success: true, mensaje: n === 1 ? 'Dato guardado.' : n + ' datos guardados.' };
   } finally { lock.releaseLock(); }
 }
 
@@ -1362,7 +1407,7 @@ function trzCorreoDiario(e) {
   var top = abiertos.slice().sort(function (a, b) { return b.dias - a.dias; }).slice(0, 15);
   var tTop = '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Expediente</th><th style="' + th + '">Proveedor</th><th style="' + th + '">Está en</th><th style="' + th + ';text-align:right">Días hábiles</th></tr>' +
     top.map(function (o) { return '<tr><td style="' + td + '">' + link(o.exp) + '</td><td style="' + td + '">' + trzEsc_(o.prov) + '</td><td style="' + td + '">' + trzCod_(o.paso) + ' · ' + trzEsc_(o.area) + (o.devuelto ? ' · devuelto' : '') + (o.parcial ? ' · parcial' : '') + '</td><td style="' + td + ';text-align:right;color:' + (o.dias > TRZ_DIAS_ALERTA ? '#b3362e' : '#1f2937') + '">' + o.dias + '</td></tr>'; }).join('') + '</table>';
-  var nomT = { PREVIO: 'previo asignado', TRANSFIERE: 'completado', PARCIAL: 'en espera', PENDIENTE: 'completado con faltante', CIERRA: 'faltante cerrado', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual', NOTIFICA: 'notificación al proveedor' };
+  var nomT = { PREVIO: 'previo asignado', DATO: 'dato del expediente', TRANSFIERE: 'completado', PARCIAL: 'en espera', PENDIENTE: 'completado con faltante', CIERRA: 'faltante cerrado', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual', NOTIFICA: 'notificación al proveedor' };
   var tMov = mov.length ? '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Hora</th><th style="' + th + '">Expediente</th><th style="' + th + '">Paso</th><th style="' + th + '">Resultado</th><th style="' + th + '">Quién lo hizo</th></tr>' +
     mov.slice(-40).reverse().map(function (x) { return '<tr><td style="' + td + '">' + trzEsc_(String(x.tsServidor).replace('T', ' ').slice(5)) + '</td><td style="' + td + '">' + link(x.exp) + '</td><td style="' + td + '">' + trzCod_(x.paso) + '</td><td style="' + td + '">' + (nomT[x.tipo] || x.tipo) + (x.tipo === 'DEVUELVE' ? ' a ' + trzCod_(x.dest) : '') + (x.motivo ? ' · ' + trzEsc_(x.motivo) : '') + '</td><td style="' + td + '">' + trzEsc_(x.ejecutor || x.quien) + '</td></tr>'; }).join('') + '</table>' +
     (mov.length > 40 ? '<p style="font-size:11px;color:#6b7280">Se muestran los 40 más recientes de ' + mov.length + '.</p>' : '')
