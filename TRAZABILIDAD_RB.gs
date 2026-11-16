@@ -515,7 +515,16 @@ function trzRegistrar_(d) {
     }
 
     var st = trzEstado_(previos);
-    if (st.siguiente !== paso) {
+    // 16-nov-2026 (Jefatura): lo publicado se considera cerrado. Si el cuadro de Control lo
+    // marcó PUBLICADO (el cuadro no guarda la fecha de publicación), Coordinación registra
+    // la fecha de publicación (P14).
+    var fechaPub = false;
+    if (st.siguiente !== paso && tipo === 'TRANSFIERE' && paso === 'P14') {
+      var vig = previos.filter(function (r) { return r.estado !== 'ANULADO'; });
+      fechaPub = vig.some(function (r) { return r.tipo === 'EMPALME' && r.paso === 'P14'; }) &&
+                 !vig.some(function (r) { return r.tipo === 'TRANSFIERE' && r.paso === 'P14'; });
+    }
+    if (st.siguiente !== paso && !fechaPub) {
       return { success: false, error: st.siguiente
         ? ('Ahora le toca el paso ' + st.siguiente + ' (' + TRZ_PASOS[orden.indexOf(st.siguiente)][1] + '). No se pueden saltar pasos.')
         : 'El expediente ya completó todos los pasos.' };
@@ -1155,7 +1164,8 @@ function trzAvisoHtml_(a, dest) {
   if (a.evidUrl) dato.push(['Evidencia', '<a href="' + trzEsc_(a.evidUrl) + '">ver documento</a>']);
   if (a.tipo === 'TRANSFIERE' && a.siguiente) {
     var ps = trzPaso_(a.siguiente);
-    para = dest.porArea[trzNorm_(ps[1])] || []; etiqueta = ps[1];
+    var areaAviso = ps[0] === 'P14' ? 'Coordinador' : ps[1];   // la fecha de publicación la pone Coordinación
+    para = dest.porArea[trzNorm_(areaAviso)] || []; etiqueta = ps[1];
     asunto = 'Le toca: ' + a.exp + ' · ' + trzCod_(a.siguiente) + ' ' + ps[1] + ' · ' + a.proveedor;
     titulo = 'Le toca a ' + trzEsc_(ps[1]);
     frase = 'El expediente <b>' + trzEsc_(a.exp) + '</b> completó <b>' + trzCod_(a.paso) + ' · ' + trzEsc_(pa[1]) + '</b> y ahora le toca a su área: <b>' + trzCod_(a.siguiente) + ' · ' + trzEsc_(ps[2]) + '</b>.';
