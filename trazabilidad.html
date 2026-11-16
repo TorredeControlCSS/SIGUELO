@@ -379,9 +379,14 @@ input,select,textarea{border-radius:8px}
 .fa-s{font:inherit;color:var(--ink);text-align:left;width:172px;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:opacity .2s}
 .fa-s.hay{background:var(--k-red);border-color:var(--bad)}
 .fa-s.amb{background:var(--k-amb);border-color:var(--warn)}
+.fpend{background:var(--parc-soft);border:1px solid var(--parc);border-radius:12px;padding:8px 12px;font-size:.82rem;margin:6px 0}.fpend b{color:var(--parc)}
+.tl.pf .n{background:var(--parc)!important;color:#fff}.pfm{font-size:.74rem;color:var(--parc);font-weight:600;margin-top:2px}
+.tg.esp{background:var(--parc-soft);color:var(--parc)}.esp.e{background:var(--parc-soft);color:var(--parc)}
+.nform{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.nform label{display:flex;flex-direction:column;font-size:.74rem;gap:2px}.nform input{font:inherit;font-size:.82rem;padding:5px 8px;border:1px solid var(--border);border-radius:8px}
 .penE{color:var(--accent-ink);font-weight:600}
 .fcer{background:var(--ok-soft);border:1px solid var(--ok);border-radius:12px;padding:8px 12px;font-size:.84rem;margin:6px 0}.fcer b{color:var(--ok)}
 .tl-det summary{cursor:pointer;font-size:.82rem;font-weight:600;color:var(--accent-ink);padding:6px 0}
+.fa-s.esperaE{background:var(--parc-soft);border-color:var(--parc)}
 .fa-s.pub{background:var(--k-blue);border-color:var(--accent)}.fa-s.pub .atr,.fa-s.pub .c b{color:var(--accent-ink)}
 .tg.cer{background:var(--ok-soft);color:var(--ok)}.tg.pub{background:var(--accent-soft);color:var(--accent-ink)}
 .esp.n{background:var(--accent-soft);color:var(--accent-ink)}.fa-s.amb .c b{color:var(--warn)}
@@ -501,6 +506,7 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
   <button role="tab" id="t-ficha" aria-selected="true" data-p="p-ficha">Registro de hitos</button>
   <button role="tab" id="t-flujo" aria-selected="false" data-p="p-flujo">Flujo</button>
   <button role="tab" id="t-ind" aria-selected="false" data-p="p-ind">Indicadores</button>
+  <button role="tab" id="t-not" aria-selected="false" data-p="p-not">Notificaciones</button>
   <button role="tab" id="t-exps" aria-selected="false" data-p="p-exps">Expedientes</button>
   <button role="tab" id="t-prov" aria-selected="false" data-p="p-prov">Vista del proveedor</button>
 </nav>
@@ -531,6 +537,10 @@ footer{margin-top:22px;font-size:.76rem;color:var(--muted);border-top:1px solid 
       <div class="scroll" id="age"></div>
     </div>
   </div>
+</section>
+
+<section class="panel" id="p-not" role="tabpanel" aria-labelledby="t-not" hidden>
+  <div id="notBox"></div>
 </section>
 
 <section class="panel" id="p-exps" role="tabpanel" aria-labelledby="t-exps" hidden>
@@ -619,6 +629,7 @@ async function cargarVivo(){
     p.rows.forEach(r=>{const m=String(g(r,'m'));if(m!=='101'&&m!=='102')return;const ped=String(g(r,'ped'));if(!peds.has(ped)&&!(m==='101'&&matsMan.has(String(g(r,'mat')))))return;K.push([ped,g(r,'mat'),m,g(r,'fd')||g(r,'f'),g(r,'f')]);});});
   const cols=cit._meta.columnas,ci=['id','solicitadaEl','proveedor',cols.indexOf('ocBase')>=0?'ocBase':'oc','codigo','fechaSolicitada','fechaConfirmada','estado'].map(c=>cols.indexOf(c));
   const C=cit.rows.map(r=>ci.map(i=>r[i]));
+  SOLS_RAW=tra.rows||[];
   const T=tra.rows.filter(t=>t.evidencia&&t.evidencia.ocSap).map(t=>[t.doc,t.cod,t.emision,t.vencEntrega,t.situacion,t.evidencia.ocSap,t.evidencia.primeraEntrada]);
   return {corte:ent._meta.corte,generado:ent._meta.generado,E:E,K:K,C:C,T:T,EV:EV,MAN:MAN,vivo:true};
 }
@@ -888,7 +899,8 @@ let PERS_LOCAL=[];try{PERS_LOCAL=JSON.parse(localStorage.getItem('rb_pers')||'[]
 function personas(){const base=(SES&&Array.isArray(SES.personas)&&SES.personas.length)?SES.personas:PERSONAS_BASE;const out=base.slice();
   PERS_LOCAL.forEach(p=>{if(!out.some(q=>q.nombre.toLowerCase()===p.nombre.toLowerCase()&&q.area===p.area))out.push(p);});return out;}
 function recordarPersona(nombre,area){if(PERS_LOCAL.some(p=>p.nombre.toLowerCase()===nombre.toLowerCase()&&p.area===area))return;PERS_LOCAL.push({nombre:nombre,area:area,pendiente:true});try{localStorage.setItem('rb_pers',JSON.stringify(PERS_LOCAL));}catch(e){}}
-const MOT_PARCIAL=['Adelanto: pendiente de formalización de la orden','Entrega parcial del proveedor','Falta documento del proveedor','Otro (detallar en observación)'];
+const MOT_PARCIAL=['Adelanto sin partida presupuestaria asignada','Falta documento del proveedor','Entrega parcial del proveedor','Otro (detallar en observación)'];   // en espera: no avanza
+const MOT_PEND=['Falta documento del proveedor','Falta firma','Entrega parcial del proveedor','Falta copia o anexo','Otro (detallar en observación)'];   // sigue avanzando con faltante
 let SES=null;try{SES=JSON.parse(localStorage.getItem('rb_ses')||'null');if(SES&&(!SES.exp||SES.exp<Date.now())){SES=null;localStorage.removeItem('rb_ses');}}catch(e){SES=null;}
 const EVT={};let RES={},RESOK=false;
 let COLA=[];try{COLA=JSON.parse(localStorage.getItem('rb_cola')||'[]');}catch(e){COLA=[];}
@@ -916,14 +928,16 @@ function cargarResumen(){return apiGet('action=trzResumen').then(j=>{if(j.succes
 /* Pasos hechos según la bitácora. EMPALME (cuadro de Control Operativo): todos los pasos hasta ese ya estaban hechos. */
 /* Registro habilitado: con entrada contable 101, o si el expediente ya trae pasos (p. ej. del cuadro de Control). */
 const hab=x=>!!(x&&x.e&&x.e.fRec);   // desde la recepción (antes esperaba la entrada 101)
-function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='TRANSFIERE')h.add(r.paso);if(r.tipo==='EMPALME'){const k=o.indexOf(r.paso);o.slice(0,k+1).forEach(p=>h.add(p));}if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(p=>h.delete(p));}});return h;}
+function hechosDe(reg){const o=PASOS.map(p=>p[0]);const h=new Set();reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='TRANSFIERE'||r.tipo==='PENDIENTE')h.add(r.paso);if(r.tipo==='EMPALME'){const k=o.indexOf(r.paso);o.slice(0,k+1).forEach(p=>h.add(p));}if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(p=>h.delete(p));}});return h;}
 /* Resumen de un expediente para tablas y vista del proveedor (sin llamar al GAS). */
-function resDe(ev){const h=hechosDe(ev);const ts=p=>{if(!h.has(p))return null;const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let t=null;ev.forEach(r=>{if(r.estado==='ANULADO')return;if((r.tipo==='TRANSFIERE'&&r.paso===p)||(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip&&!t))t=r.ts||t;});return t||true;};
+function resDe(ev){const h=hechosDe(ev);const ts=p=>{if(!h.has(p))return null;const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let t=null;ev.forEach(r=>{if(r.estado==='ANULADO')return;if(((r.tipo==='TRANSFIERE'||r.tipo==='PENDIENTE')&&r.paso===p)||(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip&&!t))t=r.ts||t;});return t||true;};
   return {hitos:{P11:ts('P11'),C12:ts('C12'),P14:ts('P14')}};}
 const puede=p=>!VIVO_REG||!SES||SES.pasos.indexOf(p)>=0;
 /* Último registro PARCIAL del paso que sigue abierto (un TRANSFIERE o una devolución anterior lo cierran). */
+/* Faltantes abiertos: pasos registrados «con faltante» (PENDIENTE) que aún no se cierran (CIERRA). */
+function pendientesDe(reg){const o=PASOS.map(z=>z[0]);const m={};reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='PENDIENTE')m[r.paso]=r;else if(r.tipo==='CIERRA')delete m[r.paso];else if(r.tipo==='DEVUELVE'){const k=o.indexOf(r.dest);if(k>=0)o.slice(k).forEach(q=>delete m[q]);}});return m;}
 function parcialDe(reg,p){const o=PASOS.map(z=>z[0]),ip=o.indexOf(p);let r0=null;
-  reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='PARCIAL'&&r.paso===p)r0=r;else if(r.tipo==='TRANSFIERE'&&r.paso===p)r0=null;else if(r.tipo==='DEVUELVE'&&o.indexOf(r.dest)<=ip)r0=null;else if(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip)r0=null;});return r0;}
+  reg.forEach(r=>{if(r.estado==='ANULADO')return;if(r.tipo==='PARCIAL'&&r.paso===p)r0=r;else if((r.tipo==='TRANSFIERE'||r.tipo==='PENDIENTE')&&r.paso===p)r0=null;else if(r.tipo==='DEVUELVE'&&o.indexOf(r.dest)<=ip)r0=null;else if(r.tipo==='EMPALME'&&o.indexOf(r.paso)>=ip)r0=null;});return r0;}
 const hechoPor=r=>r.tipo==='EMPALME'?('cuadro de Control'+(r.ejecutor?' · '+esc(r.ejecutor):'')):r.ejecutor&&r.ejecutor!==r.quien?esc(r.ejecutor)+' (registró '+esc(r.quien)+')':esc(r.quien||r.ejecutor||'');
 function pinModal(luego){
   if($('#pinOv'))return;const o=document.createElement('div');o.id='pinOv';
@@ -961,11 +975,50 @@ async function prepEvid(f){
   const d=await new Promise((ok,ko)=>{const rd=new FileReader();rd.onload=()=>ok(rd.result);rd.onerror=ko;rd.readAsDataURL(f);});
   return {base64:String(d).split(',')[1],mime:'application/pdf',nombre:f.name};
 }
-let SELID=null,PASOFORM=null,EVID=null,ENVIANDO=0;
+let SELID=null,PASOFORM=null,EVID=null,ENVIANDO=0,SOLS_RAW=[],NOT_F='pend',NOT_Q='',NOT_ABIERTA=null;
+/* ---------- Notificación al proveedor de la solicitud de entrega (Seguimiento) ---------- */
+function notifs(){const m={};(EVT['NOTIF-SOL']||EVTJ['NOTIF-SOL']||[]).forEach(r=>{if(r.estado==='ANULADO'||r.tipo!=='NOTIFICA')return;m[normB(r.motivo).replace(/\s+/g,' ').trim()]=r;});return m;}
+function notifDe(doc){return doc?notifs()[normB(doc).replace(/\s+/g,' ').trim()]:null;}
+function solicitudes(){const g={};SOLS_RAW.forEach(t=>{if(!t.doc||t.tipo&&t.tipo!=='SOLICITUD_ENTREGA')return;const k=String(t.doc).trim();const o=g[k]||(g[k]={doc:k,emision:t.emision||'',cods:[],plan:t.planificador||'',cedis:t.cedis||''});if(t.cod&&o.cods.indexOf(t.cod)<0)o.cods.push(t.cod);if(t.emision&&(!o.emision||t.emision<o.emision))o.emision=t.emision;});
+  return Object.values(g).sort((a,b)=>String(b.emision).localeCompare(String(a.emision)));}
+const puedeNotificar=()=>SES&&(normB(SES.area).replace(/[^A-Z]/g,'')==='SEGUIMIENTO'||SES.rol==='SUPERVISOR'||SES.rol==='REGISTRADOR');
+function renderNotif(){const box=$('#notBox');if(!box)return;const N=notifs();const L=solicitudes();
+  const est=o=>N[normB(o.doc).replace(/\s+/g,' ').trim()];
+  const nPend=L.filter(o=>!est(o)).length,nHechas=L.length-nPend;
+  const q=normB(NOT_Q);const F=L.filter(o=>(NOT_F==='todas'||(NOT_F==='pend'?!est(o):!!est(o)))&&(!q||normB(o.doc+' '+o.cods.join(' ')+' '+o.plan).includes(q)));
+  const fila=o=>{const n=est(o);const ab=NOT_ABIERTA===o.doc;
+    return '<tr><td><div class="mono" style="font-weight:700">'+esc(o.doc)+'</div><div class="muted" style="font-size:.72rem">'+esc(o.cedis)+(o.plan?' · '+esc(o.plan):'')+'</div></td><td>'+(o.emision?fdf(String(o.emision).slice(0,10)):'—')+'</td><td class="mono" style="font-size:.76rem">'+esc(o.cods.slice(0,3).join(', '))+(o.cods.length>3?' +'+(o.cods.length-3):'')+'</td>'+
+      '<td>'+(n?'<span class="tg cer">Notificada el '+fdf(String(n.ts).slice(0,10))+'</span><div class="muted" style="font-size:.72rem">'+esc(n.ejecutor||n.quien||'')+(n.pend?' · enviando…':'')+'</div>':
+        (ab?'<div class="nform"><label>Fecha de la notificación<input type="datetime-local" id="nts"></label><label>Observación<input type="text" id="nobs" placeholder="Opcional (medio, contacto)"></label><div class="ctl"><button class="btn small" id="nok">Guardar</button><button class="btn ghost small" id="nno">Cancelar</button></div></div>':
+        '<button type="button" class="btn small" data-not="'+esc(o.doc)+'">Registrar notificación</button>'))+'</td></tr>';};
+  box.innerHTML='<div class="block"><div class="block-h"><h2>Notificación al proveedor de la solicitud de entrega</h2><p>Seguimiento registra aquí la fecha en que notificó al proveedor cada solicitud de entrega. Busque el número, pulse «Registrar notificación» y guarde. La fecha aparece después en la ficha de cada expediente de esa solicitud.</p></div>'+
+    '<div class="ctl"><input type="search" id="notQ" placeholder="Buscar número de solicitud, renglón o planificador" style="flex:1 1 300px;padding:7px 10px;border:1px solid var(--border);font:inherit;font-size:.84rem" value="'+esc(NOT_Q)+'">'+
+    '<div class="seg" role="group" aria-label="Estado de la notificación"><button type="button" data-nf="pend" aria-pressed="'+(NOT_F==='pend')+'">Por notificar · '+nPend+'</button><button type="button" data-nf="hechas" aria-pressed="'+(NOT_F==='hechas')+'">Notificadas · '+nHechas+'</button><button type="button" data-nf="todas" aria-pressed="'+(NOT_F==='todas')+'">Todas</button></div>'+
+    (SES?'<span class="muted" style="font-size:.78rem">'+esc(SES.nombre)+' · '+esc(SES.area)+'</span>':'<button class="btn small" id="notPin">Ingresar con PIN</button>')+'</div>'+
+    '<div class="ctab"><table><thead><tr><th>Solicitud de entrega</th><th>Emisión</th><th>Renglones</th><th>Notificación al proveedor</th></tr></thead><tbody>'+(F.length?F.slice(0,150).map(fila).join(''):'<tr><td colspan="4" class="muted" style="padding:14px">No hay solicitudes con estos filtros.</td></tr>')+'</tbody></table>'+(F.length>150?'<p class="muted" style="font-size:.78rem">Se muestran 150 de '+F.length+'. Use la búsqueda.</p>':'')+'</div></div>';
+  let tq=null;$('#notQ').oninput=ev=>{NOT_Q=ev.target.value;clearTimeout(tq);tq=setTimeout(()=>{renderNotif();const i=$('#notQ');i.focus();i.setSelectionRange(i.value.length,i.value.length);},250);};
+  box.querySelectorAll('[data-nf]').forEach(b=>b.onclick=()=>{NOT_F=b.dataset.nf;renderNotif();});
+  if($('#notPin'))$('#notPin').onclick=()=>pinModal(renderNotif);
+  box.querySelectorAll('[data-not]').forEach(b=>b.onclick=()=>{const doc=b.dataset.not;const abrirF=()=>{if(!puedeNotificar()){aviso('La notificación al proveedor la registra Seguimiento.',true);return;}NOT_ABIERTA=doc;renderNotif();const n=new Date();$('#nts').value=iso(n)+'T'+pad(n.getHours())+':'+pad(n.getMinutes());};
+    if(!SES){pinModal(abrirF);return;}abrirF();});
+  if($('#nno'))$('#nno').onclick=()=>{NOT_ABIERTA=null;renderNotif();};
+  if($('#nok'))$('#nok').onclick=()=>guardarNotif(L.find(o=>o.doc===NOT_ABIERTA),$('#nts').value,$('#nobs').value);
+}
+async function guardarNotif(o,ts,obs){if(!o||!SES)return;if(!ts){aviso('Indique la fecha de la notificación.',true);return;}
+  const idc=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const loc={id:'LOCAL-'+idc,exp:'NOTIF-SOL',paso:'SOL',tipo:'NOTIFICA',motivo:o.doc,ts:ts,quien:SES.nombre,ejecutor:SES.nombre,area:SES.area,obs:obs||undefined,pend:true};
+  const base=(EVT['NOTIF-SOL']||EVTJ['NOTIF-SOL']||[]).slice();base.push(loc);EVT['NOTIF-SOL']=base;EVTJ['NOTIF-SOL']=base;guardarEvtCache('NOTIF-SOL');
+  NOT_ABIERTA=null;ENVIANDO++;renderNotif();aviso('Guardado: notificación de '+o.doc+'. Se está enviando a SIGUELO.');
+  const quitar=()=>{const L=(EVT['NOTIF-SOL']||[]).filter(r=>r!==loc);EVT['NOTIF-SOL']=L;EVTJ['NOTIF-SOL']=L;guardarEvtCache('NOTIF-SOL');};
+  let r;try{r=await apiPost('trzNotificar',{pin:SES.pin,doc:o.doc,cod:o.cods.join(','),ts:ts,obs:obs||'',idCliente:idc});}catch(e){r={success:false,error:'Sin conexión con SIGUELO.'};}
+  ENVIANDO--;
+  if(!r.success){quitar();renderNotif();aviso('No se registró la notificación: '+(r.error||'error')+' Vuelva a intentarlo.',true);if(/PIN|inactivo/i.test(r.error||''))salir();return;}
+  delete loc.pend;if(r.id)loc.id=r.id;guardarEvtCache('NOTIF-SOL');renderNotif();if(r.duplicado)aviso(r.mensaje);}
 window.addEventListener('beforeunload',ev=>{if(ENVIANDO>0){ev.preventDefault();ev.returnValue='';}});
 function abrir(id){SELID=id;VISTA='ficha';try{history.replaceState(null,'','#'+id);}catch(e){}showTab('p-ficha');renderFicha();}
 function stepper(x){const e=x.e,S2=[];
-  S2.push({t:'Solicitud de entrega',d:x.t?x.t.emision:null,sub:x.t?esc(x.t.doc):'No enlazada'});
+  const nt=x.t?notifDe(x.t.doc):null;
+  S2.push({t:'Solicitud de entrega',d:x.t?x.t.emision:null,sub:x.t?esc(x.t.doc)+(nt?' · notificada al proveedor el '+fdf(String(nt.ts).slice(0,10)):' · sin notificación registrada'):'No enlazada'});
   S2.push({t:'Cita confirmada',d:x.c?x.c.fConf:null,sub:x.c?(esc(x.c.id)+' · '+esc(x.c.estado)):'No enlazada'});
   S2.push({t:'Recepción física',d:e.fRec,sub:(x.lag.cita!=null?(x.lag.cita+' d háb. después de la cita'):(e.alta?'Alta manual (informe firmado)':'Informe de entradas'))});
   S2.push({t:'Ingreso a inventario',d:e.fSalmi,sub:x.lag.salmi!=null?('+'+x.lag.salmi+' d háb.'):'Pendiente'});
@@ -991,6 +1044,10 @@ function renderFicha(){
   box.innerHTML=h;
   try{new QRCode(document.getElementById('qrMini'),{text:'https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id,width:92,height:92,colorDark:'#000000',colorLight:'#ffffff'});}catch(err){}
   if($('#bCar2'))$('#bCar2').onclick=()=>renderCaratula(x);
+  box.querySelectorAll('[data-cierra]').forEach(b=>b.addEventListener('click',()=>{const pq=b.dataset.cierra;
+    const go=()=>{if(!puede(pq)){aviso('Ese faltante lo cierra '+AREA_TXT((PASOS.find(z=>z[0]===pq)||[])[1]||'')+'.',true);return;}PASOFORM=pq;EVID=null;const n=new Date();
+      enviarHito(x,{tipo:'CIERRA',ejecutor:SES.nombre,nuevo:false,ts:iso(n)+'T'+pad(n.getHours())+':'+pad(n.getMinutes()),obs:'',dest:null,motivo:null});};
+    if(VIVO_REG&&!SES){pinModal(()=>{renderFicha();go();});return;}go();}));
   box.querySelectorAll('[data-reg]').forEach(b=>b.addEventListener('click',()=>{PASOFORM=b.dataset.reg;EVID=null;
     if(VIVO_REG&&!SES){pinModal(()=>{renderFicha();if(puede(PASOFORM)){renderForm(X.find(v=>v.id===SELID));bajarA('#frm');}else{aviso('Ese paso le corresponde a otra área.',true);bajarA('#fdet');}});return;}renderForm(x);bajarA('#frm');}));
   box.querySelectorAll('.fn[data-p]').forEach(b=>b.addEventListener('click',()=>{PSEL=b.dataset.p;renderFicha();}));
@@ -1020,7 +1077,7 @@ function bandejaDatos(){const out=[];X.forEach(x=>{if(!hab(x))return;const reg=(
   const reales=reg.filter(r=>r.tipo!=='EMPALME');const u=reales[reales.length-1];
   const ult=reg.reduce((m,r)=>{const t=String(r.ts||'').slice(0,10);return t>m?t:m;},'');
   const esp=bd(ult||x.f101||x.e.fRec,HOY);
-  out.push({x:x,h:h,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,porPub:sig[0]==='P14',parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
+  out.push({x:x,h:h,paso:sig[0],area:sig[1],acc:sig[2],esp:esp,porPub:sig[0]==='P14',npend:Object.keys(pendientesDe(reg)).length,parc:parcialDe(reg,sig[0]),dev:u&&u.tipo==='DEVUELVE'?u:null});});
   return out.sort((a,b)=>(a.fpub?1:0)-(b.fpub?1:0)||b.esp-a.esp);}
 /* ---------- Nombres, personas y colores ---------- */
 const AREA_TXT=a=>({Control1:'Control 1',Control2:'Control 2',Control3:'Control 3','Cómputo':'Cómputo (Kardex)'}[a]||a);
@@ -1041,7 +1098,7 @@ let COLA_M='persona',COLA_F=null,COLA_E='todos',COLA_Q='',COLA_N=50,COLA_P=null,
 function colaItems(){return bandejaDatos().map(o=>{o.persona=personaPaso(o.paso,o.area);return o;});}
 function colaFiltrar(D,conClave){return D.filter(o=>{
   if(COLA_P&&o.paso!==COLA_P)return false;
-  if(COLA_E==='parc'&&!o.parc)return false;if(COLA_E==='dev'&&!o.dev)return false;
+  if(COLA_E==='parc'&&!o.parc)return false;if(COLA_E==='pend'&&!o.npend)return false;if(COLA_E==='dev'&&!o.dev)return false;
   if(COLA_E==='todos'&&o.fpub)return false;if(COLA_E==='pub'&&o.paso!=='P14')return false;
   if(conClave&&COLA_F){if(COLA_M==='persona'?((o.persona||'Por confirmar')!==COLA_F):(o.area!==COLA_F))return false;}
   if(COLA_Q){const c=CIDS[o.x.id]||{};const t=normB(COLA_Q);if(!normB([o.x.id,o.x.e.oc,o.x.e.prov,o.x.e.desc,o.x.e.cod,c.pv,c.fa,c.ir,c.se,c.cs,o.x.c?o.x.c.id:''].join(' ')).includes(t))return false;}
@@ -1060,7 +1117,7 @@ function renderBandeja(){const box=$('#bandeja');if(!box)return;
     '<button type="button" class="pchip" data-k="" aria-pressed="'+(!COLA_F)+'"><i style="background:#8a8a8a"></i>'+(COLA_M==='persona'?'Todos':'Todas')+' <b>'+base.length+'</b></button>'+
     claves.map(k=>COLA_M==='persona'?chip(k,k==='Por confirmar'?k:corto(k),colPersona(k==='Por confirmar'?null:k),cnt(k)):chip(k,AREA_TXT(k),colArea(k),cnt(k))).join('')+'</div>'+
     '<div class="ctl"><input type="search" id="colaQ" aria-label="Buscar en la bandeja" placeholder="Buscar previo, OC, factura, cita, proveedor o producto" style="flex:1 1 280px;padding:7px 10px;border:1px solid var(--border);font:inherit;font-size:.84rem" value="'+esc(COLA_Q)+'">'+
-    '<div class="seg" role="group" aria-label="Estado"><button type="button" data-e="todos" aria-pressed="'+(COLA_E==='todos')+'">Esperando</button><button type="button" data-e="parc" aria-pressed="'+(COLA_E==='parc')+'">Parciales</button><button type="button" data-e="dev" aria-pressed="'+(COLA_E==='dev')+'">Devueltos</button><button type="button" data-e="pub" aria-pressed="'+(COLA_E==='pub')+'" title="Enviados a Compras y publicados sin fecha de publicación">Publicación</button></div>'+
+    '<div class="seg" role="group" aria-label="Estado"><button type="button" data-e="todos" aria-pressed="'+(COLA_E==='todos')+'">Esperando</button><button type="button" data-e="parc" aria-pressed="'+(COLA_E==='parc')+'" title="No pueden avanzar: adelanto sin partida u otro bloqueo externo">En espera</button><button type="button" data-e="pend" aria-pressed="'+(COLA_E==='pend')+'" title="Siguieron avanzando con un faltante abierto">Con faltante</button><button type="button" data-e="dev" aria-pressed="'+(COLA_E==='dev')+'">Devueltos</button><button type="button" data-e="pub" aria-pressed="'+(COLA_E==='pub')+'" title="Enviados a Compras y publicados sin fecha de publicación">Publicación</button></div>'+
     (COLA_P?'<button type="button" class="pchip" id="colaPx" aria-pressed="true">Solo paso '+(PASOS.findIndex(z=>z[0]===COLA_P)+1)+' · '+esc((PASOS.find(z=>z[0]===COLA_P)||[])[2]||'')+' ×</button>':'')+'</div></div>';
   box.innerHTML=h;
   box.querySelectorAll('.seg [data-m]').forEach(b=>b.onclick=()=>{COLA_M=b.dataset.m;COLA_F=null;COLA_N=50;renderBandeja();});
@@ -1081,9 +1138,9 @@ function renderColaTabla(){const box=$('#colaTabla');if(!box)return;
     return '<tr class="fila'+(o.x.id===SELID?' sel':'')+'" tabindex="0" data-id="'+o.x.id+'"><td><div class="pv">'+esc(c.pv||'—')+'</div><div class="muted" style="font-size:.72rem">OC '+o.x.e.oc+'</div></td>'+
       '<td><div style="font-weight:600">'+esc(o.x.e.prov||'')+'</div><div class="muted" style="font-size:.76rem">'+esc((o.x.e.desc||'').slice(0,46))+'</div></td>'+
       '<td><div style="font-weight:600">'+esc(o.acc)+'</div><div class="muted" style="font-size:.74rem">'+esc(AREA_TXT(o.area))+(o.persona?' · '+esc(corto(o.persona)):'')+' · paso '+(k+1)+' de 15</div>'+
-      (o.fpub?'<span class="tg cer">Cerrado · publicado en PanamaCompra</span>':'')+(o.porPub?'<span class="tg pub">Enviado a Compras · por publicar</span>':'')+(o.dev?'<span class="tg dev">Devuelto · corregir</span>':'')+(o.parc?'<span class="tg parc">Parcial · '+esc(o.parc.motivo||'')+'</span>':'')+'</td>'+
+      (o.fpub?'<span class="tg cer">Cerrado · publicado en PanamaCompra</span>':'')+(o.porPub?'<span class="tg pub">Enviado a Compras · por publicar</span>':'')+(o.dev?'<span class="tg dev">Devuelto · corregir</span>':'')+(o.parc?'<span class="tg esp">En espera · '+esc(o.parc.motivo||'')+'</span>':'')+(o.npend?'<span class="tg parc">'+o.npend+' faltante'+(o.npend===1?'':'s')+' abierto'+(o.npend===1?'':'s')+'</span>':'')+'</td>'+
       '<td><div class="dots">'+dots+'</div><div class="muted" style="font-size:.7rem;margin-top:3px">'+o.h.size+' de 15</div></td>'+
-      '<td style="text-align:right">'+(o.fpub?'<span class="esp n">sin fecha</span>':(o.porPub?'<span class="esp n">'+o.esp+' d</span>':'<span class="esp '+cls+'">'+o.esp+' d</span>'))+'<div class="muted" style="font-size:.7rem;margin-top:3px">recibido '+fdf(o.x.e.fRec)+'</div></td></tr>';};
+      '<td style="text-align:right">'+(o.fpub?'<span class="esp n">sin fecha</span>':(o.porPub?'<span class="esp n">'+o.esp+' d</span>':(o.parc?'<span class="esp e" title="En espera: no cuenta como atraso">'+o.esp+' d</span>':'<span class="esp '+cls+'">'+o.esp+' d</span>')))+'<div class="muted" style="font-size:.7rem;margin-top:3px">recibido '+fdf(o.x.e.fRec)+'</div></td></tr>';};
   box.innerHTML='<div class="ctab"><table><thead><tr><th>Previo</th><th>Proveedor · producto</th><th>Le toca ahora</th><th>Avance</th><th style="text-align:right">Esperando</th></tr></thead><tbody>'+
     (L.length?L.slice(0,COLA_N).map(fila).join(''):'<tr><td colspan="5" class="muted" style="padding:14px">No hay expedientes con estos filtros.</td></tr>')+'</tbody></table>'+
     '<div class="muted" style="font-size:.76rem;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Mostrando '+Math.min(COLA_N,L.length)+' de '+L.length+'</span>'+(L.length>COLA_N?'<button class="btn ghost small" id="colaMas">Ver más</button>':'')+'</div></div>';
@@ -1093,7 +1150,7 @@ function renderColaTabla(){const box=$('#colaTabla');if(!box)return;
 /* ---------- Flujo agregado: los 15 pasos con lo que espera en cada uno ---------- */
 let FA_M='persona',FA_F=null;const FA_ATR=5;
 function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_REG){box.innerHTML='';return;}
-  const D=bandejaDatos();const n={},A={},MX={};let NSF=0;D.forEach(o=>{if(o.fpub){NSF++;return;}n[o.paso]=(n[o.paso]||0)+1;if(o.paso==='P14')return;if(o.esp>FA_ATR)A[o.paso]=(A[o.paso]||0)+1;MX[o.paso]=Math.max(MX[o.paso]||0,o.esp||0);});
+  const D=bandejaDatos();const n={},A={},MX={};let NSF=0;const NE={};D.forEach(o=>{if(o.fpub){NSF++;return;}n[o.paso]=(n[o.paso]||0)+1;if(o.paso==='P14')return;if(o.parc){NE[o.paso]=(NE[o.paso]||0)+1;return;}if(o.esp>FA_ATR)A[o.paso]=(A[o.paso]||0)+1;MX[o.paso]=Math.max(MX[o.paso]||0,o.esp||0);});
   const TOP=Object.keys(A).sort((a,b)=>A[b]-A[a]||MX[b]-MX[a]).slice(0,3);
   const ord=PASOS.map(p=>p[0]);
   const claves=FA_M==='persona'?(()=>{const L=[];PASOS.forEach(z=>{const q=personaPaso(z[0],z[1])||'Por confirmar';if(L.indexOf(q)<0)L.push(q);});return L;})():AREAS.slice();
@@ -1101,7 +1158,7 @@ function renderFlujoAgg(){const box=$('#flujoDocAgg');if(!box)return;if(!VIVO_RE
     const clave=FA_M==='persona'?(per||'Por confirmar'):q[1];const off=FA_F&&FA_F!==clave;
     const ring=FA_F&&!off?(FA_M==='persona'?colPersona(per):colArea(q[1])):'';
     return (primero?'<span class="fax sp" aria-hidden="true"></span>':'<span class="fax'+(c?' vivo':'')+'" aria-hidden="true"></span>')+
-      '<button type="button" class="fa-s'+(p==='P14'?((c||NSF)?' pub':''):(c?(A[p]?' hay':' amb'):''))+(TOP.indexOf(p)>-1&&!off?' cuello':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+' title="'+(c?c+' esperando · '+(A[p]||0)+' con más de '+FA_ATR+' días hábiles · el más antiguo lleva '+(MX[p]||0)+' d':'Nada esperando')+'">'+(TOP[0]===p&&!off?'<span class="cb">Cuello de botella</span>':'')+'<span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+(p==='P14'?((c||NSF)?'<span class="atr">'+(c?c+' por publicar':'')+(c&&NSF?' · ':'')+(NSF?NSF+' publicados sin fecha':'')+'</span>':''):(c?'<span class="atr">'+(A[p]?(A[p]+' atrasado'+(A[p]===1?'':'s')+' · máx '+MX[p]+' d'):'al día · máx '+(MX[p]||0)+' d')+'</span>':''))+
+      '<button type="button" class="fa-s'+(p==='P14'?((c||NSF)?' pub':''):(c?(A[p]?' hay':(c>(NE[p]||0)?' amb':' esperaE')):''))+(TOP.indexOf(p)>-1&&!off?' cuello':'')+(off?' off':'')+'" data-p="'+p+'"'+(ring?' style="box-shadow:0 0 0 3px '+ring+'"':'')+' title="'+(c?c+' esperando · '+(A[p]||0)+' con más de '+FA_ATR+' días hábiles · el más antiguo lleva '+(MX[p]||0)+' d':'Nada esperando')+'">'+(TOP[0]===p&&!off?'<span class="cb">Cuello de botella</span>':'')+'<span class="c">Paso '+(k+1)+'<b>'+c+'</b></span><span class="a">'+esc(q[2])+'</span>'+(p==='P14'?((c||NSF)?'<span class="atr">'+(c?c+' por publicar':'')+(c&&NSF?' · ':'')+(NSF?NSF+' publicados sin fecha':'')+'</span>':''):(c?'<span class="atr">'+(A[p]?(A[p]+' atrasado'+(A[p]===1?'':'s')+' · máx '+MX[p]+' d'):(c>(NE[p]||0)?'al día · máx '+(MX[p]||0)+' d':''))+'</span>'+(NE[p]?'<span class="atr" style="color:var(--parc)">'+NE[p]+' en espera</span>':''):''))+
       '<span class="q'+(per?'':' conf')+'">'+esc(AREA_TXT(q[1]))+'</span><span class="p"><i style="background:'+(FA_M==='persona'?colPersona(per):colArea(q[1]))+'"></i>'+esc(per||'por confirmar')+'</span></button>';};
   const grupo=(g,i)=>{const ps=g[1],tot=ps.reduce((a,p)=>a+(n[p]||0),0);
     return (i?'<div class="fa-down'+(tot?' vivo':'')+'" aria-hidden="true"></div>':'')+'<div class="fa-row g'+i+'"><div class="fa-lab"><b>'+esc(g[0])+'</b><span>'+(ps.length>1?'Pasos ':'Paso ')+(ord.indexOf(ps[0])+1)+(ps.length>1?' al '+(ord.indexOf(ps[ps.length-1])+1):'')+'</span><span class="t">'+tot+' esperando</span></div><div class="fa-cells">'+ps.map((p,j)=>'<div class="fa-cell">'+caja(p,j%6===0)+'</div>').join('')+'</div></div>';};
@@ -1173,18 +1230,20 @@ function timelineDoc(x,reg,hechos,sig){
   const nH=ord.filter(p=>hechos.has(p)).length,pct=Math.round(100*nH/ord.length);let tocaH='';
   let h='<div class="favance"><span><b>Avance documental:</b> '+nH+' de '+ord.length+' pasos</span><div class="favbar" role="progressbar" aria-valuemin="0" aria-valuemax="'+ord.length+'" aria-valuenow="'+nH+'"><i style="width:'+pct+'%"></i></div><span class="mono">'+pct+' %</span></div>';
   if(dev){const qa=PASOS.find(z=>z[0]===dev.paso),qd=PASOS.find(z=>z[0]===dev.dest);h+='<div class="fdev" role="status"><b>Devuelto</b> desde el paso '+(ord.indexOf(dev.paso)+1)+' ('+esc(qa?qa[2]:'')+') al paso '+(ord.indexOf(dev.dest)+1)+' ('+esc(qd?qd[2]:'')+')'+(dev.ts?' · '+esc(String(dev.ts).replace('T',' ')):'')+' · '+hechoPor(dev)+'<br><span>Motivo: '+esc(dev.motivo||'—')+(dev.obs?' · '+esc(dev.obs):'')+'</span></div>';}
-  if(parc&&!dev){h+='<div class="fparc" role="status"><b>Parcial</b> en el paso '+(ord.indexOf(parc.paso)+1)+(parc.ts?' · '+esc(String(parc.ts).replace('T',' ')):'')+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. Sigue en este paso hasta registrarlo como completado total.</span></div>';}
+  if(parc&&!dev){h+='<div class="fparc" role="status"><b>En espera</b> en el paso '+(ord.indexOf(parc.paso)+1)+(parc.ts?' · desde '+esc(String(parc.ts).slice(0,10).split('-').reverse().join('/')):'')+' · '+hechoPor(parc)+'<br><span>'+esc(parc.motivo||'')+(parc.obs?' · '+esc(parc.obs):'')+'. No puede avanzar hasta que se resuelva; no cuenta como atraso del departamento. Cuando se resuelva, registre el paso como completado.</span></div>';}
+  const PEND=pendientesDe(reg);const npend=Object.keys(PEND).length;
+  if(npend)h+='<div class="fpend" role="status"><b>'+npend+' faltante'+(npend===1?'':'s')+' abierto'+(npend===1?'':'s')+'</b>: el expediente siguió avanzando. '+Object.keys(PEND).map(q=>'Paso '+(ord.indexOf(q)+1)+': '+esc(PEND[q].motivo||'')).join(' · ')+'</div>';
   const dato=p=>{const t=reg.filter(r=>(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso===p);const r=t[t.length-1];
     if(!r)return 'ya hecho · cuadro';if(r.tipo==='EMPALME'&&p==='P14')return 'publicado · falta la fecha de publicación';const f=r.ts?fdf(String(r.ts).slice(0,10)):'';return (f?f+' · ':'')+(r.tipo==='EMPALME'?(r.ejecutor?esc(corto(r.ejecutor))+' · cuadro':'cuadro'):esc(corto(r.ejecutor||r.quien)))+(r.pend?' · <span class="penE">'+(r.pend==='cola'?'en cola, sin señal':'enviando…')+'</span>':'');};
   let rows='';const cerrado=hechos.has('P14'),fsf=pubSinFecha(reg),soloCuadro=cerrado&&!reg.some(r=>r.estado!=='ANULADO'&&r.tipo!=='EMPALME'&&r.tipo!=='PARCIAL');
   GRUPOS.forEach(g=>{rows+='<div class="tl-g">'+esc(g[0])+'</div>';
     g[1].forEach(p=>{const q=PASOS.find(z=>z[0]===p),k=ord.indexOf(p),done=hechos.has(p),now=sig&&sig[0]===p,per=personaPaso(p,q[1]);
       const cls=done?'h':(now?'a':(reab.has(p)?'r':''));
-      rows+='<div class="tl '+cls+'"><div class="n">'+(done?'✓':k+1)+'</div><div class="t"><b>'+esc(q[2])+'</b><div class="q"><i style="background:'+colArea(q[1])+'"></i>'+esc(AREA_TXT(q[1]))+' · '+esc(per||'por confirmar')+'</div></div><div class="w">'+(done?dato(p):(now?'le toca · '+espera+' d':(reab.has(p)?'se repite':'')))+'</div></div>';
+      const pe=PEND[p];rows+='<div class="tl '+cls+(pe?' pf':'')+'"><div class="n">'+(done?'✓':k+1)+'</div><div class="t"><b>'+esc(q[2])+'</b><div class="q"><i style="background:'+colArea(q[1])+'"></i>'+esc(AREA_TXT(q[1]))+' · '+esc(per||'por confirmar')+'</div>'+(pe?'<div class="pfm">Faltante abierto: '+esc(pe.motivo||'')+(puede(p)?' <button type="button" class="btn ghost small" data-cierra="'+p+'">Cerrar faltante</button>':'')+'</div>':'')+'</div><div class="w">'+(done?dato(p):(now?(parc?'en espera · '+espera+' d':'le toca · '+espera+' d'):(reab.has(p)?'se repite':'')))+'</div></div>';
       if(now){const pa=puede(p);
-        tocaH+='<div class="toca'+(dev?' dev':(parc?' parc':''))+'" id="fdet"><div class="k">'+(dev?'DEVUELTO · CORREGIR Y VOLVER A REGISTRAR':(parc?'PARCIAL · SIGUE EN ESTE PASO':(p==='P14'?'ENVIADO A COMPRAS · POR PUBLICAR':'LE TOCA A '+esc(AREA_TXT(q[1]).toUpperCase()))))+' · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+(p==='P14'?' desde el envío':' esperando')+'</div>'+
+        tocaH+='<div class="toca'+(dev?' dev':(parc?' parc':''))+'" id="fdet"><div class="k">'+(dev?'DEVUELTO · CORREGIR Y VOLVER A REGISTRAR':(parc?'EN ESPERA · NO PUEDE AVANZAR':(p==='P14'?'ENVIADO A COMPRAS · POR PUBLICAR':'LE TOCA A '+esc(AREA_TXT(q[1]).toUpperCase()))))+' · '+espera+' día'+(espera===1?'':'s')+' hábil'+(espera===1?'':'es')+(p==='P14'?' desde el envío':' esperando')+'</div>'+
           '<div class="solo-m mono" style="font-size:.95rem;font-weight:700">'+(CIDS[x.id]&&CIDS[x.id].pv?'Previo '+esc(CIDS[x.id].pv)+' · ':'')+esc((x.e.prov||'').slice(0,34))+'</div><div class="p">Paso '+(k+1)+' · '+esc(q[2])+'</div><div class="muted" style="font-size:.8rem">Responsable: '+esc(AREA_TXT(q[1]))+(per?' ('+esc(per)+')':'')+'</div>'+
-          (pa?'<button class="btn" data-reg="'+p+'">'+(parc&&!dev?'Actualizar':'Registrar')+' «'+esc(q[2])+'»</button>':'<span class="muted" style="font-size:.8rem">Lo registra '+esc(AREA_TXT(q[1]))+'. Con su PIN usted ve y registra los pasos de su área.</span>')+'</div>';}
+          (pa?'<button class="btn" data-reg="'+p+'">'+(parc&&!dev?'Ya se resolvió: registrar':'Registrar')+' «'+esc(q[2])+'»</button>':'<span class="muted" style="font-size:.8rem">Lo registra '+esc(AREA_TXT(q[1]))+'. Con su PIN usted ve y registra los pasos de su área.</span>')+'</div>';}
     });});
   const p14=reg.filter(r=>r.estado!=='ANULADO'&&(r.tipo==='TRANSFIERE'||r.tipo==='EMPALME')&&r.paso==='P14').pop();
   if(!sig&&hab(x))tocaH+=fsf?'<div class="toca" id="fdet" style="border-color:var(--ok);background:var(--ok-soft)"><div class="k" style="color:var(--ok)">CERRADO · PUBLICADO EN PANAMACOMPRA</div><div class="p">Falta la fecha de publicación</div><div class="muted" style="font-size:.8rem">El cuadro de Control lo marca publicado, pero no guarda la fecha de publicación. La registra Coordinación (Mónica Quintero); con eso el expediente queda completo. Sigue en manos de Contraloría.</div>'+(puede('P14')?(FPUB_ACTIVO?'<button class="btn" data-reg="P14">Registrar fecha de publicación</button>':'<span class="muted" style="font-size:.8rem">El registro de la fecha de publicación se habilita en cuanto se actualice SIGUELO.</span>'):'')+'</div>'
@@ -1211,7 +1270,7 @@ function barraSesion(x){
 }
 function bitacora(x){
   const ev=EVT[x.id]||[];if(!ev.length)return '';
-  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'parcial ('+esc(r.motivo||'')+')':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):((SES&&SES.rol==='SUPERVISOR'&&r.id&&r.tipo!=='ALTA_MANUAL')?' <button class="btn ghost small" data-anu="'+esc(r.id)+'">Anular</button>':''))+'</li>').join('')+'</ul></details>';
+  return '<details class="bit"><summary>Bitácora completa ('+ev.length+' registros; nada se borra)</summary><ul>'+ev.slice().reverse().map(r=>'<li class="'+(r.estado==='ANULADO'?'anu':'')+'"><span class="mono">'+esc(String(r.ts).replace('T',' '))+'</span> · <b>'+(r.paso==='C12'?'C·12→13':esc(r.paso))+'</b> '+(r.tipo==='ALTA_MANUAL'?'alta manual de la recepción ('+esc(r.motivo||'')+')':(r.tipo==='DEVUELVE'?'devuelto a '+esc(r.dest)+' ('+esc(r.motivo)+')':(r.tipo==='PARCIAL'?'en espera ('+esc(r.motivo||'')+')':r.tipo==='PENDIENTE'?'completado con faltante ('+esc(r.motivo||'')+')':r.tipo==='CIERRA'?'faltante cerrado':(r.tipo==='EMPALME'?'ya hecho según el cuadro de Control':'completado total'))))+' · '+hechoPor(r)+' ('+esc(r.area)+')'+(r.obs&&r.tipo!=='ALTA_MANUAL'?' · '+esc(r.obs):'')+(r.evidUrl?' · <a class="evlink" href="'+esc(r.evidUrl)+'" target="_blank" rel="noopener">evidencia</a>':'')+(r.estado==='ANULADO'?' · ANULADO por '+esc(r.anuladoPor)+': '+esc(r.anuladoMotivo):((SES&&SES.rol==='SUPERVISOR'&&r.id&&r.tipo!=='ALTA_MANUAL')?' <button class="btn ghost small" data-anu="'+esc(r.id)+'">Anular</button>':''))+'</li>').join('')+'</ul></details>';
 }
 function ajustarFormPub(x){if(PASOFORM!=='P14')return;const reg=(EVT[x.id]||EVTJ[x.id]||[]);if(!pubSinFecha(reg))return;const sel=$('#fres');if(sel){sel.value='TRANSFIERE';[...sel.options].forEach(o=>{if(o.value!=='TRANSFIERE')o.remove();});sel.options[0].textContent='Publicado en PanamaCompra (fecha de publicación)';}
   const fq=$('#fq');if(fq){const o=[...fq.options].find(o=>o.value===PERSONA_PASO.P14||o.textContent.indexOf(PERSONA_PASO.P14)===0);if(o){fq.value=o.value;fq.dispatchEvent(new Event('change'));}}
@@ -1232,15 +1291,15 @@ function renderForm(x){
    selQ+
    (VIVO_REG&&SES?'<div class="fact"><div class="k">Registra en el sistema</div><div class="v">'+esc(SES.nombre)+' · '+esc(SES.area)+'</div></div>':'')+
    '<label for="fts">Fecha y hora del hito<input type="datetime-local" id="fts" value="'+dv+'"></label>'+
-   '<label for="fres">Resultado<select id="fres"><option value="TRANSFIERE">Completado total (pasa al siguiente)</option><option value="PARCIAL">Parcial (se queda en este paso)</option>'+(prev.length?'<option value="DEVUELVE">Devuelto por falta o error</option>':'')+'</select></label>'+
-   '<label for="fpar" id="lpar" hidden>Por qué queda parcial<select id="fpar"><option value="">Elegir…</option>'+MOT_PARCIAL.map(m=>'<option>'+esc(m)+'</option>').join('')+'</select></label>'+
+   '<label for="fres">Resultado<select id="fres"><option value="TRANSFIERE">Completado total (pasa al siguiente)</option><option value="PENDIENTE">Completado con faltante (sigue avanzando)</option><option value="PARCIAL">En espera: no puede avanzar (adelanto sin partida u otro bloqueo)</option>'+(prev.length?'<option value="DEVUELVE">Devuelto por falta o error</option>':'')+'</select></label>'+
+   '<label for="fpar" id="lpar" hidden><span id="lparT">Por qué queda en espera</span><select id="fpar"><option value="">Elegir…</option>'+MOT_PARCIAL.map(m=>'<option>'+esc(m)+'</option>').join('')+'</select></label>'+
    '<label for="fdest" id="ldest" hidden>Devolver a<select id="fdest">'+prev.slice().reverse().map(z=>'<option value="'+z[0]+'">'+z[0]+' · '+esc(z[1])+'</option>').join('')+'</select></label>'+
    '<label for="fmot" id="lmot" hidden>Motivo<select id="fmot"><option value="">Elegir…</option><option>Falta documento</option><option>Falta firma</option><option>Datos incompletos o con error</option><option>Monto no coincide con la factura</option><option>Otro (detallar en observación)</option></select></label>'+
    '<div class="full"><span style="font-size:.78rem;font-weight:600;color:var(--muted)" id="levid">Evidencia (opcional): foto o PDF del documento, si lo considera necesario</span><label class="drop" for="fev" id="drop" style="margin-top:4px">Toque para adjuntar foto o PDF<input type="file" id="fev" accept="image/*,application/pdf" hidden></label></div>'+
    '<label class="full" for="fobs">Observación<textarea id="fobs" rows="2" placeholder="Opcional"></textarea></label>'+
    '<div class="full toolbar"><button class="btn" type="submit">Guardar hito</button><button class="btn ghost" type="button" id="fcan">Cancelar</button><span class="err" id="ferr"></span></div></form>';
   $('#fq').onchange=()=>{const nv=$('#fq').value==='__nuevo';$('#fqn').hidden=!nv;if(nv)$('#fqn').focus();};
-  $('#fres').onchange=()=>{const t=$('#fres').value;$('#ldest').hidden=t!=='DEVUELVE';$('#lmot').hidden=t!=='DEVUELVE';$('#lpar').hidden=t!=='PARCIAL';
+  $('#fres').onchange=()=>{const t=$('#fres').value;$('#ldest').hidden=t!=='DEVUELVE';$('#lmot').hidden=t!=='DEVUELVE';$('#lpar').hidden=t!=='PARCIAL'&&t!=='PENDIENTE';if(t==='PARCIAL'||t==='PENDIENTE'){const L=t==='PARCIAL'?MOT_PARCIAL:MOT_PEND;$('#lparT').textContent=t==='PARCIAL'?'Por qué queda en espera':'Qué quedó pendiente';$('#fpar').innerHTML='<option value="">Elegir…</option>'+L.map(m=>'<option>'+esc(m)+'</option>').join('');}
     $('#levid').textContent=t==='PARCIAL'?'Evidencia (opcional): adjunte la nota de adelanto o el documento que respalda el parcial':'Evidencia (opcional): foto o PDF del documento, si lo considera necesario';};
   $('#fcan').onclick=()=>{$('#formBox').innerHTML='';};
   $('#fev').onchange=ev=>{const f=ev.target.files[0];if(!f)return;EVID={name:f.name,type:f.type,thumb:null,file:f};
@@ -1264,14 +1323,15 @@ function leerForm(){
   if(!ej){ferr.textContent='Elija quién realizó el paso.';return null;}
   if(!$('#fts').value){ferr.textContent='Indique la fecha y hora del hito.';return null;}
   if(tipo==='DEVUELVE'&&!$('#fmot').value){ferr.textContent='Elija el motivo de la devolución.';return null;}
-  if(tipo==='PARCIAL'&&!$('#fpar').value){ferr.textContent='Elija por qué el paso queda parcial.';return null;}
+  if(tipo==='PARCIAL'&&!$('#fpar').value){ferr.textContent='Elija por qué el expediente queda en espera.';return null;}
+  if(tipo==='PENDIENTE'&&!$('#fpar').value){ferr.textContent='Elija qué quedó pendiente.';return null;}
   return {tipo:tipo,ejecutor:ej,nuevo:nuevo,ts:$('#fts').value,obs:$('#fobs').value,
-    dest:tipo==='DEVUELVE'?$('#fdest').value:null,motivo:tipo==='DEVUELVE'?$('#fmot').value:(tipo==='PARCIAL'?$('#fpar').value:null)};
+    dest:tipo==='DEVUELVE'?$('#fdest').value:null,motivo:tipo==='DEVUELVE'?$('#fmot').value:((tipo==='PARCIAL'||tipo==='PENDIENTE')?$('#fpar').value:null)};
 }
 async function enviarHito(x,d){
-  const ferr=$('#ferr'),btn=$('#frm button[type=submit]');
-  btn.disabled=true;btn.textContent='Guardando…';
-  const listo=()=>{btn.disabled=false;btn.textContent='Guardar hito';};
+  const ferr=$('#ferr')||{},btn=$('#frm button[type=submit]');
+  if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+  const listo=()=>{if(btn){btn.disabled=false;btn.textContent='Guardar hito';}};
   let evd=null;if(EVID){try{evd=await prepEvid(EVID.file);}catch(err){ferr.textContent=err.message||'No se pudo leer la evidencia.';listo();return;}}
   const e=x.e;const it={exp:x.id,oc:String(e.oc),renglon:String(e.cod||''),proveedor:e.prov||'',paso:PASOFORM,tipo:d.tipo,
     dest:d.dest,motivo:d.motivo,ts:d.ts,obs:d.obs,ejecutor:d.ejecutor,ejecutorNuevo:d.nuevo,
@@ -1284,7 +1344,7 @@ async function enviarHito(x,d){
     ejecutor:it.ejecutor,dest:it.dest||undefined,motivo:it.motivo||undefined,obs:it.obs||undefined,pend:true};
   const base=(EVT[x.id]||EVTJ[x.id]||[]).slice();base.push(loc);EVT[x.id]=base;EVTJ[x.id]=base;RES[x.id]=resDe(base);guardarEvtCache(x.id);
   ENVIANDO++;JUSTO=it.tipo==='TRANSFIERE'?it.paso:null;PSEL=null;$('#formBox').innerHTML='';renderFicha();
-  aviso('Guardado: '+(it.paso==='P14'&&it.tipo==='TRANSFIERE'?'fecha de publicación':(it.tipo==='DEVUELVE'?'devuelto':(it.tipo==='PARCIAL'?'parcial':'paso completado')))+'. Se está enviando a SIGUELO.');
+  aviso('Guardado: '+(it.paso==='P14'&&it.tipo==='TRANSFIERE'?'fecha de publicación':({DEVUELVE:'devuelto',PARCIAL:'en espera',PENDIENTE:'paso completado con faltante',CIERRA:'faltante cerrado'}[it.tipo]||'paso completado'))+'. Se está enviando a SIGUELO.');
   const quitar=()=>{const L=(EVT[x.id]||[]).filter(r=>r!==loc);EVT[x.id]=L;EVTJ[x.id]=L;RES[x.id]=resDe(L);guardarEvtCache(x.id);};
   const pintar=()=>{if(SELID===x.id)renderFicha();else renderBandeja();};
   let r;
@@ -1403,7 +1463,7 @@ window.addEventListener('resize',()=>{if($('#tourOverlay').style.display==='bloc
 
 /* ---------- pestañas y arranque ---------- */
 function showTab(id){document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===id)));document.querySelectorAll('section.panel').forEach(s=>s.hidden=(s.id!==id));}
-document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();if(b.dataset.p==='p-flujo')renderFlujoAgg();if(b.dataset.p==='p-ind'&&SK_THR!=null)renderSankey(SK_THR);}));
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{showTab(b.dataset.p);if(b.dataset.p==='p-ficha')renderFicha();if(b.dataset.p==='p-flujo')renderFlujoAgg();if(b.dataset.p==='p-not')renderNotif();if(b.dataset.p==='p-ind'&&SK_THR!=null)renderSankey(SK_THR);}));
 $('#q').addEventListener('input',()=>{PAGE=0;renderTabla();});
 function irA(){const v=$('#selid').value.trim().toUpperCase().replace(/^(PREVIO|OC|FACTURA|SECUENCIAL)\s+/,'');if(!v)return;let x=X.find(z=>z.id===v)||X.find(z=>CIDS[z.id]&&[CIDS[z.id].pv,CIDS[z.id].fa,CIDS[z.id].ir,CIDS[z.id].se].some(k=>k&&String(k).toUpperCase()===v));if(!x){const l=X.filter(z=>String(z.e.oc)===v.replace(/\D/g,'')).sort((a,b)=>a.e.fRec<b.e.fRec?1:-1);x=l[0];}if(x)abrir(x.id);}
 $('#go').addEventListener('click',irA);

@@ -102,6 +102,7 @@ var TRZ_PERSONAS_INICIALES = [
   ['Olaydis Pérez',      'Ventanilla Única', 'SI', 'OPERADOR'],
   ['Velkis Soto',        'Contabilidad',     'SI', 'OPERADOR'],
   ['Evika Llung Guenn',  'Archivo',          'SI', 'OPERADOR'],
+  ['Carla Ortega',       'Seguimiento',      'SI', 'OPERADOR'],  // 16-nov-2026: notifica al proveedor la solicitud de entrega
   ['Landecho',           'Control2',         'NO', '']   // histórico: aparece en el cuadro, ya no participa
 ];
 /* Áreas del flujo sin persona confirmada: se crean en TRZ_USUARIOS inactivas (ACTIVO NO, sin PIN)
@@ -176,6 +177,7 @@ function trzPost_(payload) {
     if (a === 'trzRegistrar') return trzRegistrar_(d);
     if (a === 'trzAnular')    return trzAnular_(d);
     if (a === 'trzAltaManual') return trzAltaManual_(d);
+    if (a === 'trzNotificar') return trzNotificar_(d);
     return { success: false, error: 'Acción de trazabilidad no reconocida.' };
   } catch (err) {
     return { success: false, error: 'Error interno: ' + String(err && err.message || err) };
@@ -389,6 +391,7 @@ function trzEstado_(eventos) {
   var orden = TRZ_PASOS.map(function (p) { return p[0]; });
   var hechos = {};
   var parcial = {};   // paso → último registro PARCIAL aún sin completar
+  var pend = {};      // paso → faltante abierto (PENDIENTE sin CIERRA)
   var ultimo = null, ultimoReal = null;
   eventos.forEach(function (ev) {
     if (ev.estado === 'ANULADO') return;
@@ -398,18 +401,22 @@ function trzEstado_(eventos) {
       for (var je = 0; je <= ke; je++) { if (!hechos[orden[je]]) hechos[orden[je]] = ev.ts || true; delete parcial[orden[je]]; }
     }
     if (ev.tipo === 'TRANSFIERE') { hechos[ev.paso] = ev.ts || true; delete parcial[ev.paso]; }
+    // 16-nov-2026: PARCIAL = en espera (bloqueo externo, p. ej. adelanto sin partida): no avanza.
+    // PENDIENTE = parcial que sigue avanzando: el paso cuenta como hecho y el faltante queda abierto hasta CIERRA.
     if (ev.tipo === 'PARCIAL') parcial[ev.paso] = { ts: ev.ts, motivo: ev.motivo || '' };
+    if (ev.tipo === 'PENDIENTE') { hechos[ev.paso] = ev.ts || true; delete parcial[ev.paso]; pend[ev.paso] = { ts: ev.ts, motivo: ev.motivo || '' }; }
+    if (ev.tipo === 'CIERRA') delete pend[ev.paso];
     if (ev.tipo === 'DEVUELVE') {
       var k = orden.indexOf(ev.dest);
-      for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; }
+      for (var j = k; j < orden.length; j++) { delete hechos[orden[j]]; delete parcial[orden[j]]; delete pend[orden[j]]; }
     }
     ultimo = ev;
-    if (ev.tipo !== 'EMPALME') ultimoReal = ev;
+    if (ev.tipo !== 'EMPALME' && ev.tipo !== 'CIERRA') ultimoReal = ev;
   });
   var sig = null;
   for (var i = 0; i < orden.length; i++) if (!hechos[orden[i]]) { sig = orden[i]; break; }
   return { hechos: hechos, siguiente: sig, ultimo: ultimo, ultimoReal: ultimoReal, completos: Object.keys(hechos).length,
-           parcial: (sig && parcial[sig]) ? parcial[sig] : null };
+           parcial: (sig && parcial[sig]) ? parcial[sig] : null, pendientes: pend };
 }
 
 function trzEventos_(exp) {
@@ -423,7 +430,7 @@ function trzEventos_(exp) {
 function trzResumen_() {
   var ev = trzLeerEventos_('');
   var por = {};
-  ev.forEach(function (x) { (por[x.exp] = por[x.exp] || []).push(x); });
+  ev.forEach(function (x) { if (/^RB-/.test(x.exp)) (por[x.exp] = por[x.exp] || []).push(x); });
   var out = {};
   Object.keys(por).forEach(function (k) {
     var st = trzEstado_(por[k]);
@@ -461,7 +468,7 @@ function trzRegistrar_(d) {
   if (iPaso < 0) return { success: false, error: 'Paso no reconocido.' };
 
   var tipo = String(d.tipo || '');
-  if (tipo !== 'TRANSFIERE' && tipo !== 'DEVUELVE' && tipo !== 'PARCIAL') return { success: false, error: 'Resultado no válido.' };
+  if (['TRANSFIERE', 'DEVUELVE', 'PARCIAL', 'PENDIENTE', 'CIERRA'].indexOf(tipo) < 0) return { success: false, error: 'Resultado no válido.' };
 
   if (trzPasosDeArea_(u.area, u.rol).indexOf(paso) < 0) {
     return { success: false, error: 'El paso ' + paso + ' le corresponde a ' + TRZ_PASOS[iPaso][1] + '; su usuario es de ' + u.area + '.' };
@@ -477,7 +484,11 @@ function trzRegistrar_(d) {
   }
   if (tipo === 'PARCIAL') {
     motivo = String(d.motivo || '').trim();
-    if (!motivo) return { success: false, error: 'Indique por qué el paso queda parcial (p. ej. adelanto).' };
+    if (!motivo) return { success: false, error: 'Indique por qué el expediente queda en espera (p. ej. adelanto sin partida).' };
+  }
+  if (tipo === 'PENDIENTE') {
+    motivo = String(d.motivo || '').trim();
+    if (!motivo) return { success: false, error: 'Indique qué quedó pendiente.' };
   }
 
   // Quién lo hizo: de la lista TRZ_PERSONAS o una persona nueva (queda PENDIENTE).
@@ -524,12 +535,17 @@ function trzRegistrar_(d) {
       fechaPub = vig.some(function (r) { return r.tipo === 'EMPALME' && r.paso === 'P14'; }) &&
                  !vig.some(function (r) { return r.tipo === 'TRANSFIERE' && r.paso === 'P14'; });
     }
-    if (st.siguiente !== paso && !fechaPub) {
+    var cierra = false;
+    if (tipo === 'CIERRA') {
+      if (!st.pendientes[paso]) return { success: false, error: 'Ese paso no tiene un faltante abierto.' };
+      cierra = true;
+    }
+    if (st.siguiente !== paso && !fechaPub && !cierra) {
       return { success: false, error: st.siguiente
         ? ('Ahora le toca el paso ' + st.siguiente + ' (' + TRZ_PASOS[orden.indexOf(st.siguiente)][1] + '). No se pueden saltar pasos.')
         : 'El expediente ya completó todos los pasos.' };
     }
-    if (st.ultimoReal) {   // las fechas del cuadro (EMPALME) no frenan el registro
+    if (st.ultimoReal && !cierra) {   // las fechas del cuadro (EMPALME) no frenan el registro
       var fu = trzParseFecha_(st.ultimoReal.ts);
       if (fu && fh.getTime() < fu.getTime()) return { success: false, error: 'La fecha es anterior al último hito registrado (' + st.ultimoReal.ts.replace('T', ' ') + ').' };
     }
@@ -563,7 +579,7 @@ function trzRegistrar_(d) {
 
     var ev2 = trzLeerEventos_(exp);
     var st2 = trzEstado_(ev2);
-    try {
+    if (tipo !== 'CIERRA') try {
       trzEncolarAviso_({ id: idEv, exp: exp, paso: paso, tipo: tipo, dest: dest || '', motivo: motivo || '', ts: d.ts,
         ejecutor: ejecutor, registro: u.nombre, area: u.area, oc: fila.OC, renglon: fila.RENGLON, proveedor: fila.PROVEEDOR,
         obs: fila.OBSERVACION, evidUrl: fila.EVIDENCIA_URL, siguiente: st2.siguiente || '', completos: st2.completos });
@@ -571,10 +587,49 @@ function trzRegistrar_(d) {
     trzAgendarPublicacion_();
     return { success: true, id: idEv, evidUrl: archivo ? archivo.getUrl() : '', siguiente: st2.siguiente, completos: st2.completos,
       personaNueva: personaNueva,
-      mensaje: tipo === 'DEVUELVE' ? ('Devuelto a ' + dest + '.') : (tipo === 'PARCIAL' ? ('Paso ' + paso + ' marcado como parcial: el expediente sigue en este paso.') : ('Paso ' + paso + ' registrado.')) };
+      mensaje: tipo === 'DEVUELVE' ? ('Devuelto a ' + dest + '.') : (tipo === 'PARCIAL' ? ('Paso ' + paso + ' en espera: el expediente sigue en este paso.') :
+        (tipo === 'PENDIENTE' ? ('Paso ' + paso + ' registrado con faltante abierto: el expediente sigue avanzando.') : (tipo === 'CIERRA' ? ('Faltante del paso ' + paso + ' cerrado.') : ('Paso ' + paso + ' registrado.')))) };
   } finally {
     lock.releaseLock();
   }
+}
+
+/* Notificación al proveedor de la solicitud de entrega (16-nov-2026).
+   La registra Seguimiento (Carla Ortega), un supervisor o un registrador. Queda en TRZ_EVENTOS con
+   EXPEDIENTE = NOTIF-SOL, PASO = SOL, RESULTADO = NOTIFICA y MOTIVO = número de la solicitud; no
+   toca el flujo de los 15 pasos. Una solicitud se notifica una sola vez (anular y volver a registrar). */
+function trzNotificar_(d) {
+  var auth = trzAutenticar_(d.pin);
+  if (auth.error) return { success: false, error: auth.error };
+  var u = auth.usuario;
+  if (trzNorm_(u.area) !== 'SEGUIMIENTO' && u.rol !== 'SUPERVISOR' && u.rol !== 'REGISTRADOR') {
+    return { success: false, error: 'La notificación al proveedor la registra Seguimiento; su usuario es de ' + u.area + '.' };
+  }
+  var doc = String(d.doc || '').replace(/\s+/g, ' ').trim();
+  if (doc.length < 3 || doc.length > 120) return { success: false, error: 'Falta el número de la solicitud de entrega.' };
+  var fh = trzParseFecha_(d.ts);
+  if (!fh) return { success: false, error: 'Fecha de la notificación no válida.' };
+  if (fh.getTime() > Date.now() + 10 * 60 * 1000) return { success: false, error: 'La fecha de la notificación no puede ser futura.' };
+  var idCliente = String(d.idCliente || '').slice(0, 64);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { success: false, error: 'El sistema está ocupado; reintente en unos segundos.' };
+  try {
+    var previos = trzLeerEventos_('NOTIF-SOL').filter(function (r) { return r.estado !== 'ANULADO'; });
+    for (var k = 0; k < previos.length; k++) {
+      if ((idCliente && previos[k].idCliente === idCliente) || trzNorm_(previos[k].motivo) === trzNorm_(doc)) {
+        return { success: true, duplicado: true, id: previos[k].id, mensaje: 'Esa solicitud ya tenía registrada su notificación (' + String(previos[k].ts || '').replace('T', ' ') + ').' };
+      }
+    }
+    var idEv = 'EV-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
+    var sh = trzHoja_(TRZ_HOJA_EVENTOS, TRZ_COLS_EVENTOS);
+    var fila = { TS_SERVIDOR: new Date(), ID_EVENTO: idEv, ID_CLIENTE: idCliente, EXPEDIENTE: 'NOTIF-SOL', OC: '', RENGLON: String(d.cod || ''),
+      PROVEEDOR: String(d.proveedor || ''), PASO: 'SOL', RESULTADO: 'NOTIFICA', DESTINO: '', MOTIVO: doc, FECHA_HITO: fh,
+      USUARIO: u.nombre, AREA: u.area, OBSERVACION: String(d.obs || '').slice(0, 500), ESTADO: 'VIGENTE', EJECUTOR: u.nombre };
+    var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    sh.appendRow(hdr.map(function (h) { var x = fila[String(h).trim().toUpperCase()]; return x == null ? '' : x; }));
+    trzAgendarPublicacion_();
+    return { success: true, id: idEv, mensaje: 'Notificación registrada: ' + doc + '.' };
+  } finally { lock.releaseLock(); }
 }
 
 /* Carpeta raíz de evidencias. Orden: 1) la guardada en Propiedades del
@@ -1162,14 +1217,15 @@ function trzAvisoHtml_(a, dest) {
   if (a.motivo) dato.push(['Motivo', a.motivo]);
   if (a.obs) dato.push(['Observación', a.obs]);
   if (a.evidUrl) dato.push(['Evidencia', '<a href="' + trzEsc_(a.evidUrl) + '">ver documento</a>']);
-  if (a.tipo === 'TRANSFIERE' && a.siguiente) {
+  if ((a.tipo === 'TRANSFIERE' || a.tipo === 'PENDIENTE') && a.siguiente) {
     var ps = trzPaso_(a.siguiente);
     var areaAviso = ps[0] === 'P14' ? 'Coordinador' : ps[1];   // la fecha de publicación la pone Coordinación
     para = dest.porArea[trzNorm_(areaAviso)] || []; etiqueta = ps[1];
     asunto = 'Le toca: ' + a.exp + ' · ' + trzCod_(a.siguiente) + ' ' + ps[1] + ' · ' + a.proveedor;
     titulo = 'Le toca a ' + trzEsc_(ps[1]);
-    frase = 'El expediente <b>' + trzEsc_(a.exp) + '</b> completó <b>' + trzCod_(a.paso) + ' · ' + trzEsc_(pa[1]) + '</b> y ahora le toca a su área: <b>' + trzCod_(a.siguiente) + ' · ' + trzEsc_(ps[2]) + '</b>.';
-  } else if (a.tipo === 'TRANSFIERE') {
+    frase = 'El expediente <b>' + trzEsc_(a.exp) + '</b> completó <b>' + trzCod_(a.paso) + ' · ' + trzEsc_(pa[1]) + '</b> y ahora le toca a su área: <b>' + trzCod_(a.siguiente) + ' · ' + trzEsc_(ps[2]) + '</b>.' +
+      (a.tipo === 'PENDIENTE' ? ' Sigue con un faltante abierto en ese paso: ' + trzEsc_(a.motivo) + '.' : '');
+  } else if (a.tipo === 'TRANSFIERE' || a.tipo === 'PENDIENTE') {
     para = jefes; cc = []; etiqueta = 'Jefes · cierre';
     asunto = 'Expediente completado: ' + a.exp + ' · ' + a.proveedor;
     titulo = 'Expediente completado';
@@ -1240,7 +1296,7 @@ function trzCorreoDiario(e) {
   var top = abiertos.slice().sort(function (a, b) { return b.dias - a.dias; }).slice(0, 15);
   var tTop = '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Expediente</th><th style="' + th + '">Proveedor</th><th style="' + th + '">Está en</th><th style="' + th + ';text-align:right">Días hábiles</th></tr>' +
     top.map(function (o) { return '<tr><td style="' + td + '">' + link(o.exp) + '</td><td style="' + td + '">' + trzEsc_(o.prov) + '</td><td style="' + td + '">' + trzCod_(o.paso) + ' · ' + trzEsc_(o.area) + (o.devuelto ? ' · devuelto' : '') + (o.parcial ? ' · parcial' : '') + '</td><td style="' + td + ';text-align:right;color:' + (o.dias > TRZ_DIAS_ALERTA ? '#b3362e' : '#1f2937') + '">' + o.dias + '</td></tr>'; }).join('') + '</table>';
-  var nomT = { TRANSFIERE: 'completado', PARCIAL: 'parcial', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual' };
+  var nomT = { TRANSFIERE: 'completado', PARCIAL: 'en espera', PENDIENTE: 'completado con faltante', CIERRA: 'faltante cerrado', DEVUELVE: 'devuelto', ALTA_MANUAL: 'alta manual', NOTIFICA: 'notificación al proveedor' };
   var tMov = mov.length ? '<table cellspacing="0" style="width:100%;font-size:12px;border-collapse:collapse"><tr><th style="' + th + '">Hora</th><th style="' + th + '">Expediente</th><th style="' + th + '">Paso</th><th style="' + th + '">Resultado</th><th style="' + th + '">Quién lo hizo</th></tr>' +
     mov.slice(-40).reverse().map(function (x) { return '<tr><td style="' + td + '">' + trzEsc_(String(x.tsServidor).replace('T', ' ').slice(5)) + '</td><td style="' + td + '">' + link(x.exp) + '</td><td style="' + td + '">' + trzCod_(x.paso) + '</td><td style="' + td + '">' + (nomT[x.tipo] || x.tipo) + (x.tipo === 'DEVUELVE' ? ' a ' + trzCod_(x.dest) : '') + (x.motivo ? ' · ' + trzEsc_(x.motivo) : '') + '</td><td style="' + td + '">' + trzEsc_(x.ejecutor || x.quien) + '</td></tr>'; }).join('') + '</table>' +
     (mov.length > 40 ? '<p style="font-size:11px;color:#6b7280">Se muestran los 40 más recientes de ' + mov.length + '.</p>' : '')
