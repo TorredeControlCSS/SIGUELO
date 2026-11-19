@@ -305,7 +305,9 @@ const plugAnillo={
   }
 };
 
-const F={mes:'',prov:'',renglon:'',mod:'',frio:'',cumpl:'',origen:''};
+const F={mes:'',prov:'',renglon:'',mod:'',frio:'',cumpl:'',origen:'',cedis:''};
+/* 19-nov-2026 · informe consolidado de los 3 CEDIS: sin campo cedis, la línea es de CEDIS Panamá */
+const NOMC_=c=>({PANAMA:'Panamá',DIVISA:'Divisa',CHIRIQUI:'Chiriquí'})[c||'PANAMA']||'Panamá';
 /* CONCILIACIÓN. La ingesta firma líneas y valor por periodo leyendo el Excel;
    el panel los vuelve a contar desde las filas publicadas y compara. Si
    cuadran, el dashboard dice lo mismo que el archivo de la Dirección, y eso
@@ -388,6 +390,7 @@ function filtrar(){
     if(F.frio==='NO' && r.frio) return false;
     if(F.cumpl && r.cumpl!==F.cumpl) return false;
     if(F.origen && r.origen!==F.origen) return false;
+  if(F.cedis && (r.cedis||'PANAMA')!==F.cedis) return false;
     if(F.renglon){
       /* La consulta se normaliza: al copiar una celda de Excel o Sheets el
          portapapeles trae salto de línea y espacios, y las descripciones
@@ -472,6 +475,7 @@ function ctxTexto(d){
   if(F.frio)   p.push('Cadena de frío: '+(F.frio==='SI'?'Sí':'No'));
   if(F.cumpl)  p.push('Cumplimiento: '+(F.cumpl==='A TIEMPO'?'A tiempo':'Tardía'));
   if(F.origen) p.push('Origen: '+F.origen);
+  if(F.cedis)  p.push('CEDIS '+NOMC_(F.cedis));
   return p.join('  ·  ');
 }
 function pintarCtx(d){
@@ -492,6 +496,7 @@ function pintarCtx(d){
   if(F.frio)   otros.push('Cadena de frío: <b>'+(F.frio==='SI'?'Sí':'No')+'</b>');
   if(F.cumpl)  otros.push('Cumplimiento: <b>'+(F.cumpl==='A TIEMPO'?'A tiempo':'Tardía')+'</b>');
   if(F.origen) otros.push('Origen: <b>'+F.origen+'</b>');
+  if(F.cedis)  otros.push('CEDIS: <b>'+NOMC_(F.cedis)+'</b>');
   if(otros.length) partes.push(otros.join('<span class="sep">·</span>'));
   if(!partes.length){ el.style.display='none'; el.innerHTML=''; CTX=''; return; }
   partes.push('<b>'+fmtN(d.length)+'</b> líneas<span class="sep">·</span>B/. <b>'+
@@ -543,6 +548,7 @@ function pintarShell(){
     <div class="f"><label>Modalidad</label><select id="fMod"><option value="">Todas</option>${mods.map(m=>`<option value="${m}">${cort(m,38)}</option>`).join('')}</select></div>
     <div class="f"><label>Cadena de frío</label><select id="fFrio"><option value="">Todas</option><option value="SI">Solo frío</option><option value="NO">Excluir frío</option></select></div>
     <div class="f"><label>Cumplimiento</label><select id="fCumpl"><option value="">Todos</option><option value="A TIEMPO">A tiempo</option><option value="TARDIA">Tardía</option></select></div>
+    <div class="f"><label>CEDIS</label><select id="fCedis"><option value="">Los tres</option><option value="PANAMA">CEDIS Panamá</option><option value="DIVISA">CEDIS Divisa</option><option value="CHIRIQUI">CEDIS Chiriquí</option></select></div>
     <div class="f"><label>Origen</label><select id="fOrigen"><option value="">Todos</option><option value="PROVEEDOR EXTERNO">Proveedor externo</option><option value="MOVIMIENTO INTERNO">Entre CEDIS</option></select></div>
     <button class="btn sec" id="btnLimpiar">Limpiar</button>
     <button class="btn" id="btnXls">Reporte de cumplimiento (Excel)</button>
@@ -562,13 +568,13 @@ function pintarShell(){
   <div id="panels"></div>`;
   const bind=(id,k)=>document.getElementById(id).onchange=e=>{F[k]=e.target.value;render();};
   bind('fMes','mes');bind('fProv','prov');bind('fMod','mod');bind('fFrio','frio');
-  bind('fCumpl','cumpl');bind('fOrigen','origen');
+  bind('fCumpl','cumpl');bind('fOrigen','origen');bind('fCedis','cedis');
   let tmr; const inRen=document.getElementById('fRen');
   inRen.oninput=e=>{clearTimeout(tmr);tmr=setTimeout(()=>{
     F.renglon=e.target.value; sugerir(e.target.value); render();},240);};
   inRen.onfocus=e=>sugerir(e.target.value);
   document.getElementById('btnLimpiar').onclick=()=>{Object.keys(F).forEach(k=>F[k]='');
-    ['fMes','fProv','fMod','fFrio','fCumpl','fOrigen','fRen'].forEach(i=>document.getElementById(i).value='');render();};
+    ['fMes','fProv','fMod','fFrio','fCumpl','fOrigen','fCedis','fRen'].forEach(i=>document.getElementById(i).value='');render();};
   document.getElementById('btnXls').onclick=reporteCumplimiento;
   document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;render();});
 }
@@ -947,6 +953,7 @@ function pDetalle(d){
     {t:'Rezago',n:1,f:o=>o.lagSalmi===null||o.lagSalmi===undefined?'—':o.lagSalmi+' d',v:o=>o.lagSalmi},
     {t:'Compromiso',f:o=>o.fVenc||'—',v:o=>o.fVenc},
     {t:'Cumplimiento',f:o=>o.cumpl?`<span class="tag ${o.cumpl==='A TIEMPO'?'ok':'bad'}">${o.cumpl==='A TIEMPO'?'A tiempo':'Tardía'}</span>`:'—',v:o=>o.cumpl},
+    {t:'CEDIS',f:o=>NOMC_(o.cedis),v:o=>o.cedis||'PANAMA'},
     {t:'Proveedor',w:'w2',f:o=>o.prov},
     {t:'OC',f:o=>`<span class="num">${o.oc||'—'}</span>`,v:o=>o.oc},
     {t:'Código',f:o=>`<span class="num">${o.cod||'—'}</span>`+marcaCod(o),v:o=>o.cod},
@@ -1000,6 +1007,7 @@ function _xlsFiltrosActivos_(){
   if(F.frio==='NO') t.push('Excluye cadena de frío');
   if(F.cumpl) t.push('Cumplimiento: '+F.cumpl);
   if(F.origen) t.push('Origen: '+F.origen);
+  if(F.cedis) t.push('CEDIS '+NOMC_(F.cedis));
   return t.length? t.join('   ·   ') : 'Sin filtros: período completo';
 }
 
@@ -1181,7 +1189,7 @@ async function reporteCumplimiento(){
       {t:'Fecha comprometida',w:13},
       {t:'Desvío vs compromiso (días)',w:12,n:1,f:'#,##0'},
       {t:'Cumplimiento de entrega',w:14},
-      {t:'Proveedor',w:40},{t:'Cómo se digitó',w:30},{t:'Origen',w:17},
+      {t:'CEDIS',w:11},{t:'Proveedor',w:40},{t:'Cómo se digitó',w:30},{t:'Origen',w:17},
       {t:'Orden de compra',w:14},{t:'Cód. Abasto',w:12},{t:'Material SAFIRO',w:15},
       {t:'Descripción de renglón',w:46},
       {t:'Cantidad',w:10,n:1,f:'#,##0'},{t:'Bultos',w:9,n:1,f:'#,##0'},
@@ -1200,7 +1208,7 @@ async function reporteCumplimiento(){
         (r.lagSalmi===null||r.lagSalmi===undefined)?null:r.lagSalmi,
         r.fVenc||'', (r.dias===null||r.dias===undefined)?null:r.dias,
         r.cumpl==='A TIEMPO'?'A tiempo':(r.cumpl==='TARDIA'?'Tardía':'No comparable'),
-        r.prov, r.provRaw, r.origen==='MOVIMIENTO INTERNO'?'Entre CEDIS':'Proveedor externo',
+        NOMC_(r.cedis), r.prov, r.provRaw, r.origen==='MOVIMIENTO INTERNO'?'Entre CEDIS':'Proveedor externo',
         r.oc||'', r.cod||'', r.mat||'', r.desc||'',
         r.cant, r.bultos, r.valor, r.mod, r.frio?'Sí':'',
         (r.flags||[]).join(' · ')],col);

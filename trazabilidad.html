@@ -638,8 +638,8 @@ async function cargarVivo(){
 /* Altas manuales (recepciones que no trae el informe de Abasto): eventos ALTA_MANUAL vigentes de la bitácora. */
 function altasDe(EV){const L=[];if(!EV||!Array.isArray(EV.eventos))return L;
   EV.eventos.forEach(ev=>{if(ev.tipo!=='ALTA_MANUAL'||ev.estado==='ANULADO')return;let d={};try{d=JSON.parse(ev.obs||'{}');}catch(e){}
-    const m=/^RB-(\d+)-(\d{4})(\d{2})(\d{2})$/.exec(ev.exp);if(!m)return;
-    L.push({exp:ev.exp,oc:m[1],fRec:m[2]+'-'+m[3]+'-'+m[4],prov:ev.proveedor||ev.prov||'',cod:String(d.cod||ev.renglon||''),desc:d.desc||'',mat:d.mat||'',safiro:d.safiro||'',entrega:d.entrega||'',cant:Number(d.cant)||0,valor:Number(d.valor)||0,
+    const m=/^RB-(\d+)-(\d{4})(\d{2})(\d{2})(?:-(DI|CH))?$/.exec(ev.exp);if(!m)return;
+    L.push({exp:ev.exp,oc:m[1],fRec:m[2]+'-'+m[3]+'-'+m[4],cedis:({DI:'DIVISA',CH:'CHIRIQUI'})[m[5]]||'PANAMA',prov:ev.proveedor||ev.prov||'',cod:String(d.cod||ev.renglon||''),desc:d.desc||'',mat:d.mat||'',safiro:d.safiro||'',entrega:d.entrega||'',cant:Number(d.cant)||0,valor:Number(d.valor)||0,
       alta:{evId:ev.id,quien:ev.quien,ts:ev.tsServidor||ev.ts,motivo:d.motivo||ev.motivo||'',nota:d.nota||'',evidUrl:ev.evidUrl||''}});});
   return L;}
 function foto(){const s=JSON.parse($('#snap').textContent);s.vivo=false;return s;}
@@ -666,10 +666,10 @@ function construir(){
     const of=S.E.find(e=>String(e.oc)===String(m.oc)&&String(e.cod)===String(m.cod)&&Math.abs(D(e.fRec)-D(m.fRec))<=3*864e5);
     if(of){of._id=m.exp;of.altaConf=m.alta;return;}
     const c=pc.get(pk(m.prov));
-    man.push({oc:m.oc,fRec:m.fRec,prov:c||m.prov,cod:m.cod,desc:m.desc,mat:m.mat,safiro:m.safiro,cant:m.cant,valor:m.valor,fSalmi:null,cumpl:'',_id:m.exp,alta:Object.assign({entrega:m.entrega},m.alta)});});
+    man.push({oc:m.oc,fRec:m.fRec,prov:c||m.prov,cod:m.cod,desc:m.desc,mat:m.mat,safiro:m.safiro,cant:m.cant,valor:m.valor,fSalmi:null,cumpl:'',cedis:m.cedis,_id:m.exp,alta:Object.assign({entrega:m.entrega},m.alta)});});
   const km=new Map();S.K.forEach(r=>{if(r[2]==='101')push(km,String(r[1]),r);});
   X=S.E.concat(man).map(e=>{
-    const id=e._id||('RB-'+e.oc+'-'+e.fRec.replace(/-/g,''));
+    const id=e._id||('RB-'+e.oc+'-'+e.fRec.replace(/-/g,'')+({DIVISA:'-DI',CHIRIQUI:'-CH'}[e.cedis]||''));
     const ks=ki.get(e.safiro+'|'+e.mat)||[];
     let k=null;ks.filter(r=>r[2]==='101'&&D(r[4])>=D(e.fRec)-3*864e5).forEach(r=>{const d=Math.abs(D(r[3])-D(e.fRec));if(!k||d<k._d)k={fd:r[3],f:r[4],_d:d};});
     /* Alta manual sin pedido SAFIRO: se busca la entrada 101 del mismo material entre 3 días antes y 45 después. */
@@ -850,7 +850,8 @@ function abrirAlta(){
    '<label class="full" for="aMot">Motivo *<select id="aMot"><option value="">Elegir…</option><option>No aparece en el informe de Abasto</option><option>El informe de Abasto trae un error</option><option>Otro (detallar en la nota)</option></select></label>'+
    '<div class="full" id="aDup" aria-live="polite"></div>'+
    '<div class="full"><span style="font-size:.78rem;font-weight:600;color:var(--muted)">Evidencia (obligatoria): informe de recepción firmado, foto o PDF</span><label class="drop" for="aEv" id="aDrop" style="margin-top:4px">Toque para adjuntar foto o PDF<input type="file" id="aEv" accept="image/*,application/pdf" hidden></label></div>'+
-   '<label class="full" for="aNota">Nota<textarea id="aNota" rows="2" placeholder="Opcional"></textarea></label>'+
+   '<label class="full" for="aCedis">CEDIS que recibió<select id="aCedis"><option value="PANAMA">CEDIS Panamá</option><option value="DIVISA">CEDIS Divisa</option><option value="CHIRIQUI">CEDIS Chiriquí</option></select></label>'+
+    '<label class="full" for="aNota">Nota<textarea id="aNota" rows="2" placeholder="Opcional"></textarea></label>'+
    '<div class="full toolbar"><button class="btn" type="submit" id="aOk">Registrar recepción</button><button class="btn ghost" type="button" id="aNo">Cancelar</button><span class="err" id="aErr"></span></div></form></div>';
   document.body.appendChild(o);
   const cerrar=()=>o.remove();$('#altaX').onclick=cerrar;$('#aNo').onclick=cerrar;o.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar();});
@@ -858,7 +859,7 @@ function abrirAlta(){
   const revisar=()=>{const oc=$('#aOc').value.replace(/\D/g,''),f=$('#aFec').value,box=$('#aDup');box.innerHTML='';$('#aOk').disabled=false;
     if(!/^100\d{7}$/.test(oc))return;
     const mismos=X.filter(x=>String(x.e.oc)===oc);
-    const dup=REN&&f?mismos.find(x=>String(x.e.cod)===REN.cod&&Math.abs(D(x.e.fRec)-D(f))<=3*864e5):null;
+    const dup=REN&&f?mismos.find(x=>String(x.e.cod)===REN.cod&&(x.e.cedis||'PANAMA')===$('#aCedis').value&&Math.abs(D(x.e.fRec)-D(f))<=3*864e5):null;
     if(dup){box.innerHTML='<div class="alta bad"><div><b>Esa recepción ya existe:</b> '+dup.id+' ('+esc(dup.e.prov)+', recibida '+fdf(dup.e.fRec)+'). No hace falta darla de alta.</div><button type="button" class="btn ghost small" id="aVer">Abrir</button></div>';$('#aVer').onclick=()=>{cerrar();abrir(dup.id);};$('#aOk').disabled=true;return;}
     if(mismos.length)box.innerHTML='<div class="alta warn"><div>Esta OC ya tiene '+mismos.length+' expediente(s): '+mismos.slice(0,4).map(x=>esc(x.e.cod)+' recibido '+fdf(x.e.fRec)).join(' · ')+(mismos.length>4?'…':'')+'. Verifique que el renglón o la fecha sean distintos.</div></div>';};
   ['aOc','aFec'].forEach(i=>$('#'+i).addEventListener('input',revisar));
@@ -878,7 +879,7 @@ function abrirAlta(){
     if(f>iso(new Date())){err.textContent='La fecha de recepción no puede ser futura.';return;}
     const b=$('#aOk');b.disabled=true;b.textContent='Registrando…';const listo=()=>{b.disabled=false;b.textContent='Registrar recepción';};
     let evd;try{evd=await prepEvid(EVF);}catch(e2){err.textContent=e2.message||'No se pudo leer la evidencia.';listo();return;}
-    const d={pin:SES.pin,oc:oc,entrega:$('#aEnt').value,proveedor:PROV,renglon:REN.cod,desc:REN.desc,mat:REN.mat,fRec:f,safiro:$('#aPed').value.replace(/\D/g,''),cant:cant,valor:Number($('#aVal').value)||0,motivo:mot,nota:$('#aNota').value.trim(),evidencia:evd,idCliente:Date.now().toString(36)};
+    const d={pin:SES.pin,oc:oc,entrega:$('#aEnt').value,proveedor:PROV,renglon:REN.cod,desc:REN.desc,mat:REN.mat,fRec:f,safiro:$('#aPed').value.replace(/\D/g,''),cant:cant,valor:Number($('#aVal').value)||0,motivo:mot,nota:$('#aNota').value.trim(),cedis:$('#aCedis').value,evidencia:evd,idCliente:Date.now().toString(36)};
     let r;try{r=await apiPost('trzAltaManual',d);}catch(e3){err.textContent='Sin conexión con SIGUELO. No se registró; reintente.';listo();return;}
     if(!r.success){listo();err.textContent=r.error||'No se registró.';if(r.existe&&X.some(x=>x.id===r.existe)){err.innerHTML=esc(r.error)+' <a href="#" id="aIr">Abrir '+r.existe+'</a>';$('#aIr').onclick=e4=>{e4.preventDefault();cerrar();abrir(r.existe);};}if(/PIN|inactivo/i.test(r.error||'')){cerrar();salir();}return;}
     (S.MAN=S.MAN||[]).push({exp:r.exp,oc:oc,fRec:f,prov:PROV,cod:REN.cod,desc:REN.desc,mat:REN.mat,safiro:d.safiro,entrega:d.entrega,cant:cant,valor:d.valor,alta:{evId:r.id,quien:SES.nombre,ts:iso(new Date()),motivo:mot,nota:d.nota,evidUrl:r.evidUrl||''}});
@@ -1429,7 +1430,7 @@ function renderCaratula(x){
   const e=x.e;const url='https://torrecontrolcss.org/SIGUELO/trazabilidad.html#'+x.id;const enPages=EN_LINEA;
   $('#carBox').innerHTML='<div class="block"><div class="block-h"><h3>Carátula del expediente</h3><p>Se imprime y viaja dentro del folder; cada área firma su casilla y la foto de la carátula firmada es la evidencia del hito</p></div>'+
    (enPages?'<div class="toolbar"><button class="btn small" id="bPrint">Imprimir carátula</button></div>':'<p class="muted" style="font-size:.8rem">La impresión se habilita en la versión publicada en GitHub Pages.</p>')+
-   '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · CEDIS Panamá</div><div style="font-family:Consolas,monospace;font-size:20px;font-weight:bold;margin-top:6px">'+(CIDS[x.id]&&CIDS[x.id].pv?'PREVIO '+esc(CIDS[x.id].pv):'SIN PREVIO')+'</div>'+(()=>{const c=CIDS[x.id]||{};const it=[['Secuencial',c.se],['Factura',c.fa],['Informe de recepción',c.ir]].filter(z=>z[1]);return it.length?'<div style="margin-top:3px">'+it.map(z=>z[0]+': <b style="font-family:Consolas,monospace">'+esc(z[1])+'</b>').join(' · ')+'</div>':'';})()+'<div style="font-size:10px;color:#666;margin-top:2px">Código del tablero: '+x.id+'</div>'+
+   '<div class="scroll"><div class="caratula" id="caratula"><div class="cab"><div><h4>Caja de Seguro Social · DINALOG</h4><div>Expediente de recepción · '+esc(({PANAMA:'CEDIS Panamá',DIVISA:'CEDIS Divisa',CHIRIQUI:'CEDIS Chiriquí'})[(x.e&&x.e.cedis)||'PANAMA']||'CEDIS Panamá')+'</div><div style="font-family:Consolas,monospace;font-size:20px;font-weight:bold;margin-top:6px">'+(CIDS[x.id]&&CIDS[x.id].pv?'PREVIO '+esc(CIDS[x.id].pv):'SIN PREVIO')+'</div>'+(()=>{const c=CIDS[x.id]||{};const it=[['Secuencial',c.se],['Factura',c.fa],['Informe de recepción',c.ir]].filter(z=>z[1]);return it.length?'<div style="margin-top:3px">'+it.map(z=>z[0]+': <b style="font-family:Consolas,monospace">'+esc(z[1])+'</b>').join(' · ')+'</div>':'';})()+'<div style="font-size:10px;color:#666;margin-top:2px">Código del tablero: '+x.id+'</div>'+
    '<div style="margin-top:6px">Proveedor: <b>'+esc(e.prov)+'</b><br>OC: <b>'+e.oc+'</b> · SAFIRO: <b>'+(e.safiro||'—')+'</b><br>Código Abasto: <b>'+esc(e.cod)+'</b>'+(CIDS[x.id]&&CIDS[x.id].cs?' · SAFIRO <b>'+esc(CIDS[x.id].cs)+'</b>':'')+' · '+esc((e.desc||'').slice(0,60))+'<br>Recibido: <b>'+fdf(e.fRec)+'</b> · Cantidad: <b>'+(e.cant||0).toLocaleString('es-PA')+'</b> · Valor: <b>B/. '+money(e.valor)+'</b></div></div><div id="qrc" style="width:120px;height:120px;flex:none"></div></div>'+
    '<table><thead><tr><th style="width:56px">Paso</th><th>Área · acción</th><th style="width:110px">Fecha y hora</th><th style="width:150px">Nombre</th><th style="width:110px">Firma</th></tr></thead><tbody>'+
    PASOS.map(p=>{const f=filaCar(x,p[0]);return '<tr><td style="font-family:Consolas,monospace">'+(p[0]==='C12'?'C·12→13':p[0])+'</td><td>'+esc(p[1])+' · '+esc(p[2])+'</td><td>'+f.fecha+'</td><td>'+f.nombre+'</td><td></td></tr>';}).join('')+'</tbody></table>'+
@@ -1460,7 +1461,7 @@ function modoProveedor(qp){
   const oc=String(qp.get('oc')||'').replace(/\D/g,'').slice(0,10),ren=String(qp.get('ren')||'').trim();
   const x=X.find(v=>String(v.e.oc)===oc);
   if(!x){$('#pOc').innerHTML='<option>'+esc(oc||'—')+'</option>';$('#pRen').innerHTML='<option value="">—</option>';
-    $('#pRes').innerHTML='<p style="font-size:.86rem">No encontramos recepciones de la OC <b class="mono">'+esc(oc||'—')+'</b> en el CEDIS Panamá desde el 5 de mayo de 2026.</p><p style="font-size:.8rem;color:var(--sg-tenue)">Si entregó hace pocos días, el registro de recepción puede tardar en aparecer. Verifique que el número sea el de la orden de compra (10 dígitos, empieza con 100). Consultas: Control Operativo DINALOG.</p>';return;}
+    $('#pRes').innerHTML='<p style="font-size:.86rem">No encontramos recepciones de la OC <b class="mono">'+esc(oc||'—')+'</b> en los CEDIS desde el 5 de mayo de 2026.</p><p style="font-size:.8rem;color:var(--sg-tenue)">Si entregó hace pocos días, el registro de recepción puede tardar en aparecer. Verifique que el número sea el de la orden de compra (10 dígitos, empieza con 100). Consultas: Control Operativo DINALOG.</p>';return;}
   $('#pProv').innerHTML='<option>'+esc(x.e.prov)+'</option>';
   $('#pOc').innerHTML='<option>'+esc(oc)+'</option>';
   provRens();
