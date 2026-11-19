@@ -73,7 +73,9 @@ function tueAplicar_(lineas, porTxt) {
                 l.nota || '', l.respaldo || '', l.obs || '', l.por || '', 'VIGENTE', l.clave || '']);
     var s = suma[l.t.id] = suma[l.t.id] || { t: l.t, q: 0, f: '', fuentes: {} }; s.q += l.cant; if (l.fecha > s.f) s.f = l.fecha; s.fuentes[l.fuente] = 1;
   });
-  sh.getRange(sh.getLastRow() + 1, 1, filas.length, TUE.COLS.length).setValues(filas);
+  var r0 = sh.getLastRow() + 1;
+  [7, 10, 12].forEach(function (c) { sh.getRange(r0, c, filas.length, 1).setNumberFormat('@'); });   // UE, informe y sub-nota como texto ("1718.11" no es fecha)
+  sh.getRange(r0, 1, filas.length, TUE.COLS.length).setValues(filas);
   var lista = Object.keys(suma).map(function (id) { var s = suma[id];
     return { id: id, cod: s.t.cod, _n: lineas.filter(function (l) { return l.t.id === id; }).length, _f: Object.keys(s.fuentes).join('+'),
              evidencia: { recibido: Math.min(s.t.cant, s.t.ent + s.q), nivel: 'ENTREGA_UE', ultimaEntrada: s.f } }; });
@@ -150,7 +152,7 @@ function tuePublicar_(segObj) {
   var props = PropertiesService.getScriptProperties(), token = props.getProperty('GH_TOKEN');
   if (!token) return { success: false, error: 'Falta GH_TOKEN.' };
   var lin = tueLeer_().filter(function (x) { return String(x.ESTADO).toUpperCase() !== 'ANULADO'; }).map(function (x) {
-    return [String(x.ID_TRANSITO), String(x.UE), tueFecha_(x.FECHA_RECEPCION), Number(x.CANTIDAD) || 0, String(x.INFORME || ''), String(x.FUENTE || ''), String(x.NOTA_SEGUIMIENTO || ''),
+    return [String(x.ID_TRANSITO), String(x.UE), tueFecha_(x.FECHA_RECEPCION), Number(x.CANTIDAD) || 0, String(x.INFORME || ''), String(x.FUENTE || ''), (x.NOTA_SEGUIMIENTO instanceof Date ? (String(x.CLAVE || '').split('|')[2] || '') : String(x.NOTA_SEGUIMIENTO || '')),
             String(x.RESPALDO_URL || ''), String(x.REGISTRO_POR || ''), tueFecha_(x.TS)]; });
   var pre = {};
   try {
