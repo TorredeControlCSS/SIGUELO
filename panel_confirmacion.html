@@ -451,7 +451,7 @@
   .lista-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 16px;border-bottom:1px solid var(--linea2);}
   .lista-cab h2{margin:0;font-size:15px;}
   .lista-cab span{font-size:12px;color:var(--tinta2);}
-  .cita{display:grid;grid-template-columns:58px minmax(0,2.3fr) minmax(0,.9fr) minmax(0,1.1fr) minmax(0,1fr) auto;gap:12px;align-items:start;border:0;border-top:1px solid var(--linea2);border-left:4px solid transparent;border-radius:0;margin:0;padding:11px 14px 11px 10px;overflow:visible;background:#fff;}
+  .cita{display:grid;grid-template-columns:58px minmax(0,2.4fr) minmax(0,.9fr) minmax(0,1.1fr) minmax(0,1fr);gap:8px 12px;align-items:start;border:0;border-top:1px solid var(--linea2);border-left:4px solid transparent;border-radius:0;margin:0;padding:11px 14px 11px 10px;overflow:visible;background:#fff;}
   .lista-cab+.cita,.cita:first-child{border-top:0;}
   .cita:hover{background:#fafbfd;}
   .cita.ipr-rojo{border-left-color:#d77;} .cita.ipr-ambar{border-left-color:#e0b56a;} .cita.ipr-verde{border-left-color:transparent;}
@@ -462,8 +462,8 @@
   .ipr-box .cola{font-size:9.5px;font-weight:600;letter-spacing:.2px;margin:0;}
   .ipr-box.ipr-verde{background:#EEF1F5;} .ipr-box.ipr-verde .n,.ipr-box.ipr-verde .cola{color:var(--tinta2);}
   .c-main{min-width:0;}
-  .cita-nombre{font-size:13.5px;font-weight:700;}
-  .c-prod{font-size:12.5px;color:var(--tinta2);margin-top:1px;}
+  .cita-nombre{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .c-prod{font-size:12.5px;color:var(--tinta2);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .c-prod b{color:var(--tinta);font-family:var(--mono);font-size:12px;}
   .c-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center;}
   .c-oc{font-size:11px;color:var(--tinta2);font-family:var(--mono);margin-right:2px;}
@@ -486,7 +486,10 @@
   .sn small{font-size:10px;font-weight:600;opacity:.85;}
   .sn b{font:800 13px var(--mono);}
   .sn.rojo{background:var(--rojo-bg);color:#791F1F;} .sn.ambar{background:var(--ambar-bg);color:var(--ambar);} .sn.verde{background:var(--verde-bg);color:var(--verde);} .sn.gris{background:#EEF1F5;color:var(--tinta2);}
-  .acciones{background:none;border:0;padding:0;margin:0;display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:nowrap;}
+  .acciones{grid-column:2/-1;background:none;border:0;padding:2px 0 0;margin:0;display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;}
+  .acciones .btn{padding:6px 11px;font-size:12px;}
+  .acciones .btn.primary{padding:7px 14px;font-size:12.5px;}
+  .acciones .btn-nota{background:#f4f8fd!important;}
   .mas{position:relative;}
   .mas>summary{list-style:none;cursor:pointer;padding:7px 11px;font-weight:800;}
   .mas>summary::-webkit-details-marker{display:none;}
@@ -500,6 +503,7 @@
     .c-qty,.c-fec,.c-senal{grid-column:2/4;text-align:left;}
     .c-qty{font-family:Inter,sans-serif;}
     .acciones{grid-column:1/4;justify-content:flex-start;}
+    .cita{grid-template-columns:52px minmax(0,1fr) auto;}
   }
   @media(max-width:760px){ .pasos{grid-template-columns:repeat(2,minmax(0,1fr));} .wrap{padding:10px 12px 30px;} }
   /* Modales */
@@ -1620,7 +1624,7 @@ function render(){
       <div class="ipr-box ${cls}" ${CERRADA?'':`data-ipr="${idx}" title="¿Por qué este IPR?"`}><div class="n">${s.ipr}</div><div class="cola">${colaTxt}</div></div>
       <div class="c-main">
         <div class="cita-nombre">${esc(s.empresa)}</div>
-        <div class="c-prod"><b>${esc(s.cod_abasto)}</b> · ${esc(s.descripcion)}</div>
+        <div class="c-prod" title="${esc(s.descripcion)}"><b>${esc(s.cod_abasto)}</b> · ${esc(s.descripcion)}</div>
         <div class="c-chips"><span class="c-oc">OC ${esc(s.oc)}</span><span class="pill est-${estCls}">${esc(estadoU.trim()==='EN ANALISIS'?'EN ANÁLISIS':s.estado)}</span>${chipsCita_(s,estadoU,CERRADA||AVANZADA)}</div>
       </div>
       <div class="c-qty"><b>${num(s.cant_unidades)}</b> u<small>${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</small></div>
@@ -1941,9 +1945,10 @@ function accionesCompactas_(html){
   const t=document.createElement('template'); t.innerHTML=html;
   const btns=[...t.content.querySelectorAll('button')];
   if(!btns.length) return html;
+  // 27-nov-2026 · Diego: todas las acciones a la vista (sin menú ⋯). La principal va a la derecha.
   const prim=btns.find(b=>b.classList.contains('primary'))||btns[0];
   const resto=btns.filter(b=>b!==prim);
-  return prim.outerHTML+(resto.length?'<details class="mas"><summary class="btn" title="Más acciones" aria-label="Más acciones">⋯</summary><div class="mas-pop">'+resto.map(b=>b.outerHTML).join('')+'</div></details>':'');
+  return resto.map(b=>b.outerHTML).join('')+prim.outerHTML;
 }
 document.addEventListener('click',e=>{
   document.querySelectorAll('details.mas[open]').forEach(d=>{ if(!d.contains(e.target) || e.target.closest('.mas-pop .btn')) d.open=false; });
@@ -1974,7 +1979,9 @@ function chipsCita_(s, estadoU, avanzada){
 // Se lee de GitHub Pages en milisegundos; trae el análisis de espacio de cada cita
 // activa y el estado de las propuestas. SIGUELO la vuelve a publicar cada hora y en
 // cuanto alguien propone o responde.
-const DVB={j:null};
+const DVB={j:null, hist:null};
+function dvbHistCargar_(){ if(DVB.hist) return Promise.resolve(DVB.hist); return fetch('./diferidos.json?v='+Math.floor(Date.now()/600000),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&j.rows){ const c=j.columnas; DVB.hist={meta:j._meta, filas:j.rows.map(r=>{const o={}; c.forEach((k,i)=>o[k]=r[i]); return o;})}; } return DVB.hist; }).catch(()=>null); }
+function dvbSinLlave2_(){ const con=new Set(dvbProps_().map(p=>String(p.id))); return SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase().trim()==='DIFERIDA' && !con.has(String(s.id))); }
 function dvbCargar_(){
   return fetch('./diferidos_vobo.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
     if(!j) return;
@@ -2016,7 +2023,7 @@ function dvbPintarLado_(){
   if(sd) sd.innerHTML='<div class="side-h"><h2>Diferidos · dos llaves</h2><button class="lnk" type="button" onclick="irTab(\'diferidos\')">Ver todos</button></div>'+
     '<div class="side-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS · MES</small><b>'+k.res+'</b></div></div>'+
     (pend.length?pend.map(p=>{ const e=dvbEstado_(p); return '<div class="side-it"><span class="t"><b>'+esc(String(p.desc||p.cod).slice(0,46))+'</b><br><span>'+esc(p.plan||'Planificación')+' · '+dvbHace_(p.l1)+' · algoritmo: '+esc(String(p.rec||'').toLowerCase())+'</span></span><span class="llave '+e.c+'" style="align-self:center;">'+e.t+'</span></div>'; }).join('')
-      :'<div class="side-vacio">Ningún diferido espera visto bueno. Para proponer uno: menú ⋯ de la cita › Proponer diferido.</div>');
+      :'<div class="side-vacio">Ningún diferido espera visto bueno'+(dvbSinLlave2_().length?' · <b>'+dvbSinLlave2_().length+' diferidas sin segunda llave</b>':'')+'. Hoy no hay citas en estado «Diferida»; el historial está en <a href="#" onclick="irTab(\'diferidos\');return false;">Diferidos</a>. Para proponer uno: botón «Proponer diferido» de la cita.</div>');
   const es=document.getElementById('sideEsp'), f=(j.espacio||{}).frio, s=(j.espacio||{}).seco;
   if(es && f){
     const pct=Number(f.pct||0), cap=Number(f.cap||187.5), m3h=0.0724;
@@ -2027,9 +2034,21 @@ function dvbPintarLado_(){
       '<div style="font-size:12.5px;font-weight:600;">Cuartos fríos · '+Math.round(pct)+' % <span style="font-weight:400;color:var(--tinta2);">('+num(f.hieleras)+' hieleras · '+num(f.m3)+' de '+num(cap)+' m³)</span></div>'+
       '<div class="barra" role="img" aria-label="Ocupación de cuartos fríos '+Math.round(pct)+' por ciento"><i style="width:'+pOc+'%;background:#7fa7d6"></i><i style="width:'+pRes+'%;background:#f0c26a"></i><i style="width:'+pR7+'%;background:#e5797a"></i></div>'+
       '<div class="leyenda"><span style="color:#3d6da8;">■ ocupado</span><span style="color:#8a5a00;">■ reservado</span><span style="color:#a12b2b;">■ reservado &gt; 7 días: '+num(f.res7)+' hieleras</span></div>'+
-      (s?'<div style="font-size:12.5px;font-weight:600;">Seco · reservas &gt; 7 días</div><div style="font-size:12.5px;"><b style="font-family:var(--mono);">'+num(s.res7)+'</b> pallets en '+num(s.ren7)+' renglones · ≈ '+s.pct7+' % de '+num(s.pos)+' posiciones</div>':'')+
+      (s?dvbSecoHtml_(s):'')+
       '<div class="nota-suave">Ese espacio se recupera despachando las Formas 8 reservadas, no difiriendo entregas.</div>';
   }
+}
+function dvbSecoHtml_(s){
+  const pos=Number(s.pos||4800), pal=Number(s.pallets||0);
+  if(!(pal>0)) return '<div style="font-size:12.5px;font-weight:600;">Seco · reservas &gt; 7 días</div><div style="font-size:12.5px;"><b style="font-family:var(--mono);">'+num(s.res7)+'</b> pallets en '+num(s.ren7)+' renglones · ≈ '+s.pct7+' % de '+num(pos)+' posiciones</div>';
+  const pct=pal/pos*100, escala=Math.max(pal,pos);
+  const r7=Math.min(pal,Number(s.res7||0)), rv=Math.max(0,Math.min(pal-r7,Number(s.reservado||0)-r7)), oc=Math.max(0,pal-r7-rv);
+  const w=x=>(x/escala*100).toFixed(2)+'%';
+  return '<div style="font-size:12.5px;font-weight:600;">Seco · '+Math.round(pct)+' % <span style="font-weight:400;color:var(--tinta2);">(≈ '+num(pal)+' pallets · '+num(pos)+' posiciones de rack)</span></div>'+
+    '<div class="barra" style="position:relative;" role="img" aria-label="Seco: '+num(pal)+' pallets frente a '+num(pos)+' posiciones"><i style="width:'+w(oc)+';background:#7fa7d6"></i><i style="width:'+w(rv)+';background:#f0c26a"></i><i style="width:'+w(r7)+';background:#e5797a"></i>'+
+      (pal>pos?'<span title="Capacidad de rack" style="position:absolute;top:-3px;bottom:-3px;left:'+w(pos)+';width:2px;background:#0b1f3a;"></span>':'')+'</div>'+
+    '<div class="leyenda"><span style="color:#3d6da8;">■ inventario</span><span style="color:#8a5a00;">■ reservado</span><span style="color:#a12b2b;">■ reservado &gt; 7 días: '+num(s.res7)+' pallets en '+num(s.ren7)+' renglones</span>'+(pal>pos?'<span>| capacidad de rack</span>':'')+'</div>'+
+    '<div style="font-size:11.5px;color:var(--tinta2);margin-top:-4px;">Estimado con el maestro de empaque: '+num(s.renglones)+' renglones con dato de pallet; '+num(s.sinDato)+' sin dato no se cuentan.'+(pal>pos?' El inventario supera las posiciones de rack: hay mercancía en piso o empaques del maestro por revisar.':'')+'</div>';
 }
 function dvbAnalisisHtml_(s){
   const a=DVB.j&&DVB.j.citas&&DVB.j.citas[s.id];
@@ -2041,6 +2060,21 @@ function dvbAnalisisHtml_(s){
     '<div class="an-k"><div><small>COBERTURA</small><b>'+(a.cob>=12?'12+':a.cob)+' m</b></div><div><small>ESTA CITA OCUPA</small><b>'+num(a.esp)+' '+u+'</b></div><div><small>LIBERABLE HOY</small><b>'+num(a.lib)+' '+u+'</b></div></div>'+
     '<div style="margin-top:6px;font-size:11.5px;opacity:.85;">'+(a.ven?esc(a.ven)+' · ':'')+'planificador: '+esc(a.plan||'—')+'. Con o sin recomendación, la decisión final es de Planificación (segunda llave).</div></div>';
 }
+function dvbHistHtml_(){
+  const H=DVB.hist; if(!H) return '<div class="estado-msg">Cargando el historial de diferidos…</div>';
+  const f=H.filas, cuenta=k=>f.filter(x=>String(x.estado||'').toUpperCase()===k).length;
+  const sinAut=f.filter(x=>!x.tieneAutorizacion).length;
+  const est=e=>{ e=String(e||'').toUpperCase(); return e==='ENTREGADO'||e==='ENTREGADA'?'<span class="llave ok">Entregado</span>':e==='ASISTIO'?'<span class="llave pe">Asistió · falta registrar</span>':e==='DIFERIDA'?'<span class="llave no">Diferida</span>':'<span class="llave gr">'+esc(e)+'</span>'; };
+  return '<h3 style="margin:18px 0 6px;font-size:15px;">Historial de diferidos · antes de las dos llaves</h3>'+
+    '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">'+num(f.length)+' citas con nota de diferido: '+num(cuenta('ENTREGADO')+cuenta('ENTREGADA'))+' ya se entregaron, '+num(cuenta('ASISTIO'))+' asistieron sin registrar la entrega y '+num(cuenta('RECHAZADA'))+' se rechazó. '+num(sinAut)+' se recibieron sin autorización de entrega. Corte: '+esc(String((H.meta||{}).generado||''))+'.</p>'+
+    '<div class="dif-caja" style="max-height:420px;"><table class="dif-tabla"><thead><tr><th>NOTA</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>CAUSAS</th><th>ESTADO HOY</th><th>AUTORIZACIÓN</th></tr></thead><tbody>'+
+    f.map(x=>'<tr><td style="white-space:nowrap;font-family:var(--mono);font-size:11.5px;">'+esc(x.notaNum||'')+'<br><span style="font-family:Inter;color:var(--tinta2);">'+fmtDM_(String(x.notaFecha||''))+'</span></td>'+
+      '<td><b style="font-family:var(--mono);">'+esc(x.codigo)+'</b> · <span title="'+esc(x.descripcion)+'">'+esc(String(x.descripcion||'').slice(0,60))+'</span><br><span style="color:var(--tinta2);">'+esc(x.proveedor)+'</span></td>'+
+      '<td style="text-align:right;font-family:var(--mono);">'+num(x.cantidadDiferida||x.unidades)+'</td>'+
+      '<td style="font-size:11.5px;color:var(--tinta2);max-width:260px;">'+esc(String(x.causas||'').split('|')[0].slice(0,90))+'</td>'+
+      '<td>'+est(x.estado)+'</td><td>'+(x.tieneAutorizacion?'<span class="llave ok">'+esc(x.autorizacionNum||'Sí')+'</span>':'<span class="llave no">Sin autorización</span>')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
 function dvbPintarTab_(){
   const box=document.getElementById('tabDiferidos'); if(!box) return;
   const j=DVB.j;
@@ -2049,9 +2083,11 @@ function dvbPintarTab_(){
   const ps=dvbProps_(verPruebas).slice().reverse();
   const k=dvbCuentas_();
   const modo={ACTIVO:'Activo',SOMBRA:'Prueba (solo llega a Torre de Control)',APAGADO:'Apagado'}[j.modo]||j.modo;
+  if(!DVB.hist){ dvbHistCargar_().then(()=>{ if(TAB_ACTIVA==='diferidos') dvbPintarTab_(); }); }
+  const sin2=dvbSinLlave2_();
   box.innerHTML='<div class="dif-cab"><h2>Diferidos · dos llaves</h2><span class="llave '+(j.modo==='ACTIVO'?'ok':'gr')+'">Modo: '+esc(modo)+'</span>'+
     '<label style="margin-left:auto;font-size:12.5px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="difPruebas" '+(verPruebas?'checked':'')+'> mostrar pruebas</label></div>'+
-    '<p style="margin:0 0 12px;font-size:13px;color:var(--tinta2);max-width:900px;">Llave 1: el Almacén propone desde la cita (⋯ › Proponer diferido). Llave 2: el planificador del renglón responde desde el correo, con copia a la Jefatura de Planificación. Sin respuesta en 1 día hábil se escala a la Jefatura y a la Torre de Control. La nota solo se emite con las dos llaves.</p>'+
+    '<p style="margin:0 0 12px;font-size:13px;color:var(--tinta2);max-width:900px;">Llave 1: el Almacén propone desde la cita (botón «Proponer diferido»). Llave 2: el planificador del renglón responde desde el correo, con copia a la Jefatura de Planificación. Sin respuesta en 1 día hábil se escala a la Jefatura y a la Torre de Control. La nota solo se emite con las dos llaves.</p>'+
     '<div class="dif-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS ESTE MES</small><b>'+k.res+'</b></div><div style="background:#EEF1F5;color:var(--tinta2);"><small>FRÍO OCUPADO</small><b>'+Math.round(((j.espacio||{}).frio||{}).pct||0)+' %</b></div></div>'+
     '<div class="dif-caja"><table class="dif-tabla"><thead><tr><th>PROPUESTO</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>ALGORITMO</th><th>LLAVE 1 · ALMACÉN</th><th>LLAVE 2 · PLANIFICACIÓN</th><th>RESULTADO</th></tr></thead><tbody>'+
     (ps.length?ps.map(p=>{ const e=dvbEstado_(p); return '<tr'+(p.modo==='SOMBRA'?' style="opacity:.6;"':'')+'><td style="white-space:nowrap;">'+fmtDM_(String(p.l1||'').slice(0,10))+'<br><span style="color:var(--tinta2);font-size:11.5px;">'+dvbHace_(p.l1)+'</span></td>'+
@@ -2062,7 +2098,12 @@ function dvbPintarTab_(){
       '<td><span class="llave '+e.c+'">'+e.t+'</span> '+esc(p.plan||'')+(p.l2m?'<br><span style="color:var(--tinta2);font-size:11.5px;">“'+esc(p.l2m)+'”</span>':'')+'</td>'+
       '<td>'+esc(p.res||(String(p.l2).toUpperCase()==='PENDIENTE'?'La cita sigue en pie':'—'))+'</td></tr>'; }).join('')
       :'<tr><td colspan="7" class="estado-msg">No hay propuestas'+(verPruebas?'':' (las pruebas están ocultas)')+'.</td></tr>')+
-    '</tbody></table></div>';
+    '</tbody></table></div>'+
+    '<h3 style="margin:18px 0 6px;font-size:15px;">Citas en «Diferida» sin la segunda llave</h3>'+
+    (sin2.length
+      ? '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">Se difirieron antes de la regla: cuentan con la llave del Almacén y les falta el visto bueno de Planificación.</p><div class="dif-caja"><table class="dif-tabla"><tbody>'+sin2.map(s=>'<tr><td><b style="font-family:var(--mono);">'+esc(s.cod_abasto)+'</b> · '+esc(s.descripcion)+'<br><span style="color:var(--tinta2);">'+esc(s.empresa)+' · OC '+esc(s.oc)+'</span></td><td>'+esc(s.motivo||'')+'</td><td><span class="llave ok">✓ Almacén</span> <span class="llave pe">Falta Planificación</span></td></tr>').join('')+'</tbody></table></div>'
+      : '<div class="nota-suave" style="margin-top:0;">Hoy no hay ninguna cita en estado «Diferida»: no queda nada pendiente de la segunda llave.</div>')+
+    dvbHistHtml_();
   const ck=document.getElementById('difPruebas');
   if(ck) ck.addEventListener('change',()=>{ if(ck.checked) box.dataset.pruebas='1'; else delete box.dataset.pruebas; dvbPintarTab_(); });
 }
