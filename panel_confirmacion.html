@@ -2881,8 +2881,11 @@ document.getElementById('buscar').addEventListener('input',()=>{
 document.getElementById('filtroEstadoSel').addEventListener('change',function(){
   // Estados que viven en el histórico (no se cargan en la vista activa). Si el usuario
   // elige uno de estos y no está en histórico, se activa solo para que pueda verlos.
-  const HIST=['ENTREGADO','ASISTIO','NO_ASISTIO','CANCELADA'];
+  // 27-nov-2026 · Asistió y No asistió están en la lista activa: no hace falta ir al histórico.
+  const HIST=['ENTREGADO','CANCELADA'];
   const v=document.getElementById('filtroEstadoSel').value.toUpperCase();
+  // El estado elegido manda sobre el paso marcado (antes se sumaban y la lista salía vacía).
+  if(v){ filtroEstado=''; document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo')); }
   if(HIST.indexOf(v)>=0 && !verHistorico){
     verHistorico=true;
     const bh=document.getElementById('btnHistorico');
@@ -3178,6 +3181,8 @@ document.querySelectorAll('.kpi-click').forEach(card=>{
     const f=card.dataset.filtro;
     if(filtroEstado===f){ filtroEstado=''; }
     else{ filtroEstado=f; }
+    // Al elegir un paso, se limpia el filtro «Estado» para que no se sumen.
+    const es=document.getElementById('filtroEstadoSel'); if(es && es.value && filtroEstado) es.value='';
     document.querySelectorAll('.kpi-click').forEach(c=>c.classList.toggle('activo', c.dataset.filtro===filtroEstado));
     render();
   });
