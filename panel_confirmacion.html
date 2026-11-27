@@ -430,9 +430,13 @@
   #cargaSemanalBox{padding:0!important;overflow:hidden;}
   #cargaSemanalHead{flex-wrap:wrap;gap:8px;background:#fff!important;border-bottom:1px solid var(--linea2)!important;padding:12px 14px!important;}
   #cargaSemanalHead>div:first-child{font-size:14px!important;font-weight:700!important;color:var(--tinta)!important;}
-  .col-side #cargaSemanalBody{flex-direction:column;height:auto!important;}
-  .col-side #cargaSemanalBody>div:first-child{flex:none!important;height:120px;}
-  .col-side #cargaSemanalBody>div:last-child{flex:none!important;height:230px;}
+  .col-side #cargaSemanalBody{flex-direction:column;height:auto!important;gap:10px!important;}
+  .col-side #cargaSemanalBody>div:first-child{flex:none!important;height:190px;}
+  .col-side #cargaSemanalBody>div:first-child>div:last-child{flex:none!important;height:166px;}
+  .col-side #cargaSemanalBody>div:last-child{flex:none!important;height:290px;}
+  .col-side #cargaSemanalHead>div:last-child{width:100%;flex-wrap:wrap;justify-content:space-between;gap:6px!important;}
+  .col-side #cargaSemModo{flex:1 1 100%;max-width:100%;}
+  .col-side #cargaSemRango{min-width:0!important;}
   /* Filtros */
   .fz{border-radius:var(--r);border-color:var(--linea);padding:12px 14px;}
   .fz-buscar{border-radius:9px;border-color:var(--borde);}
@@ -535,6 +539,15 @@
   .dif-caja{background:#fff;border:1px solid var(--linea);border-radius:var(--r);overflow:auto;}
   .dif-paso{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
   .llave{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;}
+  .ck{display:flex;align-items:flex-start;gap:7px;font-size:12.5px;line-height:1.3;}
+  .ck>i{flex:none;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;margin-top:1px;}
+  .ck b{display:block;font-size:12.5px;} .ck small{display:block;color:var(--tinta2);font-size:11.5px;}
+  .ck.ok>i{background:#0F6E56;color:#fff;} .ck.ok b{color:#0F6E56;}
+  .ck.pe>i{background:#fff;border:2px dashed #c9922e;} .ck.pe b{color:#854F0B;}
+  .ck.no>i{background:#A12B2B;color:#fff;} .ck.no b{color:#A12B2B;}
+  .ck.na>i{background:#dde3ea;color:#4a5866;} .ck.na b{color:#4a5866;}
+  .cerrado{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;background:#EEF1F5;color:#4a5866;}
+  .cerrado::before{content:'🔒';font-size:10px;}
   .llave.ok{background:var(--verde-bg);color:var(--verde);} .llave.pe{background:var(--ambar-bg);color:var(--ambar);} .llave.no{background:var(--rojo-bg);color:var(--rojo);} .llave.gr{background:#EEF1F5;color:var(--tinta2);}
   @media(max-width:760px){ .dif-k{grid-template-columns:repeat(2,minmax(0,1fr));} }
   /* Calendario, tránsitos y administración: misma piel */
@@ -1958,7 +1971,7 @@ function chipsCita_(s, estadoU, avanzada){
   const e=String(estadoU||'').trim(); const out=[];
   if(e==='EN ANALISIS'){
     const p=dvbPropuestaDe_(s.id);
-    out.push('<span class="badge ambar" title="El Almacén propuso diferir; SIGUELO pidió el visto bueno al planificador del renglón">Espera visto bueno'+(p&&p.plan?' de '+esc(p.plan):' de Planificación')+(p&&p.esc?' · escalado':'')+'</span>');
+    out.push('<span class="badge verde" title="Llave 1: el Almacén propuso el diferido">✓ Almacén</span><span class="badge ambar" title="Llave 2: SIGUELO pidió el visto bueno al planificador del renglón">☐ Planificación'+(p&&p.plan?' · '+esc(p.plan):'')+(p&&p.esc?' · escalado':'')+'</span>');
   }
   if(e==='DIFERIDA' && s.motivo) out.push('<span class="badge ambar">'+esc(s.motivo)+'</span>');
   if(e==='REPROGRAMADA') out.push('<span class="badge" style="background:#ece9f7;color:#5a4ba8;">'+esc(s.motivo||'próximo período')+'</span>');
@@ -1999,6 +2012,14 @@ function dvbHace_(iso){
   const hh=Math.round(m/60); if(hh<36) return 'hace '+hh+' h';
   return 'hace '+Math.round(hh/24)+' d';
 }
+function ck_(c,tit,sub){ return '<div class="ck '+c+'"><i>'+({ok:'✓',no:'✕',na:'–',pe:''}[c]||'')+'</i><span><b>'+tit+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span></div>'; }
+function dvbLlave2Ck_(p){
+  const r=String(p.l2||'').toUpperCase(), f=p.l2f?fmtDM_(String(p.l2f).slice(0,10)):'';
+  if(r==='PENDIENTE') return ck_('pe','Planificación · pendiente', esc(p.plan||'planificador del renglón')+' · '+dvbHace_(p.l1)+(p.esc?' · <b style="display:inline;color:#A12B2B;">escalado</b>':''));
+  if(/^SI/.test(r)) return ck_('ok','Planificación · de acuerdo', esc(p.plan||'')+(f?' · '+f:''));
+  if(/^NO/.test(r)) return ck_('no','Planificación · recibir', esc(p.plan||'')+(f?' · '+f:''));
+  return ck_('na', esc(r||'—'), '');
+}
 function dvbEstado_(p){
   const r=String(p.l2||'').toUpperCase();
   if(r==='PENDIENTE') return p.esc?{t:'Escalado',c:'no'}:{t:'Pendiente',c:'pe'};
@@ -2023,7 +2044,7 @@ function dvbPintarLado_(){
   if(sd) sd.innerHTML='<div class="side-h"><h2>Diferidos · dos llaves</h2><button class="lnk" type="button" onclick="irTab(\'diferidos\')">Ver todos</button></div>'+
     '<div class="side-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS · MES</small><b>'+k.res+'</b></div></div>'+
     (pend.length?pend.map(p=>{ const e=dvbEstado_(p); return '<div class="side-it"><span class="t"><b>'+esc(String(p.desc||p.cod).slice(0,46))+'</b><br><span>'+esc(p.plan||'Planificación')+' · '+dvbHace_(p.l1)+' · algoritmo: '+esc(String(p.rec||'').toLowerCase())+'</span></span><span class="llave '+e.c+'" style="align-self:center;">'+e.t+'</span></div>'; }).join('')
-      :'<div class="side-vacio">Ningún diferido espera visto bueno'+(dvbSinLlave2_().length?' · <b>'+dvbSinLlave2_().length+' diferidas sin segunda llave</b>':'')+'. Hoy no hay citas en estado «Diferida»; el historial está en <a href="#" onclick="irTab(\'diferidos\');return false;">Diferidos</a>. Para proponer uno: botón «Proponer diferido» de la cita.</div>');
+      :'<div class="side-vacio">Ningún diferido espera visto bueno'+(dvbSinLlave2_().length?' · <b>'+dvbSinLlave2_().length+' diferidas sin segunda llave</b>':'')+'. Hoy no hay citas en estado «Diferida»: los diferidos anteriores están cerrados (historial en <a href="#" onclick="irTab(\'diferidos\');return false;">Diferidos</a>). Para proponer uno: botón «Proponer diferido» de la cita.</div>');
   const es=document.getElementById('sideEsp'), f=(j.espacio||{}).frio, s=(j.espacio||{}).seco;
   if(es && f){
     const pct=Number(f.pct||0), cap=Number(f.cap||187.5), m3h=0.0724;
@@ -2064,14 +2085,19 @@ function dvbHistHtml_(){
   const H=DVB.hist; if(!H) return '<div class="estado-msg">Cargando el historial de diferidos…</div>';
   const f=H.filas, cuenta=k=>f.filter(x=>String(x.estado||'').toUpperCase()===k).length;
   const sinAut=f.filter(x=>!x.tieneAutorizacion).length;
-  const est=e=>{ e=String(e||'').toUpperCase(); return e==='ENTREGADO'||e==='ENTREGADA'?'<span class="llave ok">Entregado</span>':e==='ASISTIO'?'<span class="llave pe">Asistió · falta registrar</span>':e==='DIFERIDA'?'<span class="llave no">Diferida</span>':'<span class="llave gr">'+esc(e)+'</span>'; };
-  return '<h3 style="margin:18px 0 6px;font-size:15px;">Historial de diferidos · antes de las dos llaves</h3>'+
-    '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">'+num(f.length)+' citas con nota de diferido: '+num(cuenta('ENTREGADO')+cuenta('ENTREGADA'))+' ya se entregaron, '+num(cuenta('ASISTIO'))+' asistieron sin registrar la entrega y '+num(cuenta('RECHAZADA'))+' se rechazó. '+num(sinAut)+' se recibieron sin autorización de entrega. Corte: '+esc(String((H.meta||{}).generado||''))+'.</p>'+
-    '<div class="dif-caja" style="max-height:420px;"><table class="dif-tabla"><thead><tr><th>NOTA</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>CAUSAS</th><th>ESTADO HOY</th><th>AUTORIZACIÓN</th></tr></thead><tbody>'+
+  const est=e=>{ e=String(e||'').toUpperCase();
+    if(e==='DIFERIDA') return '<span class="llave no">Diferida · abierta</span>';
+    const t=(e==='ENTREGADO'||e==='ENTREGADA')?'Cerrado · entregado':e==='ASISTIO'?'Cerrado · el proveedor ya entregó':e==='RECHAZADA'?'Cerrado · rechazado':'Cerrado · '+esc(e.toLowerCase());
+    return '<span class="cerrado">'+t+'</span>'; };
+  const abiertos=f.filter(x=>String(x.estado||'').toUpperCase()==='DIFERIDA').length;
+  return '<h3 style="margin:18px 0 6px;font-size:15px;">Historial de diferidos · '+(abiertos?abiertos+' abiertos':'todos cerrados')+' <span style="font-weight:500;font-size:12.5px;color:var(--tinta2);">(anteriores a la regla de las dos llaves)</span></h3>'+
+    '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">Registro histórico: '+num(f.length)+' citas con nota de diferido y <b>'+(abiertos?abiertos+' siguen abiertas':'ninguna sigue abierta')+'</b>. '+num(cuenta('ENTREGADO')+cuenta('ENTREGADA'))+' se entregaron, en '+num(cuenta('ASISTIO'))+' el proveedor ya entregó (falta registrar la entrega) y '+num(cuenta('RECHAZADA'))+' se rechazó. La segunda llave no aplicaba: se difirieron antes de la regla. '+num(sinAut)+' se recibieron sin autorización de entrega. Corte: '+esc(String((H.meta||{}).generado||''))+'.</p>'+
+    '<div class="dif-caja" style="max-height:440px;"><table class="dif-tabla"><thead><tr><th>NOTA</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th style="min-width:150px;">LLAVE 1 · ALMACÉN</th><th style="min-width:150px;">LLAVE 2 · PLANIFICACIÓN</th><th>ESTADO HOY</th><th>AUTORIZACIÓN</th></tr></thead><tbody>'+
     f.map(x=>'<tr><td style="white-space:nowrap;font-family:var(--mono);font-size:11.5px;">'+esc(x.notaNum||'')+'<br><span style="font-family:Inter;color:var(--tinta2);">'+fmtDM_(String(x.notaFecha||''))+'</span></td>'+
       '<td><b style="font-family:var(--mono);">'+esc(x.codigo)+'</b> · <span title="'+esc(x.descripcion)+'">'+esc(String(x.descripcion||'').slice(0,60))+'</span><br><span style="color:var(--tinta2);">'+esc(x.proveedor)+'</span></td>'+
       '<td style="text-align:right;font-family:var(--mono);">'+num(x.cantidadDiferida||x.unidades)+'</td>'+
-      '<td style="font-size:11.5px;color:var(--tinta2);max-width:260px;">'+esc(String(x.causas||'').split('|')[0].slice(0,90))+'</td>'+
+      '<td>'+ck_('ok','Difirió con nota', '<span title="'+esc(x.causas||'')+'">'+esc(String(x.causas||'').split('|')[0].slice(0,48))+'</span>')+'</td>'+
+      '<td>'+ck_('na','No aplicaba','anterior a la regla')+'</td>'+
       '<td>'+est(x.estado)+'</td><td>'+(x.tieneAutorizacion?'<span class="llave ok">'+esc(x.autorizacionNum||'Sí')+'</span>':'<span class="llave no">Sin autorización</span>')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
@@ -2089,19 +2115,19 @@ function dvbPintarTab_(){
     '<label style="margin-left:auto;font-size:12.5px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="difPruebas" '+(verPruebas?'checked':'')+'> mostrar pruebas</label></div>'+
     '<p style="margin:0 0 12px;font-size:13px;color:var(--tinta2);max-width:900px;">Llave 1: el Almacén propone desde la cita (botón «Proponer diferido»). Llave 2: el planificador del renglón responde desde el correo, con copia a la Jefatura de Planificación. Sin respuesta en 1 día hábil se escala a la Jefatura y a la Torre de Control. La nota solo se emite con las dos llaves.</p>'+
     '<div class="dif-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS ESTE MES</small><b>'+k.res+'</b></div><div style="background:#EEF1F5;color:var(--tinta2);"><small>FRÍO OCUPADO</small><b>'+Math.round(((j.espacio||{}).frio||{}).pct||0)+' %</b></div></div>'+
-    '<div class="dif-caja"><table class="dif-tabla"><thead><tr><th>PROPUESTO</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>ALGORITMO</th><th>LLAVE 1 · ALMACÉN</th><th>LLAVE 2 · PLANIFICACIÓN</th><th>RESULTADO</th></tr></thead><tbody>'+
+    '<div class="dif-caja"><table class="dif-tabla"><thead><tr><th>PROPUESTO</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>ALGORITMO</th><th style="min-width:170px;">LLAVE 1 · ALMACÉN</th><th style="min-width:210px;">LLAVE 2 · PLANIFICACIÓN</th><th>RESULTADO</th></tr></thead><tbody>'+
     (ps.length?ps.map(p=>{ const e=dvbEstado_(p); return '<tr'+(p.modo==='SOMBRA'?' style="opacity:.6;"':'')+'><td style="white-space:nowrap;">'+fmtDM_(String(p.l1||'').slice(0,10))+'<br><span style="color:var(--tinta2);font-size:11.5px;">'+dvbHace_(p.l1)+'</span></td>'+
       '<td><b style="font-family:var(--mono);">'+esc(p.cod)+'</b> · '+esc(p.desc)+'<br><span style="color:var(--tinta2);">'+esc(p.emp)+'</span>'+(p.modo==='SOMBRA'?' <span class="llave gr">prueba</span>':'')+'</td>'+
       '<td style="text-align:right;font-family:var(--mono);white-space:nowrap;">'+num(p.u)+' u<br><span style="color:var(--tinta2);font-size:11.5px;">≈ '+num(p.esp)+' '+esc(p.uni||'')+'</span></td>'+
       '<td><span class="llave '+(/NO/.test(String(p.rec).toUpperCase())?'ok':'pe')+'">'+esc(p.rec||'—')+'</span></td>'+
-      '<td><span class="llave ok">✓</span> '+esc(p.l1u||'Almacén')+'</td>'+
-      '<td><span class="llave '+e.c+'">'+e.t+'</span> '+esc(p.plan||'')+(p.l2m?'<br><span style="color:var(--tinta2);font-size:11.5px;">“'+esc(p.l2m)+'”</span>':'')+'</td>'+
+      '<td>'+ck_('ok','Almacén · propuso', esc(p.l1u||'Almacén')+' · '+fmtDM_(String(p.l1||'').slice(0,10)))+'</td>'+
+      '<td>'+dvbLlave2Ck_(p)+(p.l2m?'<div style="color:var(--tinta2);font-size:11.5px;margin:3px 0 0 25px;">“'+esc(p.l2m)+'”</div>':'')+'</td>'+
       '<td>'+esc(p.res||(String(p.l2).toUpperCase()==='PENDIENTE'?'La cita sigue en pie':'—'))+'</td></tr>'; }).join('')
       :'<tr><td colspan="7" class="estado-msg">No hay propuestas'+(verPruebas?'':' (las pruebas están ocultas)')+'.</td></tr>')+
     '</tbody></table></div>'+
     '<h3 style="margin:18px 0 6px;font-size:15px;">Citas en «Diferida» sin la segunda llave</h3>'+
     (sin2.length
-      ? '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">Se difirieron antes de la regla: cuentan con la llave del Almacén y les falta el visto bueno de Planificación.</p><div class="dif-caja"><table class="dif-tabla"><tbody>'+sin2.map(s=>'<tr><td><b style="font-family:var(--mono);">'+esc(s.cod_abasto)+'</b> · '+esc(s.descripcion)+'<br><span style="color:var(--tinta2);">'+esc(s.empresa)+' · OC '+esc(s.oc)+'</span></td><td>'+esc(s.motivo||'')+'</td><td><span class="llave ok">✓ Almacén</span> <span class="llave pe">Falta Planificación</span></td></tr>').join('')+'</tbody></table></div>'
+      ? '<p style="margin:0 0 8px;font-size:12.5px;color:var(--tinta2);">Se difirieron antes de la regla: cuentan con la llave del Almacén y les falta el visto bueno de Planificación.</p><div class="dif-caja"><table class="dif-tabla"><tbody>'+sin2.map(s=>'<tr><td><b style="font-family:var(--mono);">'+esc(s.cod_abasto)+'</b> · '+esc(s.descripcion)+'<br><span style="color:var(--tinta2);">'+esc(s.empresa)+' · OC '+esc(s.oc)+'</span></td><td>'+esc(s.motivo||'')+'</td><td>'+ck_('ok','Almacén · difirió','antes de la regla')+'</td><td>'+ck_('pe','Planificación · pendiente','')+'</td></tr>').join('')+'</tbody></table></div>'
       : '<div class="nota-suave" style="margin-top:0;">Hoy no hay ninguna cita en estado «Diferida»: no queda nada pendiente de la segunda llave.</div>')+
     dvbHistHtml_();
   const ck=document.getElementById('difPruebas');
