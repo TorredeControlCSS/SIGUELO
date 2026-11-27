@@ -6,6 +6,8 @@
 <link rel="icon" href="./favicon.ico?v=1">
 <link rel="shortcut icon" href="./favicon.ico?v=1">
 <title>Panel de Confirmación de Citas | CEDIS Panamá</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --azul:#1e5a9e; --azul-osc:#0C447C; --fondo:#ececec; --borde:#a8a8a8;
@@ -351,53 +353,237 @@
   .adm [hidden]{display:none!important;}
   .adm-reset{margin-left:auto;font-size:11.5px;padding:3px 10px;}
   @media(max-width:900px){ .adm-cols{grid-template-columns:1fr;} .adm-prov{grid-template-columns:1fr;} }
+  /* ═════ Rediseño 27-nov-2026 · tema moderno (bordes redondeados, como el Motor) ═════ */
+  :root{
+    --navy:#0b1f3a; --tinta:#1c2733; --tinta2:#4a5866; --linea:#dde3ea; --linea2:#edf1f5;
+    --fondo:#eef1f5; --borde:#c3cdd9; --borde-suave:#dde3ea; --azul:#1e5a9e; --azul-osc:#0C447C;
+    --mono:'JetBrains Mono','Consolas',monospace; --r:12px;
+    --rojo:#A12B2B; --rojo-bg:#FCEBEB; --verde:#0F6E56; --verde-bg:#E1F5EE; --ambar:#854F0B; --ambar-bg:#FAEEDA; --gris-bg:#F1F4F7;
+  }
+  body{background:var(--fondo);font-family:Inter,Arial,Helvetica,sans-serif;color:var(--tinta);font-size:14px;}
+  button,input,select,textarea{font-family:inherit;}
+  .wrap{max-width:1440px;padding:14px 20px 40px;}
+  /* Encabezado con navegación */
+  .top{background:var(--navy);color:#fff;position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(11,31,58,.25);}
+  .top-in{max-width:1440px;margin:0 auto;padding:10px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;}
+  .marca{display:flex;align-items:center;gap:12px;flex:1 1 380px;min-width:0;}
+  .marca .logo{width:40px;height:40px;border-radius:50%;background:#fff;object-fit:contain;flex:none;}
+  .marca h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.1px;}
+  .marca h1 span{font-weight:500;color:#9fb8d6;font-size:14px;}
+  .marca .sub{font-size:12px;color:#bfd3ea;margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;}
+  .nav{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .nv{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:9px;padding:8px 12px;font:600 13px Inter,sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .12s;}
+  .nv:hover{background:rgba(255,255,255,.18);}
+  .nv.activa{background:#fff;color:var(--navy);border-color:#fff;}
+  .nv-video{background:#e0a526;color:var(--navy);border-color:#e0a526;font-weight:700;}
+  .nv-video:hover{background:#f0b838;}
+  .nv-n{background:#e0a526;color:var(--navy);border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:800;line-height:18px;}
+  .nv.activa .nv-n{background:var(--ambar-bg);color:var(--ambar);}
+  .sync{border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;}
+  .sync.run{background:#2a4469;color:#cfe0f5;}
+  .sync.ok{background:#1d5a46;color:#bff0da;}
+  .sync.bad{background:#7a2323;color:#ffd9d9;cursor:pointer;}
+  .tabs{display:none!important;}
+  .nv[hidden],.nv-n[hidden],.sync[hidden]{display:none!important;}
+  @media(max-width:760px){ .top{position:static;} .col-side{top:0;} }
+  /* Flujo de la cita: los pasos son los filtros principales */
+  .pasos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin-bottom:10px;}
+  .paso{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--linea);border-radius:var(--r);padding:11px 13px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .12s,box-shadow .12s;min-width:0;}
+  .paso:hover{border-color:#9fb4cc;}
+  .paso.activo{border:2px solid var(--navy);padding:10px 12px;box-shadow:0 2px 8px rgba(11,31,58,.10);background:#fff;}
+  .paso .p-n{width:28px;height:28px;border-radius:50%;background:var(--fondo);display:grid;place-items:center;font-weight:800;font-size:13px;flex:none;}
+  .paso.activo .p-n{background:var(--navy);color:#fff;}
+  .paso .p-t{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  .paso .p-t b{font-size:13.5px;}
+  .paso .p-t small{font-size:11.5px;color:var(--tinta2);line-height:1.25;}
+  .paso .val{margin-left:auto;font:800 22px var(--mono);}
+  .p1 .val{color:var(--azul-osc);} .p2 .val{color:var(--ambar);} .p3 .val{color:var(--azul);} .p4 .val{color:var(--rojo);} .p5 .val{color:var(--tinta2);}
+  .mini-kpis{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center;}
+  .mini-kpis .et{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--tinta2);text-transform:uppercase;margin-right:2px;}
+  .mini{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--linea);border-radius:999px;padding:5px 12px;font:600 12.5px Inter,sans-serif;color:var(--tinta);cursor:pointer;}
+  .mini .val{font:800 13px var(--mono);}
+  .mini.activo{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .mini.r .val{color:var(--rojo);} .mini.a .val{color:var(--ambar);} .mini.activo .val{color:#fff;}
+  /* Distribución: lista + columna lateral */
+  .layout{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}
+  .col-main{flex:999 1 680px;min-width:0;}
+  .col-side{flex:1 1 340px;max-width:440px;display:flex;flex-direction:column;gap:14px;position:sticky;top:76px;}
+  .layout.ancho .col-side{display:none;}
+  @media(max-width:1100px){ .col-side{position:static;max-width:none;} }
+  .panel-body{background:transparent;border:0;padding:0;border-radius:0;min-height:300px;}
+  .side-card,#cargaSemanalBox{background:#fff;border:1px solid var(--linea)!important;border-radius:var(--r);padding:14px 16px;}
+  .side-card h2{margin:0;font-size:15px;}
+  .side-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .side-h a,.side-h button.lnk{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--azul);background:none;border:0;cursor:pointer;padding:0;}
+  .side-k{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+  .side-k div{border-radius:10px;padding:7px 10px;}
+  .side-k small{display:block;font-size:10px;font-weight:700;letter-spacing:.3px;}
+  .side-k b{font:800 20px var(--mono);}
+  .k-am{background:var(--ambar-bg);color:var(--ambar);} .k-ro{background:var(--rojo-bg);color:#791F1F;} .k-ve{background:var(--verde-bg);color:var(--verde);}
+  .side-it{display:flex;gap:8px;padding:7px 0;border-top:1px solid var(--linea2);font-size:12.5px;line-height:1.4;}
+  .side-it .t{flex:1;min-width:0;} .side-it .t span{color:var(--tinta2);}
+  .side-vacio{font-size:12.5px;color:var(--tinta2);padding:6px 0;}
+  .barra{height:12px;background:var(--fondo);border-radius:6px;overflow:hidden;display:flex;margin:4px 0;}
+  .barra i{display:block;height:100%;}
+  .leyenda{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--tinta2);margin-bottom:10px;}
+  .nota-suave{background:#F6F8FA;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--tinta2);margin-top:8px;}
+  #cargaSemanalBox{padding:0!important;overflow:hidden;}
+  #cargaSemanalHead{flex-wrap:wrap;gap:8px;background:#fff!important;border-bottom:1px solid var(--linea2)!important;padding:12px 14px!important;}
+  #cargaSemanalHead>div:first-child{font-size:14px!important;font-weight:700!important;color:var(--tinta)!important;}
+  .col-side #cargaSemanalBody{flex-direction:column;height:auto!important;}
+  .col-side #cargaSemanalBody>div:first-child{flex:none!important;height:120px;}
+  .col-side #cargaSemanalBody>div:last-child{flex:none!important;height:230px;}
+  /* Filtros */
+  .fz{border-radius:var(--r);border-color:var(--linea);padding:12px 14px;}
+  .fz-buscar{border-radius:9px;border-color:var(--borde);}
+  .fz-campo,.fz-fechas>summary{border-radius:9px;}
+  .filtros{margin-bottom:12px;}
+  /* Botones */
+  .btn{border-radius:8px;border:1px solid var(--borde);padding:7px 12px;font:600 12.5px Inter,sans-serif;color:var(--tinta);background:#fff;}
+  .btn:hover{background:#f3f6f9;}
+  .btn.primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .btn.primary:hover{background:#163257;}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .seg .btn:first-child{border-radius:8px 0 0 8px;} .seg .btn:last-child{border-radius:0 8px 8px 0;}
+  /* Lista priorizada: una fila densa por cita */
+  #tabLista{background:#fff;border:1px solid var(--linea);border-radius:var(--r);overflow:visible;}
+  #tabLista>.estado-msg{padding:28px;}
+  .lista-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 16px;border-bottom:1px solid var(--linea2);}
+  .lista-cab h2{margin:0;font-size:15px;}
+  .lista-cab span{font-size:12px;color:var(--tinta2);}
+  .cita{display:grid;grid-template-columns:58px minmax(0,2.3fr) minmax(0,.9fr) minmax(0,1.1fr) minmax(0,1fr) auto;gap:12px;align-items:start;border:0;border-top:1px solid var(--linea2);border-left:4px solid transparent;border-radius:0;margin:0;padding:11px 14px 11px 10px;overflow:visible;background:#fff;}
+  .lista-cab+.cita,.cita:first-child{border-top:0;}
+  .cita:hover{background:#fafbfd;}
+  .cita.ipr-rojo{border-left-color:#d77;} .cita.ipr-ambar{border-left-color:#e0b56a;} .cita.ipr-verde{border-left-color:transparent;}
+  .cita.en-analisis{background:#FFFBF2;}
+  .cita.cerrada{background:#fafbfc;}
+  .ipr-box{width:auto;border:0;border-radius:9px;padding:5px 0;flex-direction:column;align-items:center;justify-content:center;}
+  .ipr-box .n{font:800 18px var(--mono);line-height:1.15;}
+  .ipr-box .cola{font-size:9.5px;font-weight:600;letter-spacing:.2px;margin:0;}
+  .ipr-box.ipr-verde{background:#EEF1F5;} .ipr-box.ipr-verde .n,.ipr-box.ipr-verde .cola{color:var(--tinta2);}
+  .c-main{min-width:0;}
+  .cita-nombre{font-size:13.5px;font-weight:700;}
+  .c-prod{font-size:12.5px;color:var(--tinta2);margin-top:1px;}
+  .c-prod b{color:var(--tinta);font-family:var(--mono);font-size:12px;}
+  .c-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center;}
+  .c-oc{font-size:11px;color:var(--tinta2);font-family:var(--mono);margin-right:2px;}
+  .badge{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;border:0!important;}
+  .pill{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;background:var(--fondo);color:var(--tinta2);}
+  .est-agendada{background:#DDE7F2;color:var(--azul-osc);} .est-asistio{background:var(--verde-bg);color:var(--verde);}
+  .est-analisis{background:var(--ambar-bg);color:var(--ambar);} .est-diferida{background:var(--ambar-bg);color:var(--ambar);}
+  .est-no{background:var(--rojo-bg);color:var(--rojo);} .est-repro{background:#ece9f7;color:#5a4ba8;}
+  .c-qty,.c-fec{font-size:12.5px;white-space:nowrap;}
+  .c-qty{text-align:right;font-family:var(--mono);}
+  .c-qty b{font-size:13px;}
+  .c-qty small,.c-fec small{display:block;font-family:Inter,sans-serif;font-size:11.5px;color:var(--tinta2);white-space:normal;}
+  .c-lbl{font-size:11px;color:var(--tinta2);}
+  .c-venc{display:inline-block;margin-top:3px;border-radius:999px;padding:0 8px;font-size:11px;font-weight:700;}
+  .c-venc.mal{background:var(--rojo-bg);color:var(--rojo);} .c-venc.warn{background:var(--ambar-bg);color:var(--ambar);} .c-venc.ok{background:#EEF1F5;color:var(--tinta2);}
+  .c-senal{display:flex;flex-wrap:wrap;gap:6px;cursor:pointer;border-radius:9px;padding:2px;}
+  .c-senal:hover{background:#f1f5fa;}
+  .c-sello{cursor:default;} .c-sello:hover{background:none;}
+  .sn{display:flex;flex-direction:column;border-radius:8px;padding:3px 8px;min-width:64px;}
+  .sn small{font-size:10px;font-weight:600;opacity:.85;}
+  .sn b{font:800 13px var(--mono);}
+  .sn.rojo{background:var(--rojo-bg);color:#791F1F;} .sn.ambar{background:var(--ambar-bg);color:var(--ambar);} .sn.verde{background:var(--verde-bg);color:var(--verde);} .sn.gris{background:#EEF1F5;color:var(--tinta2);}
+  .acciones{background:none;border:0;padding:0;margin:0;display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:nowrap;}
+  .mas{position:relative;}
+  .mas>summary{list-style:none;cursor:pointer;padding:7px 11px;font-weight:800;}
+  .mas>summary::-webkit-details-marker{display:none;}
+  .mas[open]>summary{background:var(--fondo);}
+  .mas-pop{position:absolute;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid var(--linea);border-radius:10px;box-shadow:0 10px 28px rgba(11,31,58,.18);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:230px;}
+  .mas-pop .btn{border:0;text-align:left;width:100%;border-radius:7px;padding:8px 10px;font-weight:600;background:#fff;color:var(--tinta)!important;}
+  .mas-pop .btn:hover{background:#f1f5fa!important;}
+  .mas-pop .btn.btn-deshacer{color:#a12b2b!important;}
+  @media(max-width:1180px){
+    .cita{grid-template-columns:52px minmax(0,1fr) auto;}
+    .c-qty,.c-fec,.c-senal{grid-column:2/4;text-align:left;}
+    .c-qty{font-family:Inter,sans-serif;}
+    .acciones{grid-column:1/4;justify-content:flex-start;}
+  }
+  @media(max-width:760px){ .pasos{grid-template-columns:repeat(2,minmax(0,1fr));} .wrap{padding:10px 12px 30px;} }
+  /* Modales */
+  .overlay{background:rgba(11,31,58,.45);backdrop-filter:blur(2px);}
+  .modal{border-radius:14px;box-shadow:0 20px 50px rgba(11,31,58,.3);}
+  .modal-head{background:#fff;color:var(--tinta);border-bottom:1px solid var(--linea2);border-radius:14px 14px 0 0;padding:14px 18px;}
+  .modal-head h3{font-size:16px;font-weight:700;}
+  .modal-x{color:var(--tinta2);font-size:24px;}
+  .modal-body{padding:16px 18px 18px;}
+  .modal-body input[type=text],.modal-body input[type=date],.modal-body input[type=time],.modal-body input[type=number],.modal-body select{border-radius:8px!important;border:1px solid var(--borde)!important;padding:8px 10px!important;}
+  .analisis{border-radius:12px;padding:12px 14px;margin:12px 0;font-size:12.5px;line-height:1.5;}
+  .analisis.no{background:#E1F5EE;color:#0b4d3b;} .analisis.si{background:var(--ambar-bg);color:#5c3d00;} .analisis.sd{background:#F1F4F7;color:var(--tinta2);}
+  .analisis b.rec{font-size:14px;}
+  .analisis ul{margin:6px 0 0;padding-left:18px;}
+  .analisis .an-k{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px;}
+  .analisis .an-k div{background:rgba(255,255,255,.65);border-radius:8px;padding:5px 8px;}
+  .analisis .an-k small{display:block;font-size:10px;font-weight:700;opacity:.8;}
+  .analisis .an-k b{font:800 14px var(--mono);}
+  /* Pestaña Diferidos */
+  .tab-dif .dif-cab{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+  .tab-dif .dif-cab h2{margin:0;font-size:18px;}
+  .dif-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;}
+  .dif-k div{border-radius:12px;padding:10px 12px;}
+  .dif-k small{display:block;font-size:11px;font-weight:700;}
+  .dif-k b{font:800 24px var(--mono);}
+  .dif-tabla{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;}
+  .dif-tabla th{background:#f6f8fa;color:var(--tinta2);font-size:11px;letter-spacing:.4px;text-align:left;padding:9px 10px;}
+  .dif-tabla td{padding:9px 10px;border-top:1px solid var(--linea2);vertical-align:top;}
+  .dif-caja{background:#fff;border:1px solid var(--linea);border-radius:var(--r);overflow:auto;}
+  .dif-paso{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .llave{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;}
+  .llave.ok{background:var(--verde-bg);color:var(--verde);} .llave.pe{background:var(--ambar-bg);color:var(--ambar);} .llave.no{background:var(--rojo-bg);color:var(--rojo);} .llave.gr{background:#EEF1F5;color:var(--tinta2);}
+  @media(max-width:760px){ .dif-k{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  /* Calendario, tránsitos y administración: misma piel */
+  #tabCalendario,#tabTransitos,#tabAdmin,#tabDiferidos{background:#fff;border:1px solid var(--linea);border-radius:var(--r);padding:16px;}
+  .cal-grid{border-radius:10px;overflow:hidden;}
+  .cal-dow{background:#f6f8fa;color:var(--tinta2);}
+  .cal-titulo{color:var(--tinta);}
+  #tabTransitos .kpi{border-radius:12px;background:#fff;border:1px solid var(--linea);}
+  .adm-card{border-radius:var(--r);}
+  /* Avisos (toasts) */
+  .toasts{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(440px,calc(100vw - 32px));}
+  .toast{background:var(--navy);color:#fff;border-radius:12px;padding:11px 14px;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(11,31,58,.3);display:flex;gap:10px;align-items:flex-start;animation:tin .18s ease-out;}
+  .toast.ok{background:#0F5A47;} .toast.warn{background:#7a4c08;} .toast.bad{background:#8a1f1f;}
+  .toast .tx{flex:1;}
+  .toast button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:7px;padding:4px 10px;font:700 12px Inter,sans-serif;cursor:pointer;white-space:nowrap;}
+  .toast .x{background:none;border:0;font-size:17px;padding:0 2px;opacity:.8;}
+  @keyframes tin{from{transform:translateY(8px);opacity:0;}to{transform:none;opacity:1;}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+<header class="top">
+  <div class="top-in">
+    <div class="marca">
+      <img class="logo" src="icons/icon-192.png" alt="Logo CSS Panamá">
+      <div>
+        <h1>Panel de Confirmación de Citas <span>CEDIS Panamá</span></h1>
+        <div class="sub"><span>Dirección Nacional de Logística · prioridad por IPR</span><span id="subActualizado" style="opacity:.9;"></span><span id="syncChip" class="sync" hidden></span></div>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Secciones del panel">
+      <button class="nv activa" data-ir="lista">Lista</button>
+      <button class="nv" data-ir="calendario">Calendario</button>
+      <button class="nv" data-ir="transitos">OC en tránsito</button>
+      <button class="nv" data-ir="diferidos">Diferidos <span class="nv-n" id="nvDif" hidden></span></button>
+      <button class="nv" data-ir="admin">Administración</button>
+      <a class="nv nv-video" id="btnVideo" href="#" target="_blank" rel="noopener" hidden>▶ Video tutorial</a>
+    </nav>
+  </div>
+</header>
 <div class="wrap">
-  <div class="header">
-    <img class="logo" src="icons/icon-192.png" alt="Logo CSS Panamá">
-    <div>
-      <h1>Panel de Confirmación de Citas — CEDIS Panamá</h1>
-      <div class="sub">Dirección Nacional de Logística · Análisis por Índice de Priorización de Recepción (IPR) · <span id="subActualizado" style="opacity:.85;"></span></div>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi kpi-click" data-filtro="PENDIENTE"><div class="lbl">Pendientes por confirmar</div><div class="val" id="kpiTotal">—</div></div>
-    <div class="kpi kpi-click" data-filtro="AGENDADA"><div class="lbl">Agendadas</div><div class="val" id="kpiAgendadas" style="color:var(--azul);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="URGENTE"><div class="lbl">Recepción urgente (IPR ≥75)</div><div class="val" id="kpiRecepcion" style="color:var(--rojo);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="VENCE"><div class="lbl">OC por vencer</div><div class="val" id="kpiVence" style="color:var(--rojo);">—</div><div style="font-size:10px;color:#888;margin-top:2px;">sin agendar · ≤3 días o vencida</div></div>
-    <div class="kpi kpi-click" data-filtro="DIFERIDA"><div class="lbl">Diferidas (con nota)</div><div class="val" id="kpiDiferidas" style="color:var(--ambar,#c97a00);">—</div></div>
-    <div class="kpi kpi-click" data-filtro="REPROGRAMADA"><div class="lbl">Reprogramadas</div><div class="val" id="kpiReprogramadas" style="color:var(--ambar,#c97a00);">—</div></div>
-  </div>
-
-  <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
-    <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
-      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana — citas confirmadas por día<span style="font-weight:400;font-size:10.5px;color:#888;"> · línea morada = fill-rate (% agendado vs solicitado por día de cita)</span></div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
-          <option value="ambas">Todo (agendadas + entregadas)</option>
-          <option value="agendada">Solo agendadas</option>
-          <option value="cerradas">Solo entregadas / asistió</option>
-          <option value="solicitadas">Solo solicitadas + diferidas (por fecha pedida)</option>
-        </select>
-        <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
-          <button class="btn" id="cargaSemPrev" style="padding:2px 8px;font-size:12px;">‹</button>
-          <span id="cargaSemRango" style="font-size:11.5px;color:#555;font-family:var(--mono);min-width:150px;text-align:center;">—</span>
-          <button class="btn" id="cargaSemNext" style="padding:2px 8px;font-size:12px;">›</button>
-        </span>
-        <span id="cargaSemToggle" style="font-size:12px;color:var(--azul);">▼ ocultar</span>
-      </div>
-    </div>
-    <div id="cargaSemanalBody" style="padding:12px 14px;height:210px;display:flex;gap:14px;">
-      <div style="flex:0 0 150px;display:flex;flex-direction:column;">
-        <div style="font-size:10.5px;font-weight:600;color:#5a8fc0;text-align:center;margin-bottom:4px;">Pendientes por confirmar</div>
-        <div style="flex:1;position:relative;"><canvas id="pendientesChart"></canvas></div>
-      </div>
-      <div style="flex:1;position:relative;"><canvas id="cargaSemanalChart"></canvas></div>
-    </div>
+  <section class="pasos kpis" aria-label="Flujo de la cita: cada paso filtra la lista">
+    <button class="kpi kpi-click paso p1" data-filtro="PENDIENTE"><span class="p-n">1</span><span class="p-t"><b>Solicitadas</b><small>por confirmar</small></span><span class="val" id="kpiTotal">—</span></button>
+    <button class="kpi kpi-click paso p2" data-filtro="ANALISIS"><span class="p-n">2</span><span class="p-t"><b>En análisis</b><small>diferido propuesto · espera visto bueno</small></span><span class="val" id="kpiAnalisis">—</span></button>
+    <button class="kpi kpi-click paso p3" data-filtro="AGENDADA"><span class="p-n">3</span><span class="p-t"><b>Agendadas</b><small>con fecha y hora</small></span><span class="val" id="kpiAgendadas">—</span></button>
+    <button class="kpi kpi-click paso p4" data-filtro="ASISTIO"><span class="p-n">4</span><span class="p-t"><b>Asistió</b><small>falta registrar la entrega</small></span><span class="val" id="kpiAsistio">—</span></button>
+    <button class="kpi kpi-click paso p5" data-filtro="DIFERIDA"><span class="p-n">5</span><span class="p-t"><b>Diferidas</b><small>con nota y dos llaves</small></span><span class="val" id="kpiDiferidas">—</span></button>
+  </section>
+  <div class="mini-kpis" aria-label="Alertas">
+    <span class="et">Alertas</span>
+    <button class="kpi kpi-click mini r" data-filtro="URGENTE" title="Citas activas con IPR ≥75">Recepción urgente (IPR ≥75) <span class="val" id="kpiRecepcion">—</span></button>
+    <button class="kpi kpi-click mini r" data-filtro="VENCE" title="Sin agendar · la OC vence en ≤3 días o ya venció">OC por vencer <span class="val" id="kpiVence">—</span></button>
+    <button class="kpi kpi-click mini a" data-filtro="REPROGRAMADA">Reprogramadas <span class="val" id="kpiReprogramadas">—</span></button>
   </div>
 
   <div class="tabs">
@@ -405,8 +591,11 @@
     <div class="tab" data-tab="calendario">Calendario</div>
     <div class="tab" data-tab="transitos">OC en tránsito sin cita</div>
     <div class="tab tab-adm" data-tab="admin">⚙ Administración</div>
+    <div class="tab" data-tab="diferidos">Diferidos</div>
   </div>
 
+  <div class="layout" id="layout">
+  <div class="col-main">
   <div class="panel-body">
     <div class="filtros">
       <div class="fz">
@@ -528,9 +717,44 @@
       </div>
       <div id="trLista"><div class="estado-msg">Seleccione la pestaña para cargar.</div></div>
     </div>
+    <div id="tabDiferidos" class="tab-dif" style="display:none;"></div>
     <div id="tabAdmin" class="tab-admin"></div>
   </div>
+  </div>
+  <aside class="col-side" id="colSide" aria-label="Resumen lateral">
+    <section class="side-card" id="sideDif" aria-label="Diferidos con dos llaves"><div class="side-h"><h2>Diferidos · dos llaves</h2></div><div class="side-vacio">Cargando…</div></section>
+    <section class="side-card" id="sideEsp" aria-label="Espacio del almacén"><div class="side-h"><h2>Espacio del almacén</h2></div><div class="side-vacio">Cargando…</div></section>
+  <div class="carga-semanal" id="cargaSemanalBox" style="background:#fff;border:1px solid var(--borde-suave);border-top:none;padding:0;">
+    <div id="cargaSemanalHead" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde-suave);background:var(--gris-bg);">
+      <div style="font-size:12.5px;font-weight:600;color:var(--azul-osc);">Carga de la semana<span style="display:block;font-weight:400;font-size:11px;color:#4a5866;">citas por día · línea morada = % agendado vs solicitado</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <select id="cargaSemModo" onclick="event.stopPropagation();" style="font-size:11.5px;padding:2px 6px;border:1px solid var(--borde-suave);border-radius:2px;">
+          <option value="ambas">Todo (agendadas + entregadas)</option>
+          <option value="agendada">Solo agendadas</option>
+          <option value="cerradas">Solo entregadas / asistió</option>
+          <option value="solicitadas">Solo solicitadas + diferidas (por fecha pedida)</option>
+        </select>
+        <span id="cargaSemanaNav" style="display:flex;gap:4px;align-items:center;">
+          <button class="btn" id="cargaSemPrev" style="padding:2px 8px;font-size:12px;">‹</button>
+          <span id="cargaSemRango" style="font-size:11.5px;color:#555;font-family:var(--mono);min-width:150px;text-align:center;">—</span>
+          <button class="btn" id="cargaSemNext" style="padding:2px 8px;font-size:12px;">›</button>
+        </span>
+        <span id="cargaSemToggle" style="font-size:12px;color:var(--azul);">▼ ocultar</span>
+      </div>
+    </div>
+    <div id="cargaSemanalBody" style="padding:12px 14px;height:210px;display:flex;gap:14px;">
+      <div style="flex:0 0 150px;display:flex;flex-direction:column;">
+        <div style="font-size:10.5px;font-weight:600;color:#5a8fc0;text-align:center;margin-bottom:4px;">Pendientes por confirmar</div>
+        <div style="flex:1;position:relative;"><canvas id="pendientesChart"></canvas></div>
+      </div>
+      <div style="flex:1;position:relative;"><canvas id="cargaSemanalChart"></canvas></div>
+    </div>
+  </div>
+
+  </aside>
+  </div>
 </div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -1043,6 +1267,10 @@ function actualizarKPIs(){
   const vence=SOLICITUDES.filter(s=>esSinAgendar(s) && s.venc && s.venc.estado==='ROJO').length;
   const dif=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='DIFERIDA').length;
   const reprog=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='REPROGRAMADA').length;
+  const anal=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase().trim()==='EN ANALISIS').length;
+  const asis=SOLICITUDES.filter(s=>String(s.estado||'').toUpperCase()==='ASISTIO').length;
+  const ka=document.getElementById('kpiAnalisis'); if(ka) ka.textContent=anal;
+  const ks=document.getElementById('kpiAsistio'); if(ks) ks.textContent=asis;
   document.getElementById('kpiTotal').textContent=pend;
   document.getElementById('kpiAgendadas').textContent=agen;
   document.getElementById('kpiRecepcion').textContent=rec;
@@ -1053,7 +1281,7 @@ function actualizarKPIs(){
   const sa=document.getElementById('subActualizado'); if(sa) sa.textContent='Actualizado '+now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
 }
 
-let filtroEstado=''; // filtro por tarjeta KPI: '' | 'PENDIENTE' | 'AGENDADA' | 'URGENTE' | 'VENCE' | 'DIFERIDA'
+let filtroEstado='PENDIENTE'; // filtro por tarjeta KPI: '' | 'PENDIENTE' | 'AGENDADA' | 'URGENTE' | 'VENCE' | 'DIFERIDA'
 let _ordenLista={campo:'ipr', dir:'desc'}; // orden de la lista priorizada: campo 'ipr'|'fsol', dir 'asc'|'desc'
 let TAB_ACTIVA='lista';
 
@@ -1124,6 +1352,8 @@ function getFiltradas(){
     }
     if(filtroEstado==='DIFERIDA' && estU!=='DIFERIDA') return false;
     if(filtroEstado==='REPROGRAMADA' && estU!=='REPROGRAMADA') return false;
+    if(filtroEstado==='ANALISIS' && estU.trim()!=='EN ANALISIS') return false;
+    if(filtroEstado==='ASISTIO' && estU!=='ASISTIO') return false;
     if(q && !verHistorico){
       const blob=(s.empresa+' '+s.oc+' '+s.cod_abasto+' '+s.descripcion).toLowerCase();
       if(blob.indexOf(q)<0) return false;
@@ -1180,7 +1410,10 @@ function render(){
     bannerHist='<div style="background:#fff8e1;border:1px solid #e0c97a;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#6b5400;">'+esc(txt)+'</div>';
   }
   if(lista.length===0){ cont.innerHTML=bannerHist+'<div class="estado-msg">No hay solicitudes que coincidan.</div>'; return; }
-  cont.innerHTML=bannerHist+lista.map((s,idx)=>{
+  const nomVista={PENDIENTE:'Solicitadas · por confirmar',ANALISIS:'En análisis · espera visto bueno',AGENDADA:'Agendadas',ASISTIO:'Asistió · falta registrar la entrega',DIFERIDA:'Diferidas',URGENTE:'Recepción urgente (IPR ≥75)',VENCE:'OC por vencer',REPROGRAMADA:'Reprogramadas'}[filtroEstado]||'Todas las citas';
+  const nomOrden={ipr:'IPR',fsol:'fecha solicitada',venc:'vencimiento de la OC',antig:'antigüedad'}[_ordenLista.campo]||'IPR';
+  const cab='<div class="lista-cab"><h2>'+esc(nomVista)+' · '+lista.length+' cita'+(lista.length===1?'':'s')+'</h2><span>orden: '+nomOrden+(_ordenLista.dir==='asc'?' ↑':' ↓')+' · clic en el IPR explica la prioridad · clic en la cobertura abre el detalle</span></div>';
+  cont.innerHTML=bannerHist+cab+lista.map((s,idx)=>{
     const estadoU=String(s.estado||'').toUpperCase();
     const CERRADA=['ENTREGADA','ENTREGADO','CANCELADA'].indexOf(estadoU)>=0;
     // Semaforo por IPR (umbral acordado): >=75 rojo, 50-74 ambar, <50 verde.
@@ -1363,30 +1596,37 @@ function render(){
         })()}
         <div class="festado" style="color:${estCol};">${esc(s.estado)}</div>
       </div>`;
-    const colaTxt = CERRADA ? '' : (s.cola==='RECEPCION'?'Recepción':'Redistrib.');
+    const colaTxt = CERRADA ? 'IPR' : (s.cola==='RECEPCION'?'Recepción':'Redistrib.');
+    const cobM=Number(s.cobertura_meses);
+    const hayCob=(s.cobertura_meses!=null && s.cobertura_meses!=='' && cobM>=0);
+    const cobTxt=hayCob?(cobM>=12?'12+ m':cobM+' m'):'s/d';
+    const cobCls=!hayCob?'gris':(cobM<2?'rojo':(cobM<3?'ambar':'verde'));
+    const uePct=Number(s.ue_pct||0), ueCls=uePct>=40?'rojo':(uePct>=20?'ambar':'verde');
+    const senalHtml=(CERRADA||AVANZADA)
+      ? `<div class="c-senal c-sello">${badgesActivas}</div>`
+      : `<div class="c-senal clic-senal" data-det="${idx}" title="Ver existencias y consumos por punto">
+           <span class="sn ${cobCls}"><small>Cobertura CEDIS</small><b>${cobTxt}</b></span>
+           <span class="sn ${ueCls}"><small>UE en cero</small><b>${s.ue_cero||0}/${s.ue_total||0}</b></span>
+         </div>`;
+    let vencHtml='';
+    if(s.venc && s.venc.fecha && !CERRADA){
+      const dv=s.venc.dias, vencida=(dv!=null && dv<0);
+      const vc=vencida?'mal':(dv!=null && dv<=7?'warn':'ok');
+      vencHtml=`<span class="c-venc ${vc}" title="Vencimiento de la OC: ${esc(String(s.venc.fecha).slice(0,10))}">${vencida?'OC vencida hace '+Math.abs(dv)+' d':(dv!=null?'OC vence en '+dv+' d':'OC vence '+fmtDM_(String(s.venc.fecha).slice(0,10)))}</span>`;
+    }
+    const estCls={AGENDADA:'agendada',ASISTIO:'asistio','EN ANALISIS':'analisis',DIFERIDA:'diferida',NO_ASISTIO:'no',CANCELADA:'no',REPROGRAMADA:'repro',ENTREGADO:'asistio',ENTREGADA:'asistio'}[estadoU.trim()]||'';
     return `
-    <div class="cita ${cls}">
-      <div class="cita-cuerpo">
-        <div class="cita-info">
-          <div class="cita-nombre">${esc(s.empresa)} — ${esc(s.descripcion)}</div>
-          <div class="cita-cols">
-            <div class="c oc">OC ${esc(s.oc)}</div>
-            <div class="c ren">Renglón ${esc(s.cod_abasto)}</div>
-            <div class="c qty">${num(s.cant_unidades)} und</div>
-            <div class="c qty">${num(s.cant_bultos)} bultos</div>
-            <div class="c qty">${num(s.cant_pallets)} pallets</div>
-          </div>
-          ${cajaFechas}
-        </div>
-        ${badgesActivas}
-        <div class="acciones">${acciones}</div>
+    <div class="cita ${cls}${estadoU.trim()==='EN ANALISIS'?' en-analisis':''}" data-id="${esc(s.id)}">
+      <div class="ipr-box ${cls}" ${CERRADA?'':`data-ipr="${idx}" title="¿Por qué este IPR?"`}><div class="n">${s.ipr}</div><div class="cola">${colaTxt}</div></div>
+      <div class="c-main">
+        <div class="cita-nombre">${esc(s.empresa)}</div>
+        <div class="c-prod"><b>${esc(s.cod_abasto)}</b> · ${esc(s.descripcion)}</div>
+        <div class="c-chips"><span class="c-oc">OC ${esc(s.oc)}</span><span class="pill est-${estCls}">${esc(estadoU.trim()==='EN ANALISIS'?'EN ANÁLISIS':s.estado)}</span>${chipsCita_(s,estadoU,CERRADA||AVANZADA)}</div>
       </div>
-      <div class="ipr-box ${cls}" ${CERRADA?'':`data-ipr="${idx}"`}>
-        <div class="lbl">IPR</div>
-        <div class="n">${s.ipr}</div>
-        ${colaTxt?`<div class="cola">${colaTxt}</div>`:''}
-        ${CERRADA?'':'<div class="porque">¿por qué?</div>'}
-      </div>
+      <div class="c-qty"><b>${num(s.cant_unidades)}</b> u<small>${num(s.cant_bultos)} bultos · ${num(s.cant_pallets)} pallets</small></div>
+      <div class="c-fec"><span class="c-lbl">Pedida para</span> <b>${fSol?fmtDM_(fSol):'—'}</b><small>${fAge?('agendada '+fmtDM_(fAge)+(s.hora_confirmada?' · '+esc(String(s.hora_confirmada).slice(0,5)):'')):'sin agendar'}${s.marca_temporal?' · pidió '+fmtDM_(String(s.marca_temporal).slice(0,10)):''}</small>${vencHtml}</div>
+      ${senalHtml}
+      <div class="acciones">${accionesCompactas_(acciones)}</div>
     </div>`;
   }).join('');
 
@@ -1642,6 +1882,208 @@ function postGAS(action,data){
   }).then(r=>r.json());
 }
 
+
+// ═══ 27-nov-2026 · Respuesta inmediata ═══════════════════════════════════════
+// Cada acción cambia la fila al instante y cierra el modal; la escritura en SIGUELO
+// (y sus correos) corre en segundo plano. Si SIGUELO no confirma, la fila vuelve
+// a como estaba y aparece un aviso con «Reintentar». No hay reintentos automáticos.
+function fmtDM_(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?(m[3]+'/'+m[2]):esc(iso); }
+function toast(texto, tipo, op){
+  op=op||{};
+  const box=document.getElementById('toasts'); if(!box) return;
+  const t=document.createElement('div'); t.className='toast '+(tipo||'');
+  t.setAttribute('role', tipo==='bad'?'alert':'status');
+  t.innerHTML='<div class="tx"></div>'+(op.accion?'<button type="button" class="ac"></button>':'')+'<button type="button" class="x" aria-label="Cerrar aviso">×</button>';
+  t.querySelector('.tx').textContent=texto;
+  const cerrar=()=>{ if(t.parentNode) t.remove(); if(op.alCerrar) op.alCerrar(); };
+  if(op.accion){ const b=t.querySelector('.ac'); b.textContent=op.accion; b.addEventListener('click',()=>{ op.alCerrar=null; if(t.parentNode) t.remove(); op.fn&&op.fn(); }); }
+  t.querySelector('.x').addEventListener('click',cerrar);
+  box.appendChild(t);
+  if(!op.fijo) setTimeout(cerrar, op.ms||(tipo==='bad'?9000:5000));
+  return t;
+}
+window.alert=function(m){ toast(String(m==null?'':m), /no se pudo|error|inválid|bloque/i.test(String(m))?'bad':'warn'); };
+const SYNC={pend:0, fallos:0, t:null};
+function syncPintar_(){
+  const c=document.getElementById('syncChip'); if(!c) return;
+  clearTimeout(SYNC.t);
+  if(SYNC.pend>0){ c.hidden=false; c.className='sync run'; c.textContent='Guardando '+SYNC.pend+' cambio'+(SYNC.pend===1?'':'s')+'…'; }
+  else if(SYNC.fallos>0){ c.hidden=false; c.className='sync bad'; c.textContent=SYNC.fallos+' cambio'+(SYNC.fallos===1?'':'s')+' sin guardar'; }
+  else { c.hidden=false; c.className='sync ok'; c.textContent='Cambios guardados ✓'; SYNC.t=setTimeout(()=>{ c.hidden=true; },4000); }
+}
+window.addEventListener('beforeunload',e=>{ if(SYNC.pend>0){ e.preventDefault(); e.returnValue=''; } });
+function escribirOptimista(o){
+  const i=SOLICITUDES.findIndex(x=>String(x.id)===String(o.id));
+  const previo=i>=0?Object.assign({},SOLICITUDES[i]):null;
+  cerrarModal();
+  if(o.cambios) actualizarLocal(o.id,o.cambios);
+  SYNC.pend++; syncPintar_();
+  postGAS(o.accion,o.data).then(resp=>{
+    if(!resp||!resp.success) throw new Error((resp&&resp.error)||'SIGUELO no confirmó el cambio');
+    SYNC.pend--; syncPintar_();
+    let t={texto:(o.etiqueta||'Cambio')+' guardado ✓', tipo:'ok'};
+    if(o.okTxt){ const r=o.okTxt(resp); if(r) t=(typeof r==='string')?{texto:r,tipo:'ok'}:r; }
+    if(o.alOk){ try{ o.alOk(resp); }catch(e){} }
+    if(t.texto) toast(t.texto, t.tipo||'ok', t.op);
+  }).catch(err=>{
+    SYNC.pend--; SYNC.fallos++; syncPintar_();
+    if(previo){ const j=SOLICITUDES.findIndex(x=>String(x.id)===String(o.id)); if(j>=0){ SOLICITUDES[j]=previo; actualizarKPIs(); aplicarFiltros(); } }
+    const em=String(err&&err.message||''); const motivo=(!em||/fetch|network|red|load/i.test(em))?'sin conexión con SIGUELO':em;
+    toast((o.etiqueta||'El cambio')+' no se guardó ('+motivo+'). La cita volvió a como estaba.','bad',{
+      fijo:true, accion:'Reintentar',
+      fn:()=>{ SYNC.fallos=Math.max(0,SYNC.fallos-1); escribirOptimista(o); },
+      alCerrar:()=>{ SYNC.fallos=Math.max(0,SYNC.fallos-1); syncPintar_(); }
+    });
+  });
+}
+// Los botones secundarios de cada fila van al menú ⋯; queda a la vista la acción principal.
+function accionesCompactas_(html){
+  const t=document.createElement('template'); t.innerHTML=html;
+  const btns=[...t.content.querySelectorAll('button')];
+  if(!btns.length) return html;
+  const prim=btns.find(b=>b.classList.contains('primary'))||btns[0];
+  const resto=btns.filter(b=>b!==prim);
+  return prim.outerHTML+(resto.length?'<details class="mas"><summary class="btn" title="Más acciones" aria-label="Más acciones">⋯</summary><div class="mas-pop">'+resto.map(b=>b.outerHTML).join('')+'</div></details>':'');
+}
+document.addEventListener('click',e=>{
+  document.querySelectorAll('details.mas[open]').forEach(d=>{ if(!d.contains(e.target) || e.target.closest('.mas-pop .btn')) d.open=false; });
+});
+// Etiquetas de la fila (antes iban en la tarjeta grande).
+function chipsCita_(s, estadoU, avanzada){
+  const e=String(estadoU||'').trim(); const out=[];
+  if(e==='EN ANALISIS'){
+    const p=dvbPropuestaDe_(s.id);
+    out.push('<span class="badge ambar" title="El Almacén propuso diferir; SIGUELO pidió el visto bueno al planificador del renglón">Espera visto bueno'+(p&&p.plan?' de '+esc(p.plan):' de Planificación')+(p&&p.esc?' · escalado':'')+'</span>');
+  }
+  if(e==='DIFERIDA' && s.motivo) out.push('<span class="badge ambar">'+esc(s.motivo)+'</span>');
+  if(e==='REPROGRAMADA') out.push('<span class="badge" style="background:#ece9f7;color:#5a4ba8;">'+esc(s.motivo||'próximo período')+'</span>');
+  if(!avanzada){
+    if(s.es_rescatada) out.push('<span class="badge rescatada">Rescatada del ciclo anterior</span>');
+    if(cruzoDeCiclo_(s)){ const nc=ciclosTranscurridos_(s); out.push('<span class="badge" style="background:#fbe6c4;color:#8a5a00;" title="Jueves de cierre que pasaron sin asignarle cita">⚠ '+nc+' ciclo'+(nc===1?'':'s')+' sin cita</span>'); }
+    const sg=infoSegregacion(s); if(sg.es) out.push('<span class="badge segregada">'+sg.texto+'</span>');
+    if(s.cola==='REDISTRIBUCION' && s.cedis_saldo>0) out.push('<span class="badge gris" title="Hay stock en CEDIS ('+num(s.cedis_saldo)+') pero mal repartido">Hay stock · redistribuir</span>');
+  }
+  if(s.categoria) out.push('<span class="badge categoria">'+esc(catCorta(s.categoria))+'</span>');
+  if(s.es_frio) out.push('<span class="badge frio">❄ Frío</span>');
+  if(s.es_controlado==='SI') out.push('<span class="badge rojo">Controlado</span>');
+  if(s.tiene_fecha_corta==='SI') out.push('<span class="badge ambar">Fecha corta</span>');
+  return out.join('');
+}
+
+// ═══ Diferidos con dos llaves: copia publicada por SIGUELO (diferidos_vobo.json) ═══
+// Se lee de GitHub Pages en milisegundos; trae el análisis de espacio de cada cita
+// activa y el estado de las propuestas. SIGUELO la vuelve a publicar cada hora y en
+// cuanto alguien propone o responde.
+const DVB={j:null};
+function dvbCargar_(){
+  return fetch('./diferidos_vobo.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j) return;
+    DVB.j=j; dvbPintarLado_();
+    if(TAB_ACTIVA==='diferidos') dvbPintarTab_();
+    else if(TAB_ACTIVA==='lista' && SOLICITUDES.some(s=>String(s.estado||'').toUpperCase().trim()==='EN ANALISIS')) render();
+  }).catch(()=>{});
+}
+function dvbProps_(incluirPruebas){ return ((DVB.j&&DVB.j.propuestas)||[]).filter(p=>incluirPruebas||p.modo!=='SOMBRA'); }
+function dvbPropuestaDe_(id){ return dvbProps_().filter(p=>String(p.id)===String(id)).pop()||null; }
+function dvbHace_(iso){
+  const t=Date.parse(iso); if(!t) return '';
+  const m=Math.round((Date.now()-t)/60000);
+  if(m<60) return 'hace '+Math.max(m,1)+' min';
+  const hh=Math.round(m/60); if(hh<36) return 'hace '+hh+' h';
+  return 'hace '+Math.round(hh/24)+' d';
+}
+function dvbEstado_(p){
+  const r=String(p.l2||'').toUpperCase();
+  if(r==='PENDIENTE') return p.esc?{t:'Escalado',c:'no'}:{t:'Pendiente',c:'pe'};
+  if(/^SI/.test(r)) return {t:'De acuerdo',c:'ok'};
+  if(/^NO/.test(r)) return {t:'Recibir',c:'gr'};
+  return {t:r||'—',c:'gr'};
+}
+function dvbCuentas_(){
+  const ps=dvbProps_(), mes=new Date().toISOString().slice(0,7);
+  return {
+    espera:ps.filter(p=>String(p.l2).toUpperCase()==='PENDIENTE'&&!p.esc).length,
+    esc:ps.filter(p=>String(p.l2).toUpperCase()==='PENDIENTE'&&p.esc).length,
+    res:ps.filter(p=>String(p.l2).toUpperCase()!=='PENDIENTE'&&String(p.l2f||p.l1||'').slice(0,7)===mes).length
+  };
+}
+function dvbPintarLado_(){
+  const j=DVB.j; if(!j) return;
+  const k=dvbCuentas_();
+  const nv=document.getElementById('nvDif'); if(nv){ nv.hidden=!(k.espera+k.esc); nv.textContent=k.espera+k.esc; }
+  const pend=dvbProps_().filter(p=>String(p.l2).toUpperCase()==='PENDIENTE').slice(-4).reverse();
+  const sd=document.getElementById('sideDif');
+  if(sd) sd.innerHTML='<div class="side-h"><h2>Diferidos · dos llaves</h2><button class="lnk" type="button" onclick="irTab(\'diferidos\')">Ver todos</button></div>'+
+    '<div class="side-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS · MES</small><b>'+k.res+'</b></div></div>'+
+    (pend.length?pend.map(p=>{ const e=dvbEstado_(p); return '<div class="side-it"><span class="t"><b>'+esc(String(p.desc||p.cod).slice(0,46))+'</b><br><span>'+esc(p.plan||'Planificación')+' · '+dvbHace_(p.l1)+' · algoritmo: '+esc(String(p.rec||'').toLowerCase())+'</span></span><span class="llave '+e.c+'" style="align-self:center;">'+e.t+'</span></div>'; }).join('')
+      :'<div class="side-vacio">Ningún diferido espera visto bueno. Para proponer uno: menú ⋯ de la cita › Proponer diferido.</div>');
+  const es=document.getElementById('sideEsp'), f=(j.espacio||{}).frio, s=(j.espacio||{}).seco;
+  if(es && f){
+    const pct=Number(f.pct||0), cap=Number(f.cap||187.5), m3h=0.0724;
+    const pRes=Math.min(pct, Math.max(0,(Number(f.reservado||0)-Number(f.res7||0))*m3h/cap*100));
+    const pR7=Math.min(pct-pRes, Number(f.res7||0)*m3h/cap*100);
+    const pOc=Math.max(0,pct-pRes-pR7);
+    es.innerHTML='<div class="side-h"><h2>Espacio del almacén</h2><span style="font-size:11.5px;color:var(--tinta2);margin-left:auto;">estimado · '+(function(g){ g=String(g||''); return g?esc(g.slice(8,10)+'/'+g.slice(5,7)+' '+g.slice(11,16)):'—'; })((j._meta&&j._meta.generado)||j.generado)+'</span></div>'+
+      '<div style="font-size:12.5px;font-weight:600;">Cuartos fríos · '+Math.round(pct)+' % <span style="font-weight:400;color:var(--tinta2);">('+num(f.hieleras)+' hieleras · '+num(f.m3)+' de '+num(cap)+' m³)</span></div>'+
+      '<div class="barra" role="img" aria-label="Ocupación de cuartos fríos '+Math.round(pct)+' por ciento"><i style="width:'+pOc+'%;background:#7fa7d6"></i><i style="width:'+pRes+'%;background:#f0c26a"></i><i style="width:'+pR7+'%;background:#e5797a"></i></div>'+
+      '<div class="leyenda"><span style="color:#3d6da8;">■ ocupado</span><span style="color:#8a5a00;">■ reservado</span><span style="color:#a12b2b;">■ reservado &gt; 7 días: '+num(f.res7)+' hieleras</span></div>'+
+      (s?'<div style="font-size:12.5px;font-weight:600;">Seco · reservas &gt; 7 días</div><div style="font-size:12.5px;"><b style="font-family:var(--mono);">'+num(s.res7)+'</b> pallets en '+num(s.ren7)+' renglones · ≈ '+s.pct7+' % de '+num(s.pos)+' posiciones</div>':'')+
+      '<div class="nota-suave">Ese espacio se recupera despachando las Formas 8 reservadas, no difiriendo entregas.</div>';
+  }
+}
+function dvbAnalisisHtml_(s){
+  const a=DVB.j&&DVB.j.citas&&DVB.j.citas[s.id];
+  if(!a) return '<div class="analisis sd"><b>Análisis de espacio:</b> esta cita no está en la copia publicada (se publica cada hora). SIGUELO lo calcula al proponer y lo envía en el correo al planificador.</div>';
+  const no=/NO/.test(String(a.rec||'').toUpperCase());
+  const u=a.uni==='hieleras'?'hieleras':'pallets';
+  return '<div class="analisis '+(no?'no':'si')+'"><div>Recomendación del algoritmo: <b class="rec">'+esc(a.rec)+'</b></div>'+
+    (a.raz&&a.raz.length?'<ul>'+a.raz.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul>':'')+
+    '<div class="an-k"><div><small>COBERTURA</small><b>'+(a.cob>=12?'12+':a.cob)+' m</b></div><div><small>ESTA CITA OCUPA</small><b>'+num(a.esp)+' '+u+'</b></div><div><small>LIBERABLE HOY</small><b>'+num(a.lib)+' '+u+'</b></div></div>'+
+    '<div style="margin-top:6px;font-size:11.5px;opacity:.85;">'+(a.ven?esc(a.ven)+' · ':'')+'planificador: '+esc(a.plan||'—')+'. Con o sin recomendación, la decisión final es de Planificación (segunda llave).</div></div>';
+}
+function dvbPintarTab_(){
+  const box=document.getElementById('tabDiferidos'); if(!box) return;
+  const j=DVB.j;
+  if(!j){ box.innerHTML='<div class="estado-msg">Cargando diferidos…</div>'; dvbCargar_(); return; }
+  const verPruebas=!!box.dataset.pruebas;
+  const ps=dvbProps_(verPruebas).slice().reverse();
+  const k=dvbCuentas_();
+  const modo={ACTIVO:'Activo',SOMBRA:'Prueba (solo llega a Torre de Control)',APAGADO:'Apagado'}[j.modo]||j.modo;
+  box.innerHTML='<div class="dif-cab"><h2>Diferidos · dos llaves</h2><span class="llave '+(j.modo==='ACTIVO'?'ok':'gr')+'">Modo: '+esc(modo)+'</span>'+
+    '<label style="margin-left:auto;font-size:12.5px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="difPruebas" '+(verPruebas?'checked':'')+'> mostrar pruebas</label></div>'+
+    '<p style="margin:0 0 12px;font-size:13px;color:var(--tinta2);max-width:900px;">Llave 1: el Almacén propone desde la cita (⋯ › Proponer diferido). Llave 2: el planificador del renglón responde desde el correo, con copia a la Jefatura de Planificación. Sin respuesta en 1 día hábil se escala a la Jefatura y a la Torre de Control. La nota solo se emite con las dos llaves.</p>'+
+    '<div class="dif-k"><div class="k-am"><small>ESPERAN VISTO BUENO</small><b>'+k.espera+'</b></div><div class="k-ro"><small>ESCALADOS</small><b>'+k.esc+'</b></div><div class="k-ve"><small>RESUELTOS ESTE MES</small><b>'+k.res+'</b></div><div style="background:#EEF1F5;color:var(--tinta2);"><small>FRÍO OCUPADO</small><b>'+Math.round(((j.espacio||{}).frio||{}).pct||0)+' %</b></div></div>'+
+    '<div class="dif-caja"><table class="dif-tabla"><thead><tr><th>PROPUESTO</th><th>RENGLÓN · PROVEEDOR</th><th style="text-align:right;">CANTIDAD</th><th>ALGORITMO</th><th>LLAVE 1 · ALMACÉN</th><th>LLAVE 2 · PLANIFICACIÓN</th><th>RESULTADO</th></tr></thead><tbody>'+
+    (ps.length?ps.map(p=>{ const e=dvbEstado_(p); return '<tr'+(p.modo==='SOMBRA'?' style="opacity:.6;"':'')+'><td style="white-space:nowrap;">'+fmtDM_(String(p.l1||'').slice(0,10))+'<br><span style="color:var(--tinta2);font-size:11.5px;">'+dvbHace_(p.l1)+'</span></td>'+
+      '<td><b style="font-family:var(--mono);">'+esc(p.cod)+'</b> · '+esc(p.desc)+'<br><span style="color:var(--tinta2);">'+esc(p.emp)+'</span>'+(p.modo==='SOMBRA'?' <span class="llave gr">prueba</span>':'')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);white-space:nowrap;">'+num(p.u)+' u<br><span style="color:var(--tinta2);font-size:11.5px;">≈ '+num(p.esp)+' '+esc(p.uni||'')+'</span></td>'+
+      '<td><span class="llave '+(/NO/.test(String(p.rec).toUpperCase())?'ok':'pe')+'">'+esc(p.rec||'—')+'</span></td>'+
+      '<td><span class="llave ok">✓</span> '+esc(p.l1u||'Almacén')+'</td>'+
+      '<td><span class="llave '+e.c+'">'+e.t+'</span> '+esc(p.plan||'')+(p.l2m?'<br><span style="color:var(--tinta2);font-size:11.5px;">“'+esc(p.l2m)+'”</span>':'')+'</td>'+
+      '<td>'+esc(p.res||(String(p.l2).toUpperCase()==='PENDIENTE'?'La cita sigue en pie':'—'))+'</td></tr>'; }).join('')
+      :'<tr><td colspan="7" class="estado-msg">No hay propuestas'+(verPruebas?'':' (las pruebas están ocultas)')+'.</td></tr>')+
+    '</tbody></table></div>';
+  const ck=document.getElementById('difPruebas');
+  if(ck) ck.addEventListener('change',()=>{ if(ck.checked) box.dataset.pruebas='1'; else delete box.dataset.pruebas; dvbPintarTab_(); });
+}
+// Navegación del encabezado: reutiliza las pestañas existentes.
+function irTab(t){ const el=document.querySelector('.tab[data-tab="'+t+'"]'); if(el) el.click(); }
+document.querySelectorAll('.nv[data-ir]').forEach(b=>b.addEventListener('click',()=>irTab(b.dataset.ir)));
+// Refresco liviano: cada 90 s se pregunta a SIGUELO solo el número de versión de los
+// datos (respuesta mínima). Si cambió, se re-sincroniza la lista en segundo plano.
+const VER={v:null};
+function verificarVersion_(){
+  if(document.hidden || verHistorico || SYNC.pend>0) return;
+  loadJsonpT('getDataVersion','',10000).then(r=>{
+    if(!r||!r.success) return; const v=String(r.v);
+    if(VER.v && v!==VER.v){ refrescoSilencioso(); dvbCargar_(); }
+    VER.v=v;
+  }).catch(()=>{});
+}
+setInterval(verificarVersion_, 90000);
+setInterval(()=>{ if(!document.hidden) dvbCargar_(); }, 300000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) verificarVersion_(); });
+
 // 27-nov-2026 · Diferidos con dos llaves (modo prueba): el análisis de espacio y el correo de
 // visto bueno corren en el backend APARTE, sin esperar la respuesta. El diferido responde igual
 // de rápido que antes; si el análisis falla, el diferido no se entera.
@@ -1722,22 +2164,13 @@ function abrirConfirmar(s){
     const msg=document.getElementById('confMsg');
     const btn=document.getElementById('confEnviar');
     if(!fecha||!hora){ msg.style.color='#b00020'; msg.textContent='Indica fecha y hora.'; return; }
-    btn.disabled=true; msg.style.color='#555'; msg.textContent='Confirmando y enviando correo...';
-    try{
-      const resp=await postGAS('confirmarCita',{
-        id:s.id, fecha_confirmada:fecha, hora_confirmada:hora, usuario:'Panel SÍGUELO'
-      });
-      if(!resp.success){ throw new Error(resp.error||'Error al confirmar'); }
-      msg.style.color='#0a7a2f';
-      msg.textContent = resp.correo_enviado
-        ? 'Cita confirmada (AGENDADA) y correo enviado.'
-        : 'Cita confirmada (AGENDADA). Aviso: el correo no se envió'+(resp.correo_error?' ('+resp.correo_error+')':'')+'.';
-      // Optimista: mutar solo esta fila (no recargar todo el universo).
-      actualizarLocal(s.id, { estado:'AGENDADA', fecha_confirmada:fecha, hora_confirmada:hora });
-      setTimeout(()=>{ cerrarModal(); }, 1200);
-    }catch(e){
-      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo confirmar: '+e.message;
-    }
+    escribirOptimista({
+      id:s.id, etiqueta:'Cita de '+s.empresa,
+      cambios:{ estado:'AGENDADA', fecha_confirmada:fecha, hora_confirmada:hora },
+      accion:'confirmarCita', data:{ id:s.id, fecha_confirmada:fecha, hora_confirmada:hora, usuario:'Panel SÍGUELO' },
+      okTxt:r=>r.correo_enviado ? 'Cita de '+s.empresa+' agendada para el '+fmtDM_(fecha)+' '+hora+' · correo enviado ✓'
+        : {texto:'Cita agendada. Aviso: el correo al proveedor no se envió'+(r.correo_error?' ('+r.correo_error+')':'')+'.', tipo:'warn'}
+    });
   });
 }
 
@@ -1774,22 +2207,12 @@ function abrirDeshacer(s){
     const motivo=document.getElementById('deshMotivo').value.trim();
     const msg=document.getElementById('deshMsg');
     const btn=document.getElementById('deshConfirmar');
-    btn.disabled=true; msg.style.color='#555'; msg.textContent=eraAgendada?'Deshaciendo y enviando correo de anulación…':'Deshaciendo…';
-    try{
-      const resp=await postGAS('deshacerCita',{ id:s.id, motivo_deshacer:motivo, usuario:'Panel SÍGUELO' });
-      if(!resp.success){ throw new Error(resp.error||'Error al deshacer'); }
-      msg.style.color='#0a7a2f';
-      let t='Cita deshecha (volvió a PENDIENTE).';
-      if(resp.correo_enviado) t+=' Correo de anulación enviado.';
-      else if(resp.correo_omitido) t+=' (Sin correo: no había confirmación previa.)';
-      else if(resp.correo_error) t+=' (Aviso: el correo no se envió.)';
-      msg.textContent=t;
-      // Optimista: la cita vuelve a PENDIENTE limpiando fecha/hora.
-      actualizarLocal(s.id, { estado:'PENDIENTE', fecha_confirmada:'', hora_confirmada:'', motivo:'', nota_num:'' });
-      setTimeout(()=>{ cerrarModal(); }, 1200);
-    }catch(e){
-      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo deshacer: '+e.message;
-    }
+    escribirOptimista({
+      id:s.id, etiqueta:'Deshacer la cita de '+s.empresa,
+      cambios:{ estado:'PENDIENTE', fecha_confirmada:'', hora_confirmada:'', motivo:'', nota_num:'' },
+      accion:'deshacerCita', data:{ id:s.id, motivo_deshacer:motivo, usuario:'Panel SÍGUELO' },
+      okTxt:r=>'Cita de '+s.empresa+' devuelta a pendiente'+(r.correo_enviado?' · correo de anulación enviado ✓':(r.correo_error?' · aviso: el correo no se envió':''))
+    });
   });
 }
 
@@ -1819,16 +2242,12 @@ function abrirAsistencia(s){
     const nota=document.getElementById('asisNota').value;
     const msg=document.getElementById('asisMsg');
     const bSi=document.getElementById('asisSi'), bNo=document.getElementById('asisNo');
-    bSi.disabled=true; bNo.disabled=true; msg.style.color='#555'; msg.textContent='Registrando...';
-    try{
-      const resp=await postGAS('marcarAsistencia',{id:s.id, asistio:asistio, nota:nota, usuario:'Panel SÍGUELO'});
-      if(!resp.success){ throw new Error(resp.error||'Error'); }
-      msg.style.color='#0a7a2f'; msg.textContent=resp.message+'.';
-      actualizarLocal(s.id, { estado: asistio?'ASISTIO':'NO_ASISTIO' });
-      setTimeout(()=>{ cerrarModal(); }, 1100);
-    }catch(e){
-      bSi.disabled=false; bNo.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
-    }
+    escribirOptimista({
+      id:s.id, etiqueta:'Asistencia de '+s.empresa,
+      cambios:{ estado: asistio?'ASISTIO':'NO_ASISTIO' },
+      accion:'marcarAsistencia', data:{ id:s.id, asistio:asistio, nota:nota, usuario:'Panel SÍGUELO' },
+      okTxt:r=>(r.message||'Asistencia registrada')+' ✓'
+    });
   };
   document.getElementById('asisSi').addEventListener('click',()=>enviar(true));
   document.getElementById('asisNo').addEventListener('click',()=>enviar(false));
@@ -1999,12 +2418,13 @@ async function avisarRevision(s){
   if(!s || !s.id){ alert('Solicitud inválida.'); return; }
   const dest = s.correo ? ('\n\nSe enviará a: '+s.correo) : '\n\n(Aviso: esta solicitud no tiene correo de proveedor registrado.)';
   if(!confirm('¿Enviar al proveedor un aviso de que su cita SIGUE EN REVISIÓN (sin nota)?\n\n'+(s.empresa||'')+' — OC '+(s.oc||'')+dest)) return;
-  try{
-    const resp=await postGAS('avisarRevisionProveedor',{id:s.id, usuario:'Panel SÍGUELO'});
-    if(!resp.success){ throw new Error(resp.error||'Error'); }
-    alert(resp.message||'Aviso enviado.');
-    refrescoSilencioso();
-  }catch(e){ alert('No se pudo enviar el aviso: '+e.message); }
+  SYNC.pend++; syncPintar_();
+  toast('Enviando el aviso a '+(s.empresa||'el proveedor')+'…','');
+  postGAS('avisarRevisionProveedor',{id:s.id, usuario:'Panel SÍGUELO'}).then(resp=>{
+    if(!resp||!resp.success) throw new Error((resp&&resp.error)||'Error');
+    SYNC.pend--; syncPintar_();
+    toast((resp.message||'Aviso enviado')+' ✓','ok'); refrescoSilencioso();
+  }).catch(e=>{ SYNC.pend--; syncPintar_(); toast('No se pudo enviar el aviso: '+e.message,'bad',{fijo:true,accion:'Reintentar',fn:()=>avisarRevision(s)}); });
 }
 
 // Barrido masivo: avisa a TODOS los proveedores con solicitudes sin cita confirmada.
@@ -2105,22 +2525,18 @@ function abrirRecibirParcial(s){
     const msg=document.getElementById('parcMsg');
     if(!(v>0 && v<total)){ msg.style.color='#b00020'; msg.textContent='La cantidad a recibir debe ser mayor que 0 y menor que el total.'; return; }
     if(!fecha){ msg.style.color='#b00020'; msg.textContent='Indica la fecha de la cita para lo que se recibe.'; return; }
-    okBtn.disabled=true; okSinNota.disabled=true; msg.style.color='#555';
-    msg.textContent = sinNota ? 'Confirmando recepción y segregando el resto (sin nota)...' : 'Confirmando recepción y difiriendo el resto con nota...';
-    try{
-      const causas=sinNota ? [] : causasSeleccionadas('parc');
-      const resp=await postGAS('recibirParcial',{id:s.id, cant_recibir:v, fecha_confirmada:fecha, hora_confirmada:hora, causas:causas, sin_nota:sinNota, usuario:'Panel SÍGUELO'});
-      if(!resp.success){ throw new Error(resp.error||'Error'); }
-      let txt=resp.message;
-      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió)';
-      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
-      // Solo hay nota imprimible en el caso CON nota.
-      const abreNota = !sinNota && resp.id_remanente && resp.nota_num;
-      msg.textContent = txt + (abreNota ? ' Abriendo nota del remanente...' : '');
-      setTimeout(async()=>{ cerrarModal(); if(abreNota){ await generarNotaImprimible(resp.id_remanente); } refrescoSilencioso(); }, 1200);
-    }catch(e){
-      okBtn.disabled=false; okSinNota.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo procesar: '+e.message;
-    }
+    const causas=sinNota ? [] : causasSeleccionadas('parc');
+    escribirOptimista({
+      id:s.id, etiqueta:'La recepción parcial de '+s.empresa,
+      cambios:{ estado:'AGENDADA', fecha_confirmada:fecha, hora_confirmada:hora, cant_unidades:v },
+      accion:'recibirParcial', data:{id:s.id, cant_recibir:v, fecha_confirmada:fecha, hora_confirmada:hora, causas:causas, sin_nota:sinNota, usuario:'Panel SÍGUELO'},
+      okTxt:r=>{
+        const abreNota=!sinNota && r.id_remanente && r.nota_num;
+        return {texto:(r.message||'Recepción parcial registrada')+(r.correo_enviado===false?' · aviso: el correo no se envió':' ✓'), tipo:r.correo_enviado===false?'warn':'ok',
+                op:abreNota?{fijo:true,accion:'Abrir nota del remanente',fn:()=>generarNotaImprimible(r.id_remanente)}:null};
+      },
+      alOk:()=>refrescoSilencioso()
+    });
   }
   okBtn.addEventListener('click',()=>procesarParcial(false));
   okSinNota.addEventListener('click',()=>procesarParcial(true));
@@ -2135,6 +2551,7 @@ function abrirDiferir(s){
       <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
       <tr><td class="k">Área</td><td class="v">${esc(s.categoria||'—')}</td></tr>
     </table>
+    ${dvbAnalisisHtml_(s)}
     <div style="font-size:12.5px;color:#555;margin:14px 0 8px;"><b>Dos llaves:</b> el Almac&eacute;n propone el diferido y SIGUELO le pide el visto bueno al planificador del rengl&oacute;n, con el an&aacute;lisis de espacio. Mientras tanto la cita queda <b>en an&aacute;lisis</b>. Si Planificaci&oacute;n est&aacute; de acuerdo, se emite la nota y se avisa al proveedor; si no, la cita vuelve a la lista para agendarla.</div>
     <div style="margin-bottom:10px;">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Motivo</label>
@@ -2164,31 +2581,27 @@ function abrirDiferir(s){
     const nota=document.getElementById('difNota').value;
     const msg=document.getElementById('difMsg');
     const btn=document.getElementById('difOk');
-    btn.disabled=true; msg.style.color='#555'; msg.textContent='Registrando la propuesta...';
-    try{
-      const causas=causasSeleccionadas('dif');
-      const resp=await postGAS('dvbProponer',{id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO'});
-      if(!resp.success){ throw new Error(resp.error||'Error'); }
-      // 27-nov-2026 · Dos llaves: la cita queda EN ANALISIS hasta el visto bueno de Planificación.
-      // El análisis y el correo al planificador se piden aparte, sin esperar.
-      if(String(resp.estado||'').toUpperCase()==='EN ANALISIS'){
-        actualizarLocal(s.id, { estado:'EN ANALISIS', motivo:resp.motivo||'Diferido propuesto por el Almacén · espera visto bueno de Planificación' });
-        if(!resp.yaPropuesto) analizarDiferidoEnParalelo({id:s.id, id_vobo:resp.id_vobo, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
-        msg.style.color='#0a7a2f'; msg.textContent=(resp.message||'Diferido propuesto')+'.';
-        setTimeout(()=>{ cerrarModal(); }, 1800);
-        return;
+    const causas=causasSeleccionadas('dif');
+    escribirOptimista({
+      id:s.id, etiqueta:'La propuesta de diferido',
+      cambios:{ estado:'EN ANALISIS', motivo:'Diferido propuesto por el Almacén · espera visto bueno de Planificación' },
+      accion:'dvbProponer', data:{ id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO' },
+      okTxt:r=>{
+        if(String(r.estado||'').toUpperCase()==='EN ANALISIS') return 'Diferido propuesto ✓ · SIGUELO pide el visto bueno a Planificación por correo. La cita sigue en pie mientras tanto.';
+        return {texto:(r.message||'Cita diferida')+(r.nota_num?' · Nota '+r.nota_num:'')+(r.correo_enviado===false?' · aviso: el correo no se envió':''), tipo:r.correo_enviado===false?'warn':'ok',
+                op:{fijo:true, accion:'Abrir nota', fn:()=>generarNotaImprimible(s.id)}};
+      },
+      alOk:r=>{
+        if(String(r.estado||'').toUpperCase()==='EN ANALISIS'){
+          if(r.motivo) actualizarLocal(s.id,{motivo:r.motivo});
+          if(!r.yaPropuesto) analizarDiferidoEnParalelo({id:s.id, id_vobo:r.id_vobo, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
+          setTimeout(dvbCargar_, 20000);
+        } else {
+          actualizarLocal(s.id,{ estado:'DIFERIDA', motivo:motivo });
+          analizarDiferidoEnParalelo({id:s.id, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
+        }
       }
-      let txt=resp.message+'.';
-      if(resp.nota_num) txt+=' Nota '+resp.nota_num+'.';
-      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
-      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
-      msg.textContent=txt+' Abriendo nota...';
-      actualizarLocal(s.id, { estado:'DIFERIDA', motivo:motivo });
-      analizarDiferidoEnParalelo({id:s.id, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
-      setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
-    }catch(e){
-      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
-    }
+    });
   });
 }
 
@@ -2228,19 +2641,12 @@ function abrirReprogramar(s){
     const nota=document.getElementById('reproNota').value;
     const msg=document.getElementById('reproMsg');
     const btn=document.getElementById('reproOk');
-    btn.disabled=true; msg.style.color='#555'; msg.textContent='Reprogramando y enviando correo...';
-    try{
-      const resp=await postGAS('reprogramarCita',{id:s.id, motivo:motivo, nota:nota, usuario:'Panel SÍGUELO'});
-      if(!resp.success){ throw new Error(resp.error||'Error'); }
-      let txt=resp.message+'.';
-      if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
-      msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
-      msg.textContent=txt;
-      actualizarLocal(s.id, { estado:'REPROGRAMADA', motivo:motivo });
-      setTimeout(()=>{ cerrarModal(); }, 1100);
-    }catch(e){
-      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo reprogramar: '+e.message;
-    }
+    escribirOptimista({
+      id:s.id, etiqueta:'Reprogramar la cita de '+s.empresa,
+      cambios:{ estado:'REPROGRAMADA', motivo:motivo },
+      accion:'reprogramarCita', data:{ id:s.id, motivo:motivo, nota:nota, usuario:'Panel SÍGUELO' },
+      okTxt:r=>r.correo_enviado===false ? {texto:(r.message||'Reprogramada')+' · aviso: el correo no se envió'+(r.correo_error?' ('+r.correo_error+')':''), tipo:'warn'} : (r.message||'Cita reprogramada')+' ✓'
+    });
   });
 }
 
@@ -2295,31 +2701,29 @@ function abrirRegistrarEntrega(s){
     const btn=document.getElementById('entOk');
     if(!(cant>0)){ msg.style.color='#b00020'; msg.textContent='La cantidad debe ser mayor a cero.'; return; }
     if(cant>saldo){ msg.style.color='#b00020'; msg.textContent='La cantidad no puede exceder el saldo pendiente ('+num(saldo)+').'; return; }
-    btn.disabled=true; msg.style.color='#555'; msg.textContent='Registrando entrega...';
-    try{
-      const resp=await postGAS('registrarEntrega',{id_solicitud:s.id, cantidad_entregada:cant, fecha_entrega:fecha, nota:nota, usuario:'Panel SÍGUELO'});
-      if(!resp.success){ throw new Error(resp.error||'Error'); }
-      let txt=resp.message||'Entrega registrada.';
-      if(Number(resp.saldo_pendiente)>0 && resp.pallets_saldo!=null){ txt+=' (Saldo: '+num(resp.saldo_pendiente)+' und \u2248 '+num(resp.pallets_saldo)+' pallets).'; }
-      // Si quedó saldo y se pidió diferir, diferir el saldo restante (segregación) + nota
-      if(diferirSaldo && Number(resp.saldo_pendiente)>0){
-        msg.textContent='Entrega registrada. Difiriendo el saldo y generando nota...';
-        const causas=causasSeleccionadas('ent');
-        const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'});
-        if(r2.success){
-          txt+=' Saldo diferido (segregación).'; if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
-          msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
-          refrescoSilencioso();
-          setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
-          return;
-        } else { txt+=' (Aviso: no se pudo diferir el saldo: '+(r2.error||'')+')'; }
+    const queda=saldo-cant;
+    escribirOptimista({
+      id:s.id, etiqueta:'La entrega de '+s.empresa,
+      cambios: queda<=0 ? { estado:'ENTREGADO', saldo_pendiente:0 } : { saldo_pendiente:queda },
+      accion:'registrarEntrega', data:{ id_solicitud:s.id, cantidad_entregada:cant, fecha_entrega:fecha, nota:nota, usuario:'Panel SÍGUELO' },
+      okTxt:r=>{
+        let t=(r.message||'Entrega registrada')+' ✓';
+        if(Number(r.saldo_pendiente)>0 && r.pallets_saldo!=null) t+=' Saldo: '+num(r.saldo_pendiente)+' und ≈ '+num(r.pallets_saldo)+' pallets.';
+        return t;
+      },
+      alOk:r=>{
+        if(diferirSaldo && Number(r.saldo_pendiente)>0){
+          const causas=causasSeleccionadas('ent');
+          SYNC.pend++; syncPintar_();
+          postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(r.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(r.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'}).then(r2=>{
+            SYNC.pend--; syncPintar_();
+            if(r2&&r2.success) toast('Saldo diferido (segregación)'+(r2.nota_num?' · Nota '+r2.nota_num:'')+' ✓','ok',{fijo:true,accion:'Abrir nota',fn:()=>generarNotaImprimible(s.id)});
+            else toast('La entrega quedó registrada, pero no se pudo diferir el saldo: '+((r2&&r2.error)||''),'bad',{fijo:true});
+            refrescoSilencioso();
+          }).catch(e=>{ SYNC.pend--; syncPintar_(); toast('La entrega quedó registrada, pero no se pudo diferir el saldo: '+e.message,'bad',{fijo:true}); });
+        } else refrescoSilencioso();
       }
-      msg.style.color='#0a7a2f'; msg.textContent=txt;
-      refrescoSilencioso();
-      setTimeout(()=>{ cerrarModal(); }, 1400);
-    }catch(e){
-      btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo registrar: '+e.message;
-    }
+    });
   });
 }
 
@@ -2593,8 +2997,8 @@ function renderFiltrosActivos(){
   const add=(etiqueta,limpiar)=>chips.push({etiqueta,limpiar});
 
   // Estado por tarjeta KPI
-  const kpiNom={PENDIENTE:'Pendientes',AGENDADA:'Agendadas',URGENTE:'IPR ≥75',VENCE:'OC por vencer',DIFERIDA:'Diferidas'};
-  if(filtroEstado) add('Vista: '+(kpiNom[filtroEstado]||filtroEstado),()=>{filtroEstado='';document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));});
+  const kpiNom={PENDIENTE:'Solicitadas',ANALISIS:'En análisis',AGENDADA:'Agendadas',ASISTIO:'Asistió sin registrar',URGENTE:'IPR ≥75',VENCE:'OC por vencer',DIFERIDA:'Diferidas',REPROGRAMADA:'Reprogramadas'};
+  if(filtroEstado && TAB_ACTIVA==='lista') add('Vista: '+(kpiNom[filtroEstado]||filtroEstado),()=>{filtroEstado='';document.querySelectorAll('.kpi-click').forEach(c=>c.classList.remove('activo'));});
 
   const estSel=document.getElementById('filtroEstadoSel');
   if(estSel.value){ const t=estSel.options[estSel.selectedIndex].text; add('Estado: '+t,()=>estSel.value=''); }
@@ -3680,8 +4084,13 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.getElementById('tabCalendario').style.display = tab==='calendario'?'block':'none';
   document.getElementById('tabAdmin').style.display = tab==='admin'?'block':'none';
   document.getElementById('tabTransitos').style.display = tab==='transitos'?'block':'none';
+  document.getElementById('tabDiferidos').style.display = tab==='diferidos'?'block':'none';
+  document.getElementById('layout').classList.toggle('ancho', tab!=='lista');
+  document.querySelectorAll('.nv[data-ir]').forEach(b=>b.classList.toggle('activa', b.dataset.ir===tab));
+  document.querySelector('.pasos').style.display = document.querySelector('.mini-kpis').style.display = tab==='lista'?'':'none';
+  if(tab==='diferidos') dvbPintarTab_();
   // Los filtros estándar no aplican a la vista de tránsitos
-  document.querySelector('.filtros').style.display = (tab==='transitos'||tab==='admin')?'none':'block';
+  document.querySelector('.filtros').style.display = (tab==='transitos'||tab==='admin'||tab==='diferidos')?'none':'block';
   if(tab==='calendario') cargarCalendario();
   if(tab==='admin') admRender();
   if(tab==='transitos') cargarTransitosSinCita();
@@ -4193,7 +4602,11 @@ function admReiniciar_(){
 function admLog_(t){ ADM.bit.unshift(new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})+' · '+t); ADM.bit=ADM.bit.slice(0,8); admBitPintar_(); }
 function admBitPintar_(){ const b=document.getElementById('admBit'); if(b) b.innerHTML=ADM.bit.length?'<div class="adm-gt">En esta sesión</div>'+ADM.bit.map(x=>'<div>'+esc(x)+'</div>').join(''):''; }
 
-function arrancarPanel_(){ cargar(); }
+function arrancarPanel_(){
+  document.querySelectorAll('.kpi-click').forEach(c=>c.classList.toggle('activo', c.dataset.filtro===filtroEstado));
+  cargar(); dvbCargar_(); setTimeout(verificarVersion_, 4000);
+  fetch('./videos/panel_confirmacion.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{ if(v&&v.url){ const b=document.getElementById('btnVideo'); b.href=v.url; b.hidden=false; } }).catch(()=>{});
+}
 
 // Arranque con gate: si el PIN sigue vigente, entra directo; si no, pide PIN.
 if(pinVigente_()){ arrancarPanel_(); } else { mostrarGatePin_(); }
