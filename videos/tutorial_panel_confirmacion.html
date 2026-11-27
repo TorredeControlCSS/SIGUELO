@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video tutorial · Panel de Confirmación de Citas</title>
+<link rel="icon" href="../favicon.ico?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0b1f3a;--tinta:#1c2733;--tinta2:#4a5866;--linea:#dde3ea;--fondo:#eef1f5;--oro:#e0a526;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--fondo);font-family:Inter,Arial,sans-serif;color:var(--tinta);}
+  header{background:var(--navy);color:#fff;}
+  .in{max-width:1280px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+  header img{width:40px;height:40px;border-radius:50%;background:#fff;}
+  header h1{margin:0;font-size:17px;}
+  header .sub{font-size:12px;color:#bfd3ea;}
+  header a{margin-left:auto;color:var(--navy);background:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;}
+  main{max-width:1280px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;}
+  .reproductor{flex:999 1 720px;min-width:0;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(11,31,58,.18);}
+  video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#000;}
+  aside{flex:1 1 300px;background:#fff;border:1px solid var(--linea);border-radius:14px;padding:14px 16px;}
+  aside h2{margin:0 0 4px;font-size:15px;}
+  aside p{margin:0 0 10px;font-size:12.5px;color:var(--tinta2);line-height:1.45;}
+  ol{list-style:none;margin:0;padding:0;}
+  li button{width:100%;display:flex;gap:10px;align-items:baseline;text-align:left;background:none;border:0;border-top:1px solid #edf1f5;padding:9px 4px;font:500 13.5px Inter,sans-serif;color:var(--tinta);cursor:pointer;border-radius:6px;}
+  li button:hover{background:#f3f6f9;}
+  li button.on{background:#FAEEDA;font-weight:700;}
+  li span.t{font:700 12px ui-monospace,Consolas,monospace;color:var(--tinta2);min-width:40px;}
+  .nota{margin-top:12px;font-size:12px;color:var(--tinta2);background:#f6f8fa;border-radius:8px;padding:8px 10px;}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <img src="../icons/icon-192.png" alt="Caja de Seguro Social">
+  <div><h1>Video tutorial · Panel de Confirmación de Citas</h1><div class="sub">CEDIS Panamá · Dirección Nacional de Logística · 4 minutos</div></div>
+  <a href="../panel_confirmacion.html">← Volver al panel</a>
+</div></header>
+<main>
+  <div class="reproductor"><video id="v" controls preload="metadata" poster="tutorial_panel_confirmacion.jpg" src="tutorial_panel_confirmacion.mp4"></video></div>
+  <aside aria-label="Capítulos">
+    <h2>Capítulos</h2>
+    <p>Haga clic en un capítulo para saltar a esa parte.</p>
+    <ol id="caps"></ol>
+    <div class="nota">En el video las acciones son simuladas: no se confirmó ninguna cita ni se envió ningún correo.</div>
+  </aside>
+</main>
+<script>
+const CAPS=[[0, "El panel nuevo"], [19.4, "Los cinco pasos de una cita"], [47.1, "Cómo se lee una fila"], [72.7, "Confirmar una cita"], [100.0, "El menú de tres puntos"], [111.6, "Proponer un diferido · llave 1"], [138.6, "El visto bueno de Planificación · llave 2"], [165.9, "Seguimiento de los diferidos"], [179.5, "El espacio del almacén"], [197.6, "Asistencia y entrega"], [215.6, "Calendario y tránsitos"], [228.1, "En resumen"]];
+const v=document.getElementById('v'), ol=document.getElementById('caps');
+const mmss=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+ol.innerHTML=CAPS.map((c,i)=>'<li><button type="button" data-i="'+i+'"><span class="t">'+mmss(c[0])+'</span>'+(i+1)+'. '+c[1]+'</button></li>').join('');
+ol.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ v.currentTime=CAPS[+b.dataset.i][0]+0.05; v.play().catch(()=>{}); }));
+v.addEventListener('timeupdate',()=>{ let k=0; CAPS.forEach((c,i)=>{ if(v.currentTime>=c[0]) k=i; }); ol.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===k)); });
+</script>
+</body>
+</html>
