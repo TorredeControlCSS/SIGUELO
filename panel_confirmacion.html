@@ -1289,7 +1289,7 @@ function render(){
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='NO_ASISTIO'){
       acciones = `<button class="btn primary" data-conf="${idx}">Reprogramar (confirmar)</button>
-                  <button class="btn" data-dif="${idx}">Diferir</button>
+                  <button class="btn" data-dif="${idx}" title="El Almacén propone; el diferido se emite con el visto bueno de Planificación">Proponer diferido</button>
                   <button class="btn" data-det="${idx}">Ver detalle</button>`;
     } else if(estadoU==='DIFERIDA' || estadoU==='REMANENTE'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
@@ -1303,12 +1303,12 @@ function render(){
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>`;
     } else if(estadoU==='REPROGRAMADA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
-                  <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
+                  <button class="btn" data-dif="${idx}" title="El Almacén propone; el diferido se emite con el visto bueno de Planificación">Proponer diferido</button>`;
     } else {
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-repro="${idx}">Reprogramar</button>
-                  <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
+                  <button class="btn" data-dif="${idx}" title="El Almacén propone; el diferido se emite con el visto bueno de Planificación">Proponer diferido</button>`;
     }
     // Si la cita arrastró de un ciclo anterior sin confirmarse, ofrecer avisar al proveedor.
     if(!CERRADA && cruzoDeCiclo_(s)){
@@ -2127,7 +2127,7 @@ function abrirRecibirParcial(s){
 }
 
 function abrirDiferir(s){
-  document.getElementById('modalTitulo').textContent='Diferir cita — '+s.empresa;
+  document.getElementById('modalTitulo').textContent='Proponer diferido — '+s.empresa;
   document.getElementById('modalBody').innerHTML=`
     <table>
       <tr><td class="k">Proveedor</td><td class="v">${esc(s.empresa)}</td></tr>
