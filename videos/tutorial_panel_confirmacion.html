@@ -34,11 +34,11 @@
 <body>
 <header><div class="in">
   <img src="../icons/icon-192.png" alt="Caja de Seguro Social">
-  <div><h1>Video tutorial · Panel de Confirmación de Citas</h1><div class="sub">CEDIS Panamá · Dirección Nacional de Logística · 4 minutos</div></div>
+  <div><h1>Video tutorial · Panel de Confirmación de Citas</h1><div class="sub">CEDIS Panamá · Dirección Nacional de Logística · 4 minutos y medio</div></div>
   <a href="../panel_confirmacion.html">← Volver al panel</a>
 </div></header>
 <main>
-  <div class="reproductor"><video id="v" controls preload="metadata" poster="tutorial_panel_confirmacion.jpg" src="tutorial_panel_confirmacion.mp4"></video></div>
+  <div class="reproductor"><video id="v" controls preload="metadata" poster="tutorial_panel_confirmacion.jpg?v=2" src="tutorial_panel_confirmacion.mp4?v=2"></video></div>
   <aside aria-label="Capítulos">
     <h2>Capítulos</h2>
     <p>Haga clic en un capítulo para saltar a esa parte.</p>
@@ -47,7 +47,7 @@
   </aside>
 </main>
 <script>
-const CAPS=[[0, "El panel nuevo"], [19.4, "Los cinco pasos de una cita"], [47.1, "Cómo se lee una fila"], [72.7, "Confirmar una cita"], [100.0, "El menú de tres puntos"], [111.6, "Proponer un diferido · llave 1"], [138.6, "El visto bueno de Planificación · llave 2"], [165.9, "Seguimiento de los diferidos"], [179.5, "El espacio del almacén"], [197.6, "Asistencia y entrega"], [215.6, "Calendario y tránsitos"], [228.1, "En resumen"]];
+const CAPS=[[0, "Presentación"], [11.7, "El panel nuevo"], [31.0, "Los cinco pasos de una cita"], [58.7, "Cómo se lee una fila"], [85.2, "Confirmar una cita"], [112.6, "Los botones de la cita"], [124.2, "Proponer un diferido · llave 1"], [151.2, "El visto bueno de Planificación · llave 2"], [178.4, "Seguimiento de los diferidos"], [203.5, "El espacio del almacén"], [227.4, "Asistencia y entrega"], [245.4, "Calendario y tránsitos"], [257.9, "En resumen"]];
 const v=document.getElementById('v'), ol=document.getElementById('caps');
 const mmss=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 ol.innerHTML=CAPS.map((c,i)=>'<li><button type="button" data-i="'+i+'"><span class="t">'+mmss(c[0])+'</span>'+(i+1)+'. '+c[1]+'</button></li>').join('');
