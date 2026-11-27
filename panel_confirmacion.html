@@ -540,6 +540,17 @@
   .dif-paso{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
   .llave{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;}
   .ck{display:flex;align-items:flex-start;gap:7px;font-size:12.5px;line-height:1.3;}
+  .lnk-calc{background:none;border:0;padding:0;color:var(--azul);font:600 12px Inter,sans-serif;cursor:pointer;text-decoration:underline dotted;}
+  .side-h{flex-wrap:wrap;} .side-h .lnk-calc{order:3;flex-basis:100%;text-align:left;margin-top:-4px;}
+  .calc{font-size:13px;line-height:1.5;color:var(--tinta);}
+  .calc h4{margin:16px 0 6px;font-size:13.5px;color:var(--navy);}
+  .calc h4:first-child{margin-top:0;}
+  .calc .f{font-family:var(--mono);font-size:12.5px;background:#F6F8FA;border:1px solid var(--linea2);border-radius:8px;padding:8px 10px;margin:4px 0;line-height:1.6;}
+  .calc .f b{color:#0C447C;}
+  .calc .hoy{background:#E1F5EE;color:#0b4d3b;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:4px 0;}
+  .calc ul{margin:4px 0;padding-left:18px;} .calc li{margin:2px 0;}
+  .calc .nota{color:var(--tinta2);font-size:12px;}
+  .calc table{width:100%;border-collapse:collapse;font-size:12.5px;} .calc td{padding:4px 6px;border-bottom:1px solid var(--linea2);}
   .ck>i{flex:none;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;margin-top:1px;}
   .ck b{display:block;font-size:12.5px;} .ck small{display:block;color:var(--tinta2);font-size:11.5px;}
   .ck.ok>i{background:#0F6E56;color:#fff;} .ck.ok b{color:#0F6E56;}
@@ -2051,7 +2062,7 @@ function dvbPintarLado_(){
     const pRes=Math.min(pct, Math.max(0,(Number(f.reservado||0)-Number(f.res7||0))*m3h/cap*100));
     const pR7=Math.min(pct-pRes, Number(f.res7||0)*m3h/cap*100);
     const pOc=Math.max(0,pct-pRes-pR7);
-    es.innerHTML='<div class="side-h"><h2>Espacio del almacén</h2><span style="font-size:11.5px;color:var(--tinta2);margin-left:auto;">estimado · '+(function(g){ g=String(g||''); return g?esc(g.slice(8,10)+'/'+g.slice(5,7)+' '+g.slice(11,16)):'—'; })((j._meta&&j._meta.generado)||j.generado)+'</span></div>'+
+    es.innerHTML='<div class="side-h"><h2>Espacio del almacén</h2><button type="button" class="lnk-calc" onclick="abrirCalculoEspacio()" title="Fuentes y fórmulas del estimado">¿Cómo se calcula?</button><span style="font-size:11.5px;color:var(--tinta2);margin-left:auto;">estimado · '+(function(g){ g=String(g||''); return g?esc(g.slice(8,10)+'/'+g.slice(5,7)+' '+g.slice(11,16)):'—'; })((j._meta&&j._meta.generado)||j.generado)+'</span></div>'+
       '<div style="font-size:12.5px;font-weight:600;">Cuartos fríos · '+Math.round(pct)+' % <span style="font-weight:400;color:var(--tinta2);">('+num(f.hieleras)+' hieleras · '+num(f.m3)+' de '+num(cap)+' m³)</span></div>'+
       '<div class="barra" role="img" aria-label="Ocupación de cuartos fríos '+Math.round(pct)+' por ciento"><i style="width:'+pOc+'%;background:#7fa7d6"></i><i style="width:'+pRes+'%;background:#f0c26a"></i><i style="width:'+pR7+'%;background:#e5797a"></i></div>'+
       '<div class="leyenda"><span style="color:#3d6da8;">■ ocupado</span><span style="color:#8a5a00;">■ reservado</span><span style="color:#a12b2b;">■ reservado &gt; 7 días: '+num(f.res7)+' hieleras</span></div>'+
@@ -2071,6 +2082,52 @@ function dvbSecoHtml_(s){
     '<div class="leyenda"><span style="color:#3d6da8;">■ inventario</span><span style="color:#8a5a00;">■ reservado</span><span style="color:#a12b2b;">■ reservado &gt; 7 días: '+num(s.res7)+' pallets en '+num(s.ren7)+' renglones</span>'+(pal>pos?'<span>| capacidad de rack</span>':'')+'</div>'+
     '<div style="font-size:11.5px;color:var(--tinta2);margin-top:-4px;">Estimado con el maestro de empaque: '+num(s.renglones)+' renglones con dato de pallet; '+num(s.sinDato)+' sin dato no se cuentan.'+(pal>pos?' El inventario supera las posiciones de rack: hay mercancía en piso o empaques del maestro por revisar.':'')+'</div>';
 }
+function abrirCalculoEspacio(idCita){
+  const j=DVB.j||{}, f=(j.espacio||{}).frio||{}, s=(j.espacio||{}).seco||{};
+  const n=(x,d)=>Number(x||0).toLocaleString('es-PA',{maximumFractionDigits:d==null?0:d});
+  const corte=esc(String((j._meta||{}).generado||'')), a=idCita&&j.citas?j.citas[idCita]:null;
+  // Si se abre desde «Proponer diferido», al cerrar se vuelve a esa ventana.
+  const previo=document.getElementById('overlay').classList.contains('activo')?{t:document.getElementById('modalTitulo').textContent,b:document.getElementById('modalBody').innerHTML}:null;
+  document.getElementById('modalTitulo').textContent='¿Cómo se calcula el espacio del almacén?';
+  document.getElementById('modalBody').innerHTML='<div class="calc">'+
+   '<h4>1 · De dónde salen los datos</h4><ul>'+
+    '<li><b>Saldo y reserva por renglón:</b> Inventario Consolidado · CEDIS Panamá (kpi_inventario_renglones.json, Curvas de Inventario).</li>'+
+    '<li><b>Reservas con más de 7 días:</b> Formas 8 reservadas del Motor de Asignación (reservas.json), con los días que llevan sin despacharse.</li>'+
+    '<li><b>Frío o seco y empaques:</b> MAESTRO_EMPAQUE (columnas FRIO ?, PALLET y caja terciaria) y lo que declaran los proveedores en sus citas.</li>'+
+    '<li><b>Vencidos y por vencer ≤ 30 días:</b> alertas de inventario (baja administrativa y despacho urgente).</li></ul>'+
+    '<div class="nota">Corte de esta copia: '+corte+'. SIGUELO la recalcula cada hora.</div>'+
+   '<h4>2 · Cómo se pasan las unidades a espacio</h4>'+
+    '<div class="nota">Para cada renglón <i>i</i>: <b>S</b> = saldo · <b>R</b> = reservado · <b>R7</b> = reservado en Formas 8 con más de 7 días · <b>H</b> = unidades por hielera · <b>P</b> = unidades por pallet.</div>'+
+    '<div class="f"><b>H<sub>i</sub></b> = mediana( unidades ÷ bultos ) de las citas de frío del renglón<br>&nbsp;&nbsp;si no hay citas → caja terciaria del maestro</div>'+
+    '<div class="f"><b>P<sub>i</sub></b> = PALLET del maestro<br>&nbsp;&nbsp;si no hay → mediana( unidades ÷ pallets ) de las citas, solo si es ≥ 2 y ≥ la caja terciaria<br>&nbsp;&nbsp;si no hay → caja terciaria × 15.25</div>'+
+    '<div class="nota">Es frío si el maestro lo marca «FRIO ? = SI»; la marca de la cita solo cuenta si el renglón no está en el maestro.</div>'+
+   '<h4>3 · Cuartos fríos (en hieleras)</h4>'+
+    '<div class="f"><b>Hieleras</b> = Σ<sub>i</sub> ( S<sub>i</sub> ÷ H<sub>i</sub> )<br><b>Volumen</b> = Hieleras × 0.0724 m³<br><b>Ocupación</b> = Volumen ÷ 187.5 m³ (5 cuartos fríos)</div>'+
+    '<div class="hoy">Hoy: '+n(f.hieleras)+' hieleras × 0.0724 = '+n(f.m3,1)+' m³ → '+n(f.m3,1)+' ÷ 187.5 = <b>'+n(f.pct,1)+' %</b></div>'+
+   '<h4>4 · Seco (en pallets)</h4>'+
+    '<div class="f"><b>Pallets</b> = Σ<sub>i</sub> ( S<sub>i</sub> ÷ P<sub>i</sub> ) &nbsp;(solo renglones con P<sub>i</sub>)<br><b>Ocupación</b> = Pallets ÷ 4,800 posiciones de rack</div>'+
+    '<div class="hoy">Hoy: '+n(s.pallets)+' pallets ÷ '+n(s.pos||4800)+' = <b>'+n(s.pct,1)+' %</b> · '+n(s.renglones)+' renglones con dato, '+n(s.sinDato)+' sin dato (no se cuentan)</div>'+
+   '<h4>5 · Reservado y reservado con más de 7 días</h4>'+
+    '<div class="f"><b>Reservado</b> = Σ<sub>i</sub> ( R<sub>i</sub> ÷ H<sub>i</sub> o P<sub>i</sub> )<br><b>Reservado &gt; 7 días</b> = Σ<sub>i</sub> ( R7<sub>i</sub> ÷ H<sub>i</sub> o P<sub>i</sub> )</div>'+
+    '<table><tr><td></td><td><b>Reservado</b></td><td><b>&gt; 7 días</b></td></tr>'+
+     '<tr><td>Frío</td><td>'+n(f.reservado)+' hieleras</td><td>'+n(f.res7)+' hieleras · '+n(f.ren7)+' renglones</td></tr>'+
+     '<tr><td>Seco</td><td>'+n(s.reservado)+' pallets</td><td>'+n(s.res7)+' pallets · '+n(s.ren7)+' renglones ('+n(s.pct7,1)+' % del rack)</td></tr></table>'+
+   '<h4>6 · Espacio liberable y la regla del diferido</h4>'+
+    '<div class="f"><b>Liberable</b> = Reservado &gt; 7 días + vencidos y por vencer ≤ 30 días<br><b>Espacio de la cita</b> = unidades de la cita ÷ H<sub>i</sub> (frío) o ÷ P<sub>i</sub> (seco)</div>'+
+    '<div class="hoy">Liberable hoy: frío ≈ '+n(f.liberable)+' hieleras · seco ≈ '+n(s.liberable)+' pallets</div>'+
+    '<div class="f"><b>NO DIFERIR</b> si se cumple cualquiera:<br>&nbsp;&nbsp;1) cobertura &lt; 3 meses &nbsp;2) renglón VITAL &nbsp;3) Liberable ≥ espacio de la cita<br>Si no se cumple ninguna → «puede diferirse»; decide Planificación (segunda llave).</div>'+
+    (a?'<div class="hoy" style="background:#FAEEDA;color:#5c3d00;">Esta cita: ocupa ≈ <b>'+n(a.esp,1)+' '+esc(a.uni)+'</b> · liberable '+n(a.lib)+' '+esc(a.uni)+' · cobertura '+(a.cob==null?'s/d':n(a.cob,1)+' meses')+(a.ven?' · '+esc(a.ven):'')+' → <b>'+esc(a.rec)+'</b></div>':'')+
+   '<h4>7 · Hasta dónde llega el estimado</h4><ul class="nota">'+
+    '<li>Supone pallets llenos; en la práctica cada lote puede ocupar su propia posición.</li>'+
+    '<li>Los renglones sin dato de empaque no se cuentan: el seco real puede ser mayor.</li>'+
+    '<li>Si el seco pasa de 100 %, hay mercancía en piso o en otra bodega, o empaques del maestro por revisar (completar la columna PALLET afina el cálculo).</li></ul>'+
+   '<div style="display:flex;justify-content:flex-end;margin-top:14px;">'+(previo?'<button class="btn" id="calcVolver">← Volver</button> ':'')+'<button class="btn primary" id="calcCerrar">Entendido</button></div>'+
+  '</div>';
+  abrirModal();
+  document.getElementById('calcCerrar').addEventListener('click',cerrarModal);
+  const v=document.getElementById('calcVolver');
+  if(v && previo) v.addEventListener('click',()=>{ cerrarModal(); const s=SOLICITUDES.find(x=>String(x.id)===String(idCita)); if(s) abrirDiferir(s); });
+}
 function dvbAnalisisHtml_(s){
   const a=DVB.j&&DVB.j.citas&&DVB.j.citas[s.id];
   if(!a) return '<div class="analisis sd"><b>Análisis de espacio:</b> esta cita no está en la copia publicada (se publica cada hora). SIGUELO lo calcula al proponer y lo envía en el correo al planificador.</div>';
@@ -2079,7 +2136,7 @@ function dvbAnalisisHtml_(s){
   return '<div class="analisis '+(no?'no':'si')+'"><div>Recomendación del algoritmo: <b class="rec">'+esc(a.rec)+'</b></div>'+
     (a.raz&&a.raz.length?'<ul>'+a.raz.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul>':'')+
     '<div class="an-k"><div><small>COBERTURA</small><b>'+(a.cob>=12?'12+':a.cob)+' m</b></div><div><small>ESTA CITA OCUPA</small><b>'+num(a.esp)+' '+u+'</b></div><div><small>LIBERABLE HOY</small><b>'+num(a.lib)+' '+u+'</b></div></div>'+
-    '<div style="margin-top:6px;font-size:11.5px;opacity:.85;">'+(a.ven?esc(a.ven)+' · ':'')+'planificador: '+esc(a.plan||'—')+'. Con o sin recomendación, la decisión final es de Planificación (segunda llave).</div></div>';
+    '<div style="margin-top:6px;font-size:11.5px;opacity:.85;">'+(a.ven?esc(a.ven)+' · ':'')+'planificador: '+esc(a.plan||'—')+'. Con o sin recomendación, la decisión final es de Planificación (segunda llave). <button type="button" class="lnk-calc" onclick="abrirCalculoEspacio(\''+esc(s.id)+'\')">¿Cómo se calcula?</button></div></div>';
 }
 function dvbHistHtml_(){
   const H=DVB.hist; if(!H) return '<div class="estado-msg">Cargando el historial de diferidos…</div>';
