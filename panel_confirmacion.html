@@ -1296,6 +1296,11 @@ function render(){
                   <button class="btn" data-parcial="${idx}">Recibir parcial</button>
                   <button class="btn" data-ent="${idx}">Registrar entrega</button>
                   <button class="btn btn-deshacer" data-deshacer="${idx}" title="Devolver a pendiente (limpia diferimiento)">↺ Deshacer</button>`;
+    } else if(estadoU==='EN ANALISIS' && /espera visto bueno/i.test(String(s.motivo||''))){
+      // 27-nov-2026 · Dos llaves: diferido propuesto, esperando a Planificación. Se puede agendar igual.
+      acciones = `<span class="badge ambar" title="SIGUELO pidió el visto bueno al planificador del renglón">Diferido propuesto · espera visto bueno de Planificación</span>
+                  <button class="btn primary" data-conf="${idx}">Confirmar cita</button>
+                  <button class="btn" data-parcial="${idx}">Recibir parcial</button>`;
     } else if(estadoU==='REPROGRAMADA'){
       acciones = `<button class="btn primary" data-conf="${idx}">Confirmar cita</button>
                   <button class="btn" data-dif="${idx}">Diferir con nota</button>`;
@@ -2130,7 +2135,7 @@ function abrirDiferir(s){
       <tr><td class="k">OC / Abasto</td><td class="v">${esc(s.oc)} / ${esc(s.cod_abasto)}</td></tr>
       <tr><td class="k">Área</td><td class="v">${esc(s.categoria||'—')}</td></tr>
     </table>
-    <div style="font-size:12.5px;color:#555;margin:14px 0 8px;">La cita se difiere (no se agenda a&uacute;n) y se notifica al proveedor por correo. La nueva fecha se le informa despu&eacute;s.</div>
+    <div style="font-size:12.5px;color:#555;margin:14px 0 8px;"><b>Dos llaves:</b> el Almac&eacute;n propone el diferido y SIGUELO le pide el visto bueno al planificador del rengl&oacute;n, con el an&aacute;lisis de espacio. Mientras tanto la cita queda <b>en an&aacute;lisis</b>. Si Planificaci&oacute;n est&aacute; de acuerdo, se emite la nota y se avisa al proveedor; si no, la cita vuelve a la lista para agendarla.</div>
     <div style="margin-bottom:10px;">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--azul-osc);margin-bottom:4px;">Motivo</label>
       <select id="difMotivo" style="width:100%;padding:7px;border:1px solid #a8a8a8;border-radius:2px;">
@@ -2150,7 +2155,7 @@ function abrirDiferir(s){
     <div id="difMsg" style="font-size:12.5px;min-height:18px;margin:6px 0;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
       <button class="btn" id="difCancelar">Cancelar</button>
-      <button class="btn primary" id="difOk">Diferir y notificar</button>
+      <button class="btn primary" id="difOk">Proponer diferido</button>
     </div>`;
   abrirModal();
   document.getElementById('difCancelar').addEventListener('click',cerrarModal);
@@ -2159,11 +2164,20 @@ function abrirDiferir(s){
     const nota=document.getElementById('difNota').value;
     const msg=document.getElementById('difMsg');
     const btn=document.getElementById('difOk');
-    btn.disabled=true; msg.style.color='#555'; msg.textContent='Difiriendo y enviando correo...';
+    btn.disabled=true; msg.style.color='#555'; msg.textContent='Registrando la propuesta...';
     try{
       const causas=causasSeleccionadas('dif');
-      const resp=await postGAS('diferirCita',{id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO'});
+      const resp=await postGAS('dvbProponer',{id:s.id, motivo:motivo, nota:nota, causas:causas, usuario:'Panel SÍGUELO'});
       if(!resp.success){ throw new Error(resp.error||'Error'); }
+      // 27-nov-2026 · Dos llaves: la cita queda EN ANALISIS hasta el visto bueno de Planificación.
+      // El análisis y el correo al planificador se piden aparte, sin esperar.
+      if(String(resp.estado||'').toUpperCase()==='EN ANALISIS'){
+        actualizarLocal(s.id, { estado:'EN ANALISIS', motivo:resp.motivo||'Diferido propuesto por el Almacén · espera visto bueno de Planificación' });
+        if(!resp.yaPropuesto) analizarDiferidoEnParalelo({id:s.id, id_vobo:resp.id_vobo, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
+        msg.style.color='#0a7a2f'; msg.textContent=(resp.message||'Diferido propuesto')+'.';
+        setTimeout(()=>{ cerrarModal(); }, 1800);
+        return;
+      }
       let txt=resp.message+'.';
       if(resp.nota_num) txt+=' Nota '+resp.nota_num+'.';
       if(resp.correo_enviado===false) txt+=' (Aviso: el correo no se envió: '+(resp.correo_error||'')+')';
@@ -2294,7 +2308,6 @@ function abrirRegistrarEntrega(s){
         const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'});
         if(r2.success){
           txt+=' Saldo diferido (segregación).'; if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
-          analizarDiferidoEnParalelo({id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, usuario:'Panel SÍGUELO'});
           msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
           refrescoSilencioso();
           setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
