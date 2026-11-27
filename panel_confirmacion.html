@@ -1156,7 +1156,7 @@ function actualizarCargaSemanal(lista){
 
   // Pallets: SIEMPRE visibles. En la vista de solicitadas, usa los pallets solicitados de ese día.
   const palletsSerie = (modo==='solicitadas') ? datPalletsSolic : datPallets;
-  ds.push({ type:'line', label:'Pallets', data:palletsSerie,
+  ds.push({ type:'line', label:'Pallets', data:palletsSerie.map(v=>(v===0?null:v)), spanGaps:true,
     borderColor:'#A32D2D', backgroundColor:'#A32D2D', borderWidth:2, pointRadius:3, tension:0.2, yAxisID:'y1', order:1 });
 
   // Fill-rate: línea punteada en % (eje propio yFill).
@@ -1209,13 +1209,13 @@ function actualizarCargaSemanal(lista){
       },
       scales:{
         x:{ stacked:true, ticks:{ font:{size:11} }, grid:{ display:false } },
-        y:{ stacked:true, type:'linear', position:'left', beginAtZero:true,
+        y:{ stacked:true, type:'linear', position:'left', beginAtZero:true, grace:'15%',
             title:{ display:true, text:'Citas (día)', font:{size:11} },
             ticks:{ font:{family:'Consolas,monospace'}, precision:0 } },
-        y1:{ type:'linear', position:'right', beginAtZero:true, display:mostrarY1,
+        y1:{ type:'linear', position:'right', beginAtZero:true, grace:'15%', display:mostrarY1,
              title:{ display:true, text:'Pallets', font:{size:11} },
              ticks:{ font:{family:'Consolas,monospace'} }, grid:{ drawOnChartArea:false } },
-        yFill:{ type:'linear', position:'right', min:0, max:100, display:false,
+        yFill:{ type:'linear', position:'right', min:0, max:118, display:false,
              grid:{ drawOnChartArea:false } }
       }
     }
