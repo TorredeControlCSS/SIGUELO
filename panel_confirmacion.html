@@ -1637,6 +1637,13 @@ function postGAS(action,data){
   }).then(r=>r.json());
 }
 
+// 27-nov-2026 · Diferidos con dos llaves (modo prueba): el análisis de espacio y el correo de
+// visto bueno corren en el backend APARTE, sin esperar la respuesta. El diferido responde igual
+// de rápido que antes; si el análisis falla, el diferido no se entera.
+function analizarDiferidoEnParalelo(datos){
+  try{ postGAS('dvbAnalizarDiferido',datos).catch(()=>{}); }catch(e){}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  ACTUALIZACIÓN OPTIMISTA (#2, #9)
 //  En vez de llamar cargar() (que recarga y recalcula ~4000 filas sin caché),
@@ -2163,6 +2170,7 @@ function abrirDiferir(s){
       msg.style.color = resp.correo_enviado===false ? '#b06a00' : '#0a7a2f';
       msg.textContent=txt+' Abriendo nota...';
       actualizarLocal(s.id, { estado:'DIFERIDA', motivo:motivo });
+      analizarDiferidoEnParalelo({id:s.id, motivo:motivo, causas:causas, usuario:'Panel SÍGUELO'});
       setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
     }catch(e){
       btn.disabled=false; msg.style.color='#b00020'; msg.textContent='No se pudo diferir: '+e.message;
@@ -2286,6 +2294,7 @@ function abrirRegistrarEntrega(s){
         const r2=await postGAS('diferirCita',{id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, nota:'Saldo tras entrega parcial: '+num(resp.saldo_pendiente)+' und', usuario:'Panel SÍGUELO'});
         if(r2.success){
           txt+=' Saldo diferido (segregación).'; if(r2.nota_num) txt+=' Nota '+r2.nota_num+'.';
+          analizarDiferidoEnParalelo({id:s.id, motivo:'Segregación de entrega', cant_diferida:Number(resp.saldo_pendiente), causas:causas, usuario:'Panel SÍGUELO'});
           msg.style.color='#0a7a2f'; msg.textContent=txt+' Abriendo nota...';
           refrescoSilencioso();
           setTimeout(async()=>{ cerrarModal(); await generarNotaImprimible(s.id); }, 1100);
