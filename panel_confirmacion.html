@@ -4089,6 +4089,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.nv[data-ir]').forEach(b=>b.classList.toggle('activa', b.dataset.ir===tab));
   document.querySelector('.pasos').style.display = document.querySelector('.mini-kpis').style.display = tab==='lista'?'':'none';
   if(tab==='diferidos') dvbPintarTab_();
+  if(typeof renderFiltrosActivos==='function') renderFiltrosActivos();
   // Los filtros estándar no aplican a la vista de tránsitos
   document.querySelector('.filtros').style.display = (tab==='transitos'||tab==='admin'||tab==='diferidos')?'none':'block';
   if(tab==='calendario') cargarCalendario();
